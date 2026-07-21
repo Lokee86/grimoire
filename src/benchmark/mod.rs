@@ -1,11 +1,16 @@
 //! Deterministic graph-storage benchmark workloads and reporting.
 
 mod backend;
+mod cli;
+#[cfg(test)]
+mod cli_tests;
 mod error;
 mod report;
 mod runner;
 mod workload;
 
+pub use crate::synthetic::{GraphSpec, ScaleTier, Topology};
+pub use cli::{BenchmarkCommand, BenchmarkParseError, benchmark_usage, topology_preset};
 pub use error::BenchmarkError;
 pub use report::{Backend, BenchmarkMetric, BenchmarkReport, BenchmarkSample};
 pub use runner::{BenchmarkConfig, run_benchmark};
