@@ -1,0 +1,17 @@
+[package]
+name = "arcana-graph"
+version = "0.1.0"
+edition = "2024"
+description = "A deterministic, content-addressed repository graph engine"
+publish = false
+
+[lib]
+name = "arcana_graph"
+path = "src/lib.rs"
+
+[[bin]]
+name = "arcana"
+path = "src/main.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
