@@ -19,6 +19,9 @@ pub use reader::PackedGraph;
 pub use sqlite::{SqliteError, SqliteGraph, SqliteWriteSummary, write_sqlite};
 pub use writer::{WriteSummary, write_packed};
 
+pub(crate) use dataset::canonical_edges;
+pub(crate) use format::{StableHasher, checksum};
+
 use crate::synthetic::{EdgeKind, NodeId};
 
 /// One adjacent node and the relationship kind connecting it.
