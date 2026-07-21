@@ -19,14 +19,13 @@ Grimoire Context, and Pitlord.
 ArcanaGraph remains a standalone Rust process or CLI boundary. Go consumers do
 not link it through cgo or FFI.
 
-## Storage proof of concept
+## Graph workload foundation
 
-The first milestone compares a packed immutable adjacency representation with a
-SQLite reference implementation. The comparison will use identical generated
-datasets and query workloads rather than a single toy graph.
+ArcanaGraph includes deterministic synthetic graph generation for exercising
+its packed storage, snapshot, overlay, and compaction systems across more than a
+single toy topology.
 
-The workload foundation currently includes five deterministic topology
-families:
+The workload foundation currently includes five topology families:
 
 - **Modular** — cohesive clusters with a configurable cross-cluster edge share.
 - **Entangled** — hubs, cross-cluster relationships, cycles, and local edges.
@@ -41,8 +40,8 @@ nodes and 50,000,000 edges. Generation scales with requested edges rather than
 enumerating every possible node pair.
 
 Mutation plans cover single-node, local-range, scattered, hub-focused, and
-percentage updates. A plan contains exact removed and replacement edges so
-both storage backends receive the same update.
+percentage updates. A plan contains exact removed and replacement edges so the
+overlay and rebuilt packed snapshot receive the same logical update.
 
 ## Determinism and invariants
 
@@ -56,18 +55,17 @@ and mutated graphs guarantee:
 - stable output for the same specification and seed; and
 - preserved edge-kind counts across mutations.
 
-The generator uses a small internal permutation sampler and currently has no
-third-party dependencies. Dataset construction is not part of the storage
-performance measurement; datasets will be generated once, identified, and
-reused by both backends.
+The generator uses a small internal permutation sampler and has no third-party
+dependencies. Dataset construction is outside the measured update and query
+windows and is reused by both benchmark paths.
 
-## Packed adjacency backend
+## Packed adjacency format
 
-The first immutable packed format is implemented. It uses a fixed, versioned,
-little-endian header followed by aligned forward offsets, forward targets,
-forward edge kinds, reverse offsets, reverse sources, and reverse edge kinds.
-The writer canonicalizes logical edges, streams deterministic bytes through a
-temporary file, syncs them, and atomically commits a new snapshot path.
+The immutable packed format uses a fixed, versioned, little-endian header
+followed by aligned forward offsets, forward targets, forward edge kinds,
+reverse offsets, reverse sources, and reverse edge kinds. The writer
+canonicalizes logical edges, streams deterministic bytes through a temporary
+file, syncs them, and atomically commits a new snapshot path.
 
 Opening a packed graph validates the header, exact section layout, file length,
 payload checksum, logical dataset checksum, offset tables, node bounds, and
@@ -94,21 +92,10 @@ replacement. `compact_snapshot` materializes the visible graph into a new packed
 base, verifies its edge count and checksum, and publishes a new base-only
 manifest last. The source snapshot remains untouched.
 
-## SQLite reference backend
-
-The control backend stores the same canonical graph in a conventional SQLite
-schema. Forward traversal uses the `(source, target, kind)` primary key and
-reverse traversal uses an index on `(target, source, kind)`. The database keeps
-the same logical dataset checksum as the packed format and is opened read-only
-after identity, integrity, metadata, edge-count, endpoint, and checksum
-validation.
-
 ## Benchmarks
 
-The benchmark harness generates one deterministic dataset, gives both backends
-identical query sequences, alternates backend order across samples, and rejects
-any packed/SQLite result mismatch. It records immutable build time, fully
-validated reopen time, warm in-process query throughput, and file size.
+The benchmark harness compares immutable overlays against rebuilding a complete
+packed replacement while treating the existing packed base as shared storage:
 
 ```text
 cargo run --release -- benchmark \
@@ -116,25 +103,12 @@ cargo run --release -- benchmark \
   --topology modular \
   --queries 10000 \
   --samples 3 \
-  --csv target/benchmarks/small-modular.csv
+  --csv target/benchmarks/small-modular-mutations.csv
 ```
 
 Supported tiers are `small`, `medium`, `large`, and `stress`. Supported
 synthetic topologies are `modular`, `entangled`, `hub-heavy`, `layered`, and
-`dense-subsystem`. These baseline query measurements are intentionally labeled
-warm; separate-process cold-cache measurement remains future work.
-
-Mutation benchmarks compare immutable overlays against rebuilding a complete
-packed replacement while treating the existing packed base as shared storage:
-
-```text
-cargo run --release -- benchmark-mutations \
-  --tier small \
-  --topology modular \
-  --queries 10000 \
-  --samples 3 \
-  --csv target/benchmarks/small-modular-mutations.csv
-```
+`dense-subsystem`.
 
 The five mutation workloads cover one hot node, a local range, scattered
 changes, hub-focused changes, and one percent of all edges. Each run measures

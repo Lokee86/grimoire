@@ -15,6 +15,3 @@ path = "src/main.rs"
 
 [lints.rust]
 unsafe_code = "forbid"
-
-[dependencies]
-rusqlite = { version = "0.40.1", features = ["bundled"] }

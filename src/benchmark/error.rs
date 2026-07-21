@@ -2,7 +2,7 @@ use std::fmt;
 use std::io;
 
 use crate::snapshot::{OverlayError, SnapshotError};
-use crate::storage::{PackedError, QueryError, SqliteError};
+use crate::storage::{PackedError, QueryError};
 use crate::synthetic::{GraphSpecError, MutationError};
 
 use super::workload::QueryWorkloadError;
@@ -15,7 +15,6 @@ pub enum BenchmarkError {
     Workload(QueryWorkloadError),
     Query(QueryError),
     Packed(PackedError),
-    Sqlite(SqliteError),
     Overlay(OverlayError),
     Snapshot(SnapshotError),
     Mutation(MutationError),
@@ -28,14 +27,6 @@ pub enum BenchmarkError {
         overlay_fingerprint: u64,
         rebuilt_fingerprint: u64,
     },
-    BackendMismatch {
-        sample: u32,
-        workload: String,
-        packed_items: u64,
-        sqlite_items: u64,
-        packed_fingerprint: u64,
-        sqlite_fingerprint: u64,
-    },
 }
 
 impl fmt::Display for BenchmarkError {
@@ -46,7 +37,6 @@ impl fmt::Display for BenchmarkError {
             Self::Workload(error) => error.fmt(formatter),
             Self::Query(error) => error.fmt(formatter),
             Self::Packed(error) => error.fmt(formatter),
-            Self::Sqlite(error) => error.fmt(formatter),
             Self::Overlay(error) => error.fmt(formatter),
             Self::Snapshot(error) => error.fmt(formatter),
             Self::Mutation(error) => error.fmt(formatter),
@@ -64,19 +54,6 @@ impl fmt::Display for BenchmarkError {
                  overlay items={overlay_items} fingerprint={overlay_fingerprint:#x}; \
                  rebuilt packed items={rebuilt_items} fingerprint={rebuilt_fingerprint:#x}"
             ),
-            Self::BackendMismatch {
-                sample,
-                workload,
-                packed_items,
-                sqlite_items,
-                packed_fingerprint,
-                sqlite_fingerprint,
-            } => write!(
-                formatter,
-                "backend mismatch in sample {sample} workload {workload}: \
-                 packed items={packed_items} fingerprint={packed_fingerprint:#x}; \
-                 SQLite items={sqlite_items} fingerprint={sqlite_fingerprint:#x}"
-            ),
         }
     }
 }
@@ -89,13 +66,10 @@ impl std::error::Error for BenchmarkError {
             Self::Workload(error) => Some(error),
             Self::Query(error) => Some(error),
             Self::Packed(error) => Some(error),
-            Self::Sqlite(error) => Some(error),
             Self::Overlay(error) => Some(error),
             Self::Snapshot(error) => Some(error),
             Self::Mutation(error) => Some(error),
-            Self::InvalidConfig(_)
-            | Self::MutationMismatch { .. }
-            | Self::BackendMismatch { .. } => None,
+            Self::InvalidConfig(_) | Self::MutationMismatch { .. } => None,
         }
     }
 }
@@ -127,12 +101,6 @@ impl From<QueryError> for BenchmarkError {
 impl From<PackedError> for BenchmarkError {
     fn from(error: PackedError) -> Self {
         Self::Packed(error)
-    }
-}
-
-impl From<SqliteError> for BenchmarkError {
-    fn from(error: SqliteError) -> Self {
-        Self::Sqlite(error)
     }
 }
 

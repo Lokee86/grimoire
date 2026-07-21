@@ -7,8 +7,6 @@ use super::error::BenchmarkError;
 /// The storage representation used for one benchmark sample.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Backend {
-    Packed,
-    Sqlite,
     Overlay,
     RebuiltPacked,
 }
@@ -16,8 +14,6 @@ pub enum Backend {
 impl fmt::Display for Backend {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
-            Self::Packed => "packed",
-            Self::Sqlite => "sqlite",
             Self::Overlay => "overlay",
             Self::RebuiltPacked => "rebuilt-packed",
         })
@@ -27,21 +23,17 @@ impl fmt::Display for Backend {
 /// The operation measured by a benchmark sample.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum BenchmarkMetric {
-    Build,
     Reopen,
     Query,
     Mutation,
-    DiskSize,
 }
 
 impl fmt::Display for BenchmarkMetric {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
-            Self::Build => "build",
             Self::Reopen => "reopen",
             Self::Query => "query",
             Self::Mutation => "mutation",
-            Self::DiskSize => "disk_size",
         })
     }
 }

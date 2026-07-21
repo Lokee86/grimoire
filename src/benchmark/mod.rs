@@ -1,32 +1,29 @@
-//! Deterministic graph-storage benchmark workloads and reporting.
+//! Deterministic graph mutation benchmarks and reporting.
 
-mod backend;
 mod cli;
 #[cfg(test)]
 mod cli_tests;
+mod common;
 mod error;
 mod mutation_files;
 mod mutation_plan;
 mod mutation_query;
 mod mutation_runner;
 mod report;
-mod runner;
 mod workload;
 
 pub use crate::synthetic::{GraphSpec, ScaleTier, Topology};
 pub use cli::{BenchmarkCommand, BenchmarkParseError, benchmark_usage, topology_preset};
+pub use common::BenchmarkConfig;
 pub use error::BenchmarkError;
 pub use mutation_runner::run_mutation_benchmark;
 pub use report::{Backend, BenchmarkMetric, BenchmarkReport, BenchmarkSample};
-pub use runner::{BenchmarkConfig, run_benchmark};
 pub use workload::{
     QueryDirection, QueryPattern, QueryWorkload, QueryWorkloadError, generate_workload,
 };
 
 #[cfg(test)]
 mod mutation_runner_tests;
-#[cfg(test)]
-mod runner_tests;
 
 #[cfg(test)]
 mod tests {
@@ -54,7 +51,7 @@ mod tests {
         let mut report = BenchmarkReport::new();
         report.push(BenchmarkSample::new(
             "graph,a",
-            Backend::Packed,
+            Backend::Overlay,
             BenchmarkMetric::Query,
             "forward\"neighbors",
             2,
@@ -66,23 +63,23 @@ mod tests {
         ));
         assert_eq!(
             report.to_csv(),
-            "graph,backend,metric,workload,sample,duration_ns,operations,items,file_size,fingerprint\n\"graph,a\",packed,query,\"forward\"\"neighbors\",2,1250,3,4,5,42\n"
+            "graph,backend,metric,workload,sample,duration_ns,operations,items,file_size,fingerprint\n\"graph,a\",overlay,query,\"forward\"\"neighbors\",2,1250,3,4,5,42\n"
         );
     }
 
     #[test]
     fn human_summary_uses_medians_and_query_throughput() {
         let mut report = BenchmarkReport::new();
-        report.push(sample(Backend::Packed, 0, 10));
-        report.push(sample(Backend::Packed, 1, 30));
-        report.push(sample(Backend::Sqlite, 0, 20));
-        report.push(sample(Backend::Sqlite, 1, 40));
+        report.push(sample(Backend::Overlay, 0, 10));
+        report.push(sample(Backend::Overlay, 1, 30));
+        report.push(sample(Backend::RebuiltPacked, 0, 20));
+        report.push(sample(Backend::RebuiltPacked, 1, 40));
         let summary = report.human_summary();
-        assert!(summary.contains("packed median 20.000ms"));
-        assert!(summary.contains("sqlite median 30.000ms"));
+        assert!(summary.contains("overlay median 20.000ms"));
+        assert!(summary.contains("rebuilt-packed median 30.000ms"));
         assert!(summary.contains("speedup 1.50x"));
-        assert!(summary.contains("packed throughput=6666.7 ops/s"));
-        assert!(summary.contains("sqlite throughput=3750.0 ops/s"));
-        assert!(summary.contains("file_size packed=2048B sqlite=2048B"));
+        assert!(summary.contains("overlay throughput=6666.7 ops/s"));
+        assert!(summary.contains("rebuilt-packed throughput=3750.0 ops/s"));
+        assert!(summary.contains("file_size overlay=2048B rebuilt-packed=2048B"));
     }
 }

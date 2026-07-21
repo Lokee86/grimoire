@@ -4,7 +4,7 @@ use crate::snapshot::GraphSnapshot;
 use crate::storage::{Neighbor, PackedGraph};
 use crate::synthetic::NodeId;
 
-use super::runner::NamedWorkload;
+use super::common::NamedWorkload;
 use super::{
     Backend, BenchmarkError, BenchmarkMetric, BenchmarkReport, BenchmarkSample, QueryDirection,
     QueryWorkload,

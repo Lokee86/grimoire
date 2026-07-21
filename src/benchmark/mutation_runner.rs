@@ -7,10 +7,10 @@ use crate::snapshot::{GraphSnapshot, OverlayChanges, publish_snapshot, write_ove
 use crate::storage::{PackedGraph, write_packed};
 use crate::synthetic::{GraphDataset, generate};
 
+use super::common::{NamedWorkload, graph_name, shared_workloads, validate_config};
 use super::mutation_files::{GeneratedFiles, mutation_path};
 use super::mutation_plan::{NamedMutation, standard_mutations};
 use super::mutation_query::measure_queries;
-use super::runner::{NamedWorkload, graph_name, shared_workloads, validate_config};
 use super::{
     Backend, BenchmarkConfig, BenchmarkError, BenchmarkMetric, BenchmarkReport, BenchmarkSample,
 };
