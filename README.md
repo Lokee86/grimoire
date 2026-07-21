@@ -60,12 +60,26 @@ third-party dependencies. Dataset construction is not part of the storage
 performance measurement; datasets will be generated once, identified, and
 reused by both backends.
 
+## Packed adjacency backend
+
+The first immutable packed format is implemented. It uses a fixed, versioned,
+little-endian header followed by aligned forward offsets, forward targets,
+forward edge kinds, reverse offsets, reverse sources, and reverse edge kinds.
+The writer canonicalizes logical edges, streams deterministic bytes through a
+temporary file, syncs them, and atomically commits a new snapshot path.
+
+Opening a packed graph validates the header, exact section layout, file length,
+payload checksum, logical dataset checksum, offset tables, node bounds, and
+adjacency ordering. Queries read directly from the packed byte buffer without
+rebuilding an in-memory graph. A separate in-memory implementation provides the
+correctness oracle used by round-trip tests.
+
 ## Next implementation steps
 
-1. Define the first deliberately simple packed adjacency format.
-2. Implement forward and reverse neighbor reads.
-3. Implement the equivalent SQLite reference backend.
-4. Add cold-build, reopen, query, mutation, overlay, and compaction benchmarks.
+1. Implement the equivalent SQLite reference backend.
+2. Define shared deterministic query workloads.
+3. Add cold-build, reopen, query, mutation, overlay, and compaction benchmarks.
+4. Evaluate ordinary buffered reads before introducing memory mapping.
 5. Validate synthetic results against captured Demon Docs and Space Rocks
    repository graphs.
 

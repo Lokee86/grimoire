@@ -3,6 +3,7 @@
 //! Synthetic workloads and future graph-storage implementations are exposed
 //! from this crate rather than coupled to the `arcana` command-line binary.
 
+pub mod storage;
 pub mod synthetic;
 
 /// Product name presented by the ArcanaGraph library and CLI.
