@@ -1,33 +1,30 @@
-use std::{env, process::ExitCode};
+use std::env;
+use std::process::ExitCode;
 
-use arcana_graph::PROJECT_NAME;
+use arcana_graph::{PROJECT_NAME, PROJECT_VERSION, about};
+
+const USAGE: &str = "Usage: arcana [OPTIONS]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information";
 
 fn main() -> ExitCode {
-    let mut args = env::args().skip(1);
+    let mut arguments = env::args().skip(1);
 
-    match args.next().as_deref() {
-        None | Some("--help" | "-h") => {
-            print_help();
+    match arguments.next().as_deref() {
+        None => {
+            println!("{PROJECT_NAME} — {}", about());
+            println!("{USAGE}");
             ExitCode::SUCCESS
         }
-        Some("--version" | "-V") => {
-            println!("arcana {}", env!("CARGO_PKG_VERSION"));
+        Some("-h" | "--help") if arguments.next().is_none() => {
+            println!("{USAGE}");
             ExitCode::SUCCESS
         }
-        Some(command) => {
-            eprintln!("unknown command: {command}");
-            eprintln!("run `arcana --help` for usage");
-            ExitCode::FAILURE
+        Some("-V" | "--version") if arguments.next().is_none() => {
+            println!("{PROJECT_NAME} {PROJECT_VERSION}");
+            ExitCode::SUCCESS
+        }
+        Some(argument) => {
+            eprintln!("arcana: unexpected argument '{argument}'\n\n{USAGE}");
+            ExitCode::from(2)
         }
     }
-}
-
-fn print_help() {
-    println!("{PROJECT_NAME} repository graph engine");
-    println!();
-    println!("Usage: arcana [OPTIONS]");
-    println!();
-    println!("Options:");
-    println!("  -h, --help       Print help");
-    println!("  -V, --version    Print version");
 }

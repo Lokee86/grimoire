@@ -1,77 +1,46 @@
 # ArcanaGraph
 
-ArcanaGraph is an independent Rust engine for building and querying deterministic repository graphs.
-
-It provides shared repository facts to tools such as Demon Docs and Context Grimoire without making either project own the graph substrate.
+ArcanaGraph is an independent repository-graph project. Its role is to model
+repositories as a queryable graph and to provide the storage and snapshot
+foundations needed to inspect repository structure and relationships.
 
 ## Ownership boundaries
 
-ArcanaGraph owns:
+- **ArcanaGraph** owns the repository graph model, graph storage, snapshots,
+  forward/reverse queries, and measurements of storage representations.
+- **Demon Docs** owns documentation content and documentation-specific
+  authoring, maintenance, and publishing workflows. It may consume graph data,
+  but it does not own ArcanaGraph's graph persistence or query implementation.
+- **Context Grimoire** owns context composition and retrieval workflows for its
+  consumers. It may query ArcanaGraph, but it does not own the repository graph
+  model or its storage lifecycle.
 
-- Stable logical identities for repository entities.
-- Typed, directed relationships with provenance.
-- Deterministic graph snapshots.
-- Content-addressed immutable storage.
-- Forward, reverse, path, and bounded-neighbourhood queries.
-- Provider ingestion for filesystem, Git, SCIP, and other factual evidence.
+Keeping these boundaries explicit lets ArcanaGraph remain useful as a small,
+standalone repository service rather than becoming a subsystem of either
+neighboring project.
 
-ArcanaGraph does not own:
+## First storage proof of concept
 
-- Documentation policy or Codemap decisions. Those remain in Demon Docs.
-- Context ranking, token budgets, or agent rendering. Those remain in Context Grimoire.
-- MCP workflow orchestration or model-specific behaviour.
+The first implementation milestone will establish a measurable storage seam
+with:
 
-Demon Docs may use ArcanaGraph evidence to generate and review Codemap suggestions. Context Grimoire may select task-relevant projections from the same graph.
+1. deterministic fixture import;
+2. dense IDs for imported repository entities;
+3. a content-addressed snapshot;
+4. forward and reverse queries; and
+5. packed-versus-SQLite measurement.
 
-## Status
-
-ArcanaGraph is at the storage proof-of-concept stage. The repository currently contains only the project foundation and CLI shell.
-
-## First milestone
-
-The first implementation milestone is deliberately narrow:
-
-1. Import a fixed JSON graph fixture deterministically.
-2. Assign deterministic dense node identifiers.
-3. Write a content-addressed snapshot.
-4. Read the snapshot back.
-5. Query forward and reverse neighbours.
-6. Compare the packed representation with a SQLite reference implementation.
-
-The packed format must earn its complexity through measured results rather than assumption.
+This repository currently contains only the Rust package and its reusable
+library boundary. No graph implementation is included yet.
 
 ## Development
 
-Requirements:
+The package uses Rust edition 2024 and has no third-party dependencies.
 
-- Stable Rust toolchain with Cargo.
-
-Useful commands:
-
-```sh
-cargo fmt --all -- --check
-cargo check --all-targets
-cargo test --all-targets
+```text
+cargo fmt -- --check
+cargo check
+cargo test
 cargo run -- --help
 cargo run -- --version
 ```
-
-Runtime graph data will live under `.arcana/` and is intentionally excluded from Git.
-
-## Storage direction
-
-The expected production shape is:
-
-```text
-content-addressed immutable graph objects
-+ locality-aware packed adjacency
-+ compact positional indexes
-+ Merkle snapshot roots
-+ append-only dirty-worktree overlays
-```
-
-The on-disk format is private to ArcanaGraph. Consumers will integrate through a versioned machine-readable command or local-service protocol.
-
-## License
-
-A license has not yet been selected.

@@ -1,7 +1,28 @@
-//! ArcanaGraph repository graph engine.
+//! Reusable library boundary for ArcanaGraph.
 //!
-//! The initial milestone is a deterministic, content-addressed graph snapshot
-//! with forward and reverse neighbour queries.
+//! Graph modeling and storage are intentionally out of scope for this initial
+//! foundation. Future repository-graph implementations should be exposed from
+//! this crate rather than coupled to the `arcana` command-line binary.
 
-/// Human-readable project name.
+/// Product name presented by the ArcanaGraph library and CLI.
 pub const PROJECT_NAME: &str = "ArcanaGraph";
+
+/// Package version supplied by Cargo.
+pub const PROJECT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Returns the short project description used by integrations.
+pub const fn about() -> &'static str {
+    "independent repository-graph foundation"
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PROJECT_NAME, PROJECT_VERSION, about};
+
+    #[test]
+    fn exposes_stable_project_metadata() {
+        assert_eq!(PROJECT_NAME, "ArcanaGraph");
+        assert!(!PROJECT_VERSION.is_empty());
+        assert_eq!(about(), "independent repository-graph foundation");
+    }
+}

@@ -2,7 +2,7 @@
 name = "arcana-graph"
 version = "0.1.0"
 edition = "2024"
-description = "A deterministic, content-addressed repository graph engine"
+description = "An independent repository-graph foundation"
 publish = false
 
 [lib]

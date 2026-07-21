@@ -1,3 +1,5 @@
-/target/
-/.arcana/
-*.profraw
+# Rust build artifacts
+target/
+
+# ArcanaGraph local state and generated data
+.arcana/
