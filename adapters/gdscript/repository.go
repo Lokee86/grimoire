@@ -30,6 +30,8 @@ func analyzeRepository(repo string) ([]byte, error) {
 	repositoryName := filepath.Base(filepath.Clean(root))
 	facts := &factSet{
 		nodeByID:          make(map[string]map[string]any),
+		edgeKeys:          make(map[string]struct{}),
+		unresolvedKeys:    make(map[string]struct{}),
 		moduleByPath:      make(map[string]string),
 		classByName:       make(map[string][]string),
 		methodByClassName: make(map[string]map[string][]string),

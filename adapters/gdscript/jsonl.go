@@ -1,28 +1,51 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 )
 
 func (f *factSet) render(repositoryName string) []byte {
-	sort.Slice(f.nodes, func(i, j int) bool { return nodeSortKey(f.nodes[i]) < nodeSortKey(f.nodes[j]) })
-	sort.Slice(f.edges, func(i, j int) bool { return edgeSortKey(f.edges[i]) < edgeSortKey(f.edges[j]) })
-	sort.Slice(f.unresolved, func(i, j int) bool { return unresolvedSortKey(f.unresolved[i]) < unresolvedSortKey(f.unresolved[j]) })
+	sortRecords(f.nodes, nodeSortKey)
+	sortRecordsByKeys(f.edges, f.edgeOrderKeys)
+	sortRecordsByKeys(f.unresolved, f.unresolvedOrderKeys)
 	records := make([]map[string]any, 0, 1+len(f.nodes)+len(f.edges)+len(f.unresolved))
 	records = append(records, map[string]any{"adapter_version": adapterVersion, "language": language, "record": "lexicon", "repository": repositoryName, "schema_version": 1})
 	records = append(records, f.nodes...)
 	records = append(records, f.edges...)
 	records = append(records, f.unresolved...)
-	var output strings.Builder
+	var output bytes.Buffer
+	encoder := json.NewEncoder(&output)
 	for _, record := range records {
-		data, _ := json.Marshal(record)
-		output.Write(data)
-		output.WriteByte('\n')
+		_ = encoder.Encode(record)
 	}
-	return []byte(output.String())
+	return output.Bytes()
+}
+
+type keyedRecord struct {
+	key    string
+	record map[string]any
+}
+
+func sortRecords(records []map[string]any, keyFor func(map[string]any) string) {
+	keys := make([]string, len(records))
+	for index, record := range records {
+		keys[index] = keyFor(record)
+	}
+	sortRecordsByKeys(records, keys)
+}
+
+func sortRecordsByKeys(records []map[string]any, keys []string) {
+	keyed := make([]keyedRecord, len(records))
+	for index, record := range records {
+		keyed[index] = keyedRecord{key: keys[index], record: record}
+	}
+	sort.Slice(keyed, func(i, j int) bool { return keyed[i].key < keyed[j].key })
+	for index := range keyed {
+		records[index] = keyed[index].record
+	}
 }
 
 func nodeSortKey(record map[string]any) string {

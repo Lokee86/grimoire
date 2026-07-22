@@ -116,6 +116,24 @@ func run(
 	}
 }
 
+func TestFactSetDeduplicatesEdgesAndUnresolved(t *testing.T) {
+	facts := &factSet{}
+	edgeRecord := edge("source", "target", "calls", nil)
+	unresolvedRecord := unresolved("source", "calls", "dynamic()", "dynamic-target", nil)
+
+	facts.addEdge(edgeRecord)
+	facts.addEdge(edgeRecord)
+	facts.addUnresolved(unresolvedRecord)
+	facts.addUnresolved(unresolvedRecord)
+
+	if len(facts.edges) != 1 || len(facts.edgeOrderKeys) != 1 {
+		t.Fatalf("edge deduplication failed: edges=%d keys=%d", len(facts.edges), len(facts.edgeOrderKeys))
+	}
+	if len(facts.unresolved) != 1 || len(facts.unresolvedOrderKeys) != 1 {
+		t.Fatalf("unresolved deduplication failed: unresolved=%d keys=%d", len(facts.unresolved), len(facts.unresolvedOrderKeys))
+	}
+}
+
 func TestAnalyzeIsDeterministicAcrossRepeatRuns(t *testing.T) {
 	root := t.TempDir()
 	writeFixture(t, root, "b.gd", "func z():\n    pass\n")

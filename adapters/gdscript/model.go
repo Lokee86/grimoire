@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 )
 
 const (
@@ -14,14 +13,18 @@ const (
 type sourceSpan = map[string]any
 
 type factSet struct {
-	nodes             []map[string]any
-	edges             []map[string]any
-	unresolved        []map[string]any
-	nodeByID          map[string]map[string]any
-	moduleByPath      map[string]string
-	classByName       map[string][]string
-	methodByClassName map[string]map[string][]string
-	fileByPath        map[string]string
+	nodes               []map[string]any
+	edges               []map[string]any
+	unresolved          []map[string]any
+	nodeByID            map[string]map[string]any
+	edgeKeys            map[string]struct{}
+	edgeOrderKeys       []string
+	unresolvedKeys      map[string]struct{}
+	unresolvedOrderKeys []string
+	moduleByPath        map[string]string
+	classByName         map[string][]string
+	methodByClassName   map[string]map[string][]string
+	fileByPath          map[string]string
 }
 
 func node(kind, name, path, qualified, id string, span sourceSpan, content string, attributes ...map[string]any) map[string]any {
@@ -64,12 +67,16 @@ func (f *factSet) addNode(record map[string]any) {
 }
 
 func (f *factSet) addEdge(record map[string]any) {
-	for _, existing := range f.edges {
-		if recordKey(existing) == recordKey(record) {
-			return
-		}
+	if f.edgeKeys == nil {
+		f.edgeKeys = make(map[string]struct{})
 	}
+	key := edgeSortKey(record)
+	if _, exists := f.edgeKeys[key]; exists {
+		return
+	}
+	f.edgeKeys[key] = struct{}{}
 	f.edges = append(f.edges, record)
+	f.edgeOrderKeys = append(f.edgeOrderKeys, key)
 	f.indexClassMethod(record)
 }
 
@@ -94,17 +101,16 @@ func (f *factSet) indexClassMethod(record map[string]any) {
 }
 
 func (f *factSet) addUnresolved(record map[string]any) {
-	for _, existing := range f.unresolved {
-		if recordKey(existing) == recordKey(record) {
-			return
-		}
+	if f.unresolvedKeys == nil {
+		f.unresolvedKeys = make(map[string]struct{})
 	}
+	key := unresolvedSortKey(record)
+	if _, exists := f.unresolvedKeys[key]; exists {
+		return
+	}
+	f.unresolvedKeys[key] = struct{}{}
 	f.unresolved = append(f.unresolved, record)
-}
-
-func recordKey(record map[string]any) string {
-	data, _ := json.Marshal(record)
-	return string(data)
+	f.unresolvedOrderKeys = append(f.unresolvedOrderKeys, key)
 }
 
 func nodeID(kind, canonical string) string {
