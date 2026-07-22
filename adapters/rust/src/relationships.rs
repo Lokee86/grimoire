@@ -107,27 +107,54 @@ pub(crate) fn process_use(
         item_use.span(),
         &source.relative,
     );
-    if let Some(path) = resolve::simple_use_path(&item_use.tree) {
+    if let Some(paths) = resolve::use_paths(&item_use.tree) {
         let crate_qn = module_qn.split("::").take(2).collect::<Vec<_>>().join("::");
-        if let Some(target) = resolve::resolve_symbol(context, &path, module_qn, &crate_qn) {
-            context.facts.add_edge(
-                owner_id,
-                &target,
-                "imports",
-                span_value(item_use.span(), &source.relative),
-            );
-        } else {
+        let targets: Vec<_> = paths
+            .iter()
+            .filter_map(|path| resolve::resolve_symbol(context, path, module_qn, &crate_qn))
+            .collect();
+        if targets.is_empty() {
+            let (expression, reason) = if paths.len() == 1 {
+                let path = &paths[0];
+                (
+                    path,
+                    if path.starts_with("std::") || path.starts_with("core::") {
+                        "external-target"
+                    } else {
+                        "missing-target"
+                    },
+                )
+            } else {
+                (&name, "unsupported-form")
+            };
             context.facts.add_unresolved(
                 owner_id,
                 "imports",
-                &path,
-                if path.starts_with("std::") || path.starts_with("core::") {
-                    "external-target"
-                } else {
-                    "missing-target"
-                },
+                expression,
+                reason,
                 span_value(item_use.span(), &source.relative),
             );
+        } else {
+            for target in targets {
+                context.facts.add_edge(
+                    owner_id,
+                    &target,
+                    "imports",
+                    span_value(item_use.span(), &source.relative),
+                );
+            }
+            if paths
+                .iter()
+                .any(|path| resolve::resolve_symbol(context, path, module_qn, &crate_qn).is_none())
+            {
+                context.facts.add_unresolved(
+                    owner_id,
+                    "imports",
+                    &name,
+                    "missing-target",
+                    span_value(item_use.span(), &source.relative),
+                );
+            }
         }
     } else {
         context.facts.add_unresolved(
