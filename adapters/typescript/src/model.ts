@@ -1,0 +1,103 @@
+import * as ts from "typescript";
+import { nodeId } from "./contract";
+
+export type JsonRecord = Record<string, unknown>;
+export type Fact = JsonRecord & { record: string };
+
+export type Span = {
+  end_column: number;
+  end_line: number;
+  path: string;
+  start_column: number;
+  start_line: number;
+};
+
+export type PendingRelationship = {
+  source: string;
+  relation: "extends" | "implements";
+  expression: ts.Expression;
+  sourceFile: ts.SourceFile;
+  moduleKey: string;
+  scope: string[];
+};
+
+export type ImportName = {
+  imported: string;
+  local: string;
+  kind: "named" | "default" | "namespace" | "side-effect";
+};
+
+export type ImportInfo = {
+  nodeId: string;
+  ownerId: string;
+  moduleKey: string;
+  sourceFile: ts.SourceFile;
+  source: string | null;
+  expression: string;
+  names: ImportName[];
+};
+
+export type PendingReexport = {
+  ownerId: string;
+  moduleKey: string;
+  source: string;
+  expression: string;
+  span: Span;
+};
+
+export type Binding = { targetId: string | null; external: boolean };
+
+export type FileContext = {
+  relativePath: string;
+  moduleKey: string;
+  sourceFile: ts.SourceFile;
+  fileId: string;
+  moduleId: string;
+};
+
+export class FactStore {
+  readonly nodes = new Map<string, Fact>();
+  readonly edges = new Map<string, Fact>();
+  readonly unresolved = new Map<string, Fact>();
+  readonly modules = new Map<string, string>();
+  readonly symbols = new Map<string, string>();
+  readonly bindings = new Map<string, Map<string, Binding>>();
+  readonly imports: ImportInfo[] = [];
+  readonly reexports: PendingReexport[] = [];
+  readonly relationships: PendingRelationship[] = [];
+
+  constructor(readonly repository: string) {}
+
+  addNode(
+    kind: string,
+    name: string,
+    relativePath: string,
+    qualifiedName: string,
+    identity: string = qualifiedName,
+    span?: Span,
+    attributes?: JsonRecord,
+    contentId?: string,
+  ): string {
+    const id = nodeId(kind, identity);
+    const record: Fact = { record: "node", id, kind, name, path: relativePath, qualified_name: qualifiedName };
+    if (contentId) record.content_id = contentId;
+    if (attributes && Object.keys(attributes).length > 0) record.attributes = attributes;
+    if (span) record.span = span;
+    this.nodes.set(id, record);
+    return id;
+  }
+
+  addEdge(source: string, target: string, relation: string, span?: Span, attributes?: JsonRecord): void {
+    const record: Fact = { record: "edge", relation, source, target };
+    if (attributes && Object.keys(attributes).length > 0) record.attributes = attributes;
+    if (span) record.span = span;
+    this.edges.set(JSON.stringify(record), record);
+  }
+
+  addUnresolved(source: string, relation: string, expression: string, reason: string, span?: Span, candidateName?: string): void {
+    const record: Fact = { expression, reason, record: "unresolved", relation, source };
+    if (candidateName) record.candidate_name = candidateName;
+    if (span) record.span = span;
+    this.unresolved.set(JSON.stringify(record), record);
+  }
+}
