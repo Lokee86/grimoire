@@ -5,7 +5,7 @@ use serde_json::Value;
 
 pub(crate) fn render(context: &Context, repository: &str) -> Result<String> {
     let mut header = JsonMap::new();
-    header.insert("adapter_version".into(), Value::String("0.1.0".into()));
+    header.insert("adapter_version".into(), Value::String("0.2.0".into()));
     header.insert("language".into(), Value::String("rust".into()));
     header.insert("record".into(), Value::String("lexicon".into()));
     header.insert("repository".into(), Value::String(repository.into()));
@@ -28,7 +28,10 @@ pub(crate) fn render(context: &Context, repository: &str) -> Result<String> {
         .map(|lines| format!("{}\n", lines.join("\n")))
 }
 
-pub(crate) fn fact_sort_key(value: &Value) -> (u8, String, String, String, String, Vec<String>) {
+type FactSortKey = (u8, String, String, String, String, Option<SpanSortKey>);
+type SpanSortKey = (String, u64, u64, u64, u64);
+
+pub(crate) fn fact_sort_key(value: &Value) -> FactSortKey {
     let object = value.as_object().expect("fact records are objects");
     match object.get("record").and_then(Value::as_str).unwrap_or("") {
         "node" => (
@@ -37,7 +40,7 @@ pub(crate) fn fact_sort_key(value: &Value) -> (u8, String, String, String, Strin
             field(object, "kind"),
             field(object, "path"),
             field(object, "qualified_name"),
-            Vec::new(),
+            None,
         ),
         "edge" => (
             1,
@@ -66,22 +69,24 @@ fn field(object: &JsonMap, name: &str) -> String {
         .to_string()
 }
 
-fn span_sort_key(value: Option<&Value>) -> Vec<String> {
-    let Some(span) = value.and_then(Value::as_object) else {
-        return vec![String::new(); 5];
-    };
-    [
-        "path",
-        "start_line",
-        "start_column",
-        "end_line",
-        "end_column",
-    ]
-    .iter()
-    .map(|key| match span.get(*key) {
-        Some(Value::String(value)) => value.clone(),
-        Some(value) => value.to_string(),
-        None => String::new(),
-    })
-    .collect()
+fn span_sort_key(value: Option<&Value>) -> Option<SpanSortKey> {
+    let span = value.and_then(Value::as_object)?;
+    Some((
+        span.get("path")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
+        span.get("start_line")
+            .and_then(Value::as_u64)
+            .unwrap_or_default(),
+        span.get("start_column")
+            .and_then(Value::as_u64)
+            .unwrap_or_default(),
+        span.get("end_line")
+            .and_then(Value::as_u64)
+            .unwrap_or_default(),
+        span.get("end_column")
+            .and_then(Value::as_u64)
+            .unwrap_or_default(),
+    ))
 }

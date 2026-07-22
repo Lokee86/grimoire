@@ -1,6 +1,7 @@
 use crate::contract::stable_id;
 use crate::items;
 use crate::model::Context;
+use crate::relationships;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn extract(context: &mut Context) {
@@ -45,6 +46,7 @@ pub(crate) fn extract(context: &mut Context) {
             );
         }
     }
+    relationships::resolve_calls(context);
 }
 
 pub(crate) fn process_file(

@@ -177,6 +177,14 @@ pub(crate) fn process_items(
                     function.span(),
                     &source.relative,
                 );
+                relationships::collect_calls(
+                    context,
+                    &function.block,
+                    &id,
+                    module_qn,
+                    &crate_context.qn,
+                    &source.relative,
+                );
             }
             Item::Impl(item_impl) => relationships::process_impl(
                 context,
