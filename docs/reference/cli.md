@@ -171,7 +171,7 @@ grimoire context [flags]
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--timeout <duration>` | `2s` | Complete semantic retrieval timeout |
 
-The command validates vector model identity, dimensions, and vector count against prepared state, embeds the query, performs exact vector retrieval, and records selection-level source, rank, score, and reasons. If the vector path is missing, stale, incompatible, or unavailable, it writes a warning to stderr and uses the deterministic lexical fallback.
+The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count, performs exact vector retrieval, and records selection-level source, rank, score, and reasons. If the vector path is missing, stale, incompatible, or unavailable, it writes a warning to stderr and uses the deterministic lexical fallback.
 
 ## `grimoire version`
 

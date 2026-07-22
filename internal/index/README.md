@@ -11,6 +11,7 @@
 - deterministic fallback chunks and chunk IDs;
 - exact `o200k_base` counts stored with changed chunks;
 - prepared-index tokenizer identity and incompatible-index rebuild bases;
+- deterministic published snapshot identity from the content-addressed root;
 - prepared snapshot, file, and chunk models;
 - binary shard and file codecs;
 - go-git object storage and validation; and

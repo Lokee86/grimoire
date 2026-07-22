@@ -12,8 +12,9 @@ type vectorStatePaths struct {
 	Root     string
 	Store    string
 	Snapshot string
-	Ingest   string
 	Manifest string
+	Ingest   string
+	Records  string
 }
 
 func resolveVectorPaths(state string) vectorStatePaths {
@@ -22,8 +23,9 @@ func resolveVectorPaths(state string) vectorStatePaths {
 		Root:     root,
 		Store:    filepath.Join(root, "store"),
 		Snapshot: filepath.Join(root, "snapshot.gvs"),
+		Manifest: filepath.Join(root, "snapshot.manifest.json"),
 		Ingest:   filepath.Join(root, "ingest.next.jsonl"),
-		Manifest: filepath.Join(root, "manifest.next.jsonl"),
+		Records:  filepath.Join(root, "records.next.jsonl"),
 	}
 }
 

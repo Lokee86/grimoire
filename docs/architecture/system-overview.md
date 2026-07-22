@@ -36,7 +36,7 @@ vector build / search
 context command
     │
     ├── load prepared source state and the packed vector snapshot
-    ├── validate model identity, dimensions, and chunk count
+    ├── validate the exact prepared-index identity, model, dimensions, and chunk count
     ├── embed the query and run exact vector retrieval
     ├── fall back to deterministic lexical ranking on semantic failure
     ├── fit whole chunks under the package budget

@@ -104,7 +104,7 @@ If the budget cannot fit even the package metadata with no selections, the comma
 
 ## Retrieval behavior
 
-The normal path uses the configured embedding endpoint and exact vector snapshot. Before query embedding, Grimoire validates the snapshot model and chunk count. It validates dimensions after embedding and rejects returned IDs absent from prepared state.
+The normal path uses the configured embedding endpoint and exact vector snapshot. Before query embedding, Grimoire requires the persistent vector manifest's prepared identity to exactly match the current content-addressed prepared-index root. It then validates model identity, dimensions, vector count, and returned chunk IDs.
 
 When semantic retrieval is unavailable or incompatible, `context` writes a warning to stderr and emits a package built from the deterministic lexical fallback. The output package identifies the actual provider through `retrieval_sources` and each selection's provenance fields.
 

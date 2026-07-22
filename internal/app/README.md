@@ -28,6 +28,7 @@
 - `model.go` - embedding setup, runtime, information, and probe commands.
 - `vector.go` - vector search and information commands.
 - `vector_build.go` - incremental embedding and packed snapshot publication.
+- `vector_manifest.go` - persistent snapshot provenance and exact prepared-index freshness validation.
 - `vector_paths.go` - vector-state layout and source-content identities.
 - `run_test.go` - index-to-context integration coverage.
 - `model_test.go` - embedding command wiring coverage.

@@ -31,6 +31,9 @@ func TestStoreRoundTrip(t *testing.T) {
 	if loaded.Tokenizer != tokenizer.Name {
 		t.Fatalf("unexpected tokenizer %q", loaded.Tokenizer)
 	}
+	if loaded.Identity() == "" || loaded.Identity() != stateHash(t, state) {
+		t.Fatalf("unexpected prepared identity %q", loaded.Identity())
+	}
 	if len(loaded.Files) != 1 || loaded.Files[0].Path != "alpha.go" {
 		t.Fatalf("unexpected files: %+v", loaded.Files)
 	}

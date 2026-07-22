@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/compiler"
@@ -18,7 +19,9 @@ func TestVectorBuildReusesObjectsAndSearches(t *testing.T) {
 	if _, err := vectorstore.FindLibrary(""); err != nil {
 		t.Skipf("Rust vector DLL is not built: %v", err)
 	}
+	var embeddingRequests atomic.Int64
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		embeddingRequests.Add(1)
 		var body struct {
 			Input []string `json:"input"`
 		}
@@ -56,14 +59,18 @@ func TestVectorBuildReusesObjectsAndSearches(t *testing.T) {
 		t.Fatal(err)
 	}
 	var firstBuild struct {
-		Embedded int `json:"embedded"`
-		Reused   int `json:"reused"`
+		PreparedIdentity string `json:"prepared_identity"`
+		Embedded         int    `json:"embedded"`
+		Reused           int    `json:"reused"`
 	}
 	if err := json.Unmarshal(first.Bytes(), &firstBuild); err != nil {
 		t.Fatal(err)
 	}
-	if firstBuild.Embedded != 1 || firstBuild.Reused != 0 {
+	if firstBuild.PreparedIdentity == "" || firstBuild.Embedded != 1 || firstBuild.Reused != 0 {
 		t.Fatalf("unexpected first build: %+v", firstBuild)
+	}
+	if _, err := os.Stat(resolveVectorPaths(filepath.Join(root, ".grimoire")).Manifest); err != nil {
+		t.Fatalf("vector snapshot manifest was not published: %v", err)
 	}
 
 	var second bytes.Buffer
@@ -127,17 +134,29 @@ func TestVectorBuildReusesObjectsAndSearches(t *testing.T) {
 		t.Fatalf("unexpected vector context selection: %+v", selection)
 	}
 
-	if err := os.WriteFile(filepath.Join(root, "extra.go"), []byte("package extra\n"), 0o644); err != nil {
+	changed := "package damage\n\nfunc ResolveDamage() int { return 20 }\n"
+	if err := os.WriteFile(filepath.Join(root, "damage.go"), []byte(changed), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
+	requestsBeforeStaleSearch := embeddingRequests.Load()
+	if err := Run([]string{
+		"vector", "search", "--root", root,
+		"--endpoint", server.URL, "--query", "where is damage resolved", "--top-k", "1",
+	}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), "vector snapshot was built from prepared index") {
+		t.Fatalf("expected exact stale-vector rejection, got %v", err)
+	}
+	if embeddingRequests.Load() != requestsBeforeStaleSearch {
+		t.Fatal("stale vector search embedded the query before validating freshness")
+	}
+
 	contextOutput.Reset()
 	contextErrors.Reset()
 	if err := Run([]string{
 		"context", "--root", root, "--endpoint", server.URL,
-		"--query", "resolve damage", "--candidate-limit", "2", "--budget", "500",
+		"--query", "resolve damage", "--candidate-limit", "1", "--budget", "500",
 	}, &contextOutput, &contextErrors); err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +166,10 @@ func TestVectorBuildReusesObjectsAndSearches(t *testing.T) {
 	if len(contextPackage.RetrievalSources) != 1 || contextPackage.RetrievalSources[0] != "lexical" {
 		t.Fatalf("expected stale-vector fallback, got %+v", contextPackage.RetrievalSources)
 	}
-	if !strings.Contains(contextErrors.String(), "vector snapshot has 1 chunks, prepared index has 2") {
-		t.Fatalf("expected stale-vector warning, got %q", contextErrors.String())
+	if !strings.Contains(contextErrors.String(), "vector snapshot was built from prepared index") {
+		t.Fatalf("expected exact stale-vector warning, got %q", contextErrors.String())
+	}
+	if embeddingRequests.Load() != requestsBeforeStaleSearch {
+		t.Fatal("stale context retrieval embedded the query before falling back")
 	}
 }

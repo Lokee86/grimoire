@@ -21,7 +21,8 @@ Implemented:
 - memory-mapped validation;
 - a narrow caller-owned-buffer C ABI;
 - exact serial/concurrent semantic search;
-- vector-backed `grimoire context` retrieval; and
+- vector-backed `grimoire context` retrieval;
+- a persistent vector-snapshot manifest bound to the exact prepared-index identity; and
 - deterministic lexical fallback when semantic retrieval is unavailable.
 
 The normal context path now performs exact full-vector retrieval. BM25 or another general lexical engine is not a prerequisite and should only be added if measured retrieval failures justify its cost.
@@ -82,7 +83,6 @@ Measure before increasing storage or search complexity:
 - benchmark float32 against float16 and int8 encodings;
 - add immutable-object garbage collection;
 - add non-Windows Go dynamic-library loaders;
-- add prepared-index identity validation stronger than vector-count checks;
 - optimize exact-scan kernels when measurements justify it; and
 - consider approximate indexing only if exact-scan latency becomes material.
 

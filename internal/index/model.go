@@ -32,6 +32,10 @@ type Chunk struct {
 	Text       string
 }
 
+func (snapshot Snapshot) Identity() string {
+	return snapshot.baseRoot
+}
+
 func (snapshot Snapshot) AllChunks() []Chunk {
 	count := 0
 	for _, file := range snapshot.Files {

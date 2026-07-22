@@ -53,7 +53,7 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	defer os.Remove(paths.Ingest)
-	defer os.Remove(paths.Manifest)
+	defer os.Remove(paths.Records)
 
 	library, err := vectorstore.Load(*enginePath)
 	if err != nil {
@@ -82,21 +82,40 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 	}
-	if err := writeVectorManifest(paths.Manifest, all); err != nil {
+	preparedIdentity := snapshot.Identity()
+	if preparedIdentity == "" {
+		return errors.New("prepared index has no published identity")
+	}
+	if err := writeVectorRecords(paths.Records, all); err != nil {
 		return err
 	}
-	identity, err := library.MaterializeJSONL(paths.Store, embedding.Identity(), paths.Manifest, paths.Snapshot)
+	identity, err := library.MaterializeJSONL(paths.Store, embedding.Identity(), paths.Records, paths.Snapshot)
 	if err != nil {
 		return err
 	}
+	manifest := vectorSnapshotManifest{
+		Version:          vectorSnapshotManifestVersion,
+		PreparedIdentity: preparedIdentity,
+		SnapshotIdentity: identity,
+		Model:            embedding.Identity(),
+		Dimensions:       embedding.Dimensions,
+		Count:            len(all),
+	}
+	if err := writeVectorSnapshotManifest(paths.Manifest, manifest); err != nil {
+		return err
+	}
 	return writeJSON(stdout, struct {
-		Snapshot string `json:"snapshot"`
-		Identity string `json:"identity"`
-		Model    string `json:"model"`
-		Chunks   int    `json:"chunks"`
-		Embedded int    `json:"embedded"`
-		Reused   int    `json:"reused"`
-	}{paths.Snapshot, identity, embedding.Identity(), len(all), len(missing), len(all) - len(missing)})
+		Snapshot         string `json:"snapshot"`
+		Identity         string `json:"identity"`
+		PreparedIdentity string `json:"prepared_identity"`
+		Model            string `json:"model"`
+		Chunks           int    `json:"chunks"`
+		Embedded         int    `json:"embedded"`
+		Reused           int    `json:"reused"`
+	}{
+		paths.Snapshot, identity, preparedIdentity, embedding.Identity(),
+		len(all), len(missing), len(all) - len(missing),
+	})
 }
 
 func embedMissing(
@@ -151,7 +170,7 @@ func embedMissing(
 	return nil
 }
 
-func writeVectorManifest(path string, entries []vectorChunk) error {
+func writeVectorRecords(path string, entries []vectorChunk) error {
 	file, err := os.Create(path)
 	if err != nil {
 		return err

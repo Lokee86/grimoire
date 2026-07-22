@@ -12,7 +12,7 @@ For the fixed embedding identity, vector state is stored below:
 <state>/vectors/qwen3-embedding-0.6b-q8_0-512d/
 ```
 
-The directory contains an immutable object store and the current packed snapshot. Temporary JSONL ingest and manifest files are removed after publication.
+The directory contains an immutable object store, the current packed snapshot, and a persistent snapshot manifest. Temporary JSONL ingest and record-list files are removed after publication.
 
 ## Object identity and reuse
 
@@ -37,6 +37,18 @@ Snapshot format version 1 stores:
 - a 64-byte-aligned contiguous `float32` vector matrix.
 
 The engine validates section bounds, integer overflow, UTF-8 IDs, duplicate IDs, alignment, exact matrix length, and finite vector values before exposing a snapshot.
+
+## Snapshot manifest and freshness
+
+`snapshot.manifest.json` binds the packed vector snapshot to:
+
+- the exact content-addressed prepared-index root;
+- the packed snapshot identity;
+- the embedding identity;
+- dimensions; and
+- vector count.
+
+Both `vector search` and `context` validate the prepared identity before embedding the query. Any repository reindex that changes prepared content produces a different identity, even when the total chunk count is unchanged. `vector search` rejects the stale snapshot; `context` warns and uses its lexical failure fallback until `vector build` publishes a matching snapshot and manifest.
 
 ## Search
 

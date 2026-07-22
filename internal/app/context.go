@@ -75,12 +75,18 @@ func semanticCandidates(
 	enginePath string,
 	limit int,
 ) ([]retrieve.Candidate, error) {
+	paths := resolveVectorPaths(statePath)
+	chunks := snapshot.AllChunks()
+	manifest, err := validateVectorSnapshotManifest(paths.Manifest, snapshot, len(chunks))
+	if err != nil {
+		return nil, err
+	}
 	library, err := vectorstore.Load(enginePath)
 	if err != nil {
 		return nil, err
 	}
 	defer library.Close()
-	engine, err := library.OpenSnapshot(resolveVectorPaths(statePath).Snapshot)
+	engine, err := library.OpenSnapshot(paths.Snapshot)
 	if err != nil {
 		return nil, err
 	}
@@ -89,12 +95,8 @@ func semanticCandidates(
 	if err != nil {
 		return nil, err
 	}
-	chunks := snapshot.AllChunks()
-	if info.Model != embedding.Identity() {
-		return nil, fmt.Errorf("vector snapshot uses model %s, expected %s", info.Model, embedding.Identity())
-	}
-	if info.Count != len(chunks) {
-		return nil, fmt.Errorf("vector snapshot has %d chunks, prepared index has %d", info.Count, len(chunks))
+	if err := validateVectorEngineInfo(manifest, info); err != nil {
+		return nil, err
 	}
 	queryVector, err := embedding.NewClient(endpoint).EmbedQuery(ctx, query)
 	if err != nil {

@@ -16,7 +16,7 @@ The current implementation has incremental source preparation, a working local Q
 - Versioned packed snapshots with sorted chunk IDs and aligned contiguous vectors.
 - Memory-mapped Rust validation and concurrent exact dot-product search.
 - A narrow C ABI with caller-owned buffers and no cross-runtime allocator ownership.
-- Vector-backed context compilation with model/count validation and lexical failure fallback.
+- Vector-backed context compilation with exact prepared-index identity validation and lexical failure fallback.
 - Selection-level retrieval source, rank, score, and inspectable reasons.
 - Exact whole-chunk package fitting.
 

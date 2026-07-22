@@ -105,9 +105,9 @@ func runVectorSearch(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("load prepared index: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
-	defer cancel()
-	queryVector, err := embedding.NewClient(*endpoint).EmbedQuery(ctx, *query)
+	chunks := snapshot.AllChunks()
+	paths := resolveVectorPaths(statePath)
+	manifest, err := validateVectorSnapshotManifest(paths.Manifest, snapshot, len(chunks))
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func runVectorSearch(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	defer library.Close()
-	engine, err := library.OpenSnapshot(resolveVectorPaths(statePath).Snapshot)
+	engine, err := library.OpenSnapshot(paths.Snapshot)
 	if err != nil {
 		return err
 	}
@@ -126,16 +126,25 @@ func runVectorSearch(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if info.Model != embedding.Identity() || info.Dimensions != len(queryVector) {
-		return fmt.Errorf("vector snapshot uses %s/%dd, expected %s/%dd", info.Model, info.Dimensions, embedding.Identity(), len(queryVector))
+	if err := validateVectorEngineInfo(manifest, info); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
+	queryVector, err := embedding.NewClient(*endpoint).EmbedQuery(ctx, *query)
+	if err != nil {
+		return err
+	}
+	if info.Dimensions != len(queryVector) {
+		return fmt.Errorf("vector snapshot has %d dimensions, query has %d", info.Dimensions, len(queryVector))
 	}
 	hits, err := engine.Search(queryVector, *topK)
 	if err != nil {
 		return err
 	}
-	chunks := make(map[string]index.Chunk, len(snapshot.AllChunks()))
-	for _, chunk := range snapshot.AllChunks() {
-		chunks[chunk.ID] = chunk
+	chunksByID := make(map[string]index.Chunk, len(chunks))
+	for _, chunk := range chunks {
+		chunksByID[chunk.ID] = chunk
 	}
 	type result struct {
 		ID        string  `json:"id"`
@@ -146,7 +155,7 @@ func runVectorSearch(args []string, stdout, stderr io.Writer) error {
 	}
 	results := make([]result, 0, len(hits))
 	for _, hit := range hits {
-		chunk, exists := chunks[hit.ID]
+		chunk, exists := chunksByID[hit.ID]
 		if !exists {
 			continue
 		}

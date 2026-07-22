@@ -28,12 +28,6 @@ Deleted or replaced chunks disappear from the current snapshot, but reusable imm
 
 Planned removal condition: add safe reachability-based cleanup across retained snapshots.
 
-## Vector freshness validation is incomplete
-
-`context` validates model identity, dimensions, and vector count against prepared state. It also rejects returned chunk IDs that are absent from the prepared snapshot. A changed repository with the same chunk count can still leave a stale vector snapshot undetected.
-
-Planned removal condition: persist and validate a deterministic prepared-snapshot identity alongside the vector snapshot.
-
 ## Lexical fallback is linear
 
 When semantic retrieval is unavailable, the fallback scans all prepared chunks and applies fixed substring boosts. It does not use postings, corpus statistics, or BM25.
