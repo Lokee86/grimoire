@@ -25,6 +25,8 @@ The current slice emits:
 - `use` declarations as `import` nodes;
 - containment and definition edges for declarations and files;
 - statically resolved local import edges;
+- local free-function `calls` edges from free functions and impl methods;
+- local inherent associated-function `calls` edges when the type and target are unambiguous;
 - simple local `impl Trait for Type` `implements` edges;
 - unresolved records for macro-generated declarations, missing module files, unsupported imports, and external or missing import/implementation targets.
 
@@ -33,9 +35,10 @@ Node identity uses the contract form `lexicon:v1\\0rust\\0<kind>\\0<canonical id
 ## Current limits
 
 - The scanner parses `.rs` files reachable from Cargo targets and then processes remaining package-local Rust files as crate-level fallback files.
-- Import resolution is intentionally conservative: simple paths are resolved only when a local declaration is known. Globs, grouped imports, aliases, and external symbols become unresolved records.
+- Import resolution is intentionally conservative: simple paths are resolved only when a local declaration is known, and grouped imports are expanded independently. Globs, aliases, and external symbols become unresolved records.
+- Call extraction is intentionally conservative: receiver methods, trait-associated functions, macros, generic or qualified paths, external calls, and unsupported forms remain unresolved.
 - Trait implementation extraction is limited to local, syntactically simple `impl Trait for Type` relationships. Generic, macro-generated, dynamic, and external relationships are not guessed.
-- Macro bodies, fields, expressions, calls, lifetimes, and type references are not yet modeled as separate facts.
+- Macro bodies, fields, lifetimes, and type references are not yet modeled as separate facts.
 - Source spans use parser locations; synthetic or unavailable spans are omitted by the parser boundary.
 
 The adapter writes records in the contract order: header, canonically sorted nodes, edges, and unresolved records. JSON object keys are lexicographically ordered.
