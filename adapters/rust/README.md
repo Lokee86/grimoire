@@ -12,6 +12,8 @@ cargo run -- --repo /path/to/repository --output /path/to/facts.jsonl
 
 The adapter uses `cargo_metadata` to identify workspace packages and Cargo targets, and `syn` to parse Rust source. `--repo` must point to a Cargo workspace or package containing `Cargo.toml`. The output parent directory is created when needed.
 
+The scanner excludes `.git/`, `.worktrees/`, `.workingtrees/`, `.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, `.warlock/`, `target/`, `node_modules/`, `vendor/`, `build/`, `dist/`, and `out/` directories.
+
 ## Emitted facts
 
 The current slice emits:

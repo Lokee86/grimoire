@@ -203,7 +203,7 @@ func collectSources(root string) ([]string, []string, error) {
 
 func excludedDirectory(name string) bool {
 	switch name {
-	case ".git", ".worktrees", ".workingtrees", ".warlock", "node_modules", "target", "__pycache__", ".pytest_cache", ".bundle", "vendor", ".godot", ".import", "build", "dist", "bin", "obj":
+	case ".git", ".worktrees", ".workingtrees", ".ddocs", ".lexicon", ".arcana", ".grimoire", ".pitlord", ".cantrip", ".homunculus", ".incubus", ".ritual", ".warlock", "node_modules", "target", "__pycache__", ".pytest_cache", ".bundle", "vendor", ".godot", ".import", "build", "dist", "bin", "obj":
 		return true
 	default:
 		return false

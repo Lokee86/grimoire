@@ -92,6 +92,15 @@ pub(crate) fn is_excluded(root: &Path, path: &Path) -> bool {
         ".git",
         ".worktrees",
         ".workingtrees",
+        ".ddocs",
+        ".lexicon",
+        ".arcana",
+        ".grimoire",
+        ".pitlord",
+        ".cantrip",
+        ".homunculus",
+        ".incubus",
+        ".ritual",
         ".warlock",
         "target",
         "node_modules",
@@ -108,4 +117,34 @@ pub(crate) fn is_excluded(root: &Path, path: &Path) -> bool {
             let value = component.as_os_str().to_string_lossy();
             defaults.iter().any(|default| *default == value)
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_excluded;
+    use std::path::Path;
+
+    #[test]
+    fn excludes_complete_warlock_state_directory_set_and_preserves_vendor() {
+        let root = Path::new("/repository");
+        for directory in [
+            ".ddocs",
+            ".lexicon",
+            ".arcana",
+            ".grimoire",
+            ".pitlord",
+            ".cantrip",
+            ".homunculus",
+            ".incubus",
+            ".ritual",
+            ".warlock",
+        ] {
+            assert!(
+                is_excluded(root, &root.join(directory).join("ignored.rs")),
+                "{directory}"
+            );
+        }
+        assert!(is_excluded(root, &root.join("vendor").join("ignored.rs")));
+        assert!(!is_excluded(root, &root.join("src").join("lib.rs")));
+    }
 }

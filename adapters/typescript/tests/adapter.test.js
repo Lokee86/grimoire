@@ -132,6 +132,16 @@ function makeFixture() {
     "node_modules/ignored.ts": "export class Ignored {}\n",
     "build/ignored.ts": "export class IgnoredBuild {}\n",
     ".git/ignored.ts": "export class IgnoredGit {}\n",
+    ".ddocs/ignored.ts": "export class IgnoredState {}\n",
+    ".lexicon/ignored.ts": "export class IgnoredState {}\n",
+    ".arcana/ignored.ts": "export class IgnoredState {}\n",
+    ".grimoire/ignored.ts": "export class IgnoredState {}\n",
+    ".pitlord/ignored.ts": "export class IgnoredState {}\n",
+    ".cantrip/ignored.ts": "export class IgnoredState {}\n",
+    ".homunculus/ignored.ts": "export class IgnoredState {}\n",
+    ".incubus/ignored.ts": "export class IgnoredState {}\n",
+    ".ritual/ignored.ts": "export class IgnoredState {}\n",
+    ".warlock/ignored.ts": "export class IgnoredState {}\n",
   };
   for (const [relative, content] of Object.entries(files)) {
     const target = path.join(root, relative);
@@ -204,6 +214,9 @@ test("extracts TypeScript declarations, imports, exports, inheritance, and exclu
   for (const kind of ["repository", "directory", "file", "module", "type", "interface", "function", "method", "variable", "constant", "import", "export"]) assert.ok(kinds.has(kind), kind);
   const paths = new Set(nodes.map((record) => record.path));
   assert.ok(![...paths].some((item) => item.includes("node_modules") || item.includes("build") || item.includes(".git")));
+  for (const directory of [".ddocs", ".lexicon", ".arcana", ".grimoire", ".pitlord", ".cantrip", ".homunculus", ".incubus", ".ritual", ".warlock"]) {
+    assert.ok(![...paths].some((item) => item.startsWith(`${directory}/`)), directory);
+  }
   for (const relation of ["contains", "defines", "imports", "extends", "implements"]) assert.ok(edges.some((record) => record.relation === relation), relation);
   assert.ok(unresolved.some((record) => record.relation === "imports" && record.reason === "external-target"));
   assert.ok(unresolved.some((record) => record.relation === "imports" && record.reason === "dynamic-target"));

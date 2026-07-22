@@ -3,7 +3,8 @@ import * as path from "node:path";
 import * as ts from "typescript";
 
 export const EXCLUDED_DIRECTORIES = new Set([
-  ".git", ".worktrees", ".workingtrees", ".warlock", ".astro", "node_modules",
+  ".git", ".worktrees", ".workingtrees", ".ddocs", ".lexicon", ".arcana", ".grimoire",
+  ".pitlord", ".cantrip", ".homunculus", ".incubus", ".ritual", ".warlock", ".astro", "node_modules",
   "build", "dist", "coverage", "target", "vendor", "tmp", "log",
   ".cache", ".turbo", ".next", ".nuxt", ".parcel-cache", ".pytest_cache",
   ".venv", "venv", "__pycache__", "out",

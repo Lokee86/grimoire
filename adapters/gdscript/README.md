@@ -51,7 +51,7 @@ It emits `contains` and `defines` containment/definition edges, `imports` and `r
 
 ## Exclusions and limits
 
-The scanner skips `.git`, `.worktrees`, `.workingtrees`, `.warlock`, `node_modules`, `target`, `__pycache__`, `.pytest_cache`, `.bundle`, `vendor`, `.godot`, `.import`, `build`, `dist`, `bin`, and `obj` directories. Only directories on the path to a `.gd` file become directory facts.
+The scanner skips `.git`, `.worktrees`, `.workingtrees`, `.ddocs`, `.lexicon`, `.arcana`, `.grimoire`, `.pitlord`, `.cantrip`, `.homunculus`, `.incubus`, `.ritual`, `.warlock`, `node_modules`, `target`, `__pycache__`, `.pytest_cache`, `.bundle`, `vendor`, `.godot`, `.import`, `build`, `dist`, `bin`, and `obj` directories. Only directories on the path to a `.gd` file become directory facts.
 
 This remains a conservative lexical adapter rather than a complete GDScript compiler. It does not evaluate expressions, follow generated paths, resolve project settings or autoloads, infer untyped or dynamic dispatch, resolve preload aliases with computed paths, parse every annotation, or model all Godot builtins. Unsupported syntax remains evidence-free or unresolved; the adapter does not guess.
 

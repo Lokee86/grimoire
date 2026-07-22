@@ -36,6 +36,9 @@ func run(
 `)
 	writeFixture(t, root, ".worktrees/ignored.gd", "class_name Ignored\n")
 	writeFixture(t, root, "vendor/ignored.gd", "class_name IgnoredVendor\n")
+	for _, directory := range []string{".ddocs", ".lexicon", ".arcana", ".grimoire", ".pitlord", ".cantrip", ".homunculus", ".incubus", ".ritual", ".warlock"} {
+		writeFixture(t, root, filepath.Join(directory, "ignored.gd"), "class_name IgnoredState\n")
+	}
 
 	data, err := analyzeRepository(root)
 	if err != nil {
@@ -85,6 +88,9 @@ func run(
 	}
 	if contains(names, "Ignored") || contains(names, "IgnoredVendor") {
 		t.Fatalf("excluded source was scanned: %v", names)
+	}
+	if contains(names, "IgnoredState") {
+		t.Fatalf("Warlock state source was scanned: %v", names)
 	}
 }
 

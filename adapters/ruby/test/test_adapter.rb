@@ -139,6 +139,18 @@ class RubyAdapterTest < Minitest::Test
     end
   end
 
+  def test_excludes_complete_warlock_state_directory_set
+    directories = %w[.ddocs .lexicon .arcana .grimoire .pitlord .cantrip .homunculus .incubus .ritual .warlock]
+    files = directories.to_h { |directory| ["#{directory}/ignored.rb", "class IgnoredState; end\n"] }
+
+    with_repository(files) do |records|
+      paths = records.filter_map { |record| record["path"] if record["record"] == "node" }
+      directories.each do |directory|
+        refute_includes paths, "#{directory}/ignored.rb"
+      end
+    end
+  end
+
   def test_resolves_ruby_static_call_semantics
     source = <<~RUBY
       module Support
