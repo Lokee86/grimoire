@@ -29,6 +29,7 @@ NODE_KINDS = {
     "constant",
     "parameter",
     "import",
+    "export",
     "test",
 }
 RELATIONS = {
