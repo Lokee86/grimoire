@@ -6,13 +6,74 @@
 grimoire <command> [flags]
 ```
 
-The current commands are `index`, `context`, and `version`. Command output is written to standard output. Flag parsing and errors are written through the command's standard error path.
+Current top-level commands are `index`, `context`, `model`, and `version`.
 
-Running without a command returns an error. Unknown commands return an error.
+## `grimoire model setup`
+
+Install Grimoire's pinned local embedding runtime and model:
+
+```bash
+grimoire model setup [flags]
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--cache <path>` | operating-system user cache plus `grimoire` | Managed runtime and model directory |
+| `--timeout <duration>` | `45m` | Complete download and installation timeout |
+
+On Windows x64 the command downloads a pinned CPU `llama.cpp` runtime and `Qwen3-Embedding-0.6B-Q8_0.gguf`, verifies fixed SHA-256 digests, and publishes them atomically into the cache. Repeated setup reuses verified files.
+
+The JSON result contains the cache, runtime, and model paths plus their identities.
+
+## `grimoire model info`
+
+Report the fixed model contract and whether a runtime and local model are discoverable:
+
+```bash
+grimoire model info [--runtime <path>] [--endpoint <url>]
+```
+
+This command does not start a server or send an embedding request.
+
+## `grimoire model serve`
+
+Start a blocking local `llama.cpp` embeddings service:
+
+```bash
+grimoire model serve [flags]
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--runtime <path>` | discovered runtime | `llama-server` or `llama` executable |
+| `--model-file <path>` | managed model, then fixed remote model reference | Local GGUF file |
+| `--host <address>` | `127.0.0.1` | Bind address |
+| `--port <n>` | `8080` | Bind port |
+| `--context-size <n>` | `8192` | Runtime context size |
+| `--ubatch-size <n>` | `2048` | Runtime physical batch size |
+
+The command enables embedding mode and last-token pooling. Grimoire performs final 512-dimensional truncation and L2 normalization in its client.
+
+## `grimoire model probe`
+
+Verify the running embeddings endpoint with a real query/document pair:
+
+```bash
+grimoire model probe [flags]
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--endpoint <url>` | `http://127.0.0.1:8080/v1` | OpenAI-compatible embeddings base URL |
+| `--query <text>` | sample code-retrieval query | Query to instruct and embed |
+| `--document <text>` | sample source passage | Raw document to embed |
+| `--timeout <duration>` | `2m` | Request timeout |
+
+The result reports the fixed identity, endpoint, 512 dimensions, and inner-product similarity.
 
 ## `grimoire index`
 
-Prepare or incrementally update retrieval state.
+Prepare or incrementally update source retrieval state:
 
 ```bash
 grimoire index [flags]
@@ -20,14 +81,14 @@ grimoire index [flags]
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--root <path>` | `.` | Repository root to index |
-| `--state <path>` | `<root>/.grimoire` | Prepared index repository path |
-| `--ignore-file <path>` | root and nested `.gitignore` files | Replacement Git-ignore-syntax file |
-| `--max-file-bytes <n>` | 2 MiB | Maximum eligible file size; non-positive values use the default |
+| `--root <path>` | `.` | Repository root |
+| `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
+| `--ignore-file <path>` | root and nested `.gitignore` files | Replacement Git-ignore file |
+| `--max-file-bytes <n>` | 2 MiB | Maximum eligible source file size |
 
-Relative `--state` and `--ignore-file` paths are resolved from the absolute repository root. An absolute path is used directly.
+The current command prepares source chunks and exact token counts. It does not yet create embeddings or vector records.
 
-The command loads prior prepared state when available, rebuilds changed records, reuses unchanged records, publishes the new snapshot, and writes JSON:
+Output:
 
 ```json
 {
@@ -42,22 +103,9 @@ The command loads prior prepared state when available, rebuilds changed records,
 }
 ```
 
-Field meanings:
-
-| Field | Meaning |
-| --- | --- |
-| `state` | Resolved prepared-state path |
-| `files` | Total file records in the published snapshot |
-| `stats.scanned` | Eligible source files encountered during this run |
-| `stats.reused` | Eligible files whose prior records were reused |
-| `stats.updated` | New or changed eligible files rebuilt during this run |
-| `stats.removed` | Prior file records absent from the new snapshot |
-
-Ignored, unsupported, oversized, binary, and non-regular files are not included in `scanned`.
-
 ## `grimoire context`
 
-Compile a bounded context package from prepared state.
+Compile a bounded lexical context package from prepared state:
 
 ```bash
 grimoire context [flags]
@@ -65,51 +113,36 @@ grimoire context [flags]
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--root <path>` | `.` | Repository root used to resolve the default or relative state path |
-| `--state <path>` | `<root>/.grimoire` | Prepared index repository path |
-| `--query <text>` | none | Required task or retrieval query |
-| `--budget <n>` | `2000` | Maximum `o200k_base` tokens in the emitted JSON package |
-| `--candidate-limit <n>` | `200` | Maximum ranked candidates before budget fitting; non-positive values disable this cap |
+| `--root <path>` | `.` | Repository root used to resolve state |
+| `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
+| `--query <text>` | none | Required retrieval query |
+| `--budget <n>` | `2000` | Maximum `o200k_base` tokens in emitted JSON |
+| `--candidate-limit <n>` | `200` | Maximum ranked lexical candidates |
 
-`--query` must be non-empty. `--budget` must be positive. The prepared index must already exist and contain a valid published state.
-
-The command writes a versioned JSON context package. See [Context package](context-package.md).
-
-The request path does not read repository source files. It loads prepared state, ranks stored chunks, and selects complete chunks while counting the exact indented JSON output. The budget includes package metadata and formatting, not only selected source content.
+The request path currently remains lexical-only. It does not contact the embedding endpoint until vector indexing and hybrid retrieval are implemented.
 
 ## `grimoire version`
-
-Print the current development version:
 
 ```bash
 grimoire version
 ```
 
-Current value:
+Current value: `0.1.0-dev`.
 
-```text
-0.1.0-dev
-```
+## Environment variables
+
+| Variable | Meaning |
+| --- | --- |
+| `GRIMOIRE_LLAMA_SERVER` | Explicit `llama.cpp` runtime executable |
+| `GRIMOIRE_EMBEDDING_MODEL` | Explicit local GGUF model file |
 
 ## Error behavior
 
-Errors are returned for conditions including:
-
-- missing or unknown commands;
-- invalid flags;
-- missing query;
-- non-positive budget;
-- missing configured ignore file;
-- repository traversal or file-read failures;
-- malformed or incompatible prepared state;
-- budgets too small for the package metadata;
-- invalid state paths or record paths; and
-- conflicting concurrent index publication.
-
-The current CLI does not yet define stable numeric exit-code classes or machine-readable error envelopes.
+Errors remain human-readable and do not yet have stable diagnostic codes or exit-code classes.
 
 ## Related documentation
 
+- [Embedding model](embedding-model.md)
 - [Indexing](indexing.md)
 - [Context package](context-package.md)
 - [Prepared index](../architecture/prepared-index.md)

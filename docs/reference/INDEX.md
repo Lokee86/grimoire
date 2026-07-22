@@ -7,6 +7,7 @@ Exact user-visible contracts for the current Grimoire implementation.
 - [CLI](cli.md) - Commands, flags, path resolution, validation, and JSON output.
 - [Indexing](indexing.md) - Traversal, ignore behavior, supported files, limits, and incremental statistics.
 - [Context package](context-package.md) - Version 2 exact-token package and selection fields.
+- [Embedding model](embedding-model.md) - Fixed local model, runtime, vector, setup, and probe contracts.
 
 ## Related documentation
 

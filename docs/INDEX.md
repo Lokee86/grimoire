@@ -23,6 +23,7 @@ The root [README](../README.md) is the product introduction and quick start. Thi
 - [CLI](reference/cli.md)
 - [Indexing](reference/indexing.md)
 - [Context package](reference/context-package.md)
+- [Embedding model](reference/embedding-model.md)
 
 ## Development
 
@@ -46,3 +47,4 @@ The root [README](../README.md) is the product introduction and quick start. Thi
 - [`internal/ignore`](../internal/ignore/README.md)
 - [`internal/retrieve`](../internal/retrieve/README.md)
 - [`internal/compiler`](../internal/compiler/README.md)
+- [`internal/embedding`](../internal/embedding/README.md)

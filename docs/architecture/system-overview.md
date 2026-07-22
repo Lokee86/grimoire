@@ -2,126 +2,108 @@
 
 ## Purpose
 
-This document describes the implemented Grimoire lexical baseline: how repository files become prepared chunks, how queries are ranked, and how a bounded context package is produced.
+Grimoire is a standalone repository RAG and context-compilation tool. It owns prepared retrieval state, lexical and semantic candidate retrieval, hybrid ranking, exact budgeted selection, and context-package output.
 
-## Product boundary
+The implemented foundation currently includes source preparation, a lexical baseline, exact output budgeting, and an operational local embedding provider. Vector persistence and hybrid retrieval remain under development.
 
-Grimoire owns prepared retrieval state, ranking, budgeted selection, and context-package output. It does not own language parsing, repository relationship graphs, documentation maintenance, agents, or generation.
-
-The current implementation works without other Warlock tools. Future integrations may provide better evidence, but they do not replace Grimoire's selection and budgeting responsibilities.
-
-## End-to-end flow
+## Current flow
 
 ```text
 index command
     │
-    ├── resolve repository and state paths
-    ├── load previous prepared snapshot when present
     ├── traverse eligible repository files
     ├── reuse unchanged file records
     ├── fallback-chunk changed text files
-    ├── count each changed chunk with o200k_base
-    └── atomically publish a new prepared snapshot
+    ├── count chunks with o200k_base
+    └── atomically publish prepared source state
+
+model setup / serve
+    │
+    ├── install verified llama.cpp runtime and Q8 GGUF model
+    ├── expose a local OpenAI-compatible embeddings endpoint
+    ├── instruct repository queries
+    ├── embed raw document chunks
+    └── reduce native 1024 dimensions to normalized 512 dimensions
 
 context command
     │
-    ├── load the prepared snapshot
-    ├── rank prepared chunks against the query
-    ├── apply deterministic tie-breaking
-    ├── select whole chunks under the serialized-package budget
-    ├── count the exact indented JSON package with o200k_base
-    └── emit the verified package
+    ├── load prepared source state
+    ├── perform current linear lexical ranking
+    ├── fit whole chunks under the package budget
+    └── emit verified JSON
 ```
 
-The context command does not traverse the repository or read source files. It operates only on the prepared state repository.
+The embedding path is real and independently probeable, but it is not yet called by `index` or `context`.
+
+## Target retrieval flow
+
+```text
+prepared chunks
+    ├── incremental BM25 postings ───────► lexical candidates
+    └── incremental model vectors ──────► semantic candidates
+                                                │
+query ──► instructed query embedding ───────────┤
+                                                ▼
+                                      deterministic rank fusion
+                                                ▼
+                                       context selection
+                                                ▼
+                                  exact o200k_base package
+```
+
+Lexicon may later replace fallback boundaries with structural ranges, but the entire retrieval path must work without it.
 
 ## Package ownership
 
-| Package | Owns | Does not own |
-| --- | --- | --- |
-| `cmd/grimoire` | Process entry point and exit behavior | Command implementation |
-| `internal/app` | CLI parsing and operation orchestration | Index formats, ranking rules, budget policy internals |
-| `internal/ignore` | Git-ignore pattern loading and matching | Permanent tool-state exclusions |
-| `internal/index` | Traversal, filtering, fallback chunking, incremental records, storage, publication | Query ranking and package selection |
-| `internal/retrieve` | Query term extraction, candidate scoring, deterministic ordering | Token budgets and output packages |
-| `internal/tokenizer` | Fixed `o200k_base` identity and exact token counting | Ranking, chunk boundaries, model selection, or wrapper overhead |
-| `internal/compiler` | Whole-chunk budget selection, exact package accounting, and JSON package model | Candidate discovery and ranking |
+| Package | Owns |
+| --- | --- |
+| `internal/app` | CLI parsing and operation orchestration |
+| `internal/ignore` | Git-ignore pattern loading and matching |
+| `internal/index` | Traversal, fallback chunking, source records, storage, and atomic publication |
+| `internal/retrieve` | Current lexical candidate scoring and deterministic ordering |
+| `internal/embedding` | Fixed model identity, verified setup, runtime launch, query formatting, HTTP client, reduction, normalization, and probing |
+| `internal/tokenizer` | Fixed `o200k_base` counting |
+| `internal/compiler` | Whole-chunk package selection and exact serialized-package accounting |
+
+Future vector storage and hybrid fusion should receive their own concrete ownership seams rather than being folded into the model client.
 
 ## Code map
 
 ```text
 cmd/grimoire/main.go
-    └── internal/app.Run
-            ├── index.Build
-            │      └── ignore.Load / Policy.Ignored
-            ├── index.Load / index.Save
-            ├── retrieve.Search
-            └── compiler.Compile
-                   └── tokenizer.Count
+    └── app.Run
+        ├── index.Build / index.Save
+        ├── retrieve.Search
+        ├── compiler.Compile / compiler.Marshal
+        └── model commands
+            ├── embedding.Setup
+            ├── embedding.Serve
+            └── embedding.Client.Probe
 ```
 
-Important implementation files:
+## Embedding contract
 
-| File | Responsibility |
-| --- | --- |
-| `internal/app/run.go` | Commands, flags, path resolution, and JSON output |
-| `internal/index/build.go` | Repository traversal, file eligibility, incremental reuse, and changed-file chunking |
-| `internal/index/chunk.go` | Deterministic line-based fallback chunking and exact chunk token counts |
-| `internal/index/store.go` | Snapshot loading, validation, incremental shard writes, and atomic reference publication |
-| `internal/index/codec.go` | Deterministic shard encoding and path validation |
-| `internal/index/file_codec.go` | Deterministic file and chunk record encoding |
-| `internal/ignore/policy.go` | Root, nested, and replacement Git-ignore behavior |
-| `internal/retrieve/search.go` | Lexical scoring, reasons, limits, and tie-breaking |
-| `internal/compiler/compiler.go` | Whole-chunk fitting, exact serialized-package accounting, and package construction |
-| `internal/tokenizer/tokenizer.go` | Shared `o200k_base` codec and token-counting seam |
+The fixed provider is `Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0`, served locally through `llama.cpp`.
+
+Queries receive the fixed repository retrieval instruction. Documents remain raw. Native 1024-dimensional output is truncated to the first 512 Matryoshka dimensions and L2-normalized inside Grimoire. Inner product is therefore cosine similarity.
+
+Model identity, dimensions, preprocessing, runtime compatibility, and future vector schema must collectively determine whether persisted vectors can be reused.
 
 ## Determinism
 
-For the same prepared snapshot, query, candidate limit, and budget, the current context package is deterministic.
+Source preparation, current lexical ranking, and package compilation are deterministic for the same snapshot, query, limits, and budget.
 
-Deterministic behavior comes from:
+Embedding inference is locally controlled and uses a fixed model artifact, prompt format, dimension reduction, and normalization. Exact floating-point values may still vary with runtime build and hardware backend; future vector compatibility must record enough identity to prevent silent mixing.
 
-- repository-relative slash-normalized paths;
-- sorted file and shard records;
-- content-derived chunk identities;
-- fixed lexical scoring rules;
-- score, path, and start-line ordering; and
-- whole-chunk budget selection in ranked order.
+## Product boundaries
 
-Filesystem traversal order does not determine persisted file ordering.
+Grimoire does not own language parsing, repository relationship graphs, documentation maintenance, agent orchestration, or generative inference. Those may supply optional evidence, but they are not prerequisites for baseline hybrid RAG.
 
-## Current chunking
-
-The fallback chunker normalizes CRLF to LF, removes one final newline, and divides non-empty text into blocks of approximately 48 lines. It prefers a recent blank-line boundary when that boundary would leave a useful block of more than eight lines.
-
-Leading and trailing blank lines are removed from each chunk. Chunk identity is derived from the repository-relative path, source range, and exact chunk text.
-
-This is deliberately language-agnostic. It does not understand functions, types, methods, Markdown sections, or structured configuration boundaries.
-
-## Current retrieval
-
-The lexical ranker lowercases the query and candidate text, extracts unique alphanumeric or underscore terms of at least two characters, and applies fixed boosts for:
-
-- the complete query phrase in content;
-- filename matches;
-- path matches;
-- leading-line matches; and
-- repeated content matches, capped per term.
-
-Each candidate records compact reasons for its score. Ties are resolved by path and then source start line.
-
-The current implementation scans every prepared chunk in memory for each query. It avoids repository I/O but does not yet use a postings index or BM25.
-
-## Current budget selection
-
-Each prepared chunk stores its exact `o200k_base` count. The compiler considers ranked candidates in order and tentatively serializes the complete indented JSON package for each addition. A chunk is retained only when the resulting package fits the caller's budget. Rejected candidates are counted as omitted, and later smaller candidates may still fit.
-
-The package-level `token_count` includes query text, metadata, paths, line ranges, scores, reasons, selected content, JSON syntax, indentation, escaping, and the trailing newline. The compiler stabilizes the self-referential `token_count` field, verifies the final bytes before output, and returns an error when the budget cannot fit even an empty package.
-
-This budget is exact for `o200k_base`. It does not include any chat, tool, agent, or transport wrapper added after Grimoire emits the package.
+Grimoire does own its local embedding provider contract and vector retrieval state. It does not require hosted embedding APIs or hosted vector infrastructure.
 
 ## Related documentation
 
+- [Embedding model](../reference/embedding-model.md)
 - [Prepared index](prepared-index.md)
 - [Context package](../reference/context-package.md)
 - [Current limitations](../limits/current-limitations.md)

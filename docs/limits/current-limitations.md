@@ -2,78 +2,79 @@
 
 ## Status
 
-Grimoire is a pre-release lexical baseline. The limitations below describe current behavior, not hypothetical concerns.
+Grimoire has a prepared lexical baseline, exact package budgeting, and an operational local embedding provider. It is not yet a complete hybrid RAG engine.
+
+## Embeddings are not indexed yet
+
+The Qwen3 model can be installed, served, queried, reduced to 512 dimensions, normalized, and probed. `grimoire index` does not yet embed chunks, and prepared snapshots do not persist vectors.
+
+Planned removal condition: add model-versioned incremental vector records and atomic publication with the source snapshot.
+
+## No vector retrieval
+
+`grimoire context` does not perform cosine or approximate nearest-neighbour search. The current request path remains lexical-only.
+
+Planned removal condition: retrieve semantic candidates from persisted normalized vectors, initially with the simplest measured implementation.
+
+## Linear lexical search
+
+A context request scans all prepared chunks and applies fixed substring boosts. It does not use postings, corpus statistics, or BM25.
+
+Planned removal condition: maintain incremental postings and use BM25 while preserving inspectable metadata boosts.
+
+## No hybrid fusion
+
+Lexical and semantic result sets are not yet combined. There is no reciprocal-rank fusion or provider provenance in the context package.
+
+Planned removal condition: independently retrieve bounded lexical and vector candidate sets, then fuse their ranks deterministically.
 
 ## Language-agnostic chunks
 
-Grimoire currently chunks all supported files with the same line-based fallback algorithm. It does not preserve function, method, type, Markdown section, fenced-block, or structured-data boundaries.
+All supported files use the line-based fallback chunker. Function, method, type, Markdown-section, fenced-block, and structured-data boundaries are not preserved.
 
-Planned removal condition: consume structural chunks from Lexicon while retaining fallback chunking when no adapter is available or parsing fails.
+Planned removal condition: optionally consume Lexicon structural ranges while retaining fallback operation without Lexicon.
 
-## Linear prepared-chunk search
+## Managed setup platform coverage
 
-A context request does not scan the repository, but it does scan all chunks loaded from prepared state and counts string occurrences for each query term.
+`grimoire model setup` currently installs the pinned `llama.cpp` runtime automatically only on Windows x64. Other platforms can use a manually installed runtime through `PATH` or `GRIMOIRE_LLAMA_SERVER`.
 
-Planned removal condition: prepare lexical postings during indexing and use an established scorer such as BM25 while preserving deterministic metadata boosts and inspectable reasons.
-
-## Single tokenizer
-
-Grimoire counts chunks and emitted packages only with `o200k_base`. The package budget is exact under that encoding, but a consumer model using another tokenizer may count the same JSON differently.
-
-Grimoire also cannot account for system prompts, chat framing, tool schemas, or other wrapper content added after it emits the package.
-
-Planned removal condition: add another tokenizer only when a concrete consumer demonstrates that the single shared approximation is insufficient. Wrapper overhead remains the consumer's responsibility.
+Planned removal condition: add verified pinned runtime assets for additional supported platforms.
 
 ## Whole-chunk selection only
 
-The compiler greedily considers candidates in ranked order. It does not deduplicate overlapping evidence, diversify by file or subsystem, reserve budget for specific evidence classes, or optimize the package globally.
+The compiler greedily considers candidates in ranked order. It does not deduplicate overlapping evidence, diversify by subsystem, reserve evidence classes, or optimize globally.
 
-Planned removal condition: add measured selection improvements without hiding why each chunk was selected.
+Planned removal condition: add measured selection improvements without obscuring why evidence was selected.
 
-## Fixed lexical scoring
+## Single output tokenizer
 
-Current ranking uses fixed substring boosts rather than corpus statistics, stemming, fuzzy matching, symbol identity, or semantic similarity. Short one-character query terms are discarded.
+Context packages are measured only with `o200k_base`. A consumer using another tokenizer may count the same package differently. Grimoire also cannot count chat framing or tool schemas added later.
 
-Planned removal condition: prepared lexical scoring first; optional semantic retrieval only after its latency and quality can be measured against the lexical baseline.
+Planned removal condition: add another tokenizer only for a concrete consumer. External wrapper overhead remains the consumer's responsibility.
 
 ## Narrow file eligibility
 
-Only the built-in extension and extensionless-name allowlist is indexed. There is no configuration for adding file types, assigning language identities, or marking generated content beyond ignore rules.
-
-Planned removal condition: add explicit indexing configuration when a concrete repository need establishes the contract.
+The built-in extension and extensionless-name allowlist is fixed. There is no configuration for additional file types or generated-content classification beyond ignore rules.
 
 ## Full snapshot materialization
 
-`index.Load` decodes all file records and chunks into memory. Context requests do not yet lazily read relevant shards or use a resident daemon-owned index.
-
-Planned removal condition: measure real repositories before selecting lazy loading, memory mapping, daemon residency, or another storage access strategy.
+`index.Load` decodes all source records and chunks into memory. There is no lazy shard access or resident retrieval process.
 
 ## Manual index refresh
 
-There is no file watcher or Grimoire daemon. Callers must run `grimoire index` after repository changes.
-
-Planned removal condition: add standalone incremental maintenance, then allow the Warlock runtime to provide shared change events and supervision when installed.
-
-## No optional evidence providers
-
-The package currently records only `lexical` as a retrieval source. Lexicon, Arcana, Demon Docs, Git-change evidence, and semantic embeddings are not connected.
-
-Planned removal condition: add providers behind explicit bounded interfaces without making the base lexical mode dependent on every tool.
+There is no watcher or Grimoire daemon. Callers must run `grimoire index` after repository changes.
 
 ## Pre-release compatibility
 
-The CLI, prepared-index binary formats, scoring reasons, and context-package schema are versioned where needed but are not yet stable public compatibility promises.
-
-Planned removal condition: declare compatibility policy at the first stable release.
+CLI behavior, prepared binary formats, model identity, ranking reasons, and context-package schemas are versioned where needed but are not stable public promises.
 
 ## No stable diagnostic protocol
 
-Errors are human-readable Go errors. There are no stable diagnostic codes, JSON error envelopes, or documented exit-code classes.
-
-Planned removal condition: define a machine-readable diagnostic contract when Grimoire gains external integrations that require it.
+Errors are human-readable Go errors. Stable diagnostic codes, JSON error envelopes, and documented exit-code classes do not yet exist.
 
 ## Related documentation
 
+- [Embedding model](../reference/embedding-model.md)
 - [Roadmap](../planning/roadmap.md)
 - [System overview](../architecture/system-overview.md)
 - [CLI](../reference/cli.md)

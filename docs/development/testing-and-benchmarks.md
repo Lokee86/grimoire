@@ -16,7 +16,8 @@ Formatting should produce no diff after the final run.
 
 | Area | Primary tests |
 | --- | --- |
-| CLI integration and flag wiring | `internal/app/run_test.go` |
+| CLI integration and flag wiring | `internal/app/run_test.go`, `internal/app/model_test.go` |
+| Embedding client and runtime contract | `internal/embedding/client_test.go`, `internal/embedding/runtime_test.go` |
 | Incremental traversal, ignore behavior, and exclusions | `internal/index/build_test.go` |
 | Binary shard and file codecs | `internal/index/codec_test.go` |
 | Manifest tokenizer identity and incompatible-version detection | `internal/index/objects_test.go` |
@@ -25,7 +26,17 @@ Formatting should produce no diff after the final run.
 | Lexical scoring and deterministic tie-breaking | `internal/retrieve/search_test.go` |
 | Whole-chunk fitting and exact serialized-package accounting | `internal/compiler/compiler_test.go` |
 
-Tests use temporary directories and locally constructed snapshots. They do not require external services.
+Tests use temporary directories, local HTTP test servers, synthetic vectors, and locally constructed snapshots. They do not require an installed model or external service.
+
+Embedding coverage verifies query instruction formatting, OpenAI-compatible response handling, response-index ordering, 1024-to-512 reduction, normalization, and malformed-vector rejection.
+
+A real installed provider can be smoke-tested separately:
+
+```bash
+grimoire model serve
+# in another shell
+grimoire model probe
+```
 
 ## Retrieval benchmark
 
@@ -77,4 +88,5 @@ When behavior changes:
 
 - [System overview](../architecture/system-overview.md)
 - [Prepared index](../architecture/prepared-index.md)
+- [Embedding model](../reference/embedding-model.md)
 - [Current limitations](../limits/current-limitations.md)

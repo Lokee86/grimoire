@@ -18,7 +18,7 @@ const Version = "0.1.0-dev"
 
 func Run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("expected command: index, context, or version")
+		return errors.New("expected command: index, context, model, or version")
 	}
 
 	switch args[0] {
@@ -26,6 +26,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		return runIndex(args[1:], stdout, stderr)
 	case "context":
 		return runContext(args[1:], stdout, stderr)
+	case "model":
+		return runModel(args[1:], stdout, stderr)
 	case "version":
 		_, err := fmt.Fprintln(stdout, Version)
 		return err

@@ -1,108 +1,112 @@
 # Grimoire Roadmap
 
-This roadmap describes intended implementation order, not release commitments. The lexical baseline and exact `o200k_base` budgeting are current; every numbered item below remains future work unless linked to an implemented reference.
+This roadmap describes implementation order, not release commitments.
 
-## Current baseline
+## Current foundation
 
-Implemented today:
+Implemented:
 
 - incremental file records with unchanged-file reuse;
-- standard Git-ignore traversal and protected tool-state exclusions;
-- content-addressed go-git object storage with atomic snapshot publication;
+- Git-ignore traversal and protected tool-state exclusions;
+- content-addressed prepared storage with atomic publication;
 - deterministic fallback chunks;
-- exact `o200k_base` chunk counts stored in prepared state;
-- fixed lexical ranking with inspectable reasons;
-- exact serialized-package budget enforcement;
-- automatic rebuild of incompatible version-1 prepared state; and
-- versioned JSON context packages.
+- exact `o200k_base` chunk and package accounting;
+- a deterministic linear lexical baseline;
+- the fixed Qwen3 embedding-model contract;
+- verified managed model/runtime setup on Windows x64;
+- an OpenAI-compatible local embedding client;
+- query instruction formatting, 512-dimensional reduction, and L2 normalization; and
+- live model serving and probing commands.
 
-Current token behavior is documented in [Indexing](../reference/indexing.md) and [Context package](../reference/context-package.md).
+The embedding provider is operational but is not yet connected to prepared chunk records or context retrieval.
 
-## 1. Lexicon structural-chunk consumer
+## 1. Persistent chunk vectors
 
-Define the smallest stable Grimoire boundary for consuming Lexicon output.
+Extend prepared state with model-versioned vector records.
 
 Required behavior:
 
-- accept language-neutral file and structural-range facts;
-- translate Lexicon ranges into Grimoire chunk records;
-- preserve stable source identity and diagnostics where useful;
-- fall back to the current chunker when Lexicon is unavailable, has no adapter, or cannot parse a file; and
-- keep Lexicon-specific execution outside ranking and budgeting.
+- embed new and changed chunks in batches;
+- reuse unchanged vectors by chunk identity and embedding identity;
+- remove vectors for replaced or deleted chunks;
+- persist normalized 512-dimensional vectors separately from source records;
+- make interrupted indexing unable to publish a mixed snapshot; and
+- rebuild vectors when the model, dimensions, preprocessing, or schema changes.
 
-Dependency: Lexicon's normalized adapter output and invocation contract. This item is partially blocked until that contract exists.
+Initial exact search may scan the persisted vectors. Approximate nearest-neighbour machinery should be added only when measurements show it is needed.
 
-## 2. Prepared lexical postings
+## 2. Prepared lexical retrieval
 
-Replace per-query scanning of every prepared chunk with an index-maintenance-time lexical structure.
+Replace the current full chunk scan and custom substring score with standard lexical retrieval.
 
-Goals:
+Required behavior:
 
-- an established lexical scorer such as BM25 rather than a custom corpus-ranking algorithm;
-- incremental update of changed chunk postings;
-- exact phrase, filename, path, symbol, and heading boosts as separate inspectable signals;
+- incremental inverted postings;
+- BM25 corpus scoring;
+- exact phrase, filename, path, symbol-like term, and heading boosts as separate inspectable signals;
 - deterministic tie-breaking; and
-- benchmark comparison against the current 10,000-chunk linear baseline.
+- benchmark and retrieval-quality comparison against the current baseline.
 
-This follows the Lexicon integration because structural chunk identity, replacement, removals, and metadata should be stable before postings are built around them. The postings implementation must continue to support fallback chunks for unsupported or failed parses.
+This work is independent of Lexicon. Fallback chunks remain valid searchable documents.
 
-## 3. Selection quality
+## 3. Hybrid retrieval
 
-Improve package construction after structural chunks and prepared lexical retrieval can be measured together.
+Retrieve lexical and semantic candidates independently, then combine them.
 
-Candidate improvements:
+Initial direction:
+
+- bounded BM25 and vector candidate pools;
+- deterministic reciprocal-rank fusion;
+- provider-specific ranks and scores retained as provenance;
+- lexical-only fallback when the model is unavailable; and
+- explicit package metadata describing which retrieval paths contributed.
+
+Raw BM25 and cosine values should not be treated as directly comparable scales.
+
+## 4. Selection quality
+
+Improve final context construction after hybrid retrieval is measurable.
+
+Candidate work:
 
 - overlap removal;
 - file and subsystem diversity;
-- query-intent or evidence-class reservations;
 - adjacent-chunk expansion;
+- evidence-class reservations;
 - stable package fingerprints; and
 - explicit omission reasons beyond budget pressure.
 
-Every improvement must preserve inspectability and be evaluated against fixtures or repository tasks. Exact `o200k_base` package enforcement remains the final selection boundary.
+Exact `o200k_base` package enforcement remains the final boundary.
 
-## 4. Incremental maintenance runtime
+## 5. Incremental maintenance runtime
 
-Add standalone change-driven maintenance so prepared state stays current without manual indexing.
+Keep lexical and vector state current without requiring a manual indexing command.
 
-The standalone mode should own only Grimoire behavior. When hosted by Warlock, Grimoire should consume shared repository change events, lifecycle supervision, and health reporting rather than duplicate the complete runtime stack.
+Standalone Grimoire should own its own behavior. When hosted by Warlock, it should consume shared repository change events and supervision rather than duplicate the umbrella runtime.
 
-This work should follow a stable incremental index contract and should not be required for one-shot CLI use.
+One-shot CLI indexing must remain supported.
 
-## 5. Optional semantic retrieval
+## 6. Optional structural enrichment
 
-Evaluate a small local embedding provider only after the lexical baseline has quality and latency measurements.
+Consume Lexicon structural ranges when available while retaining the fallback chunker.
 
-Constraints:
+Lexicon may improve chunk boundaries, symbol metadata, and replacement identity. It is not a prerequisite for lexical search, embeddings, vector search, or hybrid retrieval.
 
-- local and offline-capable;
-- changed chunks embedded incrementally;
-- no generative model or autonomous retrieval loop;
-- no remote embedding API or required external vector database;
-- strict provider deadline; and
-- immediate lexical fallback when semantic work is unavailable or late.
+## 7. Optional evidence providers
 
-Semantic evidence must supplement rather than replace inspectable lexical and metadata evidence.
+Add bounded provider interfaces for Arcana graph evidence, Demon Docs documentation evidence, Git-change evidence, and other Warlock facts.
 
-## 6. Optional Warlock evidence providers
+Grimoire remains responsible for retrieval fusion, context selection, budgeting, and the final package.
 
-Add bounded provider interfaces for:
-
-- Arcana relationship candidates;
-- Demon Docs authority, identity, linkage, validation, and staleness evidence; and
-- repository-change or other shared Warlock facts when a stable owner exists.
-
-Grimoire remains responsible for ranking, budgeting, and final package construction. Providers remain responsible for their own domain facts.
-
-## 7. Stable external contracts
+## 8. Stable external contracts
 
 Before a stable release, define:
 
 - CLI compatibility and exit behavior;
 - machine-readable diagnostics;
-- prepared-index migration policy;
+- prepared-index and vector-index migration policy;
 - context-package compatibility policy;
-- provider deadline and partial-result metadata; and
+- model/runtime compatibility policy; and
 - benchmark gates for latency, memory, and retrieval quality.
 
 ## Graduation rule
@@ -110,7 +114,7 @@ Before a stable release, define:
 When a roadmap item becomes implemented:
 
 1. Update the owning package README.
-2. Add or update current architecture documentation.
+2. Update current architecture documentation.
 3. Add or update exact reference documentation.
-4. Remove or narrow the corresponding current limitation.
-5. Replace roadmap detail with links to the implemented references and any unresolved follow-on work.
+4. Remove or narrow the corresponding limitation.
+5. Replace roadmap detail with links and unresolved follow-on work.
