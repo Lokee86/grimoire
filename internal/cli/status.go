@@ -25,7 +25,8 @@ func runStatus(arguments []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if _, err := config.Load(root); err != nil {
+	configuration, err := config.Load(root)
+	if err != nil {
 		return err
 	}
 
@@ -48,6 +49,7 @@ func runStatus(arguments []string, stdout, stderr io.Writer) error {
 	fmt.Fprintf(stdout, "repository root: %s\n", root)
 	fmt.Fprintf(stdout, "current snapshot ID: %s\n", snapshotID)
 	fmt.Fprintf(stdout, "detected languages: %s\n", displayList(languages))
+	fmt.Fprintf(stdout, "enabled languages: %s\n", displayLanguageSelection(configuration.EnabledLanguages))
 	fmt.Fprintf(stdout, "registered consumer names: %s\n", displayList(consumers))
 	return nil
 }

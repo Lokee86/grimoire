@@ -35,12 +35,20 @@ Every adapter must:
 Lexicon includes a standalone application that maintains the most recently observed relevant repository state independently of the source repository's Git state.
 
 ```text
-lexicon init
+lexicon init [--languages all|LIST]
 lexicon scan
 lexicon daemon
+lexicon rebuild [--languages LIST]
+lexicon languages [list|set]
+lexicon status
+lexicon doctor
+lexicon export --output PATH
+lexicon gc [--dry-run]
+lexicon consumer <list|add|remove|run>
+lexicon version
 ```
 
-`init` performs the first complete scan. `scan` replaces Lexicon's private source mirror, uses its internal Git diff and previous snapshot dependencies to update only impacted file records when safe, and publishes an immutable content-addressed snapshot. `daemon` watches the filesystem, updates changed paths after a short debounce, and periodically reconciles the complete repository. See [`docs/APPLICATION.md`](docs/APPLICATION.md).
+`init` performs the first complete scan. `scan` updates only impacted facts when safe. `daemon` triggers the same transaction from filesystem events. `rebuild` forces complete analysis, adapter fingerprint changes automatically rebuild affected languages, and language selection can disable unused runtimes. The remaining commands inspect health, manage downstream consumers, export verified JSONL libraries, and prune unreachable immutable storage. See [`docs/APPLICATION.md`](docs/APPLICATION.md).
 
 ### Ignore policy
 

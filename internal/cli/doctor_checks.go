@@ -94,10 +94,16 @@ func manifestLanguages(manifest objectstore.Manifest) []string {
 	return languages
 }
 
-func checkRuntime(language string) error {
+func checkRuntime(adapterRoot, language string) error {
+	if packagedRuntimeAvailable(adapterRoot, language) {
+		return nil
+	}
 	requirements, ok := doctorRuntimeExecutables[language]
 	if !ok {
 		return fmt.Errorf("no runtime definition for detected language %q", language)
+	}
+	if language == "typescript" && fileExists(filepath.Join(adapterRoot, "typescript", "dist", "cli.js")) {
+		requirements = [][]string{{"node"}}
 	}
 	for _, candidates := range requirements {
 		found := false
@@ -112,6 +118,19 @@ func checkRuntime(language string) error {
 		}
 	}
 	return nil
+}
+
+func packagedRuntimeAvailable(adapterRoot, language string) bool {
+	if language != "go" && language != "gdscript" && language != "rust" {
+		return false
+	}
+	base := filepath.Join(adapterRoot, language, "lexicon-"+language)
+	return fileExists(base) || fileExists(base+".exe")
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
 
 func checkConsumerCommand(command string) error {

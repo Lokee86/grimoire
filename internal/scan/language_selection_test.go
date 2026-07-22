@@ -25,6 +25,15 @@ func TestSelectedLanguagesDefaultsToAllAndFiltersSubset(t *testing.T) {
 func TestOpenDisablesPreviouslyAnalyzedLanguage(t *testing.T) {
 	repository := t.TempDir()
 	adapterRoot := t.TempDir()
+	for _, language := range []string{"python", "ruby"} {
+		path := filepath.Join(adapterRoot, language, "adapter.txt")
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(language+" adapter\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 	for name, contents := range map[string]string{"main.py": "value = 1\n", "main.rb": "value = 1\n"} {
 		if err := os.WriteFile(filepath.Join(repository, name), []byte(contents), 0o644); err != nil {
 			t.Fatal(err)
@@ -40,6 +49,7 @@ func TestOpenDisablesPreviouslyAnalyzedLanguage(t *testing.T) {
 	}
 	initialAnalyzer := &fakeAnalyzer{}
 	initial := New(repository, stateRoot, gitRepository, initialAnalyzer, io.Discard)
+	initial.AdapterRoot = adapterRoot
 	prepareSnapshotWithLanguages(t, initial, gitRepository, []string{"python", "ruby"})
 
 	if err := config.UpdateEnabledLanguages(repository, []string{"python"}); err != nil {

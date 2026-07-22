@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	lexfiles "github.com/Lokee86/lexicon/internal/files"
+	languageRegistry "github.com/Lokee86/lexicon/internal/languages"
 )
 
 const Version = 1
@@ -70,8 +70,8 @@ func UpdateEnabledLanguages(repository string, enabledLanguages []string) error 
 }
 
 func NormalizeEnabledLanguages(enabledLanguages []string) ([]string, error) {
-	supported := make(map[string]struct{}, len(lexfiles.SupportedLanguages()))
-	for _, language := range lexfiles.SupportedLanguages() {
+	supported := make(map[string]struct{}, len(languageRegistry.Supported()))
+	for _, language := range languageRegistry.Supported() {
 		supported[language] = struct{}{}
 	}
 	set := make(map[string]struct{}, len(enabledLanguages))

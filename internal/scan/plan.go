@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	lexfiles "github.com/Lokee86/lexicon/internal/files"
+	languageRegistry "github.com/Lokee86/lexicon/internal/languages"
 	"github.com/Lokee86/lexicon/internal/state"
 )
 
@@ -88,24 +89,7 @@ func structuralChange(change state.Change, language, path string) bool {
 }
 
 func languageOwnsSource(language, path string) bool {
-	extension := strings.ToLower(filepath.Ext(path))
-	switch language {
-	case "go":
-		return extension == ".go"
-	case "python":
-		return extension == ".py"
-	case "ruby":
-		return extension == ".rb" || extension == ".gemspec"
-	case "gdscript":
-		return extension == ".gd"
-	case "rust":
-		return extension == ".rs"
-	case "typescript":
-		return extension == ".ts" || extension == ".tsx" || extension == ".mts" || extension == ".cts" ||
-			extension == ".js" || extension == ".jsx" || extension == ".mjs" || extension == ".cjs"
-	default:
-		return false
-	}
+	return languageRegistry.OwnsSource(language, path)
 }
 
 func uniqueSorted(paths []string) []string {

@@ -2,12 +2,19 @@ package scan
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
+	languageRegistry "github.com/Lokee86/lexicon/internal/languages"
 	"github.com/Lokee86/lexicon/internal/lock"
 )
 
 func (s *Scanner) Rebuild(ctx context.Context, languages []string) (Report, error) {
+	report, err := s.rebuild(ctx, languages)
+	return s.notifyConsumers(ctx, report, err)
+}
+
+func (s *Scanner) rebuild(ctx context.Context, languages []string) (Report, error) {
 	guard, err := lock.Acquire(s.Store.Root)
 	if err != nil {
 		return Report{}, err
@@ -17,6 +24,9 @@ func (s *Scanner) Rebuild(ctx context.Context, languages []string) (Report, erro
 		return Report{}, err
 	}
 	if err := s.Git.RestoreLibrary(); err != nil {
+		return Report{}, err
+	}
+	if _, err := s.pruneDisabledLibraries(); err != nil {
 		return Report{}, err
 	}
 	if err := s.Mirror.SyncAll(s.Repository); err != nil {
@@ -34,8 +44,12 @@ func (s *Scanner) Rebuild(ctx context.Context, languages []string) (Report, erro
 		if err != nil {
 			return Report{}, err
 		}
+		languages = selectedLanguages(languages, s.languageEnabled)
 	} else {
-		languages = uniqueSorted(languages)
+		languages, err = s.validateRebuildLanguages(languages)
+		if err != nil {
+			return Report{}, err
+		}
 	}
 	plans := make([]analysisPlan, 0, len(languages))
 	for _, language := range languages {
@@ -55,4 +69,20 @@ func (s *Scanner) Rebuild(ctx context.Context, languages []string) (Report, erro
 		return Report{}, err
 	}
 	return Report{Changed: changes, Languages: languages, SnapshotID: snapshotID}, nil
+}
+
+func (s *Scanner) validateRebuildLanguages(languages []string) ([]string, error) {
+	supported := make(map[string]struct{}, len(languageRegistry.Supported()))
+	for _, language := range languageRegistry.Supported() {
+		supported[language] = struct{}{}
+	}
+	for _, language := range languages {
+		if _, ok := supported[language]; !ok {
+			return nil, fmt.Errorf("unsupported Lexicon language %q", language)
+		}
+		if !s.languageEnabled(language) {
+			return nil, fmt.Errorf("Lexicon language %q is disabled", language)
+		}
+	}
+	return uniqueSorted(languages), nil
 }

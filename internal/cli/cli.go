@@ -31,6 +31,16 @@ func Run(arguments []string, stdout, stderr io.Writer) int {
 		err = runScan(ctx, arguments[1:], stdout, stderr)
 	case "daemon":
 		err = runDaemon(ctx, arguments[1:], stdout, stderr)
+	case "rebuild":
+		err = runRebuild(ctx, arguments[1:], stdout, stderr)
+	case "export":
+		err = runExport(arguments[1:], stdout, stderr)
+	case "gc":
+		err = runGC(arguments[1:], stdout, stderr)
+	case "languages":
+		err = runLanguages(ctx, arguments[1:], stdout, stderr)
+	case "consumer":
+		err = runConsumer(ctx, arguments[1:], stdout, stderr)
 	case "status":
 		err = runStatus(arguments[1:], stdout, stderr)
 	case "doctor":
@@ -57,6 +67,7 @@ func runInit(ctx context.Context, arguments []string, stdout, stderr io.Writer) 
 	flags.SetOutput(stderr)
 	repository := flags.String("repo", "", "repository to initialize")
 	adapterRoot := flags.String("adapters", "", "Lexicon adapters directory")
+	languageText := flags.String("languages", "", "comma-separated languages or all")
 	if err := flags.Parse(arguments); err != nil {
 		return err
 	}
@@ -68,7 +79,16 @@ func runInit(ctx context.Context, arguments []string, stdout, stderr io.Writer) 
 	if err != nil {
 		return err
 	}
-	_, report, err := scan.Initialize(ctx, root, adapters, stdout)
+	var report scan.Report
+	if flagWasSet(flags, "languages") {
+		selection, err := parseLanguageSelection(*languageText)
+		if err != nil {
+			return err
+		}
+		_, report, err = scan.InitializeWithLanguages(ctx, root, adapters, selection, stdout)
+	} else {
+		_, report, err = scan.Initialize(ctx, root, adapters, stdout)
+	}
 	if err != nil {
 		return err
 	}
@@ -135,5 +155,5 @@ func runDaemon(ctx context.Context, arguments []string, stdout, stderr io.Writer
 }
 
 func usage(output io.Writer) {
-	fmt.Fprintln(output, "Usage: lexicon <init|scan|daemon|status|doctor|version> [options]")
+	fmt.Fprintln(output, "Usage: lexicon <init|scan|daemon|rebuild|export|gc|languages|consumer|status|doctor|version> [options]")
 }

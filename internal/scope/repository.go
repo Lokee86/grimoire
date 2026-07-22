@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	lexfiles "github.com/Lokee86/lexicon/internal/files"
+	languageRegistry "github.com/Lokee86/lexicon/internal/languages"
 )
 
 func Build(sourceRoot, temporaryRoot, language string, contextFiles []string) (string, error) {
@@ -126,23 +127,7 @@ func languageConfig(language, path string) bool {
 }
 
 func sourceExtension(language, extension string) bool {
-	extension = strings.ToLower(extension)
-	switch language {
-	case "go":
-		return extension == ".go"
-	case "python":
-		return extension == ".py"
-	case "ruby":
-		return extension == ".rb" || extension == ".gemspec"
-	case "gdscript":
-		return extension == ".gd"
-	case "rust":
-		return extension == ".rs"
-	case "typescript":
-		return extension == ".ts" || extension == ".tsx" || extension == ".mts" || extension == ".cts" ||
-			extension == ".js" || extension == ".jsx" || extension == ".mjs" || extension == ".cjs"
-	}
-	return false
+	return languageRegistry.SourceExtension(language, extension)
 }
 
 func copyFile(source, destination string) error {

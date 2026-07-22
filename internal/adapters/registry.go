@@ -13,25 +13,12 @@ import (
 	"strings"
 
 	"github.com/Lokee86/lexicon/internal/config"
+	languageRegistry "github.com/Lokee86/lexicon/internal/languages"
 )
 
 const SchemaVersion = 1
 
-type Definition struct {
-	Language    string
-	Directory   string
-	Extensions  []string
-	ConfigFiles []string
-}
-
-var registry = []Definition{
-	{Language: "gdscript", Directory: "gdscript", Extensions: []string{".gd"}, ConfigFiles: []string{"project.godot"}},
-	{Language: "go", Directory: "go", Extensions: []string{".go"}, ConfigFiles: []string{"go.mod", "go.sum"}},
-	{Language: "python", Directory: "python", Extensions: []string{".py"}, ConfigFiles: []string{"pyproject.toml", "setup.cfg", "requirements.txt"}},
-	{Language: "ruby", Directory: "ruby", Extensions: []string{".rb", ".gemspec"}, ConfigFiles: []string{"Gemfile", "Gemfile.lock"}},
-	{Language: "rust", Directory: "rust", Extensions: []string{".rs"}, ConfigFiles: []string{"Cargo.toml", "Cargo.lock"}},
-	{Language: "typescript", Directory: "typescript", Extensions: []string{".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"}, ConfigFiles: []string{"package.json", "package-lock.json", "tsconfig.json", "jsconfig.json"}},
-}
+type Definition = languageRegistry.Definition
 
 var ignoredFingerprintDirectories = map[string]struct{}{
 	".arcana": {}, ".bundle": {}, ".cantrip": {}, ".ddocs": {}, ".git": {},
@@ -44,20 +31,11 @@ var ignoredFingerprintDirectories = map[string]struct{}{
 }
 
 func Definitions() []Definition {
-	definitions := make([]Definition, len(registry))
-	for index, definition := range registry {
-		definitions[index] = cloneDefinition(definition)
-	}
-	return definitions
+	return languageRegistry.Definitions()
 }
 
 func Lookup(language string) (Definition, bool) {
-	for _, definition := range registry {
-		if definition.Language == language {
-			return cloneDefinition(definition), true
-		}
-	}
-	return Definition{}, false
+	return languageRegistry.Lookup(language)
 }
 
 func Fingerprint(root, language string) (string, error) {
@@ -123,10 +101,4 @@ func writeFingerprintField(hash interface{ Write([]byte) (int, error) }, value s
 	binary.BigEndian.PutUint64(length[:], uint64(len(value)))
 	_, _ = hash.Write(length[:])
 	_, _ = hash.Write([]byte(value))
-}
-
-func cloneDefinition(definition Definition) Definition {
-	definition.Extensions = append([]string(nil), definition.Extensions...)
-	definition.ConfigFiles = append([]string(nil), definition.ConfigFiles...)
-	return definition
 }

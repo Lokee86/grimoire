@@ -17,21 +17,39 @@ Lexicon can invoke deterministic one-shot consumers after a successful scan has 
 
 Commands execute directly without a shell, in lexical filename order, with the repository as their working directory. `timeout` is optional; existing definitions without it remain unlimited. Lexicon provides `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID`. Lexicon attempts every registered consumer, aggregates failures, and retries failed consumers on a later scan. After a successful invocation, its state file contains deterministic JSON such as `{"version":1,"snapshot_id":"sha256:..."}` and is replaced atomically; failed invocations leave their previous state unchanged. The already-published Lexicon snapshot remains valid.
 
-The `internal/consumer` package exposes `ListDefinitions`, `AddDefinition`, `RemoveDefinition`, and `RunOne` for future operators. Definition names are simple `.json` filenames; path traversal and other extensions are rejected. Listing is lexical, adding replaces an existing definition atomically, removal deletes both the definition and its consumer state, and `RunOne` executes only the selected definition against the supplied snapshot ID.
+The `lexicon consumer` commands and `internal/consumer` package expose list, add, remove, and one-shot execution operations. Definition names are simple `.json` filenames; path traversal and other extensions are rejected. Listing is lexical, adding replaces an existing definition atomically, removal deletes both the definition and its consumer state, and one-shot execution validates the requested immutable snapshot before invoking the selected consumer.
 
 ## Commands
 
 ```text
-lexicon init [--repo PATH] [--adapters PATH]
+lexicon init [--repo PATH] [--adapters PATH] [--languages all|LIST]
 lexicon scan [--repo PATH]
 lexicon daemon [--repo PATH] [--debounce 150ms] [--reconcile 30s]
+lexicon rebuild [--repo PATH] [--languages LIST]
+lexicon languages [list] [--repo PATH]
+lexicon languages set [--repo PATH] --languages all|LIST
+lexicon status [--repo PATH]
+lexicon doctor [--repo PATH]
+lexicon export [--repo PATH] --output PATH [--snapshot ID] [--languages LIST]
+lexicon gc [--repo PATH] [--retain 20] [--dry-run]
+lexicon consumer list [--repo PATH]
+lexicon consumer add [--repo PATH] --name NAME --command PATH [--arg VALUE]... [--timeout DURATION]
+lexicon consumer remove [--repo PATH] --name NAME
+lexicon consumer run [--repo PATH] --name NAME [--snapshot ID]
+lexicon version
 ```
 
-`lexicon init` creates `.lexicon/repo`, performs a complete relevant-file scan, generates language libraries, creates the initial private state commit, and publishes an immutable analysis snapshot.
+`lexicon init` creates `.lexicon/repo`, performs complete analysis for the selected detected languages, creates the initial private state commit, and publishes an immutable analysis snapshot. Omitting `--languages` or using `all` enables every supported language.
 
-`lexicon scan` replaces the private source mirror with the repository's current relevant files. The private Git repository supplies the diff from the last successful scan. For ordinary source-file modifications, Lexicon expands the changed paths through the previous snapshot's reverse dependency graph, requests incremental records for that impacted file set, merges them into the materialized language library, and publishes a new immutable snapshot. Structural changes use the complete-language fallback described below.
+`lexicon scan` replaces the private source mirror with the repository's current relevant files. The private Git repository supplies the diff from the last successful scan. For ordinary source-file modifications, Lexicon expands changed paths through the previous snapshot's reverse dependency graph, requests incremental records for that impacted file set, merges them into the materialized language library, and publishes a new immutable snapshot. Structural changes and adapter fingerprint changes use complete-language analysis.
 
-`lexicon daemon` watches the repository recursively. Changed paths are debounced and copied into the private mirror, then the same internal Git diff and language-library update path runs. A periodic complete reconciliation repairs missed filesystem events.
+`lexicon daemon` watches the repository recursively and invokes the same scan transaction after a debounce. A periodic complete reconciliation repairs missed filesystem events.
+
+`lexicon rebuild` forces complete analysis of all enabled detected languages or an explicit enabled subset. `lexicon languages set` updates the configured selection, removes disabled libraries, scans immediately, and publishes the resulting snapshot.
+
+`lexicon status` reports the repository, current snapshot, detected and enabled languages, and consumers. `lexicon doctor` verifies configuration, private Git state, immutable objects, adapter paths, runtime requirements, and consumer commands.
+
+`lexicon export` reconstructs verified standalone JSONL libraries. `lexicon gc` deletes only unreachable snapshots and objects while preserving retention and consumer pins. Consumer commands manage and invoke deterministic post-publication hooks.
 
 ## Private state repository
 
@@ -74,8 +92,11 @@ The planner follows every preserved manifest's file and shared-object references
 
 ## Snapshot export
 
-The objectstore export API writes standalone language libraries without changing
-the current snapshot or wiring a CLI command:
+The `lexicon export` command and objectstore export API write standalone language libraries without changing the current snapshot:
+
+```text
+lexicon export --output /tmp/lexicon-export --languages python,go
+```
 
 ```go
 err := (objectstore.Store{Root: "/repo/.lexicon"}).Export(

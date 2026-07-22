@@ -2,59 +2,23 @@ package files
 
 import (
 	"io/fs"
-	"path/filepath"
 	"sort"
-	"strings"
+
+	languageRegistry "github.com/Lokee86/lexicon/internal/languages"
 )
 
 var ignoredDirectories = map[string]struct{}{
 	// Warlock toolchain state is generated state, never repository source.
-	".ddocs":      {},
-	".lexicon":    {},
-	".arcana":     {},
-	".grimoire":   {},
-	".pitlord":    {},
-	".cantrip":    {},
-	".homunculus": {},
-	".incubus":    {},
-	".ritual":     {},
-	".warlock":    {},
+	".ddocs": {}, ".lexicon": {}, ".arcana": {}, ".grimoire": {}, ".pitlord": {},
+	".cantrip": {}, ".homunculus": {}, ".incubus": {}, ".ritual": {}, ".warlock": {},
 
-	".git":          {},
-	".worktrees":    {},
-	".workingtrees": {},
-	".astro":        {},
-	"node_modules":  {},
-	"vendor":        {},
-	"target":        {},
-	"dist":          {},
-	"build":         {},
-	".venv":         {},
-	"venv":          {},
-	"__pycache__":   {},
-	".pytest_cache": {},
+	".git": {}, ".worktrees": {}, ".workingtrees": {}, ".astro": {},
+	"node_modules": {}, "vendor": {}, "target": {}, "dist": {}, "build": {},
+	".venv": {}, "venv": {}, "__pycache__": {}, ".pytest_cache": {},
 }
-
-var extensionLanguages = map[string]string{
-	".go": "go", ".py": "python", ".rb": "ruby", ".gemspec": "ruby",
-	".gd": "gdscript", ".rs": "rust", ".ts": "typescript", ".tsx": "typescript",
-	".mts": "typescript", ".cts": "typescript", ".js": "typescript", ".jsx": "typescript",
-	".mjs": "typescript", ".cjs": "typescript",
-}
-
-var namedLanguages = map[string][]string{
-	"go.mod": {"go"}, "go.sum": {"go"},
-	"Cargo.toml": {"rust"}, "Cargo.lock": {"rust"},
-	"package.json": {"typescript"}, "package-lock.json": {"typescript"},
-	"tsconfig.json": {"typescript"}, "jsconfig.json": {"typescript"},
-	"pyproject.toml": {"python"}, "setup.cfg": {"python"}, "requirements.txt": {"python"},
-	"Gemfile": {"ruby"}, "Gemfile.lock": {"ruby"}, "project.godot": {"gdscript"},
-}
-
-var supportedLanguages = []string{"gdscript", "go", "python", "ruby", "rust", "typescript"}
 
 func SupportedLanguages() []string {
-	return append([]string(nil), supportedLanguages...)
+	return languageRegistry.Supported()
 }
 
 func IgnoredDirectory(name string) bool {
@@ -67,14 +31,7 @@ func SkipDir(path string, entry fs.DirEntry) bool {
 }
 
 func Languages(path string) []string {
-	name := filepath.Base(path)
-	if languages, ok := namedLanguages[name]; ok {
-		return append([]string(nil), languages...)
-	}
-	if language, ok := extensionLanguages[strings.ToLower(filepath.Ext(name))]; ok {
-		return []string{language}
-	}
-	return nil
+	return languageRegistry.ForPath(path)
 }
 
 func Relevant(path string) bool {

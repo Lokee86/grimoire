@@ -27,6 +27,17 @@ def npm_executable() -> str:
     return "npm.cmd" if os.name == "nt" else "npm"
 
 
+def cargo_executable() -> str:
+    found = shutil.which("cargo")
+    if found:
+        return found
+    name = "cargo.exe" if os.name == "nt" else "cargo"
+    candidate = Path.home() / ".cargo" / "bin" / name
+    if candidate.is_file():
+        return str(candidate)
+    raise FileNotFoundError("cargo executable not found")
+
+
 def copy_file(source: Path, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, destination)
@@ -82,7 +93,7 @@ def build_distribution(repo: Path, output: Path) -> None:
 
     rust_output = adapters / "rust" / executable_name("lexicon-rust")
     rust = repo / "adapters" / "rust"
-    run(["cargo", "build", "--release", "--locked", "--manifest-path", str(rust / "Cargo.toml")], repo)
+    run([cargo_executable(), "build", "--release", "--locked", "--manifest-path", str(rust / "Cargo.toml")], repo)
     copy_file(rust / "target" / "release" / executable_name("lexicon-rust-adapter"), rust_output)
 
     build_typescript(repo, adapters / "typescript")

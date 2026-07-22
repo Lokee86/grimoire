@@ -88,7 +88,7 @@ func doctorAt(repository string, output io.Writer) error {
 			} else {
 				report("adapter directory: "+language, checkAdapterDirectory(configuration.AdapterRoot, language))
 			}
-			report("runtime executable: "+language, checkRuntime(language))
+			report("runtime executable: "+language, checkRuntime(configuration.AdapterRoot, language))
 		}
 	}
 

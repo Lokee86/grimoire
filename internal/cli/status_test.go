@@ -51,6 +51,7 @@ func TestStatusDiscoversRepositoryAndReportsSnapshot(t *testing.T) {
 		"repository root: " + repository,
 		"current snapshot ID: " + snapshotID,
 		"detected languages: go, python",
+		"enabled languages: all",
 		"registered consumer names: alpha, zeta",
 	} {
 		if !strings.Contains(output, want) {
