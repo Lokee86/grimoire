@@ -130,7 +130,7 @@ func discover(root string) ([]string, []string, error) {
 
 func ignoredDir(name string) bool {
 	switch name {
-	case ".git", ".worktrees", ".workingtrees", ".warlock", "vendor":
+	case ".git", ".worktrees", ".workingtrees", ".ddocs", ".lexicon", ".arcana", ".grimoire", ".pitlord", ".cantrip", ".homunculus", ".incubus", ".ritual", ".warlock", "vendor":
 		return true
 	default:
 		return false

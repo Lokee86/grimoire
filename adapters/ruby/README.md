@@ -12,7 +12,7 @@ ruby adapters/ruby/lexicon_ruby.rb \
   --output /path/to/facts.jsonl
 ```
 
-The adapter scans `*.rb` files in lexical path order. It excludes `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, `.bundle/`, `vendor/`, `node_modules/`, `target/`, `build/`, `dist/`, `tmp/`, `log/`, and `coverage/`. Paths in facts are repository-relative and use forward slashes.
+The adapter scans `*.rb` files in lexical path order. It excludes `.git/`, `.worktrees/`, `.workingtrees/`, `.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, `.warlock/`, `.bundle/`, `vendor/`, `node_modules/`, `target/`, `build/`, `dist/`, `tmp/`, `log/`, and `coverage/`. Paths in facts are repository-relative and use forward slashes.
 
 Validate output with:
 

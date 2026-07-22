@@ -64,4 +64,4 @@ The adapter also emits repository, directory, file, module, type, function, meth
 - Framework dependency injection is resolved only where ordinary repository-local value flow exposes the target.
 - Parse failures still produce file/module facts plus an unresolved parse record, but no declarations from the failed file.
 
-Python files are scanned deterministically while excluding `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, `.next/`, `__pycache__/`, `.pytest_cache/`, `.bundle/`, `node_modules/`, `target/`, build/dist/virtual-environment directories, and vendor directories.
+Python files are scanned deterministically while excluding `.git/`, `.worktrees/`, `.workingtrees/`, `.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, `.warlock/`, `.next/`, `__pycache__/`, `.pytest_cache/`, `.bundle/`, `node_modules/`, `target/`, build/dist/virtual-environment directories, and vendor directories.

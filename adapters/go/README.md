@@ -24,7 +24,7 @@ The adapter models:
 - mutually exclusive build-tag declarations under one logical symbol identity;
 - AST-only callable contracts for files excluded from the active host build.
 
-The scanner excludes `.git`, `.worktrees`, `.workingtrees`, `.warlock`, and `vendor` directories. Every node ID follows the Lexicon SHA-256 identity contract. File content IDs hash the unmodified file bytes.
+The scanner excludes `.git`, `.worktrees`, `.workingtrees`, `.ddocs`, `.lexicon`, `.arcana`, `.grimoire`, `.pitlord`, `.cantrip`, `.homunculus`, `.incubus`, `.ritual`, `.warlock`, and `vendor` directories. Every node ID follows the Lexicon SHA-256 identity contract. File content IDs hash the unmodified file bytes.
 
 `calls` indicates one definite callable contract. Multiple sound runtime targets remain explicit `possible-calls` relationships rather than being promoted to certainty.
 

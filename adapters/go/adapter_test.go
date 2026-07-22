@@ -34,9 +34,19 @@ func (Widget) Method() {}
 import "testing"
 func TestCaller(t *testing.T) { helper() }
 `,
-		"internal/sub/sub.go": "package sub\nconst Value = 1\n",
-		"vendor/ignored.go":   "package ignored\nfunc Nope() {}\n",
-		".git/ignored.go":     "package ignored\nfunc Nope() {}\n",
+		"internal/sub/sub.go":    "package sub\nconst Value = 1\n",
+		"vendor/ignored.go":      "package ignored\nfunc Nope() {}\n",
+		".git/ignored.go":        "package ignored\nfunc Nope() {}\n",
+		".ddocs/ignored.go":      "package ignored\nfunc Nope() {}\n",
+		".lexicon/ignored.go":    "package ignored\nfunc Nope() {}\n",
+		".arcana/ignored.go":     "package ignored\nfunc Nope() {}\n",
+		".grimoire/ignored.go":   "package ignored\nfunc Nope() {}\n",
+		".pitlord/ignored.go":    "package ignored\nfunc Nope() {}\n",
+		".cantrip/ignored.go":    "package ignored\nfunc Nope() {}\n",
+		".homunculus/ignored.go": "package ignored\nfunc Nope() {}\n",
+		".incubus/ignored.go":    "package ignored\nfunc Nope() {}\n",
+		".ritual/ignored.go":     "package ignored\nfunc Nope() {}\n",
+		".warlock/ignored.go":    "package ignored\nfunc Nope() {}\n",
 	})
 
 	first, summary, err := scanRepository(root)

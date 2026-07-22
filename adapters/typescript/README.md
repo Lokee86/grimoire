@@ -9,7 +9,7 @@ The scanner includes:
 - `.ts`, `.tsx`, `.mts`, and `.cts`
 - `.js`, `.jsx`, `.mjs`, and `.cjs`
 
-It excludes `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, `node_modules/`, generated output directories, dependency/vendor trees, and common caches.
+It excludes `.git/`, `.worktrees/`, `.workingtrees/`, `.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, `.warlock/`, `node_modules/`, generated output directories, dependency/vendor trees, and common caches.
 
 The stream language remains `typescript` because JavaScript and TypeScript share one compiler-backed semantic frontend and one stable node-ID namespace.
 

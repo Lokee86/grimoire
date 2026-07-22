@@ -8,7 +8,8 @@ module LexiconRuby
     VERSION = "0.3.0"
     LANGUAGE = "ruby"
     EXCLUDED_DIRECTORIES = %w[
-      .git .worktrees .workingtrees .warlock
+      .git .worktrees .workingtrees .ddocs .lexicon .arcana .grimoire .pitlord
+      .cantrip .homunculus .incubus .ritual .warlock
       .bundle vendor node_modules target build dist tmp log coverage
     ].freeze
     METAPROGRAMMING_CALLS = %w[

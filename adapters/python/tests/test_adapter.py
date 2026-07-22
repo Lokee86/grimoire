@@ -23,6 +23,20 @@ class PythonAdapterTest(unittest.TestCase):
         (self.repo / "build").mkdir()
         (self.repo / "__pycache__").mkdir()
         (self.repo / ".next").mkdir()
+        self.warlock_state_directories = (
+            ".ddocs",
+            ".lexicon",
+            ".arcana",
+            ".grimoire",
+            ".pitlord",
+            ".cantrip",
+            ".homunculus",
+            ".incubus",
+            ".ritual",
+            ".warlock",
+        )
+        for directory in self.warlock_state_directories:
+            (self.repo / directory).mkdir()
         self._write("pkg/__init__.py", "from .base import Base\n")
         self._write(
             "pkg/base.py",
@@ -65,6 +79,8 @@ class PythonAdapterTest(unittest.TestCase):
         self._write("build/ignored.py", "def ignored(): pass\n")
         self._write("__pycache__/ignored.py", "def ignored(): pass\n")
         self._write(".next/generated.py", "def ignored(): pass\n")
+        for directory in self.warlock_state_directories:
+            self._write(f"{directory}/ignored.py", "def ignored(): pass\n")
         self._write("tools/data_sync/config.py", "class NestedConfig:\n    pass\n")
         self._write(
             "nested_consumer.py",
@@ -108,6 +124,8 @@ class PythonAdapterTest(unittest.TestCase):
         self.assertNotIn("build/ignored.py", paths)
         self.assertNotIn("__pycache__/ignored.py", paths)
         self.assertNotIn(".next/generated.py", paths)
+        for directory in self.warlock_state_directories:
+            self.assertNotIn(f"{directory}/ignored.py", paths)
 
         relations = {record["relation"] for record in edges}
         self.assertTrue({"contains", "defines", "imports", "extends"} <= relations)
