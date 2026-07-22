@@ -50,8 +50,8 @@ func TestCaller(t *testing.T) { helper() }
 	if got, want := encodeFacts(first), encodeFacts(second); got != want {
 		t.Fatal("scanning the same repository was not deterministic")
 	}
-	if summary.CallExpressions != 3 || summary.DirectCalls != 2 || summary.UnresolvedCalls != 1 {
-		t.Fatalf("call counts = total %d direct %d unresolved %d, want 3/2/1", summary.CallExpressions, summary.DirectCalls, summary.UnresolvedCalls)
+	if summary.CallExpressions != 3 || summary.DirectCalls != 3 || summary.UnresolvedCalls != 0 {
+		t.Fatalf("call counts = total %d direct %d unresolved %d, want 3/3/0", summary.CallExpressions, summary.DirectCalls, summary.UnresolvedCalls)
 	}
 	if summary.Files != 4 {
 		t.Fatalf("file count = %d, want 4", summary.Files)
@@ -65,16 +65,14 @@ func TestCaller(t *testing.T) { helper() }
 	if hasNode(first, KindFunction, "Nope") {
 		t.Fatal("ignored vendor or .git source was scanned")
 	}
-	if countRelation(first, RelCalls) != 2 {
-		t.Fatalf("call edge count = %d, want 2", countRelation(first, RelCalls))
+	if countRelation(first, RelCalls) != 3 {
+		t.Fatalf("call edge count = %d, want 3", countRelation(first, RelCalls))
 	}
-	if len(first.Unresolved) != 1 {
-		t.Fatalf("unresolved fact count = %d, want 1", len(first.Unresolved))
+	if len(first.Unresolved) != 0 {
+		t.Fatalf("unresolved fact count = %d, want 0", len(first.Unresolved))
 	}
-	unresolved := first.Unresolved[0]
-	if unresolved.Expression != "fmt.Println" || unresolved.CandidateNamespace != "fmt" ||
-		unresolved.CandidateName != "Println" || unresolved.Reason != ReasonExternalTarget {
-		t.Fatalf("unexpected unresolved fact: %#v", unresolved)
+	if !hasNode(first, KindFunction, "Println") {
+		t.Fatal("missing resolved standard-library function node")
 	}
 	packageKey := hashIdentity("package:example.com/demo:demo")
 	fileKey := hashIdentity("file:main.go")

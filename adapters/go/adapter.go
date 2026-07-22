@@ -14,10 +14,10 @@ import (
 )
 
 type Summary struct {
-	Nodes, Edges, DirectCalls, CallExpressions, UnresolvedCalls int
-	Directories, Files, Packages, Imports                       int
-	BuiltinCalls, ConversionCalls, ExternalCalls, DynamicCalls  int
-	SemanticErrors                                              int
+	Nodes, Edges, DirectCalls, PossibleCallTargets, CallExpressions, UnresolvedCalls int
+	Directories, Files, Packages, Imports                                            int
+	BuiltinCalls, ConversionCalls, ExternalCalls, DynamicCalls, InterfaceCalls       int
+	Closures, Captures, SemanticErrors                                               int
 }
 
 type packageInfo struct {
@@ -44,6 +44,10 @@ type scanner struct {
 	callables     []callable
 	targets       map[string]map[string][]NodeKey
 	semanticCalls map[string]semanticCall
+	semanticIDs   map[string][]NodeKey
+	closureKeys   map[string]NodeKey
+	callsiteKeys  map[string]string
+	fileImports   map[string]map[string]string
 	summary       Summary
 }
 
@@ -61,6 +65,8 @@ func scanRepository(root string) (RepositoryFacts, Summary, error) {
 		nodes: make(map[NodeKey]NodeFact), edges: make(map[string]EdgeFact),
 		packages: make(map[string]packageInfo), targets: make(map[string]map[string][]NodeKey),
 		semanticCalls: make(map[string]semanticCall),
+		semanticIDs:   make(map[string][]NodeKey), closureKeys: make(map[string]NodeKey),
+		callsiteKeys: make(map[string]string), fileImports: make(map[string]map[string]string),
 	}
 	files, dirs, err := discover(root)
 	if err != nil {
@@ -250,6 +256,16 @@ func (s *scanner) parseGoFile(absolute string) error {
 		importName, err := strconv.Unquote(spec.Path.Value)
 		if err != nil {
 			return fmt.Errorf("parse import in %s: %w", rel, err)
+		}
+		alias := filepath.Base(importName)
+		if spec.Name != nil {
+			alias = spec.Name.Name
+		}
+		if alias != "_" && alias != "." {
+			if s.fileImports[rel] == nil {
+				s.fileImports[rel] = make(map[string]string)
+			}
+			s.fileImports[rel][alias] = importName
 		}
 		internal := importName == s.module || strings.HasPrefix(importName, s.module+"/")
 		class := "external"

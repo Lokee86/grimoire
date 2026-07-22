@@ -45,6 +45,8 @@ impl ProtocolSnapshot {
             }
         }
         let resolved_call_relationships = relations.get("calls").copied().unwrap_or(0);
+        let possible_call_relationships = relations.get("possible-calls").copied().unwrap_or(0);
+        let conversion_relationships = relations.get("converts-to").copied().unwrap_or(0);
 
         Ok(json!({
             "node_count": self.graph.node_count(),
@@ -56,6 +58,8 @@ impl ProtocolSnapshot {
             "unresolved_by_reason": unresolved_reasons,
             "call_resolution": {
                 "resolved_unique_relationships": resolved_call_relationships,
+                "possible_call_relationships": possible_call_relationships,
+                "conversion_relationships": conversion_relationships,
                 "unresolved_references": unresolved_calls,
                 "coverage_available": false,
                 "coverage": Value::Null,

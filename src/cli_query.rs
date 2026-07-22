@@ -78,6 +78,8 @@ fn relation_name(relation: &RelationKind) -> &'static str {
         RelationKind::References => "references",
         RelationKind::Imports => "imports",
         RelationKind::Calls => "calls",
+        RelationKind::PossibleCalls => "possible-calls",
+        RelationKind::ConvertsTo => "converts-to",
         RelationKind::Implements => "implements",
         RelationKind::Extends => "extends",
         RelationKind::Includes => "includes",

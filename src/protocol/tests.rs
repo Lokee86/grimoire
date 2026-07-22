@@ -71,6 +71,14 @@ fn serves_repository_queries_and_snapshot_diffs() {
         1
     );
     assert_eq!(
+        stats["result"]["call_resolution"]["possible_call_relationships"],
+        0
+    );
+    assert_eq!(
+        stats["result"]["call_resolution"]["conversion_relationships"],
+        0
+    );
+    assert_eq!(
         stats["result"]["call_resolution"]["unresolved_references"],
         1
     );

@@ -45,9 +45,9 @@ func (Thing) Method() {}
 	if summary.SemanticErrors != 0 {
 		t.Fatalf("semantic errors = %d, want 0", summary.SemanticErrors)
 	}
-	if summary.CallExpressions != 9 || summary.DirectCalls != 5 || summary.UnresolvedCalls != 4 {
+	if summary.CallExpressions != 9 || summary.DirectCalls != 7 || summary.UnresolvedCalls != 1 {
 		t.Fatalf(
-			"call counts = total %d resolved %d unresolved %d, want 9/5/4",
+			"call counts = total %d resolved %d unresolved %d, want 9/7/1",
 			summary.CallExpressions,
 			summary.DirectCalls,
 			summary.UnresolvedCalls,
@@ -82,9 +82,18 @@ func (Thing) Method() {}
 		}
 	}
 
-	assertUnresolvedReason(t, facts, "len", ReasonBuiltinTarget)
-	assertUnresolvedReason(t, facts, "Widget", ReasonTypeConversion)
-	assertUnresolvedReason(t, facts, "fmt.Println", ReasonExternalTarget)
+	builtin := hashIdentity("function:go:builtins:len")
+	external := hashIdentity("function:fmt:Println")
+	widgetType := hashIdentity("type:example.com/semantic:Widget")
+	if !hasEdge(facts, caller, builtin, RelCalls) {
+		t.Fatal("missing built-in call edge")
+	}
+	if !hasEdge(facts, caller, external, RelCalls) {
+		t.Fatal("missing external call edge")
+	}
+	if !hasEdge(facts, caller, widgetType, RelConvertsTo) {
+		t.Fatal("missing conversion edge")
+	}
 	assertUnresolvedReason(t, facts, "dynamic", ReasonDynamicTarget)
 
 	if encoded := encodeFacts(facts); encoded == "" {

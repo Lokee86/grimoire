@@ -1,92 +1,105 @@
 # Go adapter real-repository validation
 
-Validated on July 21, 2026 against two existing Go modules without modifying
+Validated on July 22, 2026 against two existing Go modules without modifying
 either source repository.
 
 ## Results
 
-| Repository | Nodes | Edges | Indexed files | Packages | Call expressions | Resolved call expressions | Raw coverage | Repository-eligible calls | Eligible coverage | Unresolved facts | Packed graph | Catalogue | Unresolved file |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Demon Docs | 2,871 | 7,167 | 353 | 33 | 15,803 | 4,749 | 30.1% | 5,218 | 91.0% | 11,054 | 132,096 B | 350,220 B | 1,260,072 B |
-| Space Rocks game server | 4,091 | 11,638 | 528 | 53 | 17,557 | 8,350 | 47.6% | 8,704 | 95.9% | 9,207 | 205,264 B | 591,426 B | 1,117,936 B |
+| Repository | Nodes | Edges | Indexed files | Packages | Call expressions | Definite call expressions | Possible target facts | Conversion expressions | Unresolved calls | Closures | Captures | Packed graph | Catalogue | Unresolved file |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Demon Docs | 4,687 | 17,176 | 353 | 33 | 17,993 | 17,276 | 287 | 675 | 0 | 357 | 1,055 | 281,248 B | 539,274 B | 10 B |
+| Space Rocks game server | 5,596 | 19,853 | 528 | 53 | 18,430 | 17,594 | 731 | 765 | 0 | 389 | 526 | 327,936 B | 762,943 B | 10 B |
 
-Raw coverage divides resolved internal calls by every Go call expression. That
-denominator also includes standard-library and third-party calls, built-ins such
-as `len` and `append`, and type conversions such as `Widget(value)`. Those
-expressions cannot resolve to callable nodes inside the indexed repository.
+`Definite call expressions` counts call sites with one callable contract. This
+includes internal, standard-library, third-party, built-in, interface-contract,
+and uniquely resolved function-value calls. `Possible target facts` counts
+conservative runtime targets emitted for interface dispatch, callbacks, method
+values, and other function flows; multiple targets may belong to one call site.
+Type conversions are represented separately through `converts-to` edges.
 
-Repository-eligible coverage excludes external calls, built-ins, and type
-conversions. It retains dynamic calls, missing internal targets, ambiguity, and
-unsupported forms as honest unresolved work. On that denominator, the resolver
-covers 91.0% of Demon Docs and 95.9% of the Space Rocks game server.
+Neither repository produced an unresolved call fact. This does not mean every
+runtime dispatch is claimed to be uniquely known. Definite calls use `calls`;
+multi-target dispatch uses `possible-calls`; conversions use `converts-to`.
+Arcana therefore retains uncertainty instead of turning every possible target
+into a definite edge.
 
-Compared with the syntax-only baseline, resolved call expressions increased from
-3,333 to 4,749 in Demon Docs and from 3,497 to 8,350 in Space Rocks. The new
-resolver also includes named method bodies, so the total expression counts are
-not identical to the earlier baseline.
-
-Multiple call sites between the same two nodes become one packed graph edge.
-The final graphs contain 3,533 unique call edges for Demon Docs and 6,715 for
-Space Rocks, including 11 and 3 recursive self-edges respectively.
+Both repositories completed Go package/type loading with zero reported semantic
+errors.
 
 ## Resolution behavior
 
-The adapter uses `golang.org/x/tools/go/packages` and Go type information to
-resolve:
+The adapter combines repository-wide AST extraction with
+`golang.org/x/tools/go/packages`, Go type information, SSA, and variable-type
+analysis. It models:
 
-- unqualified same-package function calls;
-- same-package method calls through concrete receiver types;
-- internal cross-package function calls;
-- internal cross-package method calls;
-- promoted and pointer-receiver methods when Go resolves a concrete target;
-- recursive calls as graph self-edges.
+- same-package and cross-package functions and methods;
+- recursive calls as valid graph self-edges;
+- standard-library and external API symbols without indexing dependency source;
+- built-ins as callable symbol nodes;
+- type conversions as `converts-to` relationships;
+- interface types, interface methods, embedded interfaces, and implementation
+  relationships;
+- concrete interface targets as conservative `possible-calls` relationships;
+- function variables, callback parameters, method values, and returned function
+  values;
+- closures as independent function nodes, including nested closure bodies;
+- closure captures as variable nodes reached through `references` edges;
+- mutually exclusive build-tag declarations under one canonical package-level
+  symbol identity;
+- AST-only callable contracts for files excluded from the active host build.
 
-It classifies rather than guesses at:
+External closures and compiler-generated wrappers with no source declaration
+receive stable synthetic nodes. Reflection-heavy or opaque calls can therefore
+retain a callable contract even when no concrete repository implementation can
+be proven.
 
-- standard-library and third-party calls;
-- built-in functions;
-- type conversions;
-- calls through function variables;
-- unresolved interface or dynamic dispatch;
-- missing or ambiguous internal targets;
-- unsupported expression forms.
+## Packed graph results
 
-Anonymous function bodies are not attributed to the enclosing function. They
-remain outside the call graph until Arcana models closures as their own nodes.
+Demon Docs produced these unique packed relationships:
 
-Both repositories completed type loading with zero reported package errors.
+- 10,909 `calls`;
+- 279 `possible-calls`;
+- 445 `converts-to`;
+- 688 capture `references`;
+- 45 `implements`;
+- zero unresolved references.
 
-## Unresolved breakdown
-
-| Repository | Built-in | Type conversion | External | Dynamic | Missing internal | Ambiguous | Unsupported |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Demon Docs | 1,945 | 298 | 8,342 | 440 | 23 | 0 | 6 |
-| Space Rocks game server | 1,870 | 688 | 6,295 | 239 | 111 | 1 | 3 |
-
-Every unresolved expression produces exactly one fact carrying its source node,
-intended relation, expression, candidate namespace and name when available,
-resolution reason, and source span. `arcana import-facts` persists these records
-in `unresolved.tsv`.
+Multiple call sites between the same two nodes and relation become one packed
+edge, so packed relationship counts are intentionally lower than call-site
+counts. The query protocol does not calculate a percentage from those
+incompatible units.
 
 ## Query checks
 
-Demon Docs `ManagedRootTitle` resolved to its source declaration and outgoing
-calls to `FirstHeadingTitle` and `TitleFromName`.
+A real Demon Docs closure at `internal/reverseindex/watch.go:26:9` returned:
 
-Space Rocks `ProjectEventLane` resolved to its source declaration and its
-outgoing call to `sequenceBackedBatchID`.
+- two conservative `possible-calls` targets, `Lock` and `Unlock`;
+- seven captured variables through `references` edges;
+- zero unresolved references in the snapshot.
 
-Both fact files were generated twice and compared byte-for-byte. The repeated
-outputs were identical. Both files imported successfully into packed Arcana
-graphs, including recursive self-edges, and reopened successfully for queries.
+The protocol statistics reported all new relation categories separately.
+Both repositories imported successfully into verified repository snapshots.
 
-## Remaining semantic work
+An incremental test removed one real `possible-calls` edge from that closure.
+`update-facts` reported one changed file, one removed edge, and an overlay rather
+than a rebuild. The updated query returned one remaining target, and snapshot
+diff reported exactly one relationship-changed source node.
 
-The main remaining gaps are:
+Both fact files were generated twice and compared byte-for-byte. Repeated output
+was identical.
 
-- interface and other genuinely dynamic dispatch;
-- calls through function values;
-- closure nodes and relationships;
-- inactive build-tag variants and explicit multi-configuration indexing;
-- generated-code classification;
-- external dependency graphs when those dependencies are indexed separately.
+## Remaining semantic limits
+
+The remaining limits are about precision and provenance rather than missing
+call records:
+
+- VTA is conservative and can over-approximate runtime targets;
+- build-tag variants currently share one logical symbol rather than carrying a
+  per-build-configuration execution view;
+- reflection, plugins, cgo, assembly, and runtime-generated functions may retain
+  contracts or synthetic targets instead of one proven concrete implementation;
+- generated-code classification is not yet represented explicitly;
+- dependency implementation graphs require indexing those dependencies as
+  separate repositories;
+- packed graph edges are deduplicated relationships, so exact call-site coverage
+  requires a future call-site fact layer rather than reconstruction from edges.

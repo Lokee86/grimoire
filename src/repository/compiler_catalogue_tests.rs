@@ -38,6 +38,22 @@ fn compiler_assigns_dense_ids_and_stable_relation_codes() {
         Some(RelationKind::Calls)
     );
     assert_eq!(relation_to_edge_kind(&RelationKind::Calls), EdgeKind(5));
+    assert_eq!(
+        relation_to_edge_kind(&RelationKind::PossibleCalls),
+        EdgeKind(13)
+    );
+    assert_eq!(
+        edge_kind_to_relation(EdgeKind(13)),
+        Some(RelationKind::PossibleCalls)
+    );
+    assert_eq!(
+        relation_to_edge_kind(&RelationKind::ConvertsTo),
+        EdgeKind(14)
+    );
+    assert_eq!(
+        edge_kind_to_relation(EdgeKind(14)),
+        Some(RelationKind::ConvertsTo)
+    );
 }
 
 #[test]

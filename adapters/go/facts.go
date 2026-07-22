@@ -16,20 +16,27 @@ const (
 	KindDirectory  NodeKind = "directory"
 	KindFile       NodeKind = "file"
 	KindPackage    NodeKind = "module"
+	KindNamespace  NodeKind = "namespace"
 	KindImport     NodeKind = "import"
 	KindType       NodeKind = "type"
 	KindFunction   NodeKind = "function"
 	KindMethod     NodeKind = "method"
+	KindVariable   NodeKind = "variable"
 	KindTest       NodeKind = "test"
 )
 
 type RelationKind string
 
 const (
-	RelContains RelationKind = "contains"
-	RelDefines  RelationKind = "defines"
-	RelImports  RelationKind = "imports"
-	RelCalls    RelationKind = "calls"
+	RelContains      RelationKind = "contains"
+	RelDefines       RelationKind = "defines"
+	RelImports       RelationKind = "imports"
+	RelCalls         RelationKind = "calls"
+	RelPossibleCalls RelationKind = "possible-calls"
+	RelConvertsTo    RelationKind = "converts-to"
+	RelImplements    RelationKind = "implements"
+	RelExtends       RelationKind = "extends"
+	RelReferences    RelationKind = "references"
 )
 
 type NodeKey uint64

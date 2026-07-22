@@ -170,6 +170,8 @@ pub fn relation_to_edge_kind(relation: &RelationKind) -> EdgeKind {
         RelationKind::Tests => 10,
         RelationKind::Documents => 11,
         RelationKind::Generates => 12,
+        RelationKind::PossibleCalls => 13,
+        RelationKind::ConvertsTo => 14,
     })
 }
 
@@ -188,6 +190,8 @@ pub fn edge_kind_to_relation(kind: EdgeKind) -> Option<RelationKind> {
         10 => RelationKind::Tests,
         11 => RelationKind::Documents,
         12 => RelationKind::Generates,
+        13 => RelationKind::PossibleCalls,
+        14 => RelationKind::ConvertsTo,
         _ => return None,
     })
 }
