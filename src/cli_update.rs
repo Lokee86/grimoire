@@ -1,0 +1,67 @@
+use std::fs;
+use std::path::Path;
+
+use arcana::repository::{RepositoryFacts, RepositorySnapshot, plan_file_update};
+use arcana::snapshot::{publish_snapshot, write_overlay};
+use arcana::storage::PackedGraph;
+
+use crate::cli::UpdateFactsCommand;
+use crate::cli_commands::{CliCommandError, timestamp, write_repository_metadata};
+
+pub fn run_update_facts(command: &UpdateFactsCommand) -> Result<String, CliCommandError> {
+    if command.output.try_exists()? {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            format!(
+                "output directory already exists: {}",
+                command.output.display()
+            ),
+        )
+        .into());
+    }
+    let source = RepositorySnapshot::open(&command.base)?;
+    let replacement = RepositoryFacts::parse(&fs::read_to_string(&command.facts)?)?;
+    let packed_base = source.materialize_base_dataset()?;
+    let update = plan_file_update(source.facts(), &replacement, &command.changed, &packed_base)?;
+    fs::create_dir(&command.output)?;
+    let result = write_update(&command.output, &source, &update);
+    if result.is_err() {
+        let _ = fs::remove_dir_all(&command.output);
+    }
+    result
+}
+
+fn write_update(
+    output: &Path,
+    source: &RepositorySnapshot,
+    update: &arcana::repository::IncrementalUpdate,
+) -> Result<String, CliCommandError> {
+    fs::copy(source.base_graph_path(), output.join("graph.arcana"))?;
+    let base = PackedGraph::open(output.join("graph.arcana"))?;
+    let overlay_file = if update.changes.added.is_empty() && update.changes.removed.is_empty() {
+        None
+    } else {
+        write_overlay(output.join("overlay.arcana"), &base, &update.changes)?;
+        Some(Path::new("overlay.arcana"))
+    };
+    publish_snapshot(
+        output.join("graph.manifest"),
+        "graph.arcana",
+        overlay_file,
+        timestamp()?,
+    )?;
+    write_repository_metadata(
+        output,
+        &update.compiled,
+        &update.facts,
+        &source.manifest().adapter_name,
+        &source.manifest().adapter_version,
+    )?;
+    Ok(format!(
+        "updated facts: changed_files={} added_edges={} removed_edges={} overlay={}\n",
+        update.changed_file_count(),
+        update.changes.added.len(),
+        update.changes.removed.len(),
+        overlay_file.is_some()
+    ))
+}

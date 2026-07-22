@@ -1,8 +1,12 @@
 mod cli;
 mod cli_commands;
+mod cli_query;
+mod cli_update;
 
 #[cfg(test)]
 mod cli_tests;
+#[cfg(test)]
+mod cli_update_tests;
 
 use std::env;
 use std::fs::{self, File};
@@ -35,7 +39,17 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
-        Ok(cli::Command::Query(command)) => match cli_commands::run_query(&command) {
+        Ok(cli::Command::UpdateFacts(command)) => match cli_update::run_update_facts(&command) {
+            Ok(summary) => {
+                print!("{summary}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("arcana update-facts: {error}");
+                ExitCode::FAILURE
+            }
+        },
+        Ok(cli::Command::Query(command)) => match cli_query::run_query(&command) {
             Ok(output) => {
                 print!("{output}");
                 ExitCode::SUCCESS

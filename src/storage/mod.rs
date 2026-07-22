@@ -17,7 +17,7 @@ pub use oracle::InMemoryGraph;
 pub use reader::PackedGraph;
 pub use writer::{WriteSummary, write_packed};
 
-pub(crate) use dataset::canonical_edges;
+pub(crate) use dataset::{canonical_edges, dataset_checksum};
 pub(crate) use format::{StableHasher, checksum};
 
 use crate::synthetic::{EdgeKind, NodeId};

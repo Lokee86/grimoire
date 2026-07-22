@@ -8,7 +8,8 @@ use arcana::repository::{
 };
 
 use super::cli::{self, CliParseError, Command};
-use super::cli_commands::{run_import_facts, run_query};
+use super::cli_commands::run_import_facts;
+use super::cli_query::run_query;
 
 #[test]
 fn parses_import_and_query_arguments() {
@@ -24,6 +25,25 @@ fn parses_import_and_query_arguments() {
     };
     assert_eq!(command.facts, PathBuf::from("facts.tsv"));
     assert_eq!(command.output, PathBuf::from("out"));
+    assert_eq!(command.adapter_name, "manual");
+    assert_eq!(command.adapter_version, "1");
+
+    let command = cli::parse([
+        "update-facts".to_owned(),
+        "--base=old/repository.manifest".to_owned(),
+        "--facts".to_owned(),
+        "replacement.tsv".to_owned(),
+        "--changed".to_owned(),
+        "src/lib.go".to_owned(),
+        "--output".to_owned(),
+        "next".to_owned(),
+    ])
+    .expect("update arguments should parse");
+    let Command::UpdateFacts(command) = command else {
+        panic!("wrong command")
+    };
+    assert_eq!(command.changed, vec!["src/lib.go"]);
+    assert_eq!(command.output, PathBuf::from("next"));
 
     let command = cli::parse([
         "query".to_owned(),
@@ -107,6 +127,8 @@ fn import_and_query_round_trip() {
     let summary = run_import_facts(&super::cli::ImportFactsCommand {
         facts: facts_path,
         output: output.clone(),
+        adapter_name: "test".to_owned(),
+        adapter_version: "1".to_owned(),
     })
     .unwrap();
     assert!(
@@ -123,7 +145,9 @@ fn import_and_query_round_trip() {
     assert!(
         run_import_facts(&super::cli::ImportFactsCommand {
             facts: directory.path.join("facts.tsv"),
-            output: output.clone()
+            output: output.clone(),
+            adapter_name: "test".to_owned(),
+            adapter_version: "1".to_owned()
         })
         .is_err()
     );

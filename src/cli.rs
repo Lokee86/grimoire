@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use arcana::repository::RelationKind;
 
-pub const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds\n    import-facts     Compile a fact TSV into a packed graph and catalogue\n    query            Query exact node names from a packed graph\n\nImport facts:\n    arcana import-facts --facts <FILE> --output <NEW-DIRECTORY>\n\nQuery:\n    arcana query --graph <FILE> --catalogue <FILE> --name <EXACT-NAME> [--reverse] [--relation <RELATION>]";
+pub const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds\n    import-facts     Compile facts into a verified repository snapshot\n    update-facts     Replace changed-file facts and create a graph overlay\n    query            Query exact node names from a packed graph\n\nImport facts:\n    arcana import-facts --facts <FILE> --output <NEW-DIRECTORY> [--adapter <NAME>] [--adapter-version <VERSION>]\n\nUpdate facts:\n    arcana update-facts --base <repository.manifest> --facts <FILE> --changed <PATH>... --output <NEW-DIRECTORY>\n\nQuery:\n    arcana query --graph <FILE> --catalogue <FILE> --name <EXACT-NAME> [--reverse] [--relation <RELATION>]";
 
 #[derive(Debug)]
 pub enum Command {
@@ -11,12 +11,23 @@ pub enum Command {
     Version,
     Benchmark(Vec<String>),
     ImportFacts(ImportFactsCommand),
+    UpdateFacts(UpdateFactsCommand),
     Query(QueryCommand),
 }
 
 #[derive(Debug)]
 pub struct ImportFactsCommand {
     pub facts: PathBuf,
+    pub output: PathBuf,
+    pub adapter_name: String,
+    pub adapter_version: String,
+}
+
+#[derive(Debug)]
+pub struct UpdateFactsCommand {
+    pub base: PathBuf,
+    pub facts: PathBuf,
+    pub changed: Vec<String>,
     pub output: PathBuf,
 }
 
@@ -65,6 +76,7 @@ pub fn parse(arguments: impl IntoIterator<Item = String>) -> Result<Command, Cli
         "-V" | "--version" if rest.is_empty() => Ok(Command::Version),
         "benchmark" => Ok(Command::Benchmark(rest)),
         "import-facts" => Ok(Command::ImportFacts(parse_import_facts(rest)?)),
+        "update-facts" => Ok(Command::UpdateFacts(parse_update_facts(rest)?)),
         "query" => Ok(Command::Query(parse_query(rest)?)),
         argument => Err(CliParseError::UnexpectedArgument(argument.to_owned())),
     }
@@ -73,13 +85,47 @@ pub fn parse(arguments: impl IntoIterator<Item = String>) -> Result<Command, Cli
 fn parse_import_facts(arguments: Vec<String>) -> Result<ImportFactsCommand, CliParseError> {
     let mut facts = None;
     let mut output = None;
+    let mut adapter_name = None;
+    let mut adapter_version = None;
     parse_options(arguments, |option, value| match option {
         "--facts" => set_path(&mut facts, value.as_deref(), "--facts"),
         "--output" => set_path(&mut output, value.as_deref(), "--output"),
+        "--adapter" => set_string(&mut adapter_name, value.as_deref(), "--adapter"),
+        "--adapter-version" => {
+            set_string(&mut adapter_version, value.as_deref(), "--adapter-version")
+        }
         option => Err(CliParseError::UnknownFlag(option.to_owned())),
     })?;
     Ok(ImportFactsCommand {
         facts: facts.ok_or(CliParseError::MissingRequired("--facts"))?,
+        output: output.ok_or(CliParseError::MissingRequired("--output"))?,
+        adapter_name: adapter_name.unwrap_or_else(|| "manual".to_owned()),
+        adapter_version: adapter_version.unwrap_or_else(|| "1".to_owned()),
+    })
+}
+
+fn parse_update_facts(arguments: Vec<String>) -> Result<UpdateFactsCommand, CliParseError> {
+    let mut base = None;
+    let mut facts = None;
+    let mut changed = Vec::new();
+    let mut output = None;
+    parse_options(arguments, |option, value| match option {
+        "--base" => set_path(&mut base, value.as_deref(), "--base"),
+        "--facts" => set_path(&mut facts, value.as_deref(), "--facts"),
+        "--changed" => {
+            changed.push(value.ok_or_else(|| CliParseError::MissingValue("--changed".to_owned()))?);
+            Ok(())
+        }
+        "--output" => set_path(&mut output, value.as_deref(), "--output"),
+        option => Err(CliParseError::UnknownFlag(option.to_owned())),
+    })?;
+    if changed.is_empty() {
+        return Err(CliParseError::MissingRequired("--changed"));
+    }
+    Ok(UpdateFactsCommand {
+        base: base.ok_or(CliParseError::MissingRequired("--base"))?,
+        facts: facts.ok_or(CliParseError::MissingRequired("--facts"))?,
+        changed,
         output: output.ok_or(CliParseError::MissingRequired("--output"))?,
     })
 }

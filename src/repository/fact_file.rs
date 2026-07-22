@@ -1,11 +1,10 @@
-use std::fmt;
-
 use super::{
-    ContentId, EdgeFact, NodeFact, NodeKey, NodeKind, RelationKind, RepositoryFacts, SourceSpan,
-    UnresolvedReason, UnresolvedReferenceFact, normalize_repository_path,
+    ContentId, EdgeFact, FactFileError, NodeFact, NodeKey, NodeKind, RelationKind, RepositoryFacts,
+    SourceSpan, UnresolvedReason, UnresolvedReferenceFact, normalize_repository_path,
 };
 
 const HEADER_V1: &str = "version\t1";
+pub const FACT_SCHEMA_VERSION: u64 = 2;
 const HEADER_V2: &str = "version\t2";
 
 /// Encodes repository facts as canonical tab-separated UTF-8 lines.
@@ -95,61 +94,6 @@ pub fn parse_facts(input: &str) -> Result<RepositoryFacts, FactFileError> {
     }
     Ok(facts)
 }
-
-/// An error in the deterministic repository fact file.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum FactFileError {
-    InvalidHeader,
-    MalformedLine { line: usize },
-    UnknownRecord { line: usize },
-    InvalidNumber { line: usize },
-    InvalidKind { line: usize },
-    InvalidRelation { line: usize },
-    InvalidReason { line: usize },
-    InvalidEscape { line: usize },
-    InvalidSpan { line: usize },
-}
-
-impl fmt::Display for FactFileError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::InvalidHeader => formatter.write_str("repository fact header is invalid"),
-            Self::MalformedLine { line } => {
-                write!(formatter, "repository fact line {line} is malformed")
-            }
-            Self::UnknownRecord { line } => write!(
-                formatter,
-                "repository fact line {line} has an unknown record"
-            ),
-            Self::InvalidNumber { line } => write!(
-                formatter,
-                "repository fact line {line} has an invalid number"
-            ),
-            Self::InvalidKind { line } => write!(
-                formatter,
-                "repository fact line {line} has an invalid node kind"
-            ),
-            Self::InvalidRelation { line } => write!(
-                formatter,
-                "repository fact line {line} has an invalid relation"
-            ),
-            Self::InvalidReason { line } => write!(
-                formatter,
-                "repository fact line {line} has an invalid unresolved reason"
-            ),
-            Self::InvalidEscape { line } => write!(
-                formatter,
-                "repository fact line {line} has an invalid escape"
-            ),
-            Self::InvalidSpan { line } => write!(
-                formatter,
-                "repository fact line {line} has an invalid source span"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for FactFileError {}
 
 fn parse_node(fields: &[String], line: usize) -> Result<NodeFact, FactFileError> {
     if fields.len() != 11 {

@@ -1,16 +1,18 @@
-use std::fmt::{self, Write as FmtWrite};
+use std::fmt;
 use std::fs;
 use std::io;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use arcana::repository::{
-    CatalogueError, CompiledRepository, FactFileError, NodeFact, RelationKind, RepositoryCatalogue,
-    RepositoryCompileError, RepositoryFacts, edge_kind_to_relation,
+    CatalogueError, CompiledRepository, FactFileError, IncrementalError, PublishRepositorySnapshot,
+    RepositoryCompileError, RepositoryFacts, RepositorySnapshotError, publish_repository_snapshot,
 };
-use arcana::storage::{PackedError, PackedGraph, QueryError};
+use arcana::snapshot::{OverlayError, SnapshotError, publish_snapshot};
+use arcana::storage::{PackedError, QueryError};
 use arcana::synthetic::NodeId;
 
-use crate::cli::{ImportFactsCommand, QueryCommand};
+use crate::cli::ImportFactsCommand;
 
 #[derive(Debug)]
 pub enum CliCommandError {
@@ -20,6 +22,10 @@ pub enum CliCommandError {
     Packed(PackedError),
     Query(QueryError),
     Catalogue(CatalogueError),
+    RepositorySnapshot(RepositorySnapshotError),
+    Incremental(IncrementalError),
+    Overlay(OverlayError),
+    Snapshot(SnapshotError),
     UnknownEdgeKind(u16),
     MissingCatalogueNode(NodeId),
 }
@@ -33,6 +39,10 @@ impl fmt::Display for CliCommandError {
             Self::Packed(error) => error.fmt(formatter),
             Self::Query(error) => error.fmt(formatter),
             Self::Catalogue(error) => error.fmt(formatter),
+            Self::RepositorySnapshot(error) => error.fmt(formatter),
+            Self::Incremental(error) => error.fmt(formatter),
+            Self::Overlay(error) => error.fmt(formatter),
+            Self::Snapshot(error) => error.fmt(formatter),
             Self::UnknownEdgeKind(kind) => {
                 write!(formatter, "graph contains unknown edge kind {kind}")
             }
@@ -54,6 +64,10 @@ impl std::error::Error for CliCommandError {
             Self::Packed(error) => Some(error),
             Self::Query(error) => Some(error),
             Self::Catalogue(error) => Some(error),
+            Self::RepositorySnapshot(error) => Some(error),
+            Self::Incremental(error) => Some(error),
+            Self::Overlay(error) => Some(error),
+            Self::Snapshot(error) => Some(error),
             Self::UnknownEdgeKind(_) | Self::MissingCatalogueNode(_) => None,
         }
     }
@@ -89,6 +103,26 @@ impl From<CatalogueError> for CliCommandError {
         Self::Catalogue(error)
     }
 }
+impl From<RepositorySnapshotError> for CliCommandError {
+    fn from(error: RepositorySnapshotError) -> Self {
+        Self::RepositorySnapshot(error)
+    }
+}
+impl From<IncrementalError> for CliCommandError {
+    fn from(error: IncrementalError) -> Self {
+        Self::Incremental(error)
+    }
+}
+impl From<OverlayError> for CliCommandError {
+    fn from(error: OverlayError) -> Self {
+        Self::Overlay(error)
+    }
+}
+impl From<SnapshotError> for CliCommandError {
+    fn from(error: SnapshotError) -> Self {
+        Self::Snapshot(error)
+    }
+}
 
 pub fn run_import_facts(command: &ImportFactsCommand) -> Result<String, CliCommandError> {
     if command.output.try_exists()? {
@@ -105,110 +139,85 @@ pub fn run_import_facts(command: &ImportFactsCommand) -> Result<String, CliComma
     let facts = RepositoryFacts::parse(&text)?;
     let compiled = arcana::repository::compile_repository_facts(&facts)?;
     fs::create_dir(&command.output)?;
-    write_compiled(&command.output, &compiled)
+    write_compiled(
+        &command.output,
+        &compiled,
+        &facts,
+        &command.adapter_name,
+        &command.adapter_version,
+    )
 }
 
-fn write_compiled(output: &Path, compiled: &CompiledRepository) -> Result<String, CliCommandError> {
+pub(crate) fn write_compiled(
+    output: &Path,
+    compiled: &CompiledRepository,
+    facts: &RepositoryFacts,
+    adapter_name: &str,
+    adapter_version: &str,
+) -> Result<String, CliCommandError> {
     let graph_path = output.join("graph.arcana");
-    let catalogue_path = output.join("catalogue.tsv");
-    let unresolved_path = output.join("unresolved.tsv");
     arcana::storage::write_packed(&graph_path, &compiled.dataset)?;
-    arcana::repository::write_catalogue(&catalogue_path, &compiled.catalogue)?;
-    let unresolved_facts =
-        RepositoryFacts::with_unresolved(Vec::new(), Vec::new(), compiled.unresolved.clone());
-    fs::write(&unresolved_path, unresolved_facts.encode())?;
+    publish_snapshot(
+        output.join("graph.manifest"),
+        "graph.arcana",
+        None,
+        timestamp()?,
+    )?;
+    write_repository_metadata(output, compiled, facts, adapter_name, adapter_version)?;
     let graph_size = fs::metadata(&graph_path)?.len();
-    let catalogue_size = fs::metadata(&catalogue_path)?.len();
-    let unresolved_size = fs::metadata(&unresolved_path)?.len();
+    let metadata_size = [
+        "catalogue.tsv",
+        "unresolved.tsv",
+        "facts.tsv",
+        "graph.manifest",
+        "repository.manifest",
+    ]
+    .iter()
+    .map(|file| fs::metadata(output.join(file)).map(|metadata| metadata.len()))
+    .collect::<Result<Vec<_>, _>>()?
+    .into_iter()
+    .sum::<u64>();
     Ok(format!(
-        "imported facts: nodes={} edges={} unresolved={} graph.arcana={} bytes catalogue.tsv={} bytes unresolved.tsv={} bytes total={} bytes\n",
+        "imported facts: nodes={} edges={} unresolved={} graph.arcana={} bytes metadata={} bytes total={} bytes\n",
         compiled.dataset.node_count,
         compiled.dataset.edges.len(),
         compiled.unresolved.len(),
         graph_size,
-        catalogue_size,
-        unresolved_size,
-        graph_size + catalogue_size + unresolved_size
+        metadata_size,
+        graph_size + metadata_size
     ))
 }
 
-pub fn run_query(command: &QueryCommand) -> Result<String, CliCommandError> {
-    let graph = PackedGraph::open(&command.graph)?;
-    let catalogue = RepositoryCatalogue::read(&command.catalogue)?;
-    let matches = catalogue.lookup_by_name(&command.name);
-    if matches.is_empty() {
-        return Ok(format!("no exact-name matches for {:?}\n", command.name));
-    }
-
-    let mut output = String::new();
-    writeln!(output, "exact-name matches: {}", matches.len()).expect("String writing cannot fail");
-    for entry in matches {
-        write_node(&mut output, "node", &entry.fact, entry.node_id);
-        let neighbors = if command.reverse {
-            graph.reverse_neighbors(entry.node_id)?
-        } else {
-            graph.forward_neighbors(entry.node_id)?
-        };
-        for neighbor in neighbors {
-            let relation = edge_kind_to_relation(neighbor.kind)
-                .ok_or(CliCommandError::UnknownEdgeKind(neighbor.kind.0))?;
-            if command
-                .relation
-                .as_ref()
-                .is_some_and(|wanted| wanted != &relation)
-            {
-                continue;
-            }
-            let target = catalogue
-                .entries()
-                .iter()
-                .find(|candidate| candidate.node_id == neighbor.node)
-                .ok_or(CliCommandError::MissingCatalogueNode(neighbor.node))?;
-            write!(output, "  relation={} ", relation_name(&relation))
-                .expect("String writing cannot fail");
-            write_node(&mut output, "neighbor", &target.fact, target.node_id);
-        }
-    }
-    Ok(output)
+pub(crate) fn write_repository_metadata(
+    output: &Path,
+    compiled: &CompiledRepository,
+    facts: &RepositoryFacts,
+    adapter_name: &str,
+    adapter_version: &str,
+) -> Result<(), CliCommandError> {
+    arcana::repository::write_catalogue(output.join("catalogue.tsv"), &compiled.catalogue)?;
+    let unresolved =
+        RepositoryFacts::with_unresolved(Vec::new(), Vec::new(), compiled.unresolved.clone());
+    fs::write(output.join("unresolved.tsv"), unresolved.encode())?;
+    fs::write(output.join("facts.tsv"), facts.canonicalized().encode())?;
+    publish_repository_snapshot(
+        output.join("repository.manifest"),
+        PublishRepositorySnapshot {
+            graph_manifest_file: Path::new("graph.manifest"),
+            catalogue_file: Path::new("catalogue.tsv"),
+            unresolved_file: Path::new("unresolved.tsv"),
+            facts_file: Path::new("facts.tsv"),
+            adapter_name,
+            adapter_version,
+            created_unix_seconds: timestamp()?,
+        },
+    )?;
+    Ok(())
 }
 
-fn write_node(output: &mut String, label: &str, fact: &NodeFact, node_id: NodeId) {
-    write!(
-        output,
-        "{label} node_id={} key={:016x} kind={:?} path={:?} name={:?} content_id={}",
-        node_id.0,
-        fact.key.0,
-        fact.kind,
-        fact.path,
-        fact.name,
-        fact.content_id
-            .map_or_else(|| "-".to_owned(), |id| format!("{:016x}", id.0))
-    )
-    .expect("String writing cannot fail");
-    if let Some(span) = &fact.span {
-        write!(
-            output,
-            " span={:?}:{}:{}-{}:{}",
-            span.path, span.start_line, span.start_column, span.end_line, span.end_column
-        )
-        .expect("String writing cannot fail");
-    }
-    output.push('\n');
-}
-
-fn relation_name(relation: &RelationKind) -> &'static str {
-    match relation {
-        RelationKind::Contains => "contains",
-        RelationKind::Defines => "defines",
-        RelationKind::References => "references",
-        RelationKind::Imports => "imports",
-        RelationKind::Calls => "calls",
-        RelationKind::Implements => "implements",
-        RelationKind::Extends => "extends",
-        RelationKind::Includes => "includes",
-        RelationKind::DependsOn => "depends-on",
-        RelationKind::Tests => "tests",
-        RelationKind::Documents => "documents",
-        RelationKind::Generates => "generates",
-    }
+pub(crate) fn timestamp() -> Result<u64, CliCommandError> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .map_err(|error| io::Error::other(error).into())
 }

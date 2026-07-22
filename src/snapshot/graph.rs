@@ -1,7 +1,7 @@
 use std::path::{Component, Path, PathBuf};
 
 use crate::storage::{Direction, Neighbor, PackedGraph, QueryError, StableHasher};
-use crate::synthetic::NodeId;
+use crate::synthetic::{Edge, GraphDataset, NodeId};
 
 use super::{GraphOverlay, SnapshotError, SnapshotManifest, read_manifest, write_manifest};
 
@@ -58,6 +58,23 @@ impl GraphSnapshot {
 
     pub fn reverse_neighbors(&self, node: NodeId) -> Result<Vec<Neighbor>, QueryError> {
         self.neighbors(node, Direction::Reverse)
+    }
+
+    pub fn materialize_base_dataset(&self) -> Result<GraphDataset, QueryError> {
+        let mut edges = Vec::with_capacity(self.manifest.base_edge_count as usize);
+        for source in 0..self.base.node_count() {
+            for neighbor in self.base.forward_neighbors(NodeId(source))? {
+                edges.push(Edge {
+                    source: NodeId(source),
+                    target: neighbor.node,
+                    kind: neighbor.kind,
+                });
+            }
+        }
+        Ok(GraphDataset {
+            node_count: self.base.node_count(),
+            edges,
+        })
     }
 
     fn neighbors(&self, node: NodeId, direction: Direction) -> Result<Vec<Neighbor>, QueryError> {
