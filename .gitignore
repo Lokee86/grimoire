@@ -11,6 +11,7 @@
 **/vendor/bundle/
 
 # Generated facts and temporary files
+.lexicon/
 *.facts.jsonl
 *.tmp
 

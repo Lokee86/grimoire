@@ -30,9 +30,23 @@ Every adapter must:
 - exclude `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, and common language build/vendor directories;
 - avoid embedding consumer-specific policy or storage assumptions.
 
+## Application
+
+Lexicon includes a standalone application that maintains the most recently observed relevant repository state independently of the source repository's Git state.
+
+```text
+lexicon init
+lexicon scan
+lexicon daemon
+```
+
+`init` performs the first complete scan. `scan` replaces Lexicon's private source mirror and uses its internal Git diff to update affected language libraries. `daemon` watches the filesystem, updates changed paths after a short debounce, and periodically reconciles the complete repository. See [`docs/APPLICATION.md`](docs/APPLICATION.md).
+
 ## Repository layout
 
 ```text
+cmd/lexicon/
+internal/
 adapters/
     gdscript/
     go/
@@ -40,6 +54,7 @@ adapters/
     ruby/
     rust/
     typescript/
+docs/
 spec/
 tools/
 ```
