@@ -9,7 +9,16 @@ class LexiconRubyAdapter
   include LexiconRuby::Contract
   include LexiconRuby::Relationships
   include LexiconRuby::RipperSyntax
+  include LexiconRuby::RipperClosures
+  include LexiconRuby::RipperCalls
+  include LexiconRuby::RipperDeclarations
+  include LexiconRuby::RipperAssignments
   include LexiconRuby::RipperExtractor
+  include LexiconRuby::CallShapes
+  include LexiconRuby::CallHierarchy
+  include LexiconRuby::CallFlow
+  include LexiconRuby::CallEmission
+  include LexiconRuby::CallResolution
   include LexiconRuby::RepositoryDiscovery
   include LexiconRuby::JsonlEmitter
 
@@ -24,12 +33,34 @@ class LexiconRubyAdapter
     @files = {}
     @edges = {}
     @unresolved = []
-    @type_nodes = Hash.new { |hash, key| hash[key] = [] }
+    @types = {}
     @pending_extends = []
-    @method_definitions = Hash.new { |hash, key| hash[key] = Hash.new { |inner, name| inner[name] = [] } }
+    @pending_mixin_edges = []
+    @methods = {}
     @method_contexts = {}
-    @pending_calls = []
-    @processed_calls = {}
+    @method_definitions = Hash.new do |owners, owner|
+      owners[owner] = Hash.new do |modes, mode|
+        modes[mode] = Hash.new { |names, name| names[name] = [] }
+      end
+    end
+    @constructors = {}
+    @aliases = {}
+    @method_alias_targets = {}
+    @module_function_all = Set.new
+    @undefined_methods = Hash.new { |hash, key| hash[key] = Set.new }
+    @mixin_hosts = Hash.new { |hash, key| hash[key] = Set.new }
+    @call_sites = {}
+    @call_node_keys = {}
+    @resolved_targets = {}
+    @method_returns = {}
+    @parameter_shapes = {}
+    @assignments = []
+    @constant_assignments = {}
+    @constant_type_assignments = {}
+    @lambda_ids = {}
+    @blocks = {}
+    @scope_parents = {}
+    @passed_blocks = Hash.new { |hash, key| hash[key] = Set.new }
     @source_lines = []
     @current_path = nil
   end

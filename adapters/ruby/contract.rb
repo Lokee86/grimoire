@@ -5,7 +5,7 @@ require "json"
 
 module LexiconRuby
   module Contract
-    VERSION = "0.2.0"
+    VERSION = "0.3.0"
     LANGUAGE = "ruby"
     EXCLUDED_DIRECTORIES = %w[
       .git .worktrees .workingtrees .warlock

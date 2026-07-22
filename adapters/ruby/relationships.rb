@@ -4,13 +4,20 @@ module LexiconRuby
   module Relationships
     private
 
-    def add_edge(source, target, relation, span = nil)
+    def add_edge(source, target, relation, span = nil, attributes = nil)
+      return unless source && target
+
       record = { "record" => "edge", "source" => source, "target" => target, "relation" => relation }
       record["span"] = span if span
-      @edges[[source, target, relation]] ||= record
+      record["attributes"] = attributes if attributes && !attributes.empty?
+      span_key = span&.values_at("path", "start_line", "start_column", "end_line", "end_column")
+      attribute_key = attributes&.sort
+      @edges[[source, target, relation, span_key, attribute_key]] ||= record
     end
 
     def add_unresolved(source:, relation:, expression:, reason:, span: nil, attributes: nil)
+      return unless source
+
       record = {
         "record" => "unresolved",
         "source" => source,
@@ -29,39 +36,7 @@ module LexiconRuby
     end
 
     def resolve_superclasses
-      @pending_extends.each do |source_id, qualified_name, span|
-        target_id = @type_nodes[qualified_name].first
-        target_id ||= add_node(
-          kind: "type",
-          name: qualified_name.split("::").last,
-          path: "<external>",
-          qualified_name: qualified_name,
-          canonical: "external\0#{qualified_name}",
-          attributes: { "external" => true }
-        )
-        add_edge(source_id, target_id, "extends", span)
-      end
-
-      resolve_local_calls
-    end
-
-    def resolve_local_calls
-      @pending_calls.each do |call|
-        method_ids = @method_definitions.dig(call[:owner], call[:name])
-        if method_ids.length == 1
-          add_edge(call[:source], method_ids.first, "calls", call[:span])
-          next
-        end
-
-        reason = method_ids.empty? ? "missing-target" : "ambiguous-target"
-        add_unresolved(
-          source: call[:source],
-          relation: "calls",
-          expression: call[:expression],
-          reason: reason,
-          span: call[:span]
-        )
-      end
+      resolve_semantics
     end
   end
 end

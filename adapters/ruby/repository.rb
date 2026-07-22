@@ -76,7 +76,20 @@ module LexiconRuby
         return
       end
 
-      visit(sexp, file_id, "")
+      visit(
+        sexp,
+        {
+          parent_id: file_id,
+          source_id: file_id,
+          namespace: "",
+          owner: nil,
+          singleton: false,
+          method_id: nil,
+          scope_id: file_id,
+          branch_depth: 0,
+          mixin_hook: nil
+        }
+      )
     rescue ArgumentError => error
       add_unresolved(
         source: @files[relative_path] || add_node(
