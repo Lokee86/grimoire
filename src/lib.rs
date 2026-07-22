@@ -4,6 +4,7 @@
 //! from this crate rather than coupled to the `arcana` command-line binary.
 
 pub mod benchmark;
+pub mod lexicon;
 pub mod protocol;
 pub mod repository;
 pub mod snapshot;

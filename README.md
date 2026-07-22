@@ -95,10 +95,33 @@ manifest last. The source snapshot remains untouched.
 
 ## Repository ingestion
 
-Arcana consumes language-neutral Lexicon facts v1 JSONL and compiles them into
-the same dense packed graph format used by its synthetic workloads. Language
-adapters live in the standalone Lexicon repository; Arcana does not own or ship
-parsers.
+Arcana consumes Lexicon's immutable snapshot store and compiles its normalized
+facts into the same dense packed graph format used by its synthetic workloads.
+Language adapters live in the standalone Lexicon repository; Arcana does not
+own or ship parsers.
+
+### Lexicon synchronization
+
+A one-shot sync reads `.lexicon/CURRENT`, verifies the referenced manifest and
+fact objects, and publishes an immutable graph snapshot under `.arcana/`:
+
+```text
+lexicon scan
+arcana sync
+```
+
+Run `arcana sync --register` once to add Arcana as a Lexicon post-publication
+consumer. Every later successful manual or daemon-triggered Lexicon scan then
+invokes the same one-shot Arcana sync command. Arcana compares successive
+Lexicon file-object identities, writes an overlay when the graph node set is
+stable, and rebuilds the packed base when symbols were added or removed or any
+language-level shared fact object changed. Neither process must remain resident
+for this event-driven path.
+
+Each Arcana snapshot records the consumed Lexicon snapshot ID. Arcana serializes
+writers through `.arcana/LOCK` and atomically replaces `.arcana/CURRENT` only
+after the new graph state verifies, so manual and hook-triggered syncs cannot race
+or expose a partial publication.
 
 The compiled output contains:
 
@@ -108,13 +131,11 @@ The compiled output contains:
 - `unresolved.tsv` — unresolved-reference evidence keyed back to catalogue nodes.
 
 ```text
-lexicon-go -repo /path/to/go/module -output target/repository.facts.jsonl
+arcana sync --lexicon /path/to/repository/.lexicon \
+  --state /path/to/repository/.arcana
 
-cargo run --release -- import-facts \
-  --facts target/repository.facts.jsonl \
-  --output target/repository-index
-
-cargo run --release -- protocol --snapshot target/repository-index
+arcana protocol --snapshot \
+  /path/to/repository/.arcana/snapshots/<lexicon-snapshot-digest>
 {"id":"symbol","op":"resolve_symbol","name":"ExampleFunction"}
 {"id":"chain","op":"shortest_call_chain","from_node_id":12,"to_node_id":42}
 {"id":"impact","op":"impact","node_id":42,"max_depth":8}

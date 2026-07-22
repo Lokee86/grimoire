@@ -2,8 +2,12 @@ mod cli;
 mod cli_commands;
 mod cli_protocol;
 mod cli_query;
+mod cli_sync;
+mod cli_sync_state;
 mod cli_update;
 
+#[cfg(test)]
+mod cli_sync_tests;
 #[cfg(test)]
 mod cli_tests;
 #[cfg(test)]
@@ -37,6 +41,16 @@ fn main() -> ExitCode {
             }
             Err(error) => {
                 eprintln!("arcana import-facts: {error}");
+                ExitCode::FAILURE
+            }
+        },
+        Ok(cli::Command::Sync(command)) => match cli_sync::run_sync(&command) {
+            Ok(summary) => {
+                print!("{summary}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("arcana sync: {error}");
                 ExitCode::FAILURE
             }
         },

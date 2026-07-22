@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use arcana::repository::RelationKind;
 
-pub const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds\n    import-facts     Compile facts into a verified repository snapshot\n    update-facts     Replace changed-file facts and create a graph overlay\n    query            Query exact node names from a packed graph\n    protocol         Serve machine-readable JSONL snapshot queries\n\nImport facts:\n    arcana import-facts --facts <FILE> --output <NEW-DIRECTORY> [--adapter <NAME>] [--adapter-version <VERSION>]\n\nUpdate facts:\n    arcana update-facts --base <repository.manifest> --facts <FILE> --changed <PATH>... --output <NEW-DIRECTORY>\n\nQuery:\n    arcana query --graph <FILE> --catalogue <FILE> --name <EXACT-NAME> [--reverse] [--relation <RELATION>]\n\nProtocol:\n    arcana protocol --snapshot <DIRECTORY>";
+pub const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds\n    import-facts     Compile facts into a verified repository snapshot\n    update-facts     Replace changed-file facts and create a graph overlay\n    sync             Synchronize from Lexicon's current immutable snapshot\n    query            Query exact node names from a packed graph\n    protocol         Serve machine-readable JSONL snapshot queries\n\nImport facts:\n    arcana import-facts --facts <FILE> --output <NEW-DIRECTORY> [--adapter <NAME>] [--adapter-version <VERSION>]\n\nUpdate facts:\n    arcana update-facts --base <repository.manifest> --facts <FILE> --changed <PATH>... --output <NEW-DIRECTORY>\n\nSync:\n    arcana sync [--lexicon <DIRECTORY>] [--state <DIRECTORY>] [--register]\n\nQuery:\n    arcana query --graph <FILE> --catalogue <FILE> --name <EXACT-NAME> [--reverse] [--relation <RELATION>]\n\nProtocol:\n    arcana protocol --snapshot <DIRECTORY>";
 
 #[derive(Debug)]
 pub enum Command {
@@ -12,6 +12,7 @@ pub enum Command {
     Benchmark(Vec<String>),
     ImportFacts(ImportFactsCommand),
     UpdateFacts(UpdateFactsCommand),
+    Sync(SyncCommand),
     Query(QueryCommand),
     Protocol(ProtocolCommand),
 }
@@ -30,6 +31,13 @@ pub struct UpdateFactsCommand {
     pub facts: PathBuf,
     pub changed: Vec<String>,
     pub output: PathBuf,
+}
+
+#[derive(Debug)]
+pub struct SyncCommand {
+    pub lexicon: PathBuf,
+    pub state: PathBuf,
+    pub register: bool,
 }
 
 #[derive(Debug)]
@@ -83,6 +91,7 @@ pub fn parse(arguments: impl IntoIterator<Item = String>) -> Result<Command, Cli
         "benchmark" => Ok(Command::Benchmark(rest)),
         "import-facts" => Ok(Command::ImportFacts(parse_import_facts(rest)?)),
         "update-facts" => Ok(Command::UpdateFacts(parse_update_facts(rest)?)),
+        "sync" => Ok(Command::Sync(parse_sync(rest)?)),
         "query" => Ok(Command::Query(parse_query(rest)?)),
         "protocol" => Ok(Command::Protocol(parse_protocol(rest)?)),
         argument => Err(CliParseError::UnexpectedArgument(argument.to_owned())),
@@ -134,6 +143,26 @@ fn parse_update_facts(arguments: Vec<String>) -> Result<UpdateFactsCommand, CliP
         facts: facts.ok_or(CliParseError::MissingRequired("--facts"))?,
         changed,
         output: output.ok_or(CliParseError::MissingRequired("--output"))?,
+    })
+}
+
+fn parse_sync(arguments: Vec<String>) -> Result<SyncCommand, CliParseError> {
+    let mut lexicon = None;
+    let mut state = None;
+    let mut register = false;
+    parse_options(arguments, |option, value| match option {
+        "--lexicon" => set_path(&mut lexicon, value.as_deref(), "--lexicon"),
+        "--state" => set_path(&mut state, value.as_deref(), "--state"),
+        "--register" if value.is_none() => {
+            register = true;
+            Ok(())
+        }
+        option => Err(CliParseError::UnknownFlag(option.to_owned())),
+    })?;
+    Ok(SyncCommand {
+        lexicon: lexicon.unwrap_or_else(|| PathBuf::from(".lexicon")),
+        state: state.unwrap_or_else(|| PathBuf::from(".arcana")),
+        register,
     })
 }
 
@@ -194,7 +223,7 @@ where
             .map_or((argument.as_str(), None), |(option, value)| {
                 (option, Some(value))
             });
-        if option == "--reverse" {
+        if matches!(option, "--reverse" | "--register") {
             parse(option, inline.map(str::to_owned))?;
             continue;
         }

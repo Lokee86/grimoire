@@ -46,6 +46,21 @@ fn parses_import_and_query_arguments() {
     assert_eq!(command.output, PathBuf::from("next"));
 
     let command = cli::parse([
+        "sync".to_owned(),
+        "--lexicon".to_owned(),
+        "facts".to_owned(),
+        "--state=graph-state".to_owned(),
+        "--register".to_owned(),
+    ])
+    .expect("sync arguments should parse");
+    let Command::Sync(command) = command else {
+        panic!("wrong command")
+    };
+    assert_eq!(command.lexicon, PathBuf::from("facts"));
+    assert_eq!(command.state, PathBuf::from("graph-state"));
+    assert!(command.register);
+
+    let command = cli::parse([
         "query".to_owned(),
         "--graph".to_owned(),
         "graph.arcana".to_owned(),

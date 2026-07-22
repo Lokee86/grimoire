@@ -24,17 +24,25 @@ pub fn run_update_facts(command: &UpdateFactsCommand) -> Result<String, CliComma
     let packed_base = source.materialize_base_dataset()?;
     let update = plan_file_update(source.facts(), &replacement, &command.changed, &packed_base)?;
     fs::create_dir(&command.output)?;
-    let result = write_update(&command.output, &source, &update);
+    let result = write_update(
+        &command.output,
+        &source,
+        &update,
+        &source.manifest().adapter_name,
+        &source.manifest().adapter_version,
+    );
     if result.is_err() {
         let _ = fs::remove_dir_all(&command.output);
     }
     result
 }
 
-fn write_update(
+pub(crate) fn write_update(
     output: &Path,
     source: &RepositorySnapshot,
     update: &arcana::repository::IncrementalUpdate,
+    adapter_name: &str,
+    adapter_version: &str,
 ) -> Result<String, CliCommandError> {
     fs::copy(source.base_graph_path(), output.join("graph.arcana"))?;
     let base = PackedGraph::open(output.join("graph.arcana"))?;
@@ -54,8 +62,8 @@ fn write_update(
         output,
         &update.compiled,
         &update.facts,
-        &source.manifest().adapter_name,
-        &source.manifest().adapter_version,
+        adapter_name,
+        adapter_version,
     )?;
     Ok(format!(
         "updated facts: changed_files={} added_edges={} removed_edges={} overlay={}\n",
