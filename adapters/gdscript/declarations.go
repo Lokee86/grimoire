@@ -1,136 +1,165 @@
 package main
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
 type declaration struct {
-	kind           string
-	name           string
-	nameIndex      int
-	indent         int
-	span           sourceSpan
-	extends        string
-	attributes     map[string]any
-	parameters     []string
-	parameterTypes map[string]string
-	typeName       string
-	preloadPath    string
-	static         bool
-	async          bool
-	nodeID         string
-	key            string
-	ownerKey       string
+	keyword           string
+	kind              string
+	name              string
+	nameIndex         int
+	indent            int
+	span              sourceSpan
+	extends           string
+	attributes        map[string]any
+	parameters        []string
+	parameterNames    []string
+	parameterTypes    map[string]string
+	parameterDefaults map[string][]token
+	returnType        string
+	typeName          string
+	initializer       []token
+	preloadPath       string
+	static            bool
+	async             bool
+	nodeID            string
+	key               string
+	ownerID           string
+	ownerClassID      string
+	ownerFunction     string
 }
 
 type parsedFile struct {
-	path         string
-	content      []byte
-	statements   []statement
-	declarations []declaration
-	imports      []importReference
-	calls        []callReference
-	moduleID     string
-	classID      string
+	path          string
+	content       []byte
+	statements    []statement
+	declarations  []declaration
+	imports       []importReference
+	calls         []callReference
+	moduleID      string
+	classID       string
+	scriptOwnerID string
 }
 
 type scope struct {
-	indent int
-	id     string
-	key    string
-	kind   string
-}
-
-func parseFile(path string, content []byte) (*parsedFile, error) {
-	tokens, err := lex(string(content))
-	if err != nil {
-		return nil, err
-	}
-	statements := makeStatements(tokens)
-	pf := &parsedFile{path: path, content: content, statements: statements}
-	for _, stmt := range statements {
-		decl := parseDeclaration(stmt)
-		if decl != nil {
-			decl.span["path"] = path
-			pf.declarations = append(pf.declarations, *decl)
-		}
-	}
-	return pf, nil
+	indent   int
+	id       string
+	key      string
+	kind     string
+	classID  string
+	function string
 }
 
 func processDeclarations(facts *factSet, pf *parsedFile) {
-	declarationOccurrences := make(map[string]int)
-	scopes := []scope{}
+	prepareScriptClass(facts, pf)
+	if facts.scriptOwnerByPath == nil {
+		facts.scriptOwnerByPath = make(map[string]string)
+		facts.scriptOwnerCandidatesByPath = make(map[string][]string)
+	}
+	facts.scriptOwnerByPath[normalizeSourcePath(pf.path)] = pf.scriptOwnerID
+	occurrences := make(map[string]int)
+	var scopes []scope
 	for i := range pf.declarations {
 		decl := &pf.declarations[i]
 		for len(scopes) > 0 && decl.indent <= scopes[len(scopes)-1].indent {
 			scopes = scopes[:len(scopes)-1]
 		}
-		parentID := pf.moduleID
-		parentKey := pf.path
+		parentID, parentKey := pf.scriptOwnerID, pf.path
+		ownerClass, ownerFunction := pf.scriptOwnerID, ""
 		if len(scopes) > 0 {
-			parentID = scopes[len(scopes)-1].id
-			parentKey = scopes[len(scopes)-1].key
-		} else if pf.classID != "" && decl.kind != "type" && decl.indent == 0 {
-			parentID = pf.classID
-			parentKey = pf.path + "::type::" + classNameForID(pf, pf.classID)
+			current := scopes[len(scopes)-1]
+			parentID, parentKey = current.id, current.key
+			ownerClass, ownerFunction = current.classID, current.function
 		}
-		if decl.kind == "type" {
-			parentID = pf.moduleID
-			parentKey = pf.path
+		if decl.keyword == "class_name" {
+			parentID, parentKey = pf.moduleID, pf.path
+			ownerClass = decl.nodeID
 		}
+		decl.ownerID, decl.ownerClassID, decl.ownerFunction = parentID, ownerClass, ownerFunction
 		if decl.kind == "extends" {
 			continue
 		}
+		if decl.kind == "type" && decl.nodeID != "" {
+			base := parentKey + "::type::" + decl.name
+			if occurrences[base] == 0 {
+				occurrences[base] = 1
+			}
+		}
 		if decl.kind == "type" && decl.nodeID == "" {
-			decl.nodeID = nodeID("type", pf.path+"::type::"+decl.name)
+			decl.key = nextDeclarationKey(occurrences, parentKey+"::type::"+decl.name)
+			decl.nodeID = nodeID("type", decl.key)
+			facts.classByName[decl.name] = append(facts.classByName[decl.name], decl.nodeID)
+			facts.indexClassDeclaration(pf.path, decl.name, decl.nodeID)
+		}
+		if decl.kind == "type" && decl.keyword == "class_name" && decl.indent == 0 {
+			path := normalizeSourcePath(pf.path)
+			facts.scriptOwnerCandidatesByPath[path] = append(facts.scriptOwnerCandidatesByPath[path], decl.nodeID)
 		}
 		if decl.nodeID == "" {
-			baseKey := parentKey + "::" + decl.kind + "::" + decl.name
-			occurrence := declarationOccurrences[baseKey]
-			declarationOccurrences[baseKey] = occurrence + 1
-			decl.key = baseKey
-			if occurrence > 0 {
-				decl.key += fmt.Sprintf("#%d", occurrence+1)
-			}
+			decl.key = nextDeclarationKey(occurrences, parentKey+"::"+decl.kind+"::"+decl.name)
 			decl.nodeID = nodeID(decl.kind, decl.key)
-		}
-		if decl.kind == "type" {
-			facts.indexClassDeclaration(pf.path, decl.name, decl.nodeID)
 		}
 		if decl.preloadPath != "" {
 			facts.indexPreloadAlias(pf.path, decl.name, decl.preloadPath)
 		}
-		attrs := cloneMap(decl.attributes)
-		if decl.kind == "function" {
-			attrs["parameters"] = append([]string(nil), decl.parameters...)
-			if decl.static {
-				attrs["static"] = true
-			}
-			if decl.async {
-				attrs["async"] = true
-			}
-		}
-		if decl.extends != "" {
-			attrs["extends"] = decl.extends
-		}
+		attrs := declarationAttributes(decl)
 		facts.addNode(node(decl.kind, decl.name, pf.path, qualifiedDeclaration(pf.path, parentKey, decl.name), decl.nodeID, decl.span, "", attrs))
 		facts.addEdge(edge(parentID, decl.nodeID, "contains", decl.span))
 		facts.addEdge(edge(parentID, decl.nodeID, "defines", decl.span))
-		if decl.kind == "function" || decl.kind == "class" {
-			scopes = append(scopes, scope{indent: decl.indent, id: decl.nodeID, key: decl.key, kind: decl.kind})
+		facts.indexDeclaration(pf, decl)
+		if decl.kind == "type" && decl.keyword != "class_name" {
+			scopes = append(scopes, scope{indent: decl.indent, id: decl.nodeID, key: decl.key, kind: "type", classID: decl.nodeID, function: ownerFunction})
+		} else if decl.kind == "function" {
+			scopes = append(scopes, scope{indent: decl.indent, id: decl.nodeID, key: decl.key, kind: "function", classID: ownerClass, function: decl.nodeID})
 		}
 	}
 }
 
-func classNameForID(pf *parsedFile, id string) string {
-	for _, decl := range pf.declarations {
-		if decl.nodeID == id {
-			return decl.name
+func prepareScriptClass(facts *factSet, pf *parsedFile) {
+	pf.scriptOwnerID = pf.moduleID
+	for i := range pf.declarations {
+		decl := &pf.declarations[i]
+		if decl.kind != "type" || decl.keyword != "class_name" || decl.indent != 0 {
+			continue
+		}
+		decl.key = pf.path + "::type::" + decl.name
+		decl.nodeID = nodeID("type", decl.key)
+		pf.classID, pf.scriptOwnerID = decl.nodeID, decl.nodeID
+		facts.classByName[decl.name] = append(facts.classByName[decl.name], decl.nodeID)
+		facts.indexClassDeclaration(pf.path, decl.name, decl.nodeID)
+		return
+	}
+}
+
+func nextDeclarationKey(occurrences map[string]int, base string) string {
+	occurrence := occurrences[base]
+	occurrences[base] = occurrence + 1
+	if occurrence == 0 {
+		return base
+	}
+	return fmt.Sprintf("%s#%d", base, occurrence+1)
+}
+
+func declarationAttributes(decl *declaration) map[string]any {
+	attrs := cloneMap(decl.attributes)
+	if decl.kind == "function" {
+		attrs["parameters"] = append([]string(nil), decl.parameters...)
+		if decl.keyword == "lambda" {
+			attrs["anonymous"] = true
+		}
+		if decl.returnType != "" {
+			attrs["return_type"] = decl.returnType
+		}
+		if decl.static {
+			attrs["static"] = true
+		}
+		if decl.async {
+			attrs["async"] = true
 		}
 	}
-	return "class"
+	if decl.extends != "" {
+		attrs["extends"] = decl.extends
+	}
+	return attrs
 }
 
 func qualifiedDeclaration(path, parentKey, name string) string {
@@ -138,186 +167,4 @@ func qualifiedDeclaration(path, parentKey, name string) string {
 		return path + "::" + name
 	}
 	return parentKey + "::" + name
-}
-
-func parseDeclaration(stmt statement) *declaration {
-	if len(stmt.tokens) == 0 {
-		return nil
-	}
-	keywordIndex := -1
-	for i, tok := range stmt.tokens {
-		if tok.kind == tokenIdentifier && isDeclarationKeyword(tok.text) {
-			keywordIndex = i
-			break
-		}
-	}
-	if keywordIndex < 0 {
-		return nil
-	}
-	keyword := stmt.tokens[keywordIndex].text
-	decl := &declaration{indent: stmt.indent, span: spanFromTokens("", stmt.start, stmt.end), attributes: map[string]any{}}
-	switch keyword {
-	case "class_name", "class":
-		decl.kind = "type"
-	case "func":
-		decl.kind = "function"
-	case "signal":
-		decl.kind = "signal"
-	case "const":
-		decl.kind = "constant"
-	case "var":
-		decl.kind = "variable"
-	case "extends":
-		decl.kind = "extends"
-	}
-	if keyword == "func" {
-		for _, tok := range stmt.tokens[:keywordIndex] {
-			if tok.text == "static" {
-				decl.static = true
-			}
-			if tok.text == "async" {
-				decl.async = true
-			}
-		}
-	}
-	nameIndex := keywordIndex + 1
-	if nameIndex < len(stmt.tokens) && stmt.tokens[nameIndex].kind == tokenIdentifier {
-		decl.name = stmt.tokens[nameIndex].text
-		decl.nameIndex = nameIndex
-	}
-	if keyword == "extends" {
-		decl.name = "extends"
-		decl.extends = joinTokensUntil(stmt.tokens[keywordIndex+1:], ":")
-		return decl
-	}
-	if decl.name == "" {
-		return nil
-	}
-	if keyword == "func" {
-		if open := nextToken(stmt.tokens, nameIndex+1, "("); open >= 0 {
-			if close := matchingParen(stmt.tokens, open); close >= 0 {
-				decl.parameters = parseParameters(stmt.tokens[open+1 : close])
-				decl.parameterTypes = explicitParameterTypes(decl.parameters)
-			}
-		}
-	}
-	if keyword == "class_name" || keyword == "class" {
-		if ext := indexOfToken(stmt.tokens, "extends"); ext >= 0 {
-			decl.extends = joinTokensUntil(stmt.tokens[ext+1:], ":")
-		}
-	}
-	if keyword == "var" {
-		if colon := indexOfTokenAfter(stmt.tokens, ":", nameIndex); colon > nameIndex {
-			decl.typeName = joinTokensUntil(stmt.tokens[colon+1:], "=")
-			decl.attributes["type"] = decl.typeName
-		}
-	}
-	if keyword == "const" {
-		decl.preloadPath = parseStaticPreloadPath(stmt.tokens[nameIndex+1:])
-	}
-	return decl
-}
-
-func explicitParameterTypes(parameters []string) map[string]string {
-	types := make(map[string]string)
-	for _, parameter := range parameters {
-		colon := strings.Index(parameter, ":")
-		if colon <= 0 {
-			continue
-		}
-		name := strings.TrimSpace(parameter[:colon])
-		typeName := strings.TrimSpace(strings.SplitN(parameter[colon+1:], "=", 2)[0])
-		if name != "" && typeName != "" {
-			types[name] = typeName
-		}
-	}
-	return types
-}
-
-func parseStaticPreloadPath(tokens []token) string {
-	equals := indexOfToken(tokens, "=")
-	if equals < 0 || equals+3 >= len(tokens) || tokens[equals+1].text != "preload" || tokens[equals+2].text != "(" {
-		return ""
-	}
-	close := matchingParen(tokens, equals+2)
-	if close != equals+4 || close != len(tokens)-1 || tokens[equals+3].kind != tokenString {
-		return ""
-	}
-	path, ok := normalizeImportPath(tokens[equals+3].text)
-	if !ok {
-		return ""
-	}
-	return path
-}
-
-func parseParameters(tokens []token) []string {
-	var parameters []string
-	start := 0
-	depth := 0
-	for i := 0; i <= len(tokens); i++ {
-		if i == len(tokens) || (tokens[i].text == "," && depth == 0) {
-			part := strings.TrimSpace(joinTokens(tokens[start:i]))
-			if part != "" {
-				parameters = append(parameters, part)
-			}
-			start = i + 1
-			continue
-		}
-		switch tokens[i].text {
-		case "(", "[", "{":
-			depth++
-		case ")", "]", "}":
-			depth--
-		}
-	}
-	return parameters
-}
-
-func nextToken(tokens []token, start int, text string) int {
-	for i := start; i < len(tokens); i++ {
-		if tokens[i].text == text {
-			return i
-		}
-	}
-	return -1
-}
-
-func indexOfToken(tokens []token, text string) int {
-	for i := range tokens {
-		if tokens[i].text == text {
-			return i
-		}
-	}
-	return -1
-}
-
-func indexOfTokenAfter(tokens []token, text string, start int) int {
-	for i := start + 1; i < len(tokens); i++ {
-		if tokens[i].text == text {
-			return i
-		}
-	}
-	return -1
-}
-
-func joinTokens(tokens []token) string {
-	var result strings.Builder
-	for _, tok := range tokens {
-		if tok.text == "\n" {
-			continue
-		}
-		result.WriteString(tok.text)
-	}
-	return result.String()
-}
-
-func joinTokensUntil(tokens []token, stop string) string {
-	end := len(tokens)
-	for i, tok := range tokens {
-		if tok.text == stop {
-			end = i
-			break
-		}
-	}
-	return joinTokens(tokens[:end])
 }

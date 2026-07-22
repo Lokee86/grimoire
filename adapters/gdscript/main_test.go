@@ -163,7 +163,7 @@ func TestAnalyzeIsDeterministicAcrossRepeatRuns(t *testing.T) {
 func TestAnalyzeResolvesUniqueClassCallsAndKeepsDynamicCallsUnresolved(t *testing.T) {
 	root := t.TempDir()
 	writeFixture(t, root, "actor.gd", `class_name Actor
-func spawn():
+static func spawn():
     pass
 `)
 	writeFixture(t, root, "caller.gd", `class_name Caller
@@ -289,11 +289,11 @@ func spawn():
 func TestAnalyzePrefersSameFileClassDeclarations(t *testing.T) {
 	root := t.TempDir()
 	writeFixture(t, root, "external.gd", `class_name Widget
-func ping():
+static func ping():
     pass
 `)
 	writeFixture(t, root, "caller.gd", `class_name Widget
-func ping():
+static func ping():
     pass
 var member: Widget
 func run():
@@ -302,14 +302,14 @@ func run():
     member.ping()
 `)
 	writeFixture(t, root, "ambiguous.gd", `class_name Duplicate
-func ping():
+static func ping():
     pass
 `)
 	writeFixture(t, root, "ambiguous_caller.gd", `class_name Duplicate
-func ping():
+static func ping():
     pass
 class_name Duplicate
-func ping():
+static func ping():
     pass
 var member: Duplicate
 func run():
@@ -409,13 +409,312 @@ func run():
 			unresolvedCalls = append(unresolvedCalls, record["expression"].(string))
 		}
 	}
-	if resolvedTargets[toolModule["id"].(string)] != 1 || resolvedTargets[build["id"].(string)] != 1 || resolvedTargets[typedTool["id"].(string)] != 1 {
+	if resolvedTargets[toolModule["id"].(string)] != 2 || resolvedTargets[build["id"].(string)] != 1 || resolvedTargets[typedTool["id"].(string)] != 1 {
 		t.Fatalf("preload aliases resolved to unexpected targets: %v", resolvedTargets)
 	}
-	for _, expected := range []string{"Tool.instance_method()", "Tool.missing()", "Missing.new()", "Dynamic.new()", "Loaded.new()", "ResourceAlias.new()", "Ambiguous.new()"} {
+	for _, expected := range []string{"Tool.instance_method()", "Tool.missing()", "Missing.new()", "Dynamic.new()", "ResourceAlias.new()", "Ambiguous.new()"} {
 		if !contains(unresolvedCalls, expected) {
 			t.Errorf("preload call was not left unresolved: %q in %v", expected, unresolvedCalls)
 		}
+	}
+}
+
+func TestAnalyzeResolvesInheritanceSelfAndSuperCalls(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "base.gd", `class_name Base
+func _init():
+    pass
+func ping():
+    pass
+`)
+	writeFixture(t, root, "child.gd", `class_name Child extends Base
+func run():
+    ping()
+    self.ping()
+    super.ping()
+    super()
+`)
+	records := analyzeFixture(t, root)
+	ping := findNode(records, "function", "ping", "base.gd")
+	init := findNode(records, "function", "_init", "base.gd")
+	if countEdges(records, "calls", ping["id"].(string)) != 3 {
+		t.Fatalf("inherited ping calls were not resolved")
+	}
+	if countEdges(records, "calls", init["id"].(string)) != 1 {
+		t.Fatalf("super constructor was not resolved")
+	}
+}
+
+func TestAnalyzePropagatesConstructorArgumentsAssignmentsAndReturns(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "dependency.gd", `class_name Dependency
+func work():
+    pass
+`)
+	writeFixture(t, root, "factory.gd", `class_name Factory
+static func make() -> Dependency:
+    return Dependency.new()
+`)
+	writeFixture(t, root, "consumer.gd", `class_name Consumer
+var dependency
+func configure(value):
+    dependency = value
+func run():
+    dependency.work()
+`)
+	writeFixture(t, root, "caller.gd", `func execute():
+    var dependency := Factory.make()
+    var consumer := Consumer.new()
+    consumer.configure(dependency)
+    consumer.run()
+    Factory.make().work()
+`)
+	records := analyzeFixture(t, root)
+	work := findNode(records, "function", "work", "dependency.gd")
+	configure := findNode(records, "function", "configure", "consumer.gd")
+	run := findNode(records, "function", "run", "consumer.gd")
+	for _, target := range []map[string]any{work, configure, run} {
+		if target == nil || countEdges(records, "calls", target["id"].(string)) == 0 {
+			t.Fatalf("missing propagated call target %#v", target)
+		}
+	}
+	if countEdges(records, "calls", work["id"].(string)) != 2 {
+		t.Fatalf("dependency.work calls were not propagated through member and return flow")
+	}
+}
+
+func TestAnalyzeKeepsInnerClassMethodOwnership(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "nested.gd", `class Inner:
+    func ping():
+        pass
+    func run():
+        ping()
+func outer():
+    Inner.new().run()
+`)
+	records := analyzeFixture(t, root)
+	ping := findNode(records, "function", "ping", "nested.gd")
+	run := findNode(records, "function", "run", "nested.gd")
+	if ping == nil || run == nil {
+		t.Fatal("inner class methods were not emitted")
+	}
+	if countEdges(records, "calls", ping["id"].(string)) != 1 || countEdges(records, "calls", run["id"].(string)) != 1 {
+		t.Fatal("inner class call ownership or resolution is incorrect")
+	}
+}
+
+func TestAnalyzeResolvesLiteralLoadAliases(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "loaded.gd", `func ping():
+    pass
+`)
+	writeFixture(t, root, "caller.gd", `static var Loaded = load("res://loaded.gd")
+var direct = load("res://loaded.gd").new()
+func run():
+    var value = Loaded.new()
+    value.ping()
+    direct.ping()
+`)
+	records := analyzeFixture(t, root)
+	ping := findNode(records, "function", "ping", "loaded.gd")
+	if ping == nil || countEdges(records, "calls", ping["id"].(string)) != 2 {
+		t.Fatal("literal load alias and direct loaded instance did not resolve through construction")
+	}
+}
+
+func TestAnalyzeResolvesPreloadInstancesAndNestedTypes(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "tools.gd", `class Inner:
+    func run():
+        pass
+func instance_method():
+    pass
+`)
+	writeFixture(t, root, "caller.gd", `const Tools = preload("res://tools.gd")
+func execute():
+    var tool = Tools.new()
+    tool.instance_method()
+    Tools.Inner.new().run()
+    preload("res://tools.gd").new().instance_method()
+`)
+	records := analyzeFixture(t, root)
+	instanceMethod := findNode(records, "function", "instance_method", "tools.gd")
+	run := findNode(records, "function", "run", "tools.gd")
+	if instanceMethod == nil || countEdges(records, "calls", instanceMethod["id"].(string)) != 2 {
+		t.Fatal("preload instance flow was not resolved")
+	}
+	if run == nil || countEdges(records, "calls", run["id"].(string)) != 1 {
+		t.Fatal("nested preload type flow was not resolved")
+	}
+}
+
+func TestAnalyzeResolvesConfiguredAutoloadSingletons(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "project.godot", `[application]
+config/name="Fixture"
+
+[autoload]
+Logger="*res://logger.gd"
+`)
+	writeFixture(t, root, "logger.gd", `class_name LocalLogger
+func write_message():
+    pass
+`)
+	writeFixture(t, root, "caller.gd", `func run():
+    Logger.write_message()
+`)
+	records := analyzeFixture(t, root)
+	writeMessage := findNode(records, "function", "write_message", "logger.gd")
+	if writeMessage == nil || countEdges(records, "calls", writeMessage["id"].(string)) != 1 {
+		t.Fatal("autoload singleton call was not resolved")
+	}
+}
+
+func TestAnalyzeScopesInlineLambdaCalls(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "service.gd", `class_name LambdaService
+func ping():
+    pass
+`)
+	writeFixture(t, root, "lambda.gd", `class_name LambdaOwner
+var service := LambdaService.new()
+func wire(signal_value: Signal):
+    signal_value.connect(
+        func():
+            service.ping()
+    )
+`)
+	records := analyzeFixture(t, root)
+	ping := findNode(records, "function", "ping", "service.gd")
+	var lambda map[string]any
+	for _, record := range records {
+		if record["record"] == "node" && record["kind"] == "function" && strings.HasPrefix(record["name"].(string), "<lambda@") {
+			lambda = record
+			break
+		}
+	}
+	if ping == nil || lambda == nil {
+		t.Fatal("lambda declarations were not emitted")
+	}
+	if !hasEdgeFromTo(records, "calls", lambda["id"].(string), ping["id"].(string)) {
+		t.Fatal("lambda body call was not owned by the lambda")
+	}
+	if countEdges(records, "possible-calls", lambda["id"].(string)) != 1 {
+		t.Fatal("lambda callback target was not emitted")
+	}
+}
+
+func TestAnalyzeClassifiesExplicitBuiltinReceiverCalls(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "builtin_receiver.gd", `class_name BuiltinReceiver
+var control: Control
+func wire():
+    control.connect("ready", Callable(self, "wire"))
+    control.has_signal("ready")
+`)
+	records := analyzeFixture(t, root)
+	for _, candidate := range []string{"control.connect", "control.has_signal"} {
+		if !hasUnresolved(records, "calls", candidate, "builtin-target") {
+			t.Fatalf("expected %s to be classified as builtin", candidate)
+		}
+		if hasUnresolved(records, "calls", candidate, "missing-target") {
+			t.Fatalf("typed builtin receiver %s was marked missing", candidate)
+		}
+	}
+}
+
+func TestAnalyzeClassifiesUnknownInstanceMethodsAsExternal(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "worker.gd", `class_name Worker
+func run():
+    var child := Worker.new()
+    child.queue_free()
+`)
+	records := analyzeFixture(t, root)
+	if !hasUnresolved(records, "calls", "child.queue_free", "external-target") {
+		t.Fatal("unknown instance method was not kept as external dispatch")
+	}
+}
+
+func TestAnalyzePropagatesCallablePropertyAssignments(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "session.gd", `class_name Session
+var route: Callable
+func invoke():
+    route.call()
+`)
+	writeFixture(t, root, "composer.gd", `class_name Composer
+func handle():
+    pass
+func configure(session: Session):
+    session.route = Callable(self, "handle")
+    session.invoke()
+`)
+	records := analyzeFixture(t, root)
+	handle := findNode(records, "function", "handle", "composer.gd")
+	if handle == nil || countEdges(records, "calls", handle["id"].(string)) != 1 {
+		t.Fatal("callable property assignment did not propagate to invocation")
+	}
+}
+
+func TestAnalyzePropagatesCallableMapsThroughDictionaryGet(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "callback_map.gd", `class_name CallbackMap
+var callbacks: Dictionary
+func configure(value: Dictionary):
+    callbacks = value
+func invoke():
+    var handler: Callable = callbacks.get("ready", Callable())
+    handler.call()
+func ready():
+    pass
+func wire():
+    configure({"ready": Callable(self, "ready")})
+    invoke()
+`)
+	records := analyzeFixture(t, root)
+	ready := findNode(records, "function", "ready", "callback_map.gd")
+	if ready == nil || countEdges(records, "calls", ready["id"].(string)) != 1 {
+		t.Fatal("dictionary callback target did not propagate to its invocation site")
+	}
+}
+
+func TestAnalyzePropagatesCallableArgumentsToInvocationSites(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "routes.gd", `class_name Routes
+var route
+func configure(callback):
+    route = callback
+func invoke():
+    route.call()
+func handle():
+    pass
+func wire():
+    configure(Callable(self, "handle"))
+    invoke()
+`)
+	records := analyzeFixture(t, root)
+	handle := findNode(records, "function", "handle", "routes.gd")
+	if handle == nil || countEdges(records, "calls", handle["id"].(string)) != 1 {
+		t.Fatal("callable target did not propagate to its invocation site")
+	}
+}
+
+func TestAnalyzeEmitsPossibleCallbackCalls(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "callbacks.gd", `class_name Callbacks
+func handle():
+    pass
+func wire(signal_value: Signal, values: Array):
+    var callback = Callable(self, "handle")
+    signal_value.connect(handle)
+    values.map(handle)
+`)
+	records := analyzeFixture(t, root)
+	handle := findNode(records, "function", "handle", "callbacks.gd")
+	if handle == nil || countEdges(records, "possible-calls", handle["id"].(string)) < 3 {
+		t.Fatalf("callback references were not emitted")
 	}
 }
 
@@ -450,6 +749,43 @@ func TestJSONLRecordsUseContractOrder(t *testing.T) {
 		}
 		previous = key
 	}
+}
+
+func analyzeFixture(t *testing.T, root string) []map[string]any {
+	t.Helper()
+	data, err := analyzeRepository(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return decodeRecords(t, data)
+}
+
+func hasUnresolved(records []map[string]any, relation, candidate, reason string) bool {
+	for _, record := range records {
+		if record["record"] == "unresolved" && record["relation"] == relation && record["candidate_name"] == candidate && record["reason"] == reason {
+			return true
+		}
+	}
+	return false
+}
+
+func hasEdgeFromTo(records []map[string]any, relation, source, target string) bool {
+	for _, record := range records {
+		if record["record"] == "edge" && record["relation"] == relation && record["source"] == source && record["target"] == target {
+			return true
+		}
+	}
+	return false
+}
+
+func countEdges(records []map[string]any, relation, target string) int {
+	count := 0
+	for _, record := range records {
+		if record["record"] == "edge" && record["relation"] == relation && record["target"] == target {
+			count++
+		}
+	}
+	return count
 }
 
 func writeFixture(t *testing.T, root, path, content string) {
