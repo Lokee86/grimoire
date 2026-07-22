@@ -1,0 +1,2 @@
+class ShouldNotBeScanned
+end
