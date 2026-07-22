@@ -89,6 +89,8 @@ export class FactStore {
   readonly idDeclarations = new Map<string, ts.Node[]>();
   readonly callableAliases: PendingCallableAlias[] = [];
   readonly defaultExports = new Map<string, ts.Expression>();
+  readonly defaultExportIds = new Map<string, string>();
+  readonly commonJsExports = new Map<string, Map<string, ts.Expression>>();
 
   constructor(readonly repository: string, readonly root: string) {}
 

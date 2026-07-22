@@ -139,7 +139,8 @@ func sourceExtension(language, extension string) bool {
 	case "rust":
 		return extension == ".rs"
 	case "typescript":
-		return extension == ".ts" || extension == ".tsx" || extension == ".mts" || extension == ".cts"
+		return extension == ".ts" || extension == ".tsx" || extension == ".mts" || extension == ".cts" ||
+			extension == ".js" || extension == ".jsx" || extension == ".mjs" || extension == ".cjs"
 	}
 	return false
 }

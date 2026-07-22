@@ -19,6 +19,7 @@ export function resolveCallTargets(
   if (call.kind === "jsx") {
     const tagName = (call.expression as ts.JsxOpeningLikeElement).tagName;
     addSymbolTargets(facts, checker, checker.getSymbolAtLocation(tagName), targets, parameterTargets, true);
+    addImportedBindingTargets(facts, call, targets, true);
     if (targets.size === 0) addDefaultImportTarget(facts, checker, call, targets, parameterTargets);
     return targets;
   }
@@ -41,9 +42,36 @@ export function resolveCallTargets(
     parameterTargets,
     call.kind === "constructor",
   );
+  addImportedBindingTargets(facts, call, targets, call.kind === "constructor");
   if (targets.size === 0) addDefaultImportTarget(facts, checker, call, targets, parameterTargets);
   normalizeConstructorTargets(facts, call, targets);
   return expandDispatchTargets(facts, checker, call, targets);
+}
+
+function addImportedBindingTargets(
+  facts: FactStore,
+  call: PendingCall,
+  targets: Set<string>,
+  includeTypes: boolean,
+): void {
+  const reference = call.kind === "jsx"
+    ? (call.expression as ts.JsxOpeningLikeElement).tagName
+    : callCallee(call);
+  if (!reference) return;
+  const unwrapped = unwrapExpression(reference as ts.Expression);
+  if (ts.isIdentifier(unwrapped)) {
+    const target = facts.bindings.get(call.moduleKey)?.get(unwrapped.text)?.targetId;
+    if (target && isCallableTarget(facts, target, includeTypes)) targets.add(target);
+    return;
+  }
+  if (!ts.isPropertyAccessExpression(unwrapped) || !ts.isIdentifier(unwrapped.expression)) return;
+  const moduleId = facts.bindings.get(call.moduleKey)?.get(unwrapped.expression.text)?.targetId;
+  if (!moduleId || facts.nodes.get(moduleId)?.kind !== "module") return;
+  const importedModuleKey = [...facts.modules].find(([, id]) => id === moduleId)?.[0];
+  if (!importedModuleKey) return;
+  const target = facts.bindings.get(importedModuleKey)?.get(unwrapped.name.text)?.targetId
+    ?? facts.symbols.get(`${importedModuleKey}.${unwrapped.name.text}`);
+  if (target && isCallableTarget(facts, target, includeTypes)) targets.add(target);
 }
 
 function normalizeConstructorTargets(facts: FactStore, call: PendingCall, targets: Set<string>): void {
@@ -242,11 +270,8 @@ function enclosingParameter(node: ts.Node): ts.ParameterDeclaration | null {
 }
 
 function declarationId(facts: FactStore, declaration: ts.Node): string | null {
-  let current: ts.Node | undefined = declaration;
-  for (let depth = 0; current && depth < 6; depth += 1, current = current.parent) {
-    const id = facts.declarationIds.get(current);
-    if (id) return id;
-    if (ts.isSourceFile(current)) break;
-  }
-  return null;
+  const direct = facts.declarationIds.get(declaration);
+  if (direct) return direct;
+  const named = declaration as ts.NamedDeclaration;
+  return named.name ? facts.declarationIds.get(named.name) ?? null : null;
 }

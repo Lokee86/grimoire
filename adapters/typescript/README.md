@@ -1,61 +1,83 @@
-# Lexicon TypeScript adapter
+# Lexicon JavaScript and TypeScript adapter
 
-The TypeScript adapter uses the TypeScript compiler API and type checker to emit deterministic Lexicon facts v1 JSONL for `.ts` and `.tsx` repositories.
+This adapter uses the TypeScript compiler API to emit deterministic Lexicon facts v1 JSONL for mixed JavaScript and TypeScript repositories.
+
+## Supported source files
+
+The scanner includes:
+
+- `.ts`, `.tsx`, `.mts`, and `.cts`
+- `.js`, `.jsx`, `.mjs`, and `.cjs`
+
+It excludes `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, `node_modules/`, generated output directories, dependency/vendor trees, and common caches.
+
+The stream language remains `typescript` because JavaScript and TypeScript share one compiler-backed semantic frontend and one stable node-ID namespace.
 
 ## Setup and usage
 
 From this directory:
 
 ```sh
-npm ci
+npm install
 npm run build
 node dist/cli.js --repo /path/to/repository --output /path/to/facts.jsonl
 ```
 
-`--output -` writes UTF-8 JSONL to stdout. Validate a generated stream from the Lexicon repository root with:
+`--output -` writes UTF-8 JSONL to stdout. From the Lexicon repository root:
+
+```sh
+npm --prefix adapters/typescript install
+npm --prefix adapters/typescript run build
+node adapters/typescript/dist/cli.js --repo /path/to/repository --output /path/to/facts.jsonl
+```
+
+Validate a stream with:
 
 ```sh
 python tools/validate_jsonl.py /path/to/facts.jsonl
 ```
 
-## Static call graph
+## Analysis model
 
-The adapter builds a real TypeScript `Program` from the repository's `tsconfig.json` or `jsconfig.json`, then maps compiler symbols and resolved signatures back to Lexicon declarations.
+The adapter creates one TypeScript `Program` for all discovered JS/TS files with `allowJs` and `checkJs` enabled. Repository `tsconfig.json` or `jsconfig.json` options are preserved while analysis-required options remain enabled.
 
-A single proven repository target emits `calls`. Multiple legitimate static targets emit `possible-calls`. Calls into installed packages, browser APIs, runtime-created values, or unresolved dynamic values remain explicit unresolved records rather than guessed local edges.
+It emits declarations, imports, exports, inheritance, implementation, definite calls, possible calls, source spans, and explicit unresolved classifications.
 
-Current resolution covers:
+Call resolution covers:
 
-- direct, imported, overloaded, optional, property, element, constructor, and tagged-template calls;
-- arrow functions, function expressions, function-valued variables and properties;
-- local methods and constructors through compiler-resolved signatures;
-- nominal class dispatch and possible implementation sets for interface/base-typed receivers;
-- local higher-order parameters through fixed-point argument propagation;
-- callback arguments when the selected parameter is callable;
-- JSX components, including local default exports;
-- transparent callable wrappers such as `forwardRef`, `memo`, and `Object.assign`;
-- exact and wildcard `baseUrl`/`paths` mappings;
-- named re-exports and package-relative module resolution.
+- functions, methods, constructors, overloads, and optional calls;
+- compiler-backed receiver and signature resolution;
+- class inheritance and interface dispatch candidates;
+- arrow functions and function-valued declarations;
+- higher-order parameters and callback arguments;
+- JSX components and tagged templates;
+- default exports and common transparent wrappers;
+- JavaScript ESM imports and exports;
+- CommonJS `require()`, `module.exports`, and `exports.name`;
+- JSDoc-provided callable and structural types.
 
-## Emitted graph
+Relative imports may be extensionless or explicitly name any supported JS/TS extension. Exact and single-wildcard `baseUrl`/`paths` mappings from `tsconfig.json` or `jsconfig.json` resolve only unique scanned local targets.
 
-The adapter emits repository, directory, file, module, type, interface, function, method, constructor, field, variable, constant, import, and export nodes. Relationships include:
+## Canonical identities
 
-- `contains` and `defines` for ownership;
-- `imports` for resolved local modules and symbols;
-- `extends` and `implements` for heritage;
-- `calls` for definite call targets;
-- `possible-calls` for virtual dispatch, callbacks, and other exact static candidate sets.
+All IDs use the contract `sha256:` form with language `typescript`.
 
-All IDs use the contract's `sha256:` identity form. File nodes include a SHA-256 content identity, and no absolute checkout path is included in emitted facts.
+- `repository`: repository root basename
+- `directory`: normalized repository-relative directory path
+- `file`: normalized repository-relative source path
+- `module`: source path with its JS/TS extension removed
+- declaration nodes: module key plus lexical declaration path
+- import/export nodes: module key plus source position and names
 
-## Deliberate boundaries
+Absolute checkout paths are never used in node identities or fact paths.
 
-- Installed package implementations are not scanned as repository nodes.
-- Values produced by framework hooks, browser globals, dependency injection, reflection, proxies, and runtime mutation remain external or dynamic unless ordinary TypeScript flow proves a local implementation.
-- Computed property names without a statically known key, unresolved `any`/`unknown` receivers, dynamic imports, and runtime module loading remain unresolved.
-- Interface calls include scanned class implementations compatible with the receiver type; runtime implementations outside the repository remain outside the local candidate set.
-- Generated output and dependency directories are excluded, including `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, `node_modules/`, `build/`, `dist/`, coverage/cache directories, and vendor directories.
+## Conservative boundaries
+
+The adapter does not execute code or infer runtime mutation. Dynamic property installation, monkey-patching, computed exports, runtime-generated modules, and untyped polymorphic values remain dynamic or unresolved rather than guessed.
+
+External packages are represented as `external-target` records unless their source is part of the scanned repository. JavaScript without types or JSDoc naturally provides less dispatch precision than typed TypeScript.
+
+`.astro` files are not parsed by this adapter. Astro frontmatter and template/component relationships require a separate Astro-aware frontend if that support becomes necessary.
 
 ## Tests
 
@@ -63,4 +85,4 @@ All IDs use the contract's `sha256:` identity form. File nodes include a SHA-256
 npm test
 ```
 
-The suite covers imports and re-exports, alias mappings, inheritance, nominal and interface dispatch, overloads, callbacks, wrappers, JSX/default exports, tagged templates, optional calls, deterministic repeat runs, stable identities, and the shared JSONL validator.
+The suite covers TypeScript semantics, JavaScript ESM, JSX, CommonJS, JSDoc flow, path mappings, exclusions, stable IDs, deterministic repeat runs, and the shared JSONL validator.

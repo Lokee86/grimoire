@@ -3,7 +3,15 @@ import * as path from "node:path";
 import * as ts from "typescript";
 import { declarationName, digest, expressionText, hasModifier, spanFor } from "./contract";
 import { moduleKeyFor } from "./discovery";
-import { recordExportAssignment, recordExportDeclaration, recordExportedDeclaration, recordImport, recordImportEquals } from "./ast-imports";
+import {
+  recordCommonJsExport,
+  recordExportAssignment,
+  recordExportDeclaration,
+  recordExportedDeclaration,
+  recordImport,
+  recordImportEquals,
+  recordRequireCall,
+} from "./ast-imports";
 import type { FactStore, FileContext, PendingCall } from "./model";
 
 export function createFileContext(
@@ -43,7 +51,10 @@ function visit(node: ts.Node, ownerId: string, scope: string[], context: FileCon
   if (ts.isImportEqualsDeclaration(node)) return recordImportEquals(node, ownerId, context, facts);
   if (ts.isExportDeclaration(node)) return recordExportDeclaration(node, ownerId, context, facts);
   if (ts.isExportAssignment(node)) return recordExportAssignment(node, ownerId, context, facts);
-  if (ts.isClassDeclaration(node)) return visitClass(node, ownerId, scope, context, facts);
+  if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
+    visitClass(node, ownerId, scope, context, facts);
+    return;
+  }
   if (ts.isInterfaceDeclaration(node)) return visitInterface(node, ownerId, scope, context, facts);
   if (ts.isTypeAliasDeclaration(node)) return visitTypeAlias(node, ownerId, scope, context, facts);
   if (ts.isFunctionDeclaration(node)) return visitFunction(node, ownerId, scope, context, facts);
@@ -58,8 +69,13 @@ function visit(node: ts.Node, ownerId: string, scope: string[], context: FileCon
   if (ts.isPropertyDeclaration(node) || ts.isPropertySignature(node)) return visitProperty(node, ownerId, scope, context, facts);
   if (ts.isVariableStatement(node)) return visitVariableList(node.declarationList, ownerId, scope, context, facts);
   if (ts.isVariableDeclarationList(node) && !ts.isVariableStatement(node.parent)) return visitVariableList(node, ownerId, scope, context, facts);
+  if (ts.isBinaryExpression(node) && recordCommonJsExport(node, ownerId, context, facts)) {
+    visit(node.right, ownerId, scope, context, facts);
+    return;
+  }
   if (ts.isNewExpression(node)) recordCall(node, "constructor", ownerId, scope, context, facts);
   else if (ts.isCallExpression(node)) {
+    if (recordRequireCall(node, ownerId, context, facts)) return;
     if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
       facts.addUnresolved(ownerId, "imports", expressionText(node, context.sourceFile), "dynamic-target", spanFor(node, context.sourceFile, context.relativePath));
     } else {
@@ -91,12 +107,21 @@ function addSymbol(kind: string, name: string, scope: string[], node: ts.Node, o
   return id;
 }
 
-function visitClass(node: ts.ClassDeclaration, ownerId: string, scope: string[], context: FileContext, facts: FactStore): void {
-  const name = declarationName(node.name) ?? anonymousName("class", node, context.sourceFile);
+function visitClass(
+  node: ts.ClassDeclaration | ts.ClassExpression,
+  ownerId: string,
+  scope: string[],
+  context: FileContext,
+  facts: FactStore,
+  preferredName?: string,
+): string {
+  const name = preferredName ?? declarationName(node.name) ?? anonymousName("class", node, context.sourceFile);
   const id = addSymbol("type", name, scope, node, ownerId, context, facts);
   if (hasModifier(node, ts.SyntaxKind.ExportKeyword)) recordExportedDeclaration(ownerId, node, name, id, context, facts);
+  if (hasModifier(node, ts.SyntaxKind.DefaultKeyword)) facts.defaultExportIds.set(context.moduleKey, id);
   addHeritage(node, id, scope, context, facts);
   node.members.forEach((member) => visit(member, id, [...scope, name], context, facts));
+  return id;
 }
 
 function visitInterface(node: ts.InterfaceDeclaration, ownerId: string, scope: string[], context: FileContext, facts: FactStore): void {
@@ -107,7 +132,7 @@ function visitInterface(node: ts.InterfaceDeclaration, ownerId: string, scope: s
   node.members.forEach((member) => visit(member, id, [...scope, name], context, facts));
 }
 
-function addHeritage(node: ts.ClassDeclaration | ts.InterfaceDeclaration, sourceId: string, scope: string[], context: FileContext, facts: FactStore): void {
+function addHeritage(node: ts.ClassLikeDeclaration | ts.InterfaceDeclaration, sourceId: string, scope: string[], context: FileContext, facts: FactStore): void {
   for (const clause of node.heritageClauses ?? []) {
     const relation = clause.token === ts.SyntaxKind.ExtendsKeyword ? "extends" : "implements";
     for (const type of clause.types) facts.relationships.push({ source: sourceId, relation, expression: type.expression, sourceFile: context.sourceFile, moduleKey: context.moduleKey, scope });
@@ -124,6 +149,7 @@ function visitFunction(node: ts.FunctionDeclaration, ownerId: string, scope: str
   const name = declarationName(node.name) ?? anonymousName("function", node, context.sourceFile);
   const id = addSymbol("function", name, scope, node, ownerId, context, facts);
   if (hasModifier(node, ts.SyntaxKind.ExportKeyword)) recordExportedDeclaration(ownerId, node, name, id, context, facts);
+  if (hasModifier(node, ts.SyntaxKind.DefaultKeyword)) facts.defaultExportIds.set(context.moduleKey, id);
   node.forEachChild((child) => visit(child, id, [...scope, name], context, facts));
 }
 
@@ -167,6 +193,13 @@ function visitVariableList(list: ts.VariableDeclarationList, ownerId: string, sc
     const name = declarationName(declaration.name) ?? "<computed>";
     if (declaration.initializer && (ts.isArrowFunction(declaration.initializer) || ts.isFunctionExpression(declaration.initializer))) {
       const id = visitFunctionExpression(declaration.initializer, ownerId, scope, context, facts, name);
+      facts.registerDeclaration(declaration, id);
+      facts.registerDeclaration(declaration.name, id);
+      if (hasModifier(list.parent, ts.SyntaxKind.ExportKeyword)) recordExportedDeclaration(ownerId, list.parent, name, id, context, facts);
+      continue;
+    }
+    if (declaration.initializer && ts.isClassExpression(declaration.initializer)) {
+      const id = visitClass(declaration.initializer, ownerId, scope, context, facts, name);
       facts.registerDeclaration(declaration, id);
       facts.registerDeclaration(declaration.name, id);
       if (hasModifier(list.parent, ts.SyntaxKind.ExportKeyword)) recordExportedDeclaration(ownerId, list.parent, name, id, context, facts);

@@ -8,7 +8,7 @@ import (
 )
 
 var ignoredDirectories = map[string]struct{}{
-	".git": {}, ".lexicon": {}, ".warlock": {}, ".worktrees": {}, ".workingtrees": {},
+	".git": {}, ".lexicon": {}, ".warlock": {}, ".worktrees": {}, ".workingtrees": {}, ".astro": {},
 	"node_modules": {}, "vendor": {}, "target": {}, "dist": {}, "build": {},
 	".venv": {}, "venv": {}, "__pycache__": {}, ".pytest_cache": {},
 }
@@ -16,13 +16,15 @@ var ignoredDirectories = map[string]struct{}{
 var extensionLanguages = map[string]string{
 	".go": "go", ".py": "python", ".rb": "ruby", ".gemspec": "ruby",
 	".gd": "gdscript", ".rs": "rust", ".ts": "typescript", ".tsx": "typescript",
-	".mts": "typescript", ".cts": "typescript",
+	".mts": "typescript", ".cts": "typescript", ".js": "typescript", ".jsx": "typescript",
+	".mjs": "typescript", ".cjs": "typescript",
 }
 
 var namedLanguages = map[string][]string{
 	"go.mod": {"go"}, "go.sum": {"go"},
 	"Cargo.toml": {"rust"}, "Cargo.lock": {"rust"},
-	"package.json": {"typescript"}, "package-lock.json": {"typescript"}, "tsconfig.json": {"typescript"},
+	"package.json": {"typescript"}, "package-lock.json": {"typescript"},
+	"tsconfig.json": {"typescript"}, "jsconfig.json": {"typescript"},
 	"pyproject.toml": {"python"}, "setup.cfg": {"python"}, "requirements.txt": {"python"},
 	"Gemfile": {"ruby"}, "Gemfile.lock": {"ruby"}, "project.godot": {"gdscript"},
 }

@@ -9,6 +9,11 @@ func TestLanguages(t *testing.T) {
 	tests := map[string][]string{
 		"main.go":       {"go"},
 		"src/app.tsx":   {"typescript"},
+		"src/feed.js":   {"typescript"},
+		"src/view.jsx":  {"typescript"},
+		"config.mjs":    {"typescript"},
+		"legacy.cjs":    {"typescript"},
+		"jsconfig.json": {"typescript"},
 		"Cargo.toml":    {"rust"},
 		"project.godot": {"gdscript"},
 		"README.md":     nil,
@@ -21,7 +26,7 @@ func TestLanguages(t *testing.T) {
 }
 
 func TestIgnoredDirectory(t *testing.T) {
-	for _, name := range []string{".git", ".lexicon", "node_modules", "target"} {
+	for _, name := range []string{".git", ".lexicon", ".astro", "node_modules", "target"} {
 		if !IgnoredDirectory(name) {
 			t.Fatalf("expected %q to be ignored", name)
 		}

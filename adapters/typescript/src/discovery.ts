@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as ts from "typescript";
 
 export const EXCLUDED_DIRECTORIES = new Set([
-  ".git", ".worktrees", ".workingtrees", ".warlock", "node_modules",
+  ".git", ".worktrees", ".workingtrees", ".warlock", ".astro", "node_modules",
   "build", "dist", "coverage", "target", "vendor", "tmp", "log",
   ".cache", ".turbo", ".next", ".nuxt", ".parcel-cache", ".pytest_cache",
   ".venv", "venv", "__pycache__", "out",
@@ -14,7 +14,7 @@ export function normalizeRelative(root: string, absolutePath: string): string {
 }
 
 export function moduleKeyFor(relativePath: string): string {
-  return relativePath.replace(/\.(?:tsx?|mts|cts)$/i, "");
+  return relativePath.replace(/(?:\.d)?\.(?:[cm]?[jt]sx?)$/i, "");
 }
 
 export type RepositoryFiles = { directories: string[]; files: string[] };
@@ -35,7 +35,8 @@ export function createTypeScriptProgram(root: string, files: string[]): TypeScri
     .map((name) => path.join(root, name))
     .find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
   let options: ts.CompilerOptions = {
-    allowJs: false,
+    allowJs: true,
+    checkJs: true,
     jsx: ts.JsxEmit.Preserve,
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -47,7 +48,14 @@ export function createTypeScriptProgram(root: string, files: string[]): TypeScri
     const config = ts.readConfigFile(configPath, ts.sys.readFile);
     if (!config.error) {
       const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, path.dirname(configPath), { noEmit: true, skipLibCheck: true }, configPath);
-      options = parsed.options;
+      options = {
+        ...parsed.options,
+        allowJs: true,
+        checkJs: true,
+        jsx: parsed.options.jsx ?? ts.JsxEmit.Preserve,
+        noEmit: true,
+        skipLibCheck: true,
+      };
     }
   }
   const rootNames = files.map((relativePath) => path.join(root, relativePath.split("/").join(path.sep)));
@@ -88,7 +96,7 @@ export function scanRepository(root: string): RepositoryFiles {
         const absolute = path.join(directory, entry.name);
         directories.push(normalizeRelative(root, absolute));
         walk(absolute);
-      } else if (entry.isFile() && /\.(?:ts|tsx)$/i.test(entry.name)) {
+      } else if (entry.isFile() && /\.(?:[cm]?[jt]sx?)$/i.test(entry.name)) {
         files.push(normalizeRelative(root, path.join(directory, entry.name)));
       }
     }
