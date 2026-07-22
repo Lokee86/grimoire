@@ -16,11 +16,13 @@ A context request does not scan the repository, but it does scan all chunks load
 
 Planned removal condition: prepare lexical postings during indexing and use an established scorer such as BM25 while preserving deterministic metadata boosts and inspectable reasons.
 
-## Heuristic token budget
+## Single tokenizer
 
-Chunk cost is estimated from byte length. It is not counted with the target model's tokenizer and may undercount or overcount actual tokens.
+Grimoire counts chunks and emitted packages only with `o200k_base`. The package budget is exact under that encoding, but a consumer model using another tokenizer may count the same JSON differently.
 
-Planned removal condition: store tokenizer-specific costs or count with an existing model-aware tokenizer implementation, retaining the heuristic only as a fallback.
+Grimoire also cannot account for system prompts, chat framing, tool schemas, or other wrapper content added after it emits the package.
+
+Planned removal condition: add another tokenizer only when a concrete consumer demonstrates that the single shared approximation is insufficient. Wrapper overhead remains the consumer's responsibility.
 
 ## Whole-chunk selection only
 

@@ -68,14 +68,14 @@ grimoire context [flags]
 | `--root <path>` | `.` | Repository root used to resolve the default or relative state path |
 | `--state <path>` | `<root>/.grimoire` | Prepared index repository path |
 | `--query <text>` | none | Required task or retrieval query |
-| `--budget <n>` | `2000` | Positive estimated content-token budget |
+| `--budget <n>` | `2000` | Maximum `o200k_base` tokens in the emitted JSON package |
 | `--candidate-limit <n>` | `200` | Maximum ranked candidates before budget fitting; non-positive values disable this cap |
 
 `--query` must be non-empty. `--budget` must be positive. The prepared index must already exist and contain a valid published state.
 
 The command writes a versioned JSON context package. See [Context package](context-package.md).
 
-The request path does not read repository source files. It loads prepared state, ranks stored chunks, and selects complete chunks under the budget.
+The request path does not read repository source files. It loads prepared state, ranks stored chunks, and selects complete chunks while counting the exact indented JSON output. The budget includes package metadata and formatting, not only selected source content.
 
 ## `grimoire version`
 
@@ -101,7 +101,8 @@ Errors are returned for conditions including:
 - non-positive budget;
 - missing configured ignore file;
 - repository traversal or file-read failures;
-- malformed or unsupported prepared state;
+- malformed or incompatible prepared state;
+- budgets too small for the package metadata;
 - invalid state paths or record paths; and
 - conflicting concurrent index publication.
 

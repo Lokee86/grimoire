@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	ignorepolicy "github.com/Lokee86/grimoire/internal/ignore"
+	"github.com/Lokee86/grimoire/internal/tokenizer"
 )
 
 const defaultMaxFileBytes int64 = 2 << 20
@@ -126,11 +127,15 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 			return nil
 		}
 
+		chunks, err := chunkFile(relative, string(content))
+		if err != nil {
+			return fmt.Errorf("tokenize %s: %w", relative, err)
+		}
 		files = append(files, FileRecord{
 			Path:   relative,
 			Hash:   hash,
 			Size:   info.Size(),
-			Chunks: chunkFile(relative, string(content)),
+			Chunks: chunks,
 		})
 		dirtyShards[shardName(relative)] = true
 		stats.Updated++
@@ -149,7 +154,7 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
 
 	return Snapshot{
-		Version: FormatVersion, Files: files,
+		Version: FormatVersion, Tokenizer: tokenizer.Name, Files: files,
 		baseRoot: baseRoot, baseShards: baseShards, dirtyShards: dirtyShards,
 	}, stats, nil
 }

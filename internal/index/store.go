@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/Lokee86/grimoire/internal/tokenizer"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
@@ -17,6 +18,21 @@ import (
 const stateReference = plumbing.ReferenceName("refs/grimoire/state")
 
 var ErrConflict = errors.New("grimoire index changed during publication")
+
+func RebuildBase(path string) (Snapshot, error) {
+	repository, err := git.PlainOpen(filepath.Clean(path))
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("open prepared index: %w", err)
+	}
+	ref, err := repository.Storer.Reference(stateReference)
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("read prepared index state: %w", err)
+	}
+	return Snapshot{
+		Version: FormatVersion, Tokenizer: tokenizer.Name,
+		baseRoot: ref.Hash().String(), baseShards: make(map[string]string),
+	}, nil
+}
 
 func Load(path string) (Snapshot, error) {
 	repository, err := git.PlainOpen(filepath.Clean(path))
@@ -38,26 +54,37 @@ func Load(path string) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, fmt.Errorf("read prepared index root: %w", err)
 	}
-	files := make([]FileRecord, 0)
-	shards := make(map[string]string)
-	manifestFound := false
-	seen := make(map[string]struct{})
-	for _, entry := range root.Entries {
+	var manifestEntry *object.TreeEntry
+	for entryIndex := range root.Entries {
+		entry := &root.Entries[entryIndex]
 		if entry.Mode != filemode.Regular {
 			return Snapshot{}, fmt.Errorf("invalid prepared index entry %q", entry.Name)
 		}
 		if entry.Name == manifestName {
-			if manifestFound {
+			if manifestEntry != nil {
 				return Snapshot{}, fmt.Errorf("duplicate prepared index manifest")
 			}
-			if err := readManifest(repository.Storer, entry.Hash); err != nil {
-				return Snapshot{}, err
-			}
-			manifestFound = true
+			manifestEntry = entry
 			continue
 		}
 		if !isShardName(entry.Name) {
 			return Snapshot{}, fmt.Errorf("invalid prepared index shard %q", entry.Name)
+		}
+	}
+	if manifestEntry == nil {
+		return Snapshot{}, fmt.Errorf("prepared index manifest is missing")
+	}
+	manifestTokenizer, err := readManifest(repository.Storer, manifestEntry.Hash)
+	if err != nil {
+		return Snapshot{}, err
+	}
+
+	files := make([]FileRecord, 0)
+	shards := make(map[string]string)
+	seen := make(map[string]struct{})
+	for _, entry := range root.Entries {
+		if entry.Name == manifestName {
+			continue
 		}
 		data, err := readBlob(repository.Storer, entry.Hash)
 		if err != nil {
@@ -83,16 +110,19 @@ func Load(path string) (Snapshot, error) {
 		}
 		shards[entry.Name] = entry.Hash.String()
 	}
-	if !manifestFound {
-		return Snapshot{}, fmt.Errorf("prepared index manifest is missing")
-	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
-	return Snapshot{Version: FormatVersion, Files: files, baseRoot: ref.Hash().String(), baseShards: shards}, nil
+	return Snapshot{
+		Version: FormatVersion, Tokenizer: manifestTokenizer, Files: files,
+		baseRoot: ref.Hash().String(), baseShards: shards,
+	}, nil
 }
 
 func Save(path string, snapshot Snapshot) error {
 	if snapshot.Version != FormatVersion {
 		return fmt.Errorf("cannot save index version %d", snapshot.Version)
+	}
+	if snapshot.Tokenizer != tokenizer.Name {
+		return fmt.Errorf("cannot save index tokenizer %q", snapshot.Tokenizer)
 	}
 	seen := make(map[string]struct{}, len(snapshot.Files))
 	for _, file := range snapshot.Files {
@@ -153,7 +183,7 @@ func Save(path string, snapshot Snapshot) error {
 		}
 		shards[name] = hash
 	}
-	manifest, err := writeManifest(repository.Storer)
+	manifest, err := writeManifest(repository.Storer, snapshot.Tokenizer)
 	if err != nil {
 		return fmt.Errorf("write index manifest: %w", err)
 	}

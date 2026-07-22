@@ -9,6 +9,8 @@
 - application of `internal/ignore` policy;
 - SHA-256 content identity and unchanged-record reuse;
 - deterministic fallback chunks and chunk IDs;
+- exact `o200k_base` counts stored with changed chunks;
+- prepared-index tokenizer identity and incompatible-index rebuild bases;
 - prepared snapshot, file, and chunk models;
 - binary shard and file codecs;
 - go-git object storage and validation; and
@@ -26,7 +28,7 @@
 
 - `build.go` - traversal, filtering, reuse, update, and removal detection.
 - `exclusions.go` - permanent directory and explicit state-path exclusions.
-- `chunk.go` - fallback chunking, chunk identity, and cost estimate.
+- `chunk.go` - fallback chunking, chunk identity, and exact chunk token counting.
 - `model.go` - snapshot models.
 - `store.go` - load, validate, save, and publish.
 - `repository.go` - private repository lifecycle and state-reference helpers.

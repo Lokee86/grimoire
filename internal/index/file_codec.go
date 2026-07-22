@@ -8,7 +8,7 @@ import (
 
 const (
 	fileMagic   = "GRFL"
-	fileVersion = byte(1)
+	fileVersion = byte(2)
 	fileHeader  = len(fileMagic) + 1 + 32 + 8 + 4
 )
 
@@ -30,7 +30,7 @@ func encodeFile(file FileRecord) ([]byte, error) {
 			return nil, fmt.Errorf("chunk %q belongs to %q, not %q", chunk.ID, chunk.Path, file.Path)
 		}
 		if !fitsUint32(len(chunk.ID)) || !fitsUint32(len(chunk.Text)) ||
-			!fitsUint32(chunk.StartLine) || !fitsUint32(chunk.EndLine) || !fitsUint32(chunk.EstimatedTokens) {
+			!fitsUint32(chunk.StartLine) || !fitsUint32(chunk.EndLine) || !fitsUint32(chunk.TokenCount) {
 			return nil, fmt.Errorf("chunk %q metadata is too large", chunk.ID)
 		}
 		size += 20 + len(chunk.ID) + len(chunk.Text)
@@ -53,7 +53,7 @@ func encodeFile(file FileRecord) ([]byte, error) {
 		offset += 4
 		binary.BigEndian.PutUint32(encoded[offset:], uint32(chunk.EndLine))
 		offset += 4
-		binary.BigEndian.PutUint32(encoded[offset:], uint32(chunk.EstimatedTokens))
+		binary.BigEndian.PutUint32(encoded[offset:], uint32(chunk.TokenCount))
 		offset += 4
 		binary.BigEndian.PutUint32(encoded[offset:], uint32(len(chunk.Text)))
 		offset += 4
@@ -69,8 +69,16 @@ func decodeFile(path string, data []byte) (FileRecord, error) {
 	if len(data) < fileHeader {
 		return FileRecord{}, fmt.Errorf("malformed file record %q: truncated header", path)
 	}
-	if string(data[:len(fileMagic)]) != fileMagic || data[len(fileMagic)] != fileVersion {
-		return FileRecord{}, fmt.Errorf("malformed file record %q: unsupported format", path)
+	if string(data[:len(fileMagic)]) != fileMagic {
+		return FileRecord{}, fmt.Errorf("malformed file record %q: invalid magic", path)
+	}
+	if data[len(fileMagic)] != fileVersion {
+		return FileRecord{}, fmt.Errorf(
+			"%w: file record %q uses version %d",
+			ErrIncompatibleIndex,
+			path,
+			data[len(fileMagic)],
+		)
 	}
 	offset := len(fileMagic) + 1
 	hash := hex.EncodeToString(data[offset : offset+32])
@@ -100,7 +108,7 @@ func decodeFile(path string, data []byte) (FileRecord, error) {
 		if err != nil {
 			return FileRecord{}, err
 		}
-		tokens, err := readFileUint32(data, &offset, path, "token estimate")
+		tokens, err := readFileUint32(data, &offset, path, "token count")
 		if err != nil {
 			return FileRecord{}, err
 		}
@@ -121,7 +129,7 @@ func decodeFile(path string, data []byte) (FileRecord, error) {
 		}
 		chunks = append(chunks, Chunk{
 			ID: string(id), Path: path, StartLine: int(start), EndLine: int(end),
-			EstimatedTokens: int(tokens), Text: string(text),
+			TokenCount: int(tokens), Text: string(text),
 		})
 	}
 	if offset != len(data) {

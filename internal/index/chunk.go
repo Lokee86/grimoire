@@ -5,15 +5,17 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+
+	"github.com/Lokee86/grimoire/internal/tokenizer"
 )
 
 const fallbackChunkLines = 48
 
-func chunkFile(path string, content string) []Chunk {
+func chunkFile(path string, content string) ([]Chunk, error) {
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 	content = strings.TrimSuffix(content, "\n")
 	if strings.TrimSpace(content) == "" {
-		return nil
+		return nil, nil
 	}
 
 	lines := strings.Split(content, "\n")
@@ -33,7 +35,11 @@ func chunkFile(path string, content string) []Chunk {
 		if lastBoundary > start+8 {
 			end = lastBoundary
 		}
-		chunks = appendChunk(chunks, path, lines, start, end)
+		var err error
+		chunks, err = appendChunk(chunks, path, lines, start, end)
+		if err != nil {
+			return nil, err
+		}
 		start = end
 		lastBoundary = -1
 	}
@@ -41,7 +47,7 @@ func chunkFile(path string, content string) []Chunk {
 	return appendChunk(chunks, path, lines, start, len(lines))
 }
 
-func appendChunk(chunks []Chunk, path string, lines []string, start, end int) []Chunk {
+func appendChunk(chunks []Chunk, path string, lines []string, start, end int) ([]Chunk, error) {
 	for start < end && strings.TrimSpace(lines[start]) == "" {
 		start++
 	}
@@ -49,30 +55,27 @@ func appendChunk(chunks []Chunk, path string, lines []string, start, end int) []
 		end--
 	}
 	if start >= end {
-		return chunks
+		return chunks, nil
 	}
 
 	text := strings.Join(lines[start:end], "\n")
+	tokenCount, err := tokenizer.Count(text)
+	if err != nil {
+		return nil, err
+	}
 	startLine := start + 1
 	endLine := end
 	return append(chunks, Chunk{
-		ID:              chunkID(path, startLine, endLine, text),
-		Path:            path,
-		StartLine:       startLine,
-		EndLine:         endLine,
-		EstimatedTokens: estimateTokens(text),
-		Text:            text,
-	})
+		ID:         chunkID(path, startLine, endLine, text),
+		Path:       path,
+		StartLine:  startLine,
+		EndLine:    endLine,
+		TokenCount: tokenCount,
+		Text:       text,
+	}), nil
 }
 
 func chunkID(path string, startLine, endLine int, text string) string {
 	sum := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%d\x00%d\x00%s", path, startLine, endLine, text)))
 	return hex.EncodeToString(sum[:16])
-}
-
-func estimateTokens(text string) int {
-	if text == "" {
-		return 0
-	}
-	return max(1, (len(text)+2)/3)
 }

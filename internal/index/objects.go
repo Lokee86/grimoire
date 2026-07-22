@@ -6,13 +6,18 @@ import (
 	"io"
 	"sort"
 
+	"github.com/Lokee86/grimoire/internal/tokenizer"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage"
 )
 
-const manifestName = "manifest"
+const (
+	manifestName       = "manifest"
+	manifestMagic      = "GRIM"
+	manifestHeaderSize = len(manifestMagic) + 2 + 2
+)
 
 func writeBlob(store storage.Storer, data []byte) (plumbing.Hash, error) {
 	encoded := store.NewEncodedObject()
@@ -49,26 +54,42 @@ func readBlob(store storage.Storer, hash plumbing.Hash) ([]byte, error) {
 	return data, closeErr
 }
 
-func writeManifest(store storage.Storer) (plumbing.Hash, error) {
-	data := make([]byte, 6)
-	copy(data, "GRIM")
-	binary.BigEndian.PutUint16(data[4:], uint16(FormatVersion))
+func writeManifest(store storage.Storer, tokenizerName string) (plumbing.Hash, error) {
+	if tokenizerName == "" || len(tokenizerName) > int(^uint16(0)) {
+		return plumbing.ZeroHash, fmt.Errorf("invalid tokenizer name %q", tokenizerName)
+	}
+	data := make([]byte, manifestHeaderSize+len(tokenizerName))
+	copy(data, manifestMagic)
+	binary.BigEndian.PutUint16(data[len(manifestMagic):], uint16(FormatVersion))
+	binary.BigEndian.PutUint16(data[len(manifestMagic)+2:], uint16(len(tokenizerName)))
+	copy(data[manifestHeaderSize:], tokenizerName)
 	return writeBlob(store, data)
 }
 
-func readManifest(store storage.Storer, hash plumbing.Hash) error {
+func readManifest(store storage.Storer, hash plumbing.Hash) (string, error) {
 	data, err := readBlob(store, hash)
 	if err != nil {
-		return err
+		return "", err
 	}
-	if len(data) != 6 || string(data[:4]) != "GRIM" {
-		return fmt.Errorf("invalid Grimoire manifest")
+	if len(data) < len(manifestMagic)+2 || string(data[:len(manifestMagic)]) != manifestMagic {
+		return "", fmt.Errorf("invalid Grimoire manifest")
 	}
-	version := int(binary.BigEndian.Uint16(data[4:]))
+	version := int(binary.BigEndian.Uint16(data[len(manifestMagic):]))
 	if version != FormatVersion {
-		return fmt.Errorf("unsupported index version %d", version)
+		return "", fmt.Errorf("%w: index version %d", ErrIncompatibleIndex, version)
 	}
-	return nil
+	if len(data) < manifestHeaderSize {
+		return "", fmt.Errorf("invalid Grimoire manifest")
+	}
+	nameLength := int(binary.BigEndian.Uint16(data[len(manifestMagic)+2:]))
+	if len(data) != manifestHeaderSize+nameLength {
+		return "", fmt.Errorf("invalid Grimoire manifest tokenizer")
+	}
+	tokenizerName := string(data[manifestHeaderSize:])
+	if tokenizerName != tokenizer.Name {
+		return "", fmt.Errorf("%w: tokenizer %q", ErrIncompatibleIndex, tokenizerName)
+	}
+	return tokenizerName, nil
 }
 
 func writeRoot(store storage.Storer, manifest plumbing.Hash, shards map[string]plumbing.Hash) (plumbing.Hash, error) {

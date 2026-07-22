@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/Lokee86/grimoire/internal/tokenizer"
 )
 
 func TestBuildReusesUnchangedFiles(t *testing.T) {
@@ -22,6 +24,16 @@ func TestBuildReusesUnchangedFiles(t *testing.T) {
 	}
 	if len(first.Files) != 1 || len(first.Files[0].Chunks) != 1 {
 		t.Fatalf("unexpected first index: %+v", first)
+	}
+	if first.Tokenizer != tokenizer.Name {
+		t.Fatalf("unexpected tokenizer %q", first.Tokenizer)
+	}
+	exactCount, err := tokenizer.Count(first.Files[0].Chunks[0].Text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Files[0].Chunks[0].TokenCount != exactCount {
+		t.Fatalf("stored %d tokens, expected %d", first.Files[0].Chunks[0].TokenCount, exactCount)
 	}
 
 	second, secondStats, err := Build(root, &first, BuildOptions{})

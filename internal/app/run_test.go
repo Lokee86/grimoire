@@ -56,7 +56,7 @@ func TestIndexThenCompileContext(t *testing.T) {
 	if err := Run([]string{
 		"context", "--root", root,
 		"--query", "resolve damage",
-		"--budget", "100",
+		"--budget", "500",
 	}, &contextOutput, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}

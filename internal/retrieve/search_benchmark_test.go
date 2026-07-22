@@ -15,12 +15,12 @@ func BenchmarkSearchTenThousandChunks(b *testing.B) {
 		for chunkNumber := 0; chunkNumber < 10; chunkNumber++ {
 			text := fmt.Sprintf("package package%04d\nfunc Operation%02d() { processRepositoryState() }", fileNumber, chunkNumber)
 			chunks = append(chunks, index.Chunk{
-				ID:              fmt.Sprintf("%04d-%02d", fileNumber, chunkNumber),
-				Path:            path,
-				StartLine:       chunkNumber*10 + 1,
-				EndLine:         chunkNumber*10 + 2,
-				EstimatedTokens: 20,
-				Text:            text,
+				ID:         fmt.Sprintf("%04d-%02d", fileNumber, chunkNumber),
+				Path:       path,
+				StartLine:  chunkNumber*10 + 1,
+				EndLine:    chunkNumber*10 + 2,
+				TokenCount: 20,
+				Text:       text,
 			})
 		}
 		files = append(files, index.FileRecord{Path: path, Chunks: chunks})

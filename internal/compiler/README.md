@@ -7,7 +7,8 @@
 - package versioning;
 - package and selection field definitions;
 - ranked whole-chunk budget fitting;
-- selected estimated-cost totals;
+- exact serialized-package token accounting;
+- final package-byte verification;
 - budget-omission counting; and
 - retrieval-source metadata supplied by the current composition path.
 
@@ -16,7 +17,7 @@
 - candidate discovery or relevance scoring;
 - repository or prepared-state access;
 - chunk construction;
-- model tokenization; or
+- tokenizer selection or vocabulary ownership; or
 - provider execution and deadlines.
 
 ## Main files
@@ -26,7 +27,7 @@
 
 ## Selection rule
 
-Candidates are considered in ranked order. A complete chunk is selected when it fits the remaining budget. An oversized candidate is skipped and counted, but later smaller candidates may still be selected.
+Candidates are considered in ranked order. For each candidate, the compiler serializes and counts the complete tentative JSON package. A complete chunk is retained only when that package fits the budget. A rejected candidate is counted, but later smaller candidates may still be selected. The final emitted bytes are counted again and must match the package-level `token_count`.
 
 ## Related documentation
 

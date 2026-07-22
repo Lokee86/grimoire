@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/tokenizer"
 	git "github.com/go-git/go-git/v5"
 )
 
@@ -26,6 +27,9 @@ func TestStoreRoundTrip(t *testing.T) {
 	loaded, err := Load(state)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if loaded.Tokenizer != tokenizer.Name {
+		t.Fatalf("unexpected tokenizer %q", loaded.Tokenizer)
 	}
 	if len(loaded.Files) != 1 || loaded.Files[0].Path != "alpha.go" {
 		t.Fatalf("unexpected files: %+v", loaded.Files)

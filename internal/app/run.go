@@ -80,7 +80,7 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	root := flags.String("root", ".", "repository root")
 	state := flags.String("state", "", "prepared index repository path")
 	query := flags.String("query", "", "task or retrieval query")
-	budget := flags.Int("budget", 2000, "estimated content-token budget")
+	budget := flags.Int("budget", 2000, "maximum o200k_base tokens in the emitted package")
 	limit := flags.Int("candidate-limit", 200, "maximum ranked candidates")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -101,8 +101,16 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("load prepared index: %w", err)
 	}
 	candidates := retrieve.Search(snapshot, *query, *limit)
-	result := compiler.Compile(*query, *budget, snapshot.Version, candidates)
-	return writeJSON(stdout, result)
+	result, err := compiler.Compile(*query, *budget, snapshot.Version, snapshot.Tokenizer, candidates)
+	if err != nil {
+		return err
+	}
+	data, err := compiler.Marshal(result)
+	if err != nil {
+		return err
+	}
+	_, err = stdout.Write(data)
+	return err
 }
 
 func resolveState(root, state string) (string, error) {
@@ -123,6 +131,13 @@ func loadOptional(path string) (*index.Snapshot, error) {
 	snapshot, err := index.Load(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
+	}
+	if errors.Is(err, index.ErrIncompatibleIndex) {
+		base, rebuildErr := index.RebuildBase(path)
+		if rebuildErr != nil {
+			return nil, fmt.Errorf("prepare index rebuild: %w", rebuildErr)
+		}
+		return &base, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("load existing index: %w", err)

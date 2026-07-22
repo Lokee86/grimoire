@@ -25,7 +25,7 @@ refs/grimoire/state
 It points directly to a Git tree object. The tree contains:
 
 ```text
-manifest   format marker and prepared-index version
+manifest   format version and tokenizer identity
 00         optional shard blob
 01         optional shard blob
 ...
@@ -43,20 +43,22 @@ Each shard stores path-keyed binary file records. A record contains:
 - zero or more prepared chunks;
 - each chunk's stable ID;
 - source start and end lines;
-- estimated token cost; and
+- exact `o200k_base` token count; and
 - exact chunk text.
 
 Paths are UTF-8, repository-relative, slash-separated, and validated to reject absolute paths, backslashes, NUL bytes, empty segments, `.` segments, and `..` segments.
 
 ## Binary formats
 
-All current prepared-index formats are version 1.
+The current prepared-index format is version 2. Shard encoding remains version 1 because its path-to-record container did not change; file records are version 2 because their stored cost is now an exact token count.
 
-| Record | Magic | Version field | Numeric byte order |
+| Record | Magic | Current version | Numeric byte order |
 | --- | --- | --- | --- |
-| Manifest | `GRIM` | 16-bit format version | Big-endian |
-| Shard | `GRSH` | 8-bit shard version | Big-endian lengths and counts |
-| File | `GRFL` | 8-bit file version | Big-endian lengths and metadata |
+| Manifest | `GRIM` | Prepared-index format `2` | Big-endian version and tokenizer-name length |
+| Shard | `GRSH` | Shard format `1` | Big-endian lengths and counts |
+| File | `GRFL` | File format `2` | Big-endian lengths and metadata |
+
+The manifest records `o200k_base` as the tokenizer identity. Readers reject a different identity rather than interpreting its stored counts under the wrong tokenizer.
 
 Shard paths are sorted before encoding. The root tree entries are also sorted. Equivalent logical snapshots therefore produce the same object identities.
 
@@ -66,8 +68,8 @@ These formats are internal and may change before a stable release. Readers rejec
 
 Index construction loads the previous snapshot when one exists. Each eligible source file is hashed and compared with its prior file record.
 
-- Matching content hash and size: reuse the previous record and its chunks.
-- New or changed file: rebuild its chunks and mark its shard dirty.
+- Matching content hash and size: reuse the previous record, chunks, and exact token counts.
+- New or changed file: rebuild its chunks, count them with `o200k_base`, and mark its shard dirty.
 - Removed or newly ignored file: remove its record and mark its prior shard dirty.
 - Unaffected shard: retain the previous shard object unchanged.
 
@@ -96,15 +98,18 @@ Loading verifies:
 - the reference resolves to a tree;
 - every root entry is a regular file;
 - exactly one valid manifest is present;
+- the manifest declares prepared-index version 2 and tokenizer `o200k_base`;
 - every other entry is a valid two-digit shard name;
 - each shard decodes successfully;
 - each file is stored in its expected shard;
 - paths are valid and unique; and
 - each file record and chunk range is well formed.
 
-## Legacy cleanup
+## Migration and legacy cleanup
 
-Successful saves remove the former `.grimoire/index.json` file when present. The active prepared state is object-backed; JSON is used only for command output and context packages.
+Version-1 prepared state contains heuristic chunk costs and is not reusable as version 2. `grimoire index` recognizes the incompatible manifest, uses the current state root as its compare-and-swap base, rebuilds all eligible file records, and publishes a version-2 snapshot without deleting the state repository first. `grimoire context` requires a compatible index and reports the incompatibility until indexing is run.
+
+Successful saves also remove the former `.grimoire/index.json` file when present. The active prepared state is object-backed; JSON is used only for command output and context packages.
 
 ## Code map
 

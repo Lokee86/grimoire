@@ -20,6 +20,7 @@ index command
     ├── traverse eligible repository files
     ├── reuse unchanged file records
     ├── fallback-chunk changed text files
+    ├── count each changed chunk with o200k_base
     └── atomically publish a new prepared snapshot
 
 context command
@@ -27,8 +28,9 @@ context command
     ├── load the prepared snapshot
     ├── rank prepared chunks against the query
     ├── apply deterministic tie-breaking
-    ├── select whole chunks under the budget
-    └── emit an inspectable JSON package
+    ├── select whole chunks under the serialized-package budget
+    ├── count the exact indented JSON package with o200k_base
+    └── emit the verified package
 ```
 
 The context command does not traverse the repository or read source files. It operates only on the prepared state repository.
@@ -42,7 +44,8 @@ The context command does not traverse the repository or read source files. It op
 | `internal/ignore` | Git-ignore pattern loading and matching | Permanent tool-state exclusions |
 | `internal/index` | Traversal, filtering, fallback chunking, incremental records, storage, publication | Query ranking and package selection |
 | `internal/retrieve` | Query term extraction, candidate scoring, deterministic ordering | Token budgets and output packages |
-| `internal/compiler` | Whole-chunk budget selection and JSON package model | Candidate discovery and ranking |
+| `internal/tokenizer` | Fixed `o200k_base` identity and exact token counting | Ranking, chunk boundaries, model selection, or wrapper overhead |
+| `internal/compiler` | Whole-chunk budget selection, exact package accounting, and JSON package model | Candidate discovery and ranking |
 
 ## Code map
 
@@ -54,6 +57,7 @@ cmd/grimoire/main.go
             ├── index.Load / index.Save
             ├── retrieve.Search
             └── compiler.Compile
+                   └── tokenizer.Count
 ```
 
 Important implementation files:
@@ -62,13 +66,14 @@ Important implementation files:
 | --- | --- |
 | `internal/app/run.go` | Commands, flags, path resolution, and JSON output |
 | `internal/index/build.go` | Repository traversal, file eligibility, incremental reuse, and changed-file chunking |
-| `internal/index/chunk.go` | Deterministic line-based fallback chunking and token estimation |
+| `internal/index/chunk.go` | Deterministic line-based fallback chunking and exact chunk token counts |
 | `internal/index/store.go` | Snapshot loading, validation, incremental shard writes, and atomic reference publication |
 | `internal/index/codec.go` | Deterministic shard encoding and path validation |
 | `internal/index/file_codec.go` | Deterministic file and chunk record encoding |
 | `internal/ignore/policy.go` | Root, nested, and replacement Git-ignore behavior |
 | `internal/retrieve/search.go` | Lexical scoring, reasons, limits, and tie-breaking |
-| `internal/compiler/compiler.go` | Budget fitting and context-package construction |
+| `internal/compiler/compiler.go` | Whole-chunk fitting, exact serialized-package accounting, and package construction |
+| `internal/tokenizer/tokenizer.go` | Shared `o200k_base` codec and token-counting seam |
 
 ## Determinism
 
@@ -109,9 +114,11 @@ The current implementation scans every prepared chunk in memory for each query. 
 
 ## Current budget selection
 
-The compiler considers ranked candidates in order. A chunk is selected only when its complete estimated cost fits the remaining budget. Oversized candidates are counted as omitted, and later smaller candidates may still be selected.
+Each prepared chunk stores its exact `o200k_base` count. The compiler considers ranked candidates in order and tentatively serializes the complete indented JSON package for each addition. A chunk is retained only when the resulting package fits the caller's budget. Rejected candidates are counted as omitted, and later smaller candidates may still fit.
 
-The current cost is a byte-length heuristic stored with each chunk, not a model-specific token count.
+The package-level `token_count` includes query text, metadata, paths, line ranges, scores, reasons, selected content, JSON syntax, indentation, escaping, and the trailing newline. The compiler stabilizes the self-referential `token_count` field, verifies the final bytes before output, and returns an error when the budget cannot fit even an empty package.
+
+This budget is exact for `o200k_base`. It does not include any chat, tool, agent, or transport wrapper added after Grimoire emits the package.
 
 ## Related documentation
 

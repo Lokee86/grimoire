@@ -50,7 +50,7 @@ func TestFileCodecRoundTrip(t *testing.T) {
 		Size: 42,
 		Chunks: []Chunk{{
 			ID: "chunk-1", Path: "alpha.go", StartLine: 2, EndLine: 4,
-			EstimatedTokens: 7, Text: "func Alpha() {}",
+			TokenCount: 7, Text: "func Alpha() {}",
 		}},
 	}
 	encoded, err := encodeFile(original)

@@ -13,8 +13,9 @@ The current implementation is the first lexical baseline. It is usable independe
 - Root and nested `.gitignore` semantics, including negation.
 - A configurable replacement ignore file using Git-ignore syntax.
 - Deterministic fallback chunking for supported text files.
+- Exact `o200k_base` token counts stored with prepared chunks.
 - Inspectable lexical, filename, path, and leading-line ranking signals.
-- Whole-chunk fitting under a caller-provided budget.
+- Whole-chunk fitting under an exact serialized-package token budget.
 - Deterministic, agent-independent JSON context packages.
 - No request-time repository traversal or source-file reads.
 
@@ -64,10 +65,10 @@ repository files
 index.Build ──► fallback chunks ──► private go-git object repository
                                            │
                                            ▼
-query ──► retrieve.Search ──► compiler.Compile ──► JSON context package
+query ──► retrieve.Search ──► compiler.Compile ──► o200k_base count ──► JSON context package
 ```
 
-The request path loads prepared state, performs deterministic lexical ranking, and selects whole chunks under the budget. It does not traverse or read source files. The current lexical search still scans the prepared chunks in memory; a postings index is planned but not implemented.
+The request path loads prepared state, performs deterministic lexical ranking, and selects whole chunks while counting the exact indented JSON package with `o200k_base`. Paths, reasons, query text, metadata, and the trailing newline all consume budget. The request path does not traverse or read source files. The current lexical search still scans the prepared chunks in memory; a postings index is planned but not implemented.
 
 See the [system overview](docs/architecture/system-overview.md) and [prepared-index design](docs/architecture/prepared-index.md) for the implemented architecture.
 
@@ -133,4 +134,4 @@ The benchmark measures retrieval over 10,000 prepared chunks. It intentionally e
 
 ## Status
 
-Grimoire is in active development. The prepared lexical baseline is implemented and tested; language-aware chunking, prepared lexical postings, model-specific tokenizers, semantic retrieval, daemon maintenance, and optional Warlock-toolchain evidence providers remain future work.
+Grimoire is in active development. The prepared lexical baseline and exact `o200k_base` budgeting are implemented and tested; language-aware chunking, prepared lexical postings, semantic retrieval, daemon maintenance, and optional Warlock-toolchain evidence providers remain future work.

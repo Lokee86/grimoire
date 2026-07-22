@@ -1,10 +1,15 @@
 package index
 
-const FormatVersion = 1
+import "errors"
+
+const FormatVersion = 2
+
+var ErrIncompatibleIndex = errors.New("incompatible prepared index")
 
 type Snapshot struct {
-	Version int
-	Files   []FileRecord
+	Version   int
+	Tokenizer string
+	Files     []FileRecord
 
 	baseRoot    string
 	baseShards  map[string]string
@@ -19,12 +24,12 @@ type FileRecord struct {
 }
 
 type Chunk struct {
-	ID              string
-	Path            string
-	StartLine       int
-	EndLine         int
-	EstimatedTokens int
-	Text            string
+	ID         string
+	Path       string
+	StartLine  int
+	EndLine    int
+	TokenCount int
+	Text       string
 }
 
 func (snapshot Snapshot) AllChunks() []Chunk {

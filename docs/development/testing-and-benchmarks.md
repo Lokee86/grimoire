@@ -19,9 +19,11 @@ Formatting should produce no diff after the final run.
 | CLI integration and flag wiring | `internal/app/run_test.go` |
 | Incremental traversal, ignore behavior, and exclusions | `internal/index/build_test.go` |
 | Binary shard and file codecs | `internal/index/codec_test.go` |
+| Manifest tokenizer identity and incompatible-version detection | `internal/index/objects_test.go` |
 | Prepared repository persistence, validation, reuse, and conflicts | `internal/index/store_test.go` |
+| `o200k_base` initialization and known token count | `internal/tokenizer/tokenizer_test.go` |
 | Lexical scoring and deterministic tie-breaking | `internal/retrieve/search_test.go` |
-| Whole-chunk budget selection and package fields | `internal/compiler/compiler_test.go` |
+| Whole-chunk fitting and exact serialized-package accounting | `internal/compiler/compiler_test.go` |
 
 Tests use temporary directories and locally constructed snapshots. They do not require external services.
 

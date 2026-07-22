@@ -98,15 +98,13 @@ The current chunker:
 
 It does not understand language syntax. Lexicon-provided structural chunking is planned.
 
-## Token estimate
+## Token counting
 
-Each chunk stores:
+Each changed chunk is counted with the fixed `o200k_base` tokenizer and stores that exact count in its prepared file record. The tokenizer vocabulary is embedded in the Grimoire binary; indexing does not download model data.
 
-```text
-max(1, (byte_length + 2) / 3)
-```
+Unchanged file records reuse their existing chunks and token counts. New or changed files are fully re-chunked and recounted. The prepared-index manifest records the tokenizer identity so counts cannot be reused under a different tokenizer.
 
-This is a deterministic heuristic used by the current budget fitter. It is not a model tokenizer and is not guaranteed to match or conservatively bound every model's token count.
+Chunk counts describe the chunk text itself. Context compilation separately counts the complete serialized package because paths, reasons, metadata, JSON escaping, and formatting also consume budget.
 
 ## Statistics
 

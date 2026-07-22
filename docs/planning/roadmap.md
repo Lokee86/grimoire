@@ -1,6 +1,6 @@
 # Grimoire Roadmap
 
-This roadmap describes intended implementation order, not release commitments. The lexical baseline is current; every item below remains future work unless linked to an implemented reference.
+This roadmap describes intended implementation order, not release commitments. The lexical baseline and exact `o200k_base` budgeting are current; every numbered item below remains future work unless linked to an implemented reference.
 
 ## Current baseline
 
@@ -10,9 +10,13 @@ Implemented today:
 - standard Git-ignore traversal and protected tool-state exclusions;
 - content-addressed go-git object storage with atomic snapshot publication;
 - deterministic fallback chunks;
+- exact `o200k_base` chunk counts stored in prepared state;
 - fixed lexical ranking with inspectable reasons;
-- whole-chunk budget fitting; and
+- exact serialized-package budget enforcement;
+- automatic rebuild of incompatible version-1 prepared state; and
 - versioned JSON context packages.
+
+Current token behavior is documented in [Indexing](../reference/indexing.md) and [Context package](../reference/context-package.md).
 
 ## 1. Lexicon structural-chunk consumer
 
@@ -40,24 +44,11 @@ Goals:
 - deterministic tie-breaking; and
 - benchmark comparison against the current 10,000-chunk linear baseline.
 
-This work is not blocked by Lexicon. The postings model must support both fallback and future structural chunks.
+This follows the Lexicon integration because structural chunk identity, replacement, removals, and metadata should be stable before postings are built around them. The postings implementation must continue to support fallback chunks for unsupported or failed parses.
 
-## 3. Model-aware token costs
+## 3. Selection quality
 
-Use existing tokenizer libraries to count package cost for declared target models.
-
-Goals:
-
-- cache costs during index maintenance where practical;
-- identify the tokenizer and version in package metadata;
-- retain the current heuristic for unknown models or unavailable tokenizers; and
-- test that selected package cost remains within the declared model budget.
-
-This work is not blocked by Lexicon.
-
-## 4. Selection quality
-
-Improve package construction only after better chunks, lexical retrieval, and token costs can be measured.
+Improve package construction after structural chunks and prepared lexical retrieval can be measured together.
 
 Candidate improvements:
 
@@ -68,9 +59,9 @@ Candidate improvements:
 - stable package fingerprints; and
 - explicit omission reasons beyond budget pressure.
 
-Every improvement must preserve inspectability and be evaluated against fixtures or repository tasks.
+Every improvement must preserve inspectability and be evaluated against fixtures or repository tasks. Exact `o200k_base` package enforcement remains the final selection boundary.
 
-## 5. Incremental maintenance runtime
+## 4. Incremental maintenance runtime
 
 Add standalone change-driven maintenance so prepared state stays current without manual indexing.
 
@@ -78,7 +69,7 @@ The standalone mode should own only Grimoire behavior. When hosted by Warlock, G
 
 This work should follow a stable incremental index contract and should not be required for one-shot CLI use.
 
-## 6. Optional semantic retrieval
+## 5. Optional semantic retrieval
 
 Evaluate a small local embedding provider only after the lexical baseline has quality and latency measurements.
 
@@ -93,7 +84,7 @@ Constraints:
 
 Semantic evidence must supplement rather than replace inspectable lexical and metadata evidence.
 
-## 7. Optional Warlock evidence providers
+## 6. Optional Warlock evidence providers
 
 Add bounded provider interfaces for:
 
@@ -103,7 +94,7 @@ Add bounded provider interfaces for:
 
 Grimoire remains responsible for ranking, budgeting, and final package construction. Providers remain responsible for their own domain facts.
 
-## 8. Stable external contracts
+## 7. Stable external contracts
 
 Before a stable release, define:
 
