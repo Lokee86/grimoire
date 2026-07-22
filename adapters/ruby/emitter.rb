@@ -12,6 +12,7 @@ module LexiconRuby
         "schema_version" => 1,
         "adapter_version" => LexiconRuby::Contract::VERSION,
         "language" => LexiconRuby::Contract::LANGUAGE,
+        "mode" => "full",
         "repository" => @repository_name
       }
       records = @nodes.values.sort_by do |record|

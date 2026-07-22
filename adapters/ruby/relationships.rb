@@ -7,7 +7,7 @@ module LexiconRuby
     def add_edge(source, target, relation, span = nil)
       record = { "record" => "edge", "source" => source, "target" => target, "relation" => relation }
       record["span"] = span if span
-      @edges[canonical_record(record)] = record
+      @edges[[source, target, relation]] ||= record
     end
 
     def add_unresolved(source:, relation:, expression:, reason:, span: nil, attributes: nil)

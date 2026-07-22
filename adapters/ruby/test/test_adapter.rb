@@ -44,6 +44,7 @@ class RubyAdapterTest < Minitest::Test
       assert nodes.any? { |record| record["kind"] == "module" && record["qualified_name"] == "Outer::Inner" }
       assert nodes.any? { |record| record["kind"] == "type" && record["qualified_name"] == "Outer::Inner::Child" }
       assert nodes.any? { |record| record["kind"] == "method" && record["qualified_name"] == "Outer::Inner::Child#run" }
+      assert nodes.any? { |record| record["kind"] == "type" && record["qualified_name"] == "Outer::Inner::Versioned" }
       assert nodes.any? { |record| record["kind"] == "constant" && record["qualified_name"] == "Outer::VERSION" }
       assert nodes.any? { |record| record["kind"] == "import" && record["attributes"]["target"] == "json" }
       assert edges.any? { |record| record["relation"] == "contains" }
@@ -51,6 +52,8 @@ class RubyAdapterTest < Minitest::Test
       assert edges.any? { |record| record["relation"] == "imports" }
       assert edges.any? { |record| record["relation"] == "extends" }
       assert unresolved.any? { |record| record["relation"] == "imports" && record["reason"] == "dynamic-target" }
+      refute unresolved.any? { |record| record["relation"] == "extends" }
+      assert_equal edges.map { |record| [record["source"], record["target"], record["relation"]] }.uniq.length, edges.length
       refute nodes.any? { |record| record["path"].include?("vendor") }
       refute nodes.any? { |record| record["path"].include?((".git")) }
     end

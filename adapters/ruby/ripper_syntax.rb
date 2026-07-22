@@ -17,6 +17,8 @@ module LexiconRuby
           left = const_name(value[1])
           right = const_name(value[2])
           return "#{left}::#{right}" if left && right
+        when :aref
+          return const_name(value[1])
         end
       end
       nil

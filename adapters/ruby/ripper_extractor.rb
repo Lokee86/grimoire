@@ -50,7 +50,7 @@ module LexiconRuby
           span: span_for(first_token(node))
         )
       else
-        node[1..].each { |child| visit(child, parent_id, namespace) }
+        node.drop(1).each { |child| visit(child, parent_id, namespace) }
       end
     end
 

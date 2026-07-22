@@ -25,5 +25,8 @@ module Outer
         new(value)
       end
     end
+
+    class Versioned < Base[1]
+    end
   end
 end
