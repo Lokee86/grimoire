@@ -14,35 +14,54 @@ PYTHONPATH=adapters/python python -m lexicon_python \
 
 `--output -` writes JSONL to stdout. The output directory is created when needed.
 
-The stream starts with the v1 header, then contains nodes, edges, and unresolved records. Keys are serialized lexicographically and records use the contract's canonical ordering. The generated stream can be checked with `python tools/validate_jsonl.py facts.jsonl`.
+The stream begins with the v1 header, followed by canonically sorted nodes, edges, and unresolved records. JSON keys are serialized lexicographically. Validate a generated stream with:
+
+```sh
+python tools/validate_jsonl.py facts.jsonl
+```
 
 ## Node identities
 
-All node IDs are `sha256:` digests of the v1 identity form. The canonical identities for this slice are:
+All node IDs are `sha256:` digests of the v1 identity form. Canonical identities include:
 
 - `repository`: repository root basename;
-- `directory`: normalized repository-relative directory path (`.` is the root);
+- `directory`: normalized repository-relative directory path;
 - `file`: normalized repository-relative Python file path;
-- `module`: dotted module name (`pkg/__init__.py` is `pkg`, and a root `__init__.py` uses the repository basename);
+- `module`: dotted module name;
 - `type`: dotted module and lexical class name;
-- `function`: dotted module and lexical function name;
-- `method`: dotted module, class, and method name;
-- `import`: module name plus source-line occurrence and bound name.
+- `function`: dotted module and lexical function or lambda identity;
+- `method`: dotted module, lexical class, and method name;
+- `import`: module name plus source occurrence and bound name.
 
-File nodes also carry the SHA-256 content identity of the original file bytes. Absolute checkout paths are never included in identities or paths.
+File nodes carry the SHA-256 content identity of the original file bytes. Absolute checkout paths are never included in facts.
 
-## Supported facts
+## Static call graph
 
-The adapter emits repository, directory, file, module, type, function, method, and import nodes. It emits `contains` edges for repository structure and file/module ownership, `defines` edges for declarations, `imports` edges for resolved in-repository modules/symbols, `extends` edges for simple resolved inheritance, and direct `calls` edges when a callable is statically identified. It also tracks simple function-local assignments such as `worker = Worker()` and resolves a later `worker.run()` only when the constructor and method are uniquely known; conflicting or control-flow-dependent assignments invalidate that inference. Unsupported, dynamic, external, builtin, ambiguous, or missing targets are represented as `unresolved` records instead of guessed edges.
+The adapter resolves repository-local calls through a staged binding and flow model. A single proven target emits `calls`. Multiple legitimate static targets emit `possible-calls`. Calls that require external packages, runtime mutation, reflection, or unsupported dynamic behavior remain explicit unresolved records.
 
-Python files are scanned in deterministic order while excluding `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, `__pycache__/`, `.pytest_cache/`, `.bundle/`, `node_modules/`, `target/`, build/dist/virtual-environment directories, and vendor directories.
+Current static resolution covers:
 
-## Current limits
+- package-relative imports, module aliases, package re-exports, function-local imports, and nearest-package disambiguation;
+- lexical nested functions and classes;
+- direct functions, methods, constructors, `cls(...)`, and `super()`;
+- local assignments, later reassignment, branch unions, annotated parameters, annotated fields, and factory return flow;
+- loop and comprehension element types, including mapping value iteration;
+- return-value chaining such as `factory().run()`;
+- inheritance, overrides, descendant expansion for annotated base receivers, and C3 method-resolution order;
+- higher-order callable parameters propagated from repository call sites;
+- callable containers, subscriptions, mapping accessors, bound-method aliases, callable instances, lambdas, constant-name `getattr`, and `functools.partial`;
+- lexical closure capture;
+- bare repository-local decorators whose returned wrapper is statically recoverable;
+- pytest `parametrize` callback values.
 
-- Resolution is repository-local and syntax-based; it does not execute imports or inspect installed packages.
-- Local constructor-flow resolution is deliberately intraprocedural and linear; branch-dependent, conflicting, attribute-based, factory-produced, and reassigned values remain unresolved.
-- Calls through computed attributes, factories, dynamic imports, and other non-dotted callable expressions remain unresolved.
-- Builtin classification uses the running Python interpreter's authoritative builtin namespace.
-- Inheritance resolution covers simple names and dotted names that map to scanned modules or declarations; metaclasses, generated bases, and runtime mutation are not inferred.
-- Python files that cannot be decoded or parsed still produce file/module facts plus an unresolved parse record, but no declarations from the file.
-- Imports inside function bodies are represented as import facts, but only module-level bindings participate in cross-file symbol resolution.
+The adapter also emits repository, directory, file, module, type, function, method, and import nodes; structural `contains` and `defines` edges; resolved `imports` and `extends` edges; and source spans for emitted relationships.
+
+## Deliberate unresolved boundaries
+
+- Installed-package internals are not imported or inspected. Calls into the standard library and third-party packages remain builtin or external targets.
+- Dynamic imports, non-constant reflection, monkey patching, metaclass-generated members, runtime class mutation, and dynamically synthesized callables cannot be proven from syntax alone.
+- Star imports and decorator factories with runtime-dependent arguments remain conservative.
+- Framework dependency injection is resolved only where ordinary repository-local value flow exposes the target.
+- Parse failures still produce file/module facts plus an unresolved parse record, but no declarations from the failed file.
+
+Python files are scanned deterministically while excluding `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, `.next/`, `__pycache__/`, `.pytest_cache/`, `.bundle/`, `node_modules/`, `target/`, build/dist/virtual-environment directories, and vendor directories.

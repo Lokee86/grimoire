@@ -38,6 +38,25 @@ class InheritanceInfo:
 
 
 @dataclass
+class FunctionInfo:
+    module_name: str
+    qname: str
+    node_id: str
+    class_qname: str | None
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda
+    parameters: dict[str, ast.expr | None]
+    return_annotation: ast.expr | None
+
+
+@dataclass
+class ClassInfo:
+    module_name: str
+    qname: str
+    node_id: str
+    node: ast.ClassDef
+
+
+@dataclass
 class CallInfo:
     module_name: str
     owner_id: str
@@ -54,8 +73,25 @@ class LocalAssignmentInfo:
     class_qname: str | None
     name: str
     assignment_node: ast.AST
-    constructor: ast.Call | None
+    value: ast.expr | None
+    annotation: ast.expr | None
     branch_dependent: bool
+
+    @property
+    def constructor(self) -> ast.Call | None:
+        return self.value if isinstance(self.value, ast.Call) else None
+
+
+@dataclass
+class LoopBindingInfo:
+    module_name: str
+    scope_id: str
+    class_qname: str | None
+    name: str
+    loop_node: ast.AST
+    iterable: ast.expr
+    branch_dependent: bool
+    element_index: int | None = None
 
 
 @dataclass
@@ -90,11 +126,18 @@ class Facts:
     modules: dict[str, str] = field(default_factory=dict)
     symbols: dict[str, str] = field(default_factory=dict)
     symbol_kinds: dict[str, str] = field(default_factory=dict)
+    node_qnames: dict[str, str] = field(default_factory=dict)
     imports: list[ImportInfo] = field(default_factory=list)
     inheritances: list[InheritanceInfo] = field(default_factory=list)
+    functions: dict[str, FunctionInfo] = field(default_factory=dict)
+    classes: dict[str, ClassInfo] = field(default_factory=dict)
+    lambda_ids: dict[int, str] = field(default_factory=dict)
     calls: list[CallInfo] = field(default_factory=list)
     local_assignments: list[LocalAssignmentInfo] = field(default_factory=list)
+    loop_bindings: list[LoopBindingInfo] = field(default_factory=list)
     module_bindings: dict[tuple[str, str], tuple[str | None, str]] = field(default_factory=dict)
+    scope_bindings: dict[tuple[str, str], tuple[str | None, str]] = field(default_factory=dict)
+    scope_parents: dict[str, str] = field(default_factory=dict)
 
     def add_node(
         self,
@@ -124,6 +167,7 @@ class Facts:
         if record_span is not None:
             record["span"] = record_span
         self.nodes[identifier] = record
+        self.node_qnames[identifier] = qualified_name
         return identifier
 
     def add_edge(
