@@ -51,6 +51,13 @@ class PythonAdapterTest(unittest.TestCase):
         self._write("vendor/ignored.py", "class Ignored: pass\n")
         self._write("build/ignored.py", "def ignored(): pass\n")
         self._write("__pycache__/ignored.py", "def ignored(): pass\n")
+        self._write("tools/data_sync/config.py", "class NestedConfig:\n    pass\n")
+        self._write(
+            "nested_consumer.py",
+            "from data_sync.config import NestedConfig\n\n"
+            "def build_nested():\n"
+            "    return NestedConfig()\n",
+        )
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
@@ -93,6 +100,43 @@ class PythonAdapterTest(unittest.TestCase):
         self.assertTrue(any(record["relation"] == "imports" for record in edges))
         self.assertTrue(any(record["relation"] == "calls" for record in unresolved))
         self.assertTrue(any(record["reason"] == "dynamic-target" for record in unresolved))
+
+    def test_nested_package_prefix_imports_resolve(self) -> None:
+        records = self._run(self.repo / "facts.jsonl")
+        nodes = [record for record in records if record["record"] == "node"]
+        edges = [record for record in records if record["record"] == "edge"]
+        consumer_module = next(
+            record["id"]
+            for record in nodes
+            if record["kind"] == "module" and record["path"] == "nested_consumer.py"
+        )
+        nested_type = next(
+            record["id"]
+            for record in nodes
+            if record["kind"] == "type" and record["qualified_name"] == "tools.data_sync.config.NestedConfig"
+        )
+        builder = next(
+            record["id"]
+            for record in nodes
+            if record["kind"] == "function" and record["qualified_name"] == "nested_consumer.build_nested"
+        )
+
+        self.assertTrue(
+            any(
+                record["relation"] == "imports"
+                and record["source"] == consumer_module
+                and record["target"] == nested_type
+                for record in edges
+            )
+        )
+        self.assertTrue(
+            any(
+                record["relation"] == "calls"
+                and record["source"] == builder
+                and record["target"] == nested_type
+                for record in edges
+            )
+        )
 
     def test_ids_content_and_header(self) -> None:
         output = self.repo / "facts.jsonl"
