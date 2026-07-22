@@ -1,38 +1,40 @@
 # Grimoire
 
-Grimoire is a low-latency context compiler for software repositories. It maintains prepared local retrieval state, ranks repository evidence with inspectable signals, and emits bounded context packages without owning an agent or generation step.
+Grimoire is a low-latency repository context compiler in the [Warlock Toolchain](https://github.com/Lokee86/warlock-toolchain). It maintains prepared local retrieval state, ranks repository evidence with inspectable signals, and emits bounded context packages without owning an agent or generation step.
 
-This repository currently contains the first lexical baseline:
+The current implementation is the first lexical baseline. It is usable independently and does not require Lexicon, Arcana, Demon Docs, a model service, or a vector database.
 
-- incremental file indexing with unchanged-record reuse;
-- a private go-git object repository with deterministic binary index shards;
-- content-addressed snapshot publication through `refs/grimoire/state`;
-- standard `.gitignore` traversal semantics with nested ignore files;
-- deterministic fallback chunking;
-- lexical, filename, and path ranking;
-- whole-chunk budget fitting;
-- inspectable JSON context packages; and
-- no request-time repository scanning.
+## Current capabilities
 
-Arcana, Demon Docs, semantic embeddings, language adapters, and daemon hosting are intentionally outside this first slice.
+- Incremental text-file indexing with unchanged-file reuse.
+- A private bare go-git object repository for prepared state.
+- Deterministic binary file records distributed across 256 content-addressed shards.
+- Atomic snapshot publication through `refs/grimoire/state`.
+- Root and nested `.gitignore` semantics, including negation.
+- A configurable replacement ignore file using Git-ignore syntax.
+- Deterministic fallback chunking for supported text files.
+- Inspectable lexical, filename, path, and leading-line ranking signals.
+- Whole-chunk fitting under a caller-provided budget.
+- Deterministic, agent-independent JSON context packages.
+- No request-time repository traversal or source-file reads.
 
 ## Build
+
+Grimoire currently targets Go 1.26.5.
 
 ```bash
 go build ./cmd/grimoire
 ```
 
-## Index a repository
+## Quick start
+
+Prepare an index:
 
 ```bash
 grimoire index --root /path/to/repository
 ```
 
-The prepared index is stored as a private bare go-git object repository at `/path/to/repository/.grimoire` by default. Binary file records are distributed across 256 content-addressed shards, and `refs/grimoire/state` atomically publishes the current snapshot. Re-running the command reuses unchanged shard objects.
-
-Index traversal follows the repository's root and nested `.gitignore` files. To use another Git-ignore-syntax file instead, pass `--ignore-file path/to/file`; a relative path is resolved from the indexed repository root. `.git`, `.grimoire`, `.ddocs`, `.arcana`, `.warlock`, `.worktrees`, `.workingtrees`, and the configured state repository remain permanently excluded because indexing them would recurse into repository metadata or generated tool state.
-
-## Compile context
+Compile context from the prepared state:
 
 ```bash
 grimoire context \
@@ -41,16 +43,94 @@ grimoire context \
   --budget 2000
 ```
 
-The request reads only the prepared index and emits a deterministic JSON package. The current budget is a conservative content-token estimate, not yet a model-specific tokenizer count.
+The default prepared-state location is `/path/to/repository/.grimoire`. Context requests read that state rather than rescanning the repository.
 
-## Benchmark the warm retrieval path
+## Command summary
+
+```text
+grimoire index   Prepare or incrementally update repository retrieval state.
+grimoire context Rank prepared chunks and emit a bounded JSON context package.
+grimoire version Print the development version.
+```
+
+See the [CLI reference](docs/reference/cli.md) for every current flag and output contract.
+
+## Architecture
+
+```text
+repository files
+      │
+      ▼
+index.Build ──► fallback chunks ──► private go-git object repository
+                                           │
+                                           ▼
+query ──► retrieve.Search ──► compiler.Compile ──► JSON context package
+```
+
+The request path loads prepared state, performs deterministic lexical ranking, and selects whole chunks under the budget. It does not traverse or read source files. The current lexical search still scans the prepared chunks in memory; a postings index is planned but not implemented.
+
+See the [system overview](docs/architecture/system-overview.md) and [prepared-index design](docs/architecture/prepared-index.md) for the implemented architecture.
+
+## Indexing and ignore behavior
+
+By default, Grimoire follows the repository's root and nested `.gitignore` files. Pass `--ignore-file path/to/file` to replace that hierarchy with another Git-ignore-syntax file. Relative paths are resolved from the indexed repository root.
+
+The following directories remain permanently excluded because they contain repository metadata, generated tool state, or nested worktrees:
+
+- `.git/`
+- `.grimoire/`
+- `.ddocs/`
+- `.arcana/`
+- `.warlock/`
+- `.worktrees/`
+- `.workingtrees/`
+
+A custom `--state` path is also excluded from traversal. Grimoire does not hard-code conventional dependency or build directories such as `vendor/`, `node_modules/`, `target/`, or `dist/`; repository ignore rules decide whether those paths are indexed.
+
+See [Indexing reference](docs/reference/indexing.md) for supported file types, size limits, binary detection, and incremental behavior.
+
+## Product boundary
+
+Grimoire owns:
+
+- retrieval-state maintenance;
+- candidate retrieval and ranking;
+- context selection and budgeting; and
+- context-package manifests.
+
+Grimoire does not own:
+
+- language adapters or normalized source facts, which belong to Lexicon;
+- repository relationship graphs, which belong to Arcana;
+- documentation health and maintenance, which belong to Demon Docs;
+- agent orchestration or generative inference; or
+- hosted vector infrastructure.
+
+Lexicon will eventually provide structural source chunks. Grimoire will retain its current fallback chunker so its basic lexical mode remains independently usable.
+
+## Documentation
+
+- [Documentation index](docs/INDEX.md)
+- [System overview](docs/architecture/system-overview.md)
+- [Prepared index](docs/architecture/prepared-index.md)
+- [CLI reference](docs/reference/cli.md)
+- [Indexing reference](docs/reference/indexing.md)
+- [Context package format](docs/reference/context-package.md)
+- [Current limitations](docs/limits/current-limitations.md)
+- [Roadmap](docs/planning/roadmap.md)
+- [Testing and benchmarks](docs/development/testing-and-benchmarks.md)
+
+## Development
 
 ```bash
+gofmt -w ./cmd ./internal
+go test ./...
+go vet ./...
 go test ./internal/retrieve -bench BenchmarkSearchTenThousandChunks -benchmem
 ```
 
-The benchmark uses a prepared in-memory snapshot with 10,000 chunks. It intentionally excludes repository scanning and indexing work from the request path.
+The benchmark measures retrieval over 10,000 prepared chunks. It intentionally excludes repository scanning and index construction from the request path.
 
-## Current boundary
+## Status
 
-Grimoire owns retrieval, ranking, context selection, and package manifests. It does not own repository relationship graphs, documentation health, agent orchestration, generative inference, or hosted vector infrastructure.
+Grimoire is in active development. The prepared lexical baseline is implemented and tested; language-aware chunking, prepared lexical postings, model-specific tokenizers, semantic retrieval, daemon maintenance, and optional Warlock-toolchain evidence providers remain future work.
