@@ -4,20 +4,24 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 )
 
 const Version = 1
 
 type Definition struct {
-	Version int      `json:"version"`
-	Command string   `json:"command"`
-	Args    []string `json:"args,omitempty"`
+	Version int           `json:"version"`
+	Command string        `json:"command"`
+	Args    []string      `json:"args,omitempty"`
+	Timeout time.Duration `json:"timeout,omitempty"`
 }
 
 func Run(ctx context.Context, repository, stateRoot, snapshotID string, output io.Writer) error {
@@ -29,20 +33,32 @@ func Run(ctx context.Context, repository, stateRoot, snapshotID string, output i
 	if err != nil {
 		return fmt.Errorf("read Lexicon consumers: %w", err)
 	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].Name() < entries[j].Name() })
+	var failures []error
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
 			continue
 		}
-		path := filepath.Join(directory, entry.Name())
-		definition, err := load(path)
-		if err != nil {
-			return err
-		}
-		if err := invoke(ctx, definition, repository, stateRoot, snapshotID, output); err != nil {
-			return fmt.Errorf("Lexicon consumer %s: %w", entry.Name(), err)
+		if err := runOne(ctx, repository, stateRoot, entry.Name(), snapshotID, output); err != nil {
+			failures = append(failures, fmt.Errorf("Lexicon consumer %s: %w", entry.Name(), err))
 		}
 	}
-	return nil
+	return errors.Join(failures...)
+}
+
+func runOne(
+	ctx context.Context,
+	repository, stateRoot, name, snapshotID string,
+	output io.Writer,
+) error {
+	definition, err := load(filepath.Join(stateRoot, "consumers", name))
+	if err != nil {
+		return err
+	}
+	if err := invoke(ctx, definition, repository, stateRoot, snapshotID, output); err != nil {
+		return err
+	}
+	return saveSnapshot(stateRoot, name, snapshotID)
 }
 
 func load(path string) (Definition, error) {
@@ -54,11 +70,8 @@ func load(path string) (Definition, error) {
 	if err := json.Unmarshal(data, &definition); err != nil {
 		return Definition{}, fmt.Errorf("decode Lexicon consumer %s: %w", path, err)
 	}
-	if definition.Version != Version {
-		return Definition{}, fmt.Errorf("unsupported Lexicon consumer version %d", definition.Version)
-	}
-	if strings.TrimSpace(definition.Command) == "" {
-		return Definition{}, fmt.Errorf("Lexicon consumer %s has no command", path)
+	if err := validateDefinition(definition); err != nil {
+		return Definition{}, fmt.Errorf("Lexicon consumer %s: %w", path, err)
 	}
 	return definition, nil
 }
@@ -69,7 +82,13 @@ func invoke(
 	repository, stateRoot, snapshotID string,
 	output io.Writer,
 ) error {
-	command := exec.CommandContext(ctx, definition.Command, definition.Args...)
+	commandContext := ctx
+	cancel := func() {}
+	if definition.Timeout > 0 {
+		commandContext, cancel = context.WithTimeout(ctx, definition.Timeout)
+	}
+	defer cancel()
+	command := exec.CommandContext(commandContext, definition.Command, definition.Args...)
 	command.Dir = repository
 	command.Env = append(os.Environ(),
 		"LEXICON_REPOSITORY="+repository,
@@ -80,6 +99,9 @@ func invoke(
 	command.Stdout = &captured
 	command.Stderr = &captured
 	if err := command.Run(); err != nil {
+		if commandContext.Err() != nil {
+			return fmt.Errorf("%w: %v: %s", commandContext.Err(), err, strings.TrimSpace(captured.String()))
+		}
 		return fmt.Errorf("%w: %s", err, strings.TrimSpace(captured.String()))
 	}
 	if output != nil && captured.Len() > 0 {
