@@ -3,28 +3,33 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"path/filepath"
 )
 
 const (
-	adapterVersion = "0.1.0"
+	adapterVersion = "0.2.0"
 	language       = "gdscript"
 )
 
 type sourceSpan = map[string]any
 
 type factSet struct {
-	nodes               []map[string]any
-	edges               []map[string]any
-	unresolved          []map[string]any
-	nodeByID            map[string]map[string]any
-	edgeKeys            map[string]struct{}
-	edgeOrderKeys       []string
-	unresolvedKeys      map[string]struct{}
-	unresolvedOrderKeys []string
-	moduleByPath        map[string]string
-	classByName         map[string][]string
-	methodByClassName   map[string]map[string][]string
-	fileByPath          map[string]string
+	nodes                     []map[string]any
+	edges                     []map[string]any
+	unresolved                []map[string]any
+	nodeByID                  map[string]map[string]any
+	edgeKeys                  map[string]struct{}
+	edgeOrderKeys             []string
+	unresolvedKeys            map[string]struct{}
+	unresolvedOrderKeys       []string
+	moduleByPath              map[string]string
+	classByName               map[string][]string
+	classByFileAndName        map[string]map[string][]string
+	methodByClassName         map[string]map[string][]string
+	methodByClassID           map[string]map[string][]string
+	preloadAliasByFileAndName map[string]map[string][]string
+	staticMethodByModulePath  map[string]map[string][]string
+	fileByPath                map[string]string
 }
 
 func node(kind, name, path, qualified, id string, span sourceSpan, content string, attributes ...map[string]any) map[string]any {
@@ -78,6 +83,7 @@ func (f *factSet) addEdge(record map[string]any) {
 	f.edges = append(f.edges, record)
 	f.edgeOrderKeys = append(f.edgeOrderKeys, key)
 	f.indexClassMethod(record)
+	f.indexStaticFunction(record)
 }
 
 func (f *factSet) indexClassMethod(record map[string]any) {
@@ -90,14 +96,71 @@ func (f *factSet) indexClassMethod(record map[string]any) {
 		return
 	}
 	className, _ := owner["name"].(string)
-	if len(f.classByName[className]) != 1 {
-		return
+	classID := owner["id"].(string)
+	if f.methodByClassID == nil {
+		f.methodByClassID = make(map[string]map[string][]string)
 	}
-	if f.methodByClassName[className] == nil {
-		f.methodByClassName[className] = make(map[string][]string)
+	if f.methodByClassID[classID] == nil {
+		f.methodByClassID[classID] = make(map[string][]string)
 	}
 	methodName, _ := method["name"].(string)
-	f.methodByClassName[className][methodName] = append(f.methodByClassName[className][methodName], method["id"].(string))
+	f.methodByClassID[classID][methodName] = append(f.methodByClassID[classID][methodName], method["id"].(string))
+	if len(f.classByName[className]) == 1 {
+		if f.methodByClassName[className] == nil {
+			f.methodByClassName[className] = make(map[string][]string)
+		}
+		f.methodByClassName[className][methodName] = append(f.methodByClassName[className][methodName], method["id"].(string))
+	}
+}
+
+func (f *factSet) indexClassDeclaration(path, name, id string) {
+	if f.classByFileAndName == nil {
+		f.classByFileAndName = make(map[string]map[string][]string)
+	}
+	path = normalizeSourcePath(path)
+	if f.classByFileAndName[path] == nil {
+		f.classByFileAndName[path] = make(map[string][]string)
+	}
+	f.classByFileAndName[path][name] = append(f.classByFileAndName[path][name], id)
+}
+
+func (f *factSet) indexPreloadAlias(path, name, targetPath string) {
+	if f.preloadAliasByFileAndName == nil {
+		f.preloadAliasByFileAndName = make(map[string]map[string][]string)
+	}
+	path = normalizeSourcePath(path)
+	if f.preloadAliasByFileAndName[path] == nil {
+		f.preloadAliasByFileAndName[path] = make(map[string][]string)
+	}
+	f.preloadAliasByFileAndName[path][name] = append(f.preloadAliasByFileAndName[path][name], normalizeSourcePath(targetPath))
+}
+
+func (f *factSet) indexStaticFunction(record map[string]any) {
+	if record["relation"] != "defines" {
+		return
+	}
+	method, ok := f.nodeByID[record["target"].(string)]
+	if !ok || method["kind"] != "function" {
+		return
+	}
+	attrs, _ := method["attributes"].(map[string]any)
+	if attrs == nil || attrs["static"] != true {
+		return
+	}
+	span, _ := method["span"].(map[string]any)
+	if spanInt(span, "start_column") != 1 {
+		return
+	}
+	path, _ := method["path"].(string)
+	if f.staticMethodByModulePath == nil {
+		f.staticMethodByModulePath = make(map[string]map[string][]string)
+	}
+	path = normalizeSourcePath(path)
+	if f.staticMethodByModulePath[path] == nil {
+		f.staticMethodByModulePath[path] = make(map[string][]string)
+	}
+	name, _ := method["name"].(string)
+	f.staticMethodByModulePath[path][name] = append(f.staticMethodByModulePath[path][name], method["id"].(string))
 }
 
 func (f *factSet) addUnresolved(record map[string]any) {
@@ -143,4 +206,8 @@ func spanString(span map[string]any, key string) string {
 func spanInt(span map[string]any, key string) int {
 	value, _ := span[key].(int)
 	return value
+}
+
+func normalizeSourcePath(path string) string {
+	return filepath.ToSlash(filepath.Clean(filepath.FromSlash(path)))
 }

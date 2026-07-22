@@ -60,7 +60,15 @@ func processImportsAndCalls(facts *factSet, pf *parsedFile) {
 				facts.addEdge(edge(owner, ids[0], "calls", call.span))
 				continue
 			}
-			if target, ok := resolveClassCall(facts, call.callee); ok {
+			if target, ok := resolveClassCall(facts, pf.path, call.callee); ok {
+				facts.addEdge(edge(owner, target, "calls", call.span))
+				continue
+			}
+			if target, ok := resolveTypedReceiverCall(facts, pf, stmt, owner, call.callee); ok {
+				facts.addEdge(edge(owner, target, "calls", call.span))
+				continue
+			}
+			if target, ok := resolvePreloadAliasCall(facts, pf.path, call.callee); ok {
 				facts.addEdge(edge(owner, target, "calls", call.span))
 				continue
 			}
@@ -76,23 +84,162 @@ func processImportsAndCalls(facts *factSet, pf *parsedFile) {
 	}
 }
 
-func resolveClassCall(facts *factSet, callee string) (string, bool) {
+func resolveClassCall(facts *factSet, sourcePath, callee string) (string, bool) {
 	parts := strings.Split(callee, ".")
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		return "", false
 	}
-	classIDs := facts.classByName[parts[0]]
-	if len(classIDs) != 1 {
+	classID, ok := resolveClassID(facts, sourcePath, parts[0])
+	if !ok {
 		return "", false
 	}
 	if parts[1] == "new" {
-		return classIDs[0], true
+		return classID, true
 	}
-	methodIDs := facts.methodByClassName[parts[0]][parts[1]]
+	methodIDs := facts.methodByClassID[classID][parts[1]]
 	if len(methodIDs) != 1 {
 		return "", false
 	}
 	return methodIDs[0], true
+}
+
+func resolveTypedReceiverCall(facts *factSet, pf *parsedFile, stmt statement, owner, callee string) (string, bool) {
+	parts := strings.Split(callee, ".")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" || isBuiltin(parts[0]) {
+		return "", false
+	}
+	typeName, ok := explicitReceiverType(pf, stmt, owner, parts[0])
+	if !ok {
+		return "", false
+	}
+	classID, ok := resolveClassID(facts, pf.path, typeName)
+	if !ok {
+		return "", false
+	}
+	methodIDs := facts.methodByClassID[classID][parts[1]]
+	if len(methodIDs) != 1 {
+		return "", false
+	}
+	return methodIDs[0], true
+}
+
+func resolveClassID(facts *factSet, sourcePath, className string) (string, bool) {
+	sameFile := facts.classByFileAndName[normalizeSourcePath(sourcePath)][className]
+	if len(sameFile) > 0 {
+		if len(sameFile) != 1 {
+			return "", false
+		}
+		return sameFile[0], true
+	}
+	classIDs := facts.classByName[className]
+	if len(classIDs) != 1 {
+		return "", false
+	}
+	return classIDs[0], true
+}
+
+func resolvePreloadAliasCall(facts *factSet, sourcePath, callee string) (string, bool) {
+	parts := strings.Split(callee, ".")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", false
+	}
+	aliases := facts.preloadAliasByFileAndName[normalizeSourcePath(sourcePath)][parts[0]]
+	if len(aliases) != 1 {
+		return "", false
+	}
+	targetPath := aliases[0]
+	if strings.ToLower(filepath.Ext(filepath.FromSlash(targetPath))) != ".gd" {
+		return "", false
+	}
+	if _, ok := facts.moduleByPath[targetPath]; !ok {
+		return "", false
+	}
+	if parts[1] == "new" {
+		types := facts.classByFileAndName[targetPath]
+		var typeIDs []string
+		for _, ids := range types {
+			typeIDs = append(typeIDs, ids...)
+		}
+		if len(typeIDs) == 1 {
+			return typeIDs[0], true
+		}
+		if len(typeIDs) == 0 {
+			return facts.moduleByPath[targetPath], true
+		}
+		return "", false
+	}
+	methodIDs := facts.staticMethodByModulePath[targetPath][parts[1]]
+	if len(methodIDs) != 1 {
+		return "", false
+	}
+	return methodIDs[0], true
+}
+
+func explicitReceiverType(pf *parsedFile, stmt statement, owner, receiver string) (string, bool) {
+	function := functionDeclaration(pf, owner)
+	if function == nil {
+		return "", false
+	}
+	if typeName := function.parameterTypes[receiver]; typeName != "" {
+		return typeName, true
+	}
+
+	functionIndent := function.indent
+	var local *declaration
+	for i := range pf.declarations {
+		decl := &pf.declarations[i]
+		if decl.kind != "variable" || decl.name != receiver || decl.typeName == "" || decl.span["start_line"] == nil {
+			continue
+		}
+		if spanInt(decl.span, "start_line") >= stmt.start.line || decl.indent <= functionIndent || decl.indent > stmt.indent || enclosingFunction(pf, decl) != function {
+			continue
+		}
+		if local == nil || decl.indent > local.indent || spanInt(decl.span, "start_line") > spanInt(local.span, "start_line") {
+			local = decl
+		}
+	}
+	if local != nil {
+		return local.typeName, true
+	}
+
+	var member *declaration
+	for i := range pf.declarations {
+		decl := &pf.declarations[i]
+		if decl.kind != "variable" || decl.name != receiver || decl.typeName == "" || decl.indent > functionIndent {
+			continue
+		}
+		if member != nil {
+			return "", false
+		}
+		member = decl
+	}
+	if member != nil {
+		return member.typeName, true
+	}
+	return "", false
+}
+
+func enclosingFunction(pf *parsedFile, target *declaration) *declaration {
+	var enclosing *declaration
+	for i := range pf.declarations {
+		decl := &pf.declarations[i]
+		if decl.kind != "function" || spanInt(decl.span, "start_line") >= spanInt(target.span, "start_line") || decl.indent >= target.indent {
+			continue
+		}
+		if enclosing == nil || spanInt(decl.span, "start_line") > spanInt(enclosing.span, "start_line") {
+			enclosing = decl
+		}
+	}
+	return enclosing
+}
+
+func functionDeclaration(pf *parsedFile, owner string) *declaration {
+	for i := range pf.declarations {
+		if pf.declarations[i].nodeID == owner && pf.declarations[i].kind == "function" {
+			return &pf.declarations[i]
+		}
+	}
+	return nil
 }
 
 func ownerForStatement(pf *parsedFile, stmt statement) string {
