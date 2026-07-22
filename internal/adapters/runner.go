@@ -48,6 +48,9 @@ func (r Runner) command(ctx context.Context, request Request) (*exec.Cmd, error)
 	arguments := adapterArguments(request)
 	switch request.Language {
 	case "go", "gdscript":
+		if executable, ok := packagedExecutable(r.Root, request.Language); ok {
+			return exec.CommandContext(ctx, executable, arguments...), nil
+		}
 		executable, err := findExecutable("go")
 		if err != nil {
 			return nil, err
@@ -72,6 +75,9 @@ func (r Runner) command(ctx context.Context, request Request) (*exec.Cmd, error)
 		}
 		return exec.CommandContext(ctx, executable, append([]string{filepath.Join(r.Root, "ruby", "lexicon_ruby.rb")}, arguments...)...), nil
 	case "rust":
+		if executable, ok := packagedExecutable(r.Root, request.Language); ok {
+			return exec.CommandContext(ctx, executable, arguments...), nil
+		}
 		executable, err := findExecutable("cargo")
 		if err != nil {
 			return nil, err
@@ -80,6 +86,14 @@ func (r Runner) command(ctx context.Context, request Request) (*exec.Cmd, error)
 		prefix := []string{"run", "--quiet", "--manifest-path", manifest, "--"}
 		return exec.CommandContext(ctx, executable, append(prefix, arguments...)...), nil
 	case "typescript":
+		distribution := filepath.Join(r.Root, "typescript", "dist", "cli.js")
+		if fileExists(distribution) {
+			executable, err := findExecutable("node")
+			if err != nil {
+				return nil, err
+			}
+			return exec.CommandContext(ctx, executable, append([]string{distribution}, arguments...)...), nil
+		}
 		if err := r.prepareTypeScript(ctx); err != nil {
 			return nil, err
 		}
