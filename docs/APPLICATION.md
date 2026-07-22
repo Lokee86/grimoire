@@ -12,7 +12,7 @@ lexicon daemon [--repo PATH] [--debounce 150ms] [--reconcile 30s]
 
 `lexicon init` creates `.lexicon/repo`, performs a complete relevant-file scan, generates language libraries, creates the initial private state commit, and publishes an immutable analysis snapshot.
 
-`lexicon scan` replaces the private source mirror with the repository's current relevant files. The private Git repository supplies the diff from the last successful scan. Lexicon regenerates only the language libraries affected by that diff, amends the private root commit, stores content-addressed per-file fact objects, and atomically advances `CURRENT` to the completed snapshot.
+`lexicon scan` replaces the private source mirror with the repository's current relevant files. The private Git repository supplies the diff from the last successful scan. For ordinary source-file modifications, Lexicon expands the changed paths through the previous snapshot's reverse dependency graph, requests incremental records for that impacted file set, merges them into the materialized language library, and publishes a new immutable snapshot. Structural changes use the complete-language fallback described below.
 
 `lexicon daemon` watches the repository recursively. Changed paths are debounced and copied into the private mirror, then the same internal Git diff and language-library update path runs. A periodic complete reconciliation repairs missed filesystem events.
 
@@ -53,7 +53,13 @@ Before each scan, Lexicon restores the materialized library from the last intern
 
 ## Incremental boundary
 
-The current adapters analyze repositories rather than individual files. The private diff therefore selects affected languages, and only those language libraries are regenerated. Each selected adapter sees the complete current source mirror, preserving cross-file resolution. The resulting stream is partitioned into immutable per-file objects using contract ownership. Unchanged fact objects are reused, but a changed file still causes its complete language adapter to run. A later adapter contract can narrow this to changed-file extraction plus dependent relationship repair without changing the application lifecycle or snapshot format.
+A modified source file starts an impacted-file update rather than a complete language-library replacement. Lexicon reads the previous immutable snapshot, follows cross-file edges in reverse, and includes every transitive dependent. Files that previously contained unresolved relationships are also included conservatively because a newly introduced declaration may resolve them.
+
+Lexicon builds a temporary scoped repository containing the impacted files, their transitive forward dependencies from the previous snapshot, and the language's configuration files. Go scopes expand to complete packages and Rust scopes expand to complete crates because those are their minimum sound semantic units. The adapter emits only records owned by the impacted files. Shared synthetic records from the scoped view are marked partial and are not allowed to replace the previous complete shared set.
+
+A directly edited file that already owns cross-file or unresolved relationships uses complete-language analysis immediately, because a partial candidate universe could preserve the same edge identity while changing its true resolution. Leaf and local-only files use the scoped path. Before merging a scoped result, Lexicon compares emitted edge and unresolved topology with the previous file objects. A new relationship, a new unresolved reference, or a scoped adapter failure automatically retries the complete language repository. When the scoped result is accepted, unaffected file objects remain byte-identical and are reused.
+
+Additions, deletions, renames, copies, language configuration changes, missing prior dependency data, and corrupt materialized libraries also trigger a complete rebuild of the affected language. This is a correctness boundary, not a permanent protocol limitation. The incremental contract already carries removed-file scopes, so future dependency metadata can narrow those cases without changing consumers or snapshot storage.
 
 ## Watch behavior
 

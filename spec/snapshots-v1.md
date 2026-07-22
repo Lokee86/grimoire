@@ -86,13 +86,14 @@ A successful update follows this order:
 1. acquire the repository update lock;
 2. replace the relevant private source mirror;
 3. calculate the private Git diff;
-4. regenerate affected language streams;
-5. atomically replace the materialized language files;
-6. amend the single private state commit;
-7. write all missing immutable fact objects;
-8. write the immutable snapshot manifest;
-9. atomically replace `CURRENT`;
-10. release the update lock.
+4. compute the impacted file closure or select the complete-language fallback;
+5. request and validate full or incremental language streams;
+6. merge incremental records into complete materialized language files and atomically replace them;
+7. amend the single private state commit;
+8. write all missing immutable fact objects;
+9. write the immutable snapshot manifest;
+10. atomically replace `CURRENT`;
+11. release the update lock.
 
 Consumers resolve `CURRENT` once and then read only the referenced immutable manifest and objects. They therefore observe either the previous complete snapshot or the new complete snapshot, never a partially published state.
 
@@ -102,6 +103,8 @@ Before a scan, uncommitted materialized language output is restored from the pri
 
 If the private commit completed but `CURRENT` was not published, a no-change scan rebuilds the manifest from the committed language streams and atomically republishes it without rerunning adapters.
 
-## Current incremental limit
+## Incremental analysis
 
-The application partitions adapter output into per-file objects and reuses identical objects. Version-one adapters still analyze complete language repositories, so one changed source file regenerates that language stream before partitioning. A future per-file adapter protocol can avoid that work without changing this snapshot contract.
+Ordinary source modifications update only the changed files and their transitive dependents. The dependency closure is calculated from cross-file relationships in the previous snapshot; owners with unresolved relationships are included conservatively. The adapter executes against a temporary repository containing that emission set, its transitive forward dependencies, and required language configuration. Go expands scopes to packages and Rust expands scopes to crates.
+
+A directly edited file with prior cross-file or unresolved relationships selects complete-language analysis before a scope is built. Scoped streams are reserved for leaf and local-only direct edits; they contain selected file-owned records and declare their shared synthetic set partial, so previous complete shared records remain authoritative. Before merge, new edge or unresolved topology causes a complete-language retry. A scoped adapter failure also retries the complete language repository. Additions, deletions, renames, copies, configuration changes, missing dependency state, and corrupt libraries use the same full fallback. More precise structural invalidation can be added without changing this snapshot contract.

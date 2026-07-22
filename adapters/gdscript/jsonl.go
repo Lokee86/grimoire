@@ -4,18 +4,41 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"sort"
 )
 
-func (f *factSet) render(repositoryName string) []byte {
+func (f *factSet) render(repositoryName string, changedFiles, removedFiles []string) []byte {
 	sortRecords(f.nodes, nodeSortKey)
 	sortRecordsByKeys(f.edges, f.edgeOrderKeys)
 	sortRecordsByKeys(f.unresolved, f.unresolvedOrderKeys)
+	incremental := changedFiles != nil || removedFiles != nil
+	selected := selectedPaths(changedFiles)
+	owners := gdscriptNodeOwners(f.nodes)
+	header := map[string]any{"adapter_version": adapterVersion, "language": language, "record": "lexicon", "repository": repositoryName, "schema_version": 1}
+	if incremental {
+		header["mode"] = "incremental"
+		header["changed_files"] = sortedPathList(changedFiles)
+		header["removed_files"] = sortedPathList(removedFiles)
+		header["shared_complete"] = true
+	}
 	records := make([]map[string]any, 0, 1+len(f.nodes)+len(f.edges)+len(f.unresolved))
-	records = append(records, map[string]any{"adapter_version": adapterVersion, "language": language, "record": "lexicon", "repository": repositoryName, "schema_version": 1})
-	records = append(records, f.nodes...)
-	records = append(records, f.edges...)
-	records = append(records, f.unresolved...)
+	records = append(records, header)
+	for _, record := range f.nodes {
+		if !incremental || includePath(gdscriptRecordOwner(record, owners), selected) {
+			records = append(records, record)
+		}
+	}
+	for _, record := range f.edges {
+		if !incremental || includePath(gdscriptRecordOwner(record, owners), selected) {
+			records = append(records, record)
+		}
+	}
+	for _, record := range f.unresolved {
+		if !incremental || includePath(gdscriptRecordOwner(record, owners), selected) {
+			records = append(records, record)
+		}
+	}
 	var output bytes.Buffer
 	encoder := json.NewEncoder(&output)
 	for _, record := range records {
@@ -58,6 +81,63 @@ func edgeSortKey(record map[string]any) string {
 
 func unresolvedSortKey(record map[string]any) string {
 	return fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s", record["source"], record["relation"], record["expression"], record["reason"], spanSortKey(record))
+}
+
+func gdscriptNodeOwners(records []map[string]any) map[string]string {
+	owners := make(map[string]string, len(records))
+	for _, record := range records {
+		id, _ := record["id"].(string)
+		if id != "" {
+			owners[id] = gdscriptDirectOwner(record)
+		}
+	}
+	return owners
+}
+
+func gdscriptRecordOwner(record map[string]any, owners map[string]string) string {
+	if owner := gdscriptDirectOwner(record); owner != "" {
+		return owner
+	}
+	source, _ := record["source"].(string)
+	return owners[source]
+}
+
+func gdscriptDirectOwner(record map[string]any) string {
+	if span, ok := record["span"].(map[string]any); ok {
+		if path, _ := span["path"].(string); path != "" {
+			return filepath.ToSlash(path)
+		}
+	}
+	if record["record"] == "node" && record["kind"] == "file" {
+		path, _ := record["path"].(string)
+		return filepath.ToSlash(path)
+	}
+	return ""
+}
+
+func selectedPaths(paths []string) map[string]struct{} {
+	result := make(map[string]struct{}, len(paths))
+	for _, path := range paths {
+		result[filepath.ToSlash(path)] = struct{}{}
+	}
+	return result
+}
+
+func includePath(path string, selected map[string]struct{}) bool {
+	if path == "" {
+		return true
+	}
+	_, ok := selected[filepath.ToSlash(path)]
+	return ok
+}
+
+func sortedPathList(paths []string) []string {
+	result := append([]string(nil), paths...)
+	for index := range result {
+		result[index] = filepath.ToSlash(result[index])
+	}
+	sort.Strings(result)
+	return result
 }
 
 func spanSortKey(record map[string]any) string {

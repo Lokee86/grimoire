@@ -6,7 +6,7 @@ import { emitFacts, writeJsonl } from "./emission";
 import { resolveCalls, resolveImports, resolveRelationships } from "./resolution";
 import { FactStore, type Fact } from "./model";
 
-export function buildFacts(repositoryPath: string): Fact[] {
+export function buildFacts(repositoryPath: string, changedFiles?: string[], removedFiles?: string[]): Fact[] {
   const root = path.resolve(repositoryPath);
   if (!fs.statSync(root).isDirectory()) throw new Error(`repository is not a directory: ${repositoryPath}`);
   const repository = path.basename(root);
@@ -28,9 +28,9 @@ export function buildFacts(repositoryPath: string): Fact[] {
   resolveImports(facts, readPathMappings(root));
   resolveCalls(facts);
   resolveRelationships(facts);
-  return emitFacts(facts);
+  return emitFacts(facts, changedFiles, removedFiles);
 }
 
-export function writeFacts(repositoryPath: string, outputPath: string): void {
-  writeJsonl(buildFacts(repositoryPath), outputPath);
+export function writeFacts(repositoryPath: string, outputPath: string, changedFiles?: string[], removedFiles?: string[]): void {
+  writeJsonl(buildFacts(repositoryPath, changedFiles, removedFiles), outputPath);
 }

@@ -10,7 +10,14 @@ import (
 	"strings"
 )
 
-func analyzeRepository(repo string) ([]byte, error) {
+func analyzeRepository(repo string, selections ...[]string) ([]byte, error) {
+	var changedFiles, removedFiles []string
+	if len(selections) > 0 {
+		changedFiles = selections[0]
+	}
+	if len(selections) > 1 {
+		removedFiles = selections[1]
+	}
 	root, err := filepath.Abs(repo)
 	if err != nil {
 		return nil, fmt.Errorf("resolve repository: %w", err)
@@ -63,7 +70,7 @@ func analyzeRepository(repo string) ([]byte, error) {
 	for _, pf := range parsed {
 		processExtends(facts, pf)
 	}
-	return facts.render(repositoryName), nil
+	return facts.render(repositoryName, changedFiles, removedFiles), nil
 }
 
 func addRepositoryFacts(facts *factSet, repositoryName string, dirs []string) {

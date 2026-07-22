@@ -9,7 +9,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-
 def run(binary: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         [str(binary), *arguments],
@@ -84,6 +83,7 @@ def main() -> int:
         repository.mkdir()
         source = repository / "main.py"
         source.write_text("def answer():\n    return 42\n", encoding="utf-8")
+        (repository / "helper.py").write_text("def helper():\n    return 7\n", encoding="utf-8")
         (repository / "main.rb").write_text("def answer = 42\n", encoding="utf-8")
         (repository / "main.gd").write_text("extends Node\nfunc answer():\n    return 42\n", encoding="utf-8")
         (repository / "main.go").write_text("package smoke\n\nfunc Answer() int { return 42 }\n", encoding="utf-8")
@@ -109,7 +109,7 @@ def main() -> int:
 
         source.write_text("def answer():\n    return 43\n", encoding="utf-8")
         updated = run(binary, "scan", "--repo", str(repository))
-        if "updated 1 files: python" not in updated.stdout:
+        if "analyzing python files: 1" not in updated.stdout or "updated 1 files: python" not in updated.stdout or "expanding python to full analysis" in updated.stdout:
             raise RuntimeError(f"unexpected incremental scan output: {updated.stdout}")
         updated_id, updated_manifest = validate_snapshot(repository)
         if updated_id == initial_id:
@@ -118,6 +118,22 @@ def main() -> int:
         updated_objects = file_objects(updated_manifest)
         if initial_objects[("ruby", "main.rb")] != updated_objects[("ruby", "main.rb")]:
             raise RuntimeError("unchanged Ruby fact object was not reused")
+        if initial_objects[("python", "helper.py")] != updated_objects[("python", "helper.py")]:
+            raise RuntimeError("unchanged Python fact object was not reused")
+
+        incremental_updates = (
+            ("ruby", repository / "main.rb", "def answer = 43\n"),
+            ("gdscript", repository / "main.gd", "extends Node\nfunc answer():\n    return 43\n"),
+            ("go", repository / "main.go", "package smoke\n\nfunc Answer() int { return 43 }\n"),
+            ("typescript", repository / "app.ts", "export function answer(): number { return 43; }\n"),
+            ("rust", repository / "src" / "lib.rs", "pub fn answer() -> i32 { 43 }\n"),
+        )
+        for language, path, content in incremental_updates:
+            path.write_text(content, encoding="utf-8")
+            result = run(binary, "scan", "--repo", str(repository))
+            if f"analyzing {language} files: 1" not in result.stdout or f"expanding {language} to full analysis" in result.stdout:
+                raise RuntimeError(f"{language} did not stay incremental: {result.stdout}")
+            updated_id, _ = validate_snapshot(repository)
 
         current_path = repository / ".lexicon" / "CURRENT"
         current_path.write_text(initial_id + "\n", encoding="utf-8")

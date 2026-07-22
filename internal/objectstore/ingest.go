@@ -34,7 +34,7 @@ func (s Store) IngestLanguage(outputPath, sourceRoot, language, analysisConfigID
 	if err != nil {
 		return LanguageEntry{}, err
 	}
-	if err := validateHeader(header, language, outputPath); err != nil {
+	if err := validateFullHeader(header, language, outputPath); err != nil {
 		return LanguageEntry{}, err
 	}
 	files, err := sourceFiles(sourceRoot, language)
@@ -145,7 +145,7 @@ func ValidateOutput(path, language string) error {
 	if err != nil {
 		return err
 	}
-	return validateHeader(header, language, path)
+	return validateFullHeader(header, language, path)
 }
 
 func validateHeader(header Header, language, path string) error {
@@ -155,7 +155,17 @@ func validateHeader(header Header, language, path string) error {
 	if header.Language != language {
 		return fmt.Errorf("adapter output language %q does not match %q", header.Language, language)
 	}
-	if header.Mode != "" && header.Mode != "full" {
+	if header.Mode != "" && header.Mode != "full" && header.Mode != "incremental" {
+		return fmt.Errorf("unsupported adapter output mode %q", header.Mode)
+	}
+	return nil
+}
+
+func validateFullHeader(header Header, language, path string) error {
+	if err := validateHeader(header, language, path); err != nil {
+		return err
+	}
+	if header.Mode == "incremental" {
 		return fmt.Errorf("application requires full adapter output, got mode %q", header.Mode)
 	}
 	return nil

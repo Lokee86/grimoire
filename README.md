@@ -22,7 +22,7 @@ Adapters are independently executable and emit deterministic Lexicon JSONL. The 
 
 Every adapter must:
 
-- accept a repository root and output path;
+- accept a repository root and output path, plus optional repeated changed-file and removed-file scopes;
 - emit exactly one header record followed by sorted fact records;
 - normalize repository paths to forward-slash relative paths;
 - use SHA-256 stable identities defined by the contract;
@@ -40,7 +40,7 @@ lexicon scan
 lexicon daemon
 ```
 
-`init` performs the first complete scan. `scan` replaces Lexicon's private source mirror, uses its internal Git diff to update affected language libraries, and publishes an immutable content-addressed snapshot. `daemon` watches the filesystem, updates changed paths after a short debounce, and periodically reconciles the complete repository. See [`docs/APPLICATION.md`](docs/APPLICATION.md).
+`init` performs the first complete scan. `scan` replaces Lexicon's private source mirror, uses its internal Git diff and previous snapshot dependencies to update only impacted file records when safe, and publishes an immutable content-addressed snapshot. `daemon` watches the filesystem, updates changed paths after a short debounce, and periodically reconciles the complete repository. See [`docs/APPLICATION.md`](docs/APPLICATION.md).
 
 ## Repository layout
 
@@ -63,7 +63,7 @@ Each adapter remains self-contained in its own directory. Shared behavior is spe
 
 ## Status
 
-Lexicon now has a version-one fact contract, a complete Go semantic adapter, runnable adapters for Ruby, Python, GDScript, Rust, and TypeScript, and a transactional application layer with a private Git diff mirror, single-writer locking, immutable per-file fact objects, snapshot manifests, and atomic current-snapshot publication. Each adapter provides deterministic repository structure, declarations, imports, containment, and language-appropriate inheritance or implementation evidence. Some adapters also provide bounded direct call or reference evidence where the parser can resolve it soundly.
+Lexicon now has a version-one fact contract, a complete Go semantic adapter, runnable adapters for Ruby, Python, GDScript, Rust, and TypeScript, and a transactional application layer with a private Git diff mirror, dependency-aware scoped adapter repositories, relationship-topology fallback, validated incremental library merging, single-writer locking, immutable per-file fact objects, snapshot manifests, and atomic current-snapshot publication. Each adapter provides deterministic repository structure, declarations, imports, containment, and language-appropriate inheritance or implementation evidence. Some adapters also provide bounded direct call or reference evidence where the parser can resolve it soundly.
 
 The non-Go adapters are functional foundations rather than complete semantic analyzers. Go includes type-aware internal and external calls, SSA/VTA possible dispatch, interfaces, closures, captures, conversions, and build-tag variants. Unsupported or ambiguous relationships remain unresolved rather than guessed.
 

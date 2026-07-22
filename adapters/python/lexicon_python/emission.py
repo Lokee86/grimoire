@@ -38,7 +38,14 @@ def _record_sort_key(record: dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
-def emit_records(facts: Facts, adapter_version: str) -> list[dict[str, Any]]:
+def emit_records(
+    facts: Facts,
+    adapter_version: str,
+    changed_files: list[str] | None = None,
+    removed_files: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    incremental = changed_files is not None or removed_files is not None
+    selected = {_normalize(path) for path in changed_files or []}
     header = {
         "record": "lexicon",
         "schema_version": SCHEMA_VERSION,
@@ -46,10 +53,45 @@ def emit_records(facts: Facts, adapter_version: str) -> list[dict[str, Any]]:
         "language": LANGUAGE,
         "repository": facts.repository,
     }
-    records = [header, *sorted(facts.nodes.values(), key=_record_sort_key)]
-    records.extend(sorted(facts.edges.values(), key=_record_sort_key))
-    records.extend(sorted(facts.unresolved.values(), key=_record_sort_key))
-    return records
+    if incremental:
+        header["mode"] = "incremental"
+        header["changed_files"] = sorted(selected)
+        header["removed_files"] = sorted(_normalize(path) for path in removed_files or [])
+        header["shared_complete"] = True
+    nodes = sorted(facts.nodes.values(), key=_record_sort_key)
+    owners = {record["id"]: _direct_owner(record) for record in nodes}
+    facts_records = [*nodes]
+    facts_records.extend(sorted(facts.edges.values(), key=_record_sort_key))
+    facts_records.extend(sorted(facts.unresolved.values(), key=_record_sort_key))
+    if incremental:
+        facts_records = [record for record in facts_records if _include(record, owners, selected)]
+    return [header, *facts_records]
+
+
+def _normalize(path: str) -> str:
+    return Path(path).as_posix()
+
+
+def _direct_owner(record: dict[str, Any]) -> str:
+    owner = record.get("owner")
+    if isinstance(owner, str) and owner:
+        return _normalize(owner)
+    span = record.get("span")
+    if isinstance(span, dict) and isinstance(span.get("path"), str):
+        return _normalize(span["path"])
+    if record.get("record") == "node" and record.get("kind") == "file":
+        path = record.get("path")
+        return _normalize(path) if isinstance(path, str) else ""
+    return ""
+
+
+def _include(record: dict[str, Any], owners: dict[str, str], selected: set[str]) -> bool:
+    owner = _direct_owner(record)
+    if not owner:
+        source = record.get("source")
+        if isinstance(source, str):
+            owner = owners.get(source, "")
+    return not owner or owner in selected
 
 
 def write_records(records: list[dict[str, Any]], output: Path) -> None:

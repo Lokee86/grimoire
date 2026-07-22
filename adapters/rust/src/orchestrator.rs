@@ -8,7 +8,11 @@ use anyhow::Result;
 use std::collections::{BTreeMap, HashSet};
 use std::path::Path;
 
-pub(crate) fn generate(repo: &Path) -> Result<String> {
+pub(crate) fn generate(
+    repo: &Path,
+    changed_files: Option<&[String]>,
+    removed_files: Option<&[String]>,
+) -> Result<String> {
     let metadata = discovery::load_metadata(repo)?;
     let repository = discovery::repository_identity(repo, &metadata);
     let sources = parser::parse_sources(repo)?;
@@ -29,7 +33,7 @@ pub(crate) fn generate(repo: &Path) -> Result<String> {
     discovery::add_repository_and_files(&mut context);
     discovery::add_crates(&mut context, &metadata);
     extractor::extract(&mut context);
-    emit::render(&context, &repository)
+    emit::render(&context, &repository, changed_files, removed_files)
 }
 
 #[cfg(test)]
@@ -44,7 +48,7 @@ mod tests {
 
     #[test]
     fn emits_declarations_relationships_and_unresolved_macro() {
-        let records: Vec<Value> = generate(&fixture())
+        let records: Vec<Value> = generate(&fixture(), None, None)
             .unwrap()
             .lines()
             .map(|line| serde_json::from_str(line).unwrap())
@@ -75,7 +79,7 @@ mod tests {
 
     #[test]
     fn emits_conservative_free_function_calls_and_call_unresolved_records() {
-        let records: Vec<Value> = generate(&fixture())
+        let records: Vec<Value> = generate(&fixture(), None, None)
             .unwrap()
             .lines()
             .map(|line| serde_json::from_str(line).unwrap())
@@ -132,8 +136,8 @@ mod tests {
 
     #[test]
     fn repeat_runs_are_byte_identical_and_paths_are_relative() {
-        let first = generate(&fixture()).unwrap();
-        assert_eq!(first, generate(&fixture()).unwrap());
+        let first = generate(&fixture(), None, None).unwrap();
+        assert_eq!(first, generate(&fixture(), None, None).unwrap());
         for record in first.lines().skip(1) {
             let value: Value = serde_json::from_str(record).unwrap();
             if let Some(path) = value.get("path").and_then(Value::as_str) {
@@ -148,7 +152,7 @@ mod tests {
 
     #[test]
     fn header_and_fact_order_are_canonical() {
-        let output = generate(&fixture()).unwrap();
+        let output = generate(&fixture(), None, None).unwrap();
         assert_eq!(
             output.lines().next().unwrap(),
             r#"{"adapter_version":"0.2.0","language":"rust","record":"lexicon","repository":"lexicon_fixture","schema_version":1}"#

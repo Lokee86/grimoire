@@ -24,9 +24,10 @@ Optional fields:
 
 - `mode`: `full` or `incremental`; omitted means `full` for v1 compatibility;
 - `changed_files`: sorted repository-relative paths owned by an incremental emission;
-- `removed_files`: sorted repository-relative paths removed since the previous emission.
+- `removed_files`: sorted repository-relative paths removed since the previous emission;
+- `shared_complete`: boolean declaring that all emitted records without file ownership are the complete replacement shared set for this language view.
 
-A `full` stream describes one complete repository view. An `incremental` stream is valid only when both `changed_files` and `removed_files` are present, even when either array is empty.
+A `full` stream describes one complete repository view. An `incremental` stream is valid only when both `changed_files` and `removed_files` are present, even when either array is empty. Consumers that replace shared synthetic records require `shared_complete: true`; otherwise they must retain previous shared records and apply only identity-matched updates.
 
 ## Stable identities
 
@@ -195,7 +196,8 @@ For an incremental stream:
 - all previously stored records owned by `changed_files` are removed before the new records are applied;
 - all records owned by `removed_files` are removed and no replacement records for those files may appear;
 - records owned by files not listed in either array remain unchanged;
-- shared synthetic records without file ownership are retained unless their identity is explicitly re-emitted with changed attributes;
+- when `shared_complete` is absent or false, shared synthetic records without file ownership are retained unless their identity is explicitly re-emitted with changed attributes;
+- when `shared_complete` is true, all previous shared synthetic records are removed before the emitted shared records are applied;
 - removing a node also removes incident edges and unresolved records whose source no longer exists;
 - an adapter must emit a full stream when it cannot determine file ownership safely.
 

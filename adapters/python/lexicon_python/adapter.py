@@ -14,7 +14,11 @@ from .model import Facts
 from .resolution import resolve_facts
 
 
-def build_facts(repo: Path) -> list[dict[str, Any]]:
+def build_facts(
+    repo: Path,
+    changed_files: list[str] | None = None,
+    removed_files: list[str] | None = None,
+) -> list[dict[str, Any]]:
     snapshot = discover(repo)
     facts = Facts(repository=snapshot.repository)
     repository_id = facts.add_node(
@@ -77,8 +81,13 @@ def build_facts(repo: Path) -> list[dict[str, Any]]:
         if context.tree is not None:
             DeclarationVisitor(facts, context).visit(context.tree)
     resolve_facts(facts, snapshot.contexts)
-    return emit_records(facts, __version__)
+    return emit_records(facts, __version__, changed_files, removed_files)
 
 
-def write_facts(repo: Path, output: Path) -> None:
-    write_records(build_facts(repo), output)
+def write_facts(
+    repo: Path,
+    output: Path,
+    changed_files: list[str] | None = None,
+    removed_files: list[str] | None = None,
+) -> None:
+    write_records(build_facts(repo, changed_files, removed_files), output)

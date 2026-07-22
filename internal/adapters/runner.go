@@ -10,41 +10,50 @@ import (
 	"strings"
 )
 
+type Request struct {
+	Language     string
+	Repository   string
+	Output       string
+	ChangedFiles []string
+	RemovedFiles []string
+}
+
 type Analyzer interface {
-	Run(context.Context, string, string, string) error
+	Run(context.Context, Request) error
 }
 
 type Runner struct {
 	Root string
 }
 
-func (r Runner) Run(ctx context.Context, language, repository, output string) error {
-	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
+func (r Runner) Run(ctx context.Context, request Request) error {
+	if err := os.MkdirAll(filepath.Dir(request.Output), 0o755); err != nil {
 		return err
 	}
-	command, err := r.command(ctx, language, repository, output)
+	command, err := r.command(ctx, request)
 	if err != nil {
 		return err
 	}
 	data, err := command.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%s adapter failed: %w\n%s", language, err, strings.TrimSpace(string(data)))
+		return fmt.Errorf("%s adapter failed: %w\n%s", request.Language, err, strings.TrimSpace(string(data)))
 	}
-	if info, err := os.Stat(output); err != nil || info.Size() == 0 {
-		return fmt.Errorf("%s adapter produced no output", language)
+	if info, err := os.Stat(request.Output); err != nil || info.Size() == 0 {
+		return fmt.Errorf("%s adapter produced no output", request.Language)
 	}
 	return nil
 }
 
-func (r Runner) command(ctx context.Context, language, repository, output string) (*exec.Cmd, error) {
-	switch language {
+func (r Runner) command(ctx context.Context, request Request) (*exec.Cmd, error) {
+	arguments := adapterArguments(request)
+	switch request.Language {
 	case "go", "gdscript":
 		executable, err := findExecutable("go")
 		if err != nil {
 			return nil, err
 		}
-		directory := filepath.Join(r.Root, language)
-		command := exec.CommandContext(ctx, executable, "run", ".", "--repo", repository, "--output", output)
+		directory := filepath.Join(r.Root, request.Language)
+		command := exec.CommandContext(ctx, executable, append([]string{"run", "."}, arguments...)...)
 		command.Dir = directory
 		return command, nil
 	case "python":
@@ -52,7 +61,7 @@ func (r Runner) command(ctx context.Context, language, repository, output string
 		if err != nil {
 			return nil, err
 		}
-		command := exec.CommandContext(ctx, executable, "-m", "lexicon_python", "--repo", repository, "--output", output)
+		command := exec.CommandContext(ctx, executable, append([]string{"-m", "lexicon_python"}, arguments...)...)
 		pythonRoot := filepath.Join(r.Root, "python")
 		command.Env = append(os.Environ(), "PYTHONPATH="+joinPathList(pythonRoot, os.Getenv("PYTHONPATH")))
 		return command, nil
@@ -61,14 +70,15 @@ func (r Runner) command(ctx context.Context, language, repository, output string
 		if err != nil {
 			return nil, err
 		}
-		return exec.CommandContext(ctx, executable, filepath.Join(r.Root, "ruby", "lexicon_ruby.rb"), "--repo", repository, "--output", output), nil
+		return exec.CommandContext(ctx, executable, append([]string{filepath.Join(r.Root, "ruby", "lexicon_ruby.rb")}, arguments...)...), nil
 	case "rust":
 		executable, err := findExecutable("cargo")
 		if err != nil {
 			return nil, err
 		}
 		manifest := filepath.Join(r.Root, "rust", "Cargo.toml")
-		return exec.CommandContext(ctx, executable, "run", "--quiet", "--manifest-path", manifest, "--", "--repo", repository, "--output", output), nil
+		prefix := []string{"run", "--quiet", "--manifest-path", manifest, "--"}
+		return exec.CommandContext(ctx, executable, append(prefix, arguments...)...), nil
 	case "typescript":
 		if err := r.prepareTypeScript(ctx); err != nil {
 			return nil, err
@@ -77,10 +87,21 @@ func (r Runner) command(ctx context.Context, language, repository, output string
 		if err != nil {
 			return nil, err
 		}
-		return exec.CommandContext(ctx, executable, filepath.Join(r.Root, "typescript", "dist", "cli.js"), "--repo", repository, "--output", output), nil
+		return exec.CommandContext(ctx, executable, append([]string{filepath.Join(r.Root, "typescript", "dist", "cli.js")}, arguments...)...), nil
 	default:
-		return nil, fmt.Errorf("unsupported language %q", language)
+		return nil, fmt.Errorf("unsupported language %q", request.Language)
 	}
+}
+
+func adapterArguments(request Request) []string {
+	arguments := []string{"--repo", request.Repository, "--output", request.Output}
+	for _, path := range request.ChangedFiles {
+		arguments = append(arguments, "--changed-file", filepath.ToSlash(path))
+	}
+	for _, path := range request.RemovedFiles {
+		arguments = append(arguments, "--removed-file", filepath.ToSlash(path))
+	}
+	return arguments
 }
 
 func (r Runner) prepareTypeScript(ctx context.Context) error {

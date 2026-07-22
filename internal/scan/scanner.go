@@ -2,9 +2,7 @@ package scan
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 
 	"github.com/Lokee86/lexicon/internal/adapters"
@@ -57,7 +55,7 @@ func Initialize(ctx context.Context, repository, adapterRoot string, output io.W
 	if err != nil {
 		return nil, Report{}, err
 	}
-	if err := scanner.analyze(ctx, languages); err != nil {
+	if err := scanner.analyzeFull(ctx, languages); err != nil {
 		return nil, Report{}, err
 	}
 	if err := gitRepository.StageAll(); err != nil {
@@ -136,14 +134,18 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 	if err != nil {
 		return Report{}, err
 	}
-	languages := mergeLanguages(languagesForChanges(changes), drift)
-	if len(changes) == 0 && len(languages) == 0 {
+	plans, err := s.plansFor(changes, drift)
+	if err != nil {
+		return Report{}, err
+	}
+	if len(changes) == 0 && len(plans) == 0 {
 		snapshotID, err := s.ensureSnapshot()
 		return Report{SnapshotID: snapshotID}, err
 	}
-	if err := s.analyze(ctx, languages); err != nil {
+	if err := s.analyzePlans(ctx, plans); err != nil {
 		return Report{}, err
 	}
+	languages := planLanguages(plans)
 	if err := s.Git.StageAll(); err != nil {
 		return Report{}, err
 	}
@@ -155,53 +157,4 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 		return Report{}, err
 	}
 	return Report{Changed: changes, Languages: languages, SnapshotID: snapshotID}, nil
-}
-
-func (s *Scanner) analyze(ctx context.Context, languages []string) error {
-	library := filepath.Join(s.StateRoot, "library")
-	temporary := filepath.Join(config.StateRoot(s.Repository), "tmp")
-	if err := os.MkdirAll(temporary, 0o755); err != nil {
-		return err
-	}
-	for _, language := range languages {
-		output := filepath.Join(library, language+".jsonl")
-		present, err := hasLanguage(filepath.Join(s.StateRoot, "source"), language)
-		if err != nil {
-			return err
-		}
-		if !present {
-			if s.Output != nil {
-				fmt.Fprintf(s.Output, "removing %s library\n", language)
-			}
-			if err := os.Remove(output); err != nil && !os.IsNotExist(err) {
-				return err
-			}
-			continue
-		}
-		tempOutput := filepath.Join(temporary, language+".jsonl")
-		_ = os.Remove(tempOutput)
-		if s.Output != nil {
-			fmt.Fprintf(s.Output, "analyzing %s\n", language)
-		}
-		if err := s.Analyzer.Run(ctx, language, filepath.Join(s.StateRoot, "source"), tempOutput); err != nil {
-			return err
-		}
-		if err := replace(tempOutput, output); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func replace(source, destination string) error {
-	if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
-		return err
-	}
-	if err := os.Rename(source, destination); err == nil {
-		return nil
-	}
-	if err := os.Remove(destination); err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	return os.Rename(source, destination)
 }

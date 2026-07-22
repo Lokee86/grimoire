@@ -14,6 +14,10 @@ pub(crate) struct Args {
     repo: PathBuf,
     #[arg(long)]
     output: PathBuf,
+    #[arg(long = "changed-file")]
+    changed_files: Option<Vec<PathBuf>>,
+    #[arg(long = "removed-file")]
+    removed_files: Option<Vec<PathBuf>>,
 }
 
 pub(crate) fn run() -> Result<()> {
@@ -27,10 +31,22 @@ pub(crate) fn run() -> Result<()> {
     } else {
         std::env::current_dir()?.join(args.output)
     };
-    let jsonl = crate::orchestrator::generate(&repo)?;
+    let changed_files = normalize_paths(args.changed_files);
+    let removed_files = normalize_paths(args.removed_files);
+    let jsonl =
+        crate::orchestrator::generate(&repo, changed_files.as_deref(), removed_files.as_deref())?;
     if let Some(parent) = output.parent() {
         fs::create_dir_all(parent)?;
     }
     fs::File::create(&output)?.write_all(jsonl.as_bytes())?;
     Ok(())
+}
+
+fn normalize_paths(paths: Option<Vec<PathBuf>>) -> Option<Vec<String>> {
+    paths.map(|values| {
+        values
+            .into_iter()
+            .map(|path| path.to_string_lossy().replace('\\', "/"))
+            .collect()
+    })
 }

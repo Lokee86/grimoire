@@ -13,9 +13,11 @@ class LexiconRubyAdapter
   include LexiconRuby::RepositoryDiscovery
   include LexiconRuby::JsonlEmitter
 
-  def initialize(repo, output)
+  def initialize(repo, output, changed_files = nil, removed_files = nil)
     @repo = File.expand_path(repo)
     @output = File.expand_path(output)
+    @changed_files = changed_files&.map { |path| normalize_emission_path(path) }
+    @removed_files = removed_files&.map { |path| normalize_emission_path(path) }
     @repository_name = File.basename(@repo)
     @nodes = {}
     @directories = {}
@@ -33,6 +35,10 @@ class LexiconRubyAdapter
   end
 
   private
+
+  def normalize_emission_path(path)
+    path.tr("\\\\", "/")
+  end
 
   def add_symbol(kind, name, qualified_name, token, attributes, canonical_extra: nil)
     path = @current_path || "."

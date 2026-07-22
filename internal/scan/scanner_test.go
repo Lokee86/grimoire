@@ -2,23 +2,40 @@ package scan
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
+	"github.com/Lokee86/lexicon/internal/adapters"
 	"github.com/Lokee86/lexicon/internal/state"
 )
 
 type fakeAnalyzer struct {
 	languages []string
+	requests  []adapters.Request
 }
 
-func (f *fakeAnalyzer) Run(_ context.Context, language, _, output string) error {
-	f.languages = append(f.languages, language)
-	data := "{\"adapter_version\":\"test\",\"language\":\"" + language + "\",\"record\":\"lexicon\",\"repository\":\"test\",\"schema_version\":1}\n"
-	return os.WriteFile(output, []byte(data), 0o644)
+func (f *fakeAnalyzer) Run(_ context.Context, request adapters.Request) error {
+	f.languages = append(f.languages, request.Language)
+	f.requests = append(f.requests, request)
+	header := map[string]any{
+		"adapter_version": "test", "language": request.Language, "record": "lexicon",
+		"repository": "test", "schema_version": 1,
+	}
+	if request.ChangedFiles != nil || request.RemovedFiles != nil {
+		header["mode"] = "incremental"
+		header["changed_files"] = request.ChangedFiles
+		header["removed_files"] = request.RemovedFiles
+		header["shared_complete"] = true
+	}
+	data, err := json.Marshal(header)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(request.Output, append(data, '\n'), 0o644)
 }
 
 func TestScanRebuildsCorruptLibraryWithoutSourceDiff(t *testing.T) {

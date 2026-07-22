@@ -3,11 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 )
 
 func encodeFacts(facts RepositoryFacts) string {
+	return encodeFactsScoped(facts, nil, nil)
+}
+
+func encodeFactsScoped(facts RepositoryFacts, changedFiles, removedFiles []string) string {
 	nodes := append([]NodeFact(nil), facts.Nodes...)
 	edges := append([]EdgeFact(nil), facts.Edges...)
 	unresolved := append([]UnresolvedReferenceFact(nil), facts.Unresolved...)
@@ -57,16 +62,28 @@ func encodeFacts(facts RepositoryFacts) string {
 		nodeByKey[node.Key] = node
 	}
 
+	selected := selectedOwners(changedFiles)
+	incremental := changedFiles != nil || removedFiles != nil
 	var output strings.Builder
-	writeJSONRecord(&output, map[string]any{
+	header := map[string]any{
 		"adapter_version": "0.1.0",
 		"language":        "go",
 		"mode":            "full",
 		"record":          "lexicon",
 		"repository":      facts.Repository,
 		"schema_version":  1,
-	})
+	}
+	if incremental {
+		header["mode"] = "incremental"
+		header["changed_files"] = sortedPaths(changedFiles)
+		header["removed_files"] = sortedPaths(removedFiles)
+		header["shared_complete"] = true
+	}
+	writeJSONRecord(&output, header)
 	for _, node := range nodes {
+		if incremental && !includeOwner(nodeOwner(node), selected) {
+			continue
+		}
 		record := map[string]any{
 			"id":             string(node.Key),
 			"kind":           string(node.Kind),
@@ -87,6 +104,10 @@ func encodeFacts(facts RepositoryFacts) string {
 		writeJSONRecord(&output, record)
 	}
 	for _, edge := range edges {
+		owner := edgeOwner(edge, nodeByKey)
+		if incremental && !includeOwner(owner, selected) {
+			continue
+		}
 		record := map[string]any{
 			"record":   "edge",
 			"relation": string(edge.Relation),
@@ -95,15 +116,17 @@ func encodeFacts(facts RepositoryFacts) string {
 		}
 		if edge.Span != nil {
 			record["span"] = spanValue(edge.Span)
-			record["owner"] = edge.Span.Path
-		} else if source, exists := nodeByKey[edge.Source]; exists {
-			if owner := nodeOwner(source); owner != "" {
-				record["owner"] = owner
-			}
+		}
+		if owner != "" {
+			record["owner"] = owner
 		}
 		writeJSONRecord(&output, record)
 	}
 	for _, reference := range unresolved {
+		owner := unresolvedOwner(reference, nodeByKey)
+		if incremental && !includeOwner(owner, selected) {
+			continue
+		}
 		record := map[string]any{
 			"expression": reference.Expression,
 			"reason":     string(reference.Reason),
@@ -119,11 +142,9 @@ func encodeFacts(facts RepositoryFacts) string {
 		}
 		if reference.Span != nil {
 			record["span"] = spanValue(reference.Span)
-			record["owner"] = reference.Span.Path
-		} else if source, exists := nodeByKey[reference.Source]; exists {
-			if owner := nodeOwner(source); owner != "" {
-				record["owner"] = owner
-			}
+		}
+		if owner != "" {
+			record["owner"] = owner
 		}
 		writeJSONRecord(&output, record)
 	}
@@ -149,6 +170,45 @@ func nodeOwner(node NodeFact) string {
 		return node.Path
 	}
 	return ""
+}
+
+func edgeOwner(edge EdgeFact, nodes map[NodeKey]NodeFact) string {
+	if edge.Span != nil {
+		return edge.Span.Path
+	}
+	return nodeOwner(nodes[edge.Source])
+}
+
+func unresolvedOwner(reference UnresolvedReferenceFact, nodes map[NodeKey]NodeFact) string {
+	if reference.Span != nil {
+		return reference.Span.Path
+	}
+	return nodeOwner(nodes[reference.Source])
+}
+
+func selectedOwners(paths []string) map[string]struct{} {
+	selected := make(map[string]struct{}, len(paths))
+	for _, path := range paths {
+		selected[filepath.ToSlash(path)] = struct{}{}
+	}
+	return selected
+}
+
+func includeOwner(owner string, selected map[string]struct{}) bool {
+	if owner == "" {
+		return true
+	}
+	_, ok := selected[filepath.ToSlash(owner)]
+	return ok
+}
+
+func sortedPaths(paths []string) []string {
+	result := append([]string(nil), paths...)
+	for index := range result {
+		result[index] = filepath.ToSlash(result[index])
+	}
+	sort.Strings(result)
+	return result
 }
 
 func spanValue(span *SourceSpan) map[string]any {

@@ -6,9 +6,20 @@ import (
 	"os"
 )
 
+type stringList []string
+
+func (values *stringList) String() string { return fmt.Sprint([]string(*values)) }
+func (values *stringList) Set(value string) error {
+	*values = append(*values, value)
+	return nil
+}
+
 func main() {
 	repository := flag.String("repo", ".", "repository root to scan")
 	output := flag.String("output", "", "Lexicon JSONL output path")
+	var changedFiles, removedFiles stringList
+	flag.Var(&changedFiles, "changed-file", "repository-relative file to emit")
+	flag.Var(&removedFiles, "removed-file", "repository-relative removed file")
 	flag.Parse()
 	if *output == "" {
 		fmt.Fprintln(os.Stderr, "-output is required")
@@ -21,7 +32,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "scan failed: %v\n", err)
 		os.Exit(1)
 	}
-	if err := os.WriteFile(*output, []byte(encodeFacts(facts)), 0o644); err != nil {
+	if err := os.WriteFile(*output, []byte(encodeFactsScoped(facts, changedFiles, removedFiles)), 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "write %s: %v\n", *output, err)
 		os.Exit(1)
 	}
