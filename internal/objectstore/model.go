@@ -26,13 +26,14 @@ type FileEntry struct {
 }
 
 type LanguageEntry struct {
-	Language         string      `json:"language"`
-	AdapterVersion   string      `json:"adapter_version"`
-	SchemaVersion    int         `json:"schema_version"`
-	Repository       string      `json:"repository"`
-	AnalysisConfigID string      `json:"analysis_config_id"`
-	SharedObjectID   string      `json:"shared_object_id,omitempty"`
-	Files            []FileEntry `json:"files"`
+	Language           string      `json:"language"`
+	AdapterVersion     string      `json:"adapter_version"`
+	AdapterFingerprint string      `json:"adapter_fingerprint,omitempty"`
+	SchemaVersion      int         `json:"schema_version"`
+	Repository         string      `json:"repository"`
+	AnalysisConfigID   string      `json:"analysis_config_id"`
+	SharedObjectID     string      `json:"shared_object_id,omitempty"`
+	Files              []FileEntry `json:"files"`
 }
 
 type Manifest struct {
