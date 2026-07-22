@@ -58,6 +58,12 @@ The permanent exclusions are always enforced and cannot be re-included by `.lexi
 
 After every successful `scan`, Lexicon invokes registered one-shot consumers from `.lexicon/consumers/*.json`. This provides event-driven automation without requiring a consumer demon: Arcana can register `arcana sync`, while the same registration also runs after demon-triggered scans. Consumers receive `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID` in their environment.
 
+### Possible post-0.1.0 product-boundary review
+
+Lexicon and Arcana currently remain separate applications with a versioned snapshot boundary. A future Warlock review may make Lexicon the primary consumer-facing interface and expose Arcana as its optional optimized graph backend. Arcana would remain a separate Rust process and independently usable graph engine; this would consolidate the product surface rather than merge the implementations.
+
+This option is deferred until after the 0.1.0 suite. It does not change the current application, snapshot, consumer-hook, or Arcana synchronization contracts.
+
 ## Repository layout
 
 ```text
