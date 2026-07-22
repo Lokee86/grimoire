@@ -12,11 +12,11 @@ class RubyAdapterTest < Minitest::Test
   FIXTURE = File.join(__dir__, "fixtures", "sample")
   ID_PATTERN = /\Asha256:[0-9a-f]{64}\z/
 
-  def run_adapter(output)
+  def run_adapter(output, repo: FIXTURE)
     stdout, stderr, status = Open3.capture3(
       RbConfig.ruby,
       ADAPTER,
-      "--repo", FIXTURE,
+      "--repo", repo,
       "--output", output
     )
     assert status.success?, "adapter failed: #{stderr}\n#{stdout}"
@@ -80,6 +80,80 @@ class RubyAdapterTest < Minitest::Test
       assert_equal node_records.sort_by { |record| [record["id"], record["kind"], record["path"], record["qualified_name"]] }, node_records
       assert_equal edge_records.sort_by { |record| [record["source"], record["target"], record["relation"], *span_key(record)] }, edge_records
       assert_equal unresolved_records.sort_by { |record| [record["source"], record["relation"], record["expression"], record["reason"], *span_key(record)] }, unresolved_records
+    end
+  end
+
+  def test_extracts_conservative_bare_local_calls
+    Dir.mktmpdir do |repository|
+      source = <<~RUBY
+        class Local
+          register :external_dsl
+
+          def run
+            helper
+            unique(1)
+            missing
+            missing_with value: 1
+            explicit.helper
+            send(:helper)
+            records.each do |record|
+              helper
+            end
+            helper do
+              helper
+            end
+          end
+
+          def helper
+          end
+
+          def unique(value)
+            value
+          end
+
+          def ambiguous
+          end
+
+          def ambiguous
+          end
+
+          def use_ambiguous
+            ambiguous
+          end
+        end
+
+        class Other
+          def helper
+          end
+        end
+      RUBY
+      source_path = File.join(repository, "local.rb")
+      File.write(source_path, source)
+      output = File.join(repository, "facts.jsonl")
+      run_adapter(output, repo: repository)
+
+      records = records_for(output)
+      nodes = records.select { |record| record["record"] == "node" }
+      edges = records.select { |record| record["record"] == "edge" }
+      unresolved = records.select { |record| record["record"] == "unresolved" }
+      methods = nodes.select { |record| record["kind"] == "method" }
+      run_id = methods.find { |record| record["qualified_name"] == "Local#run" }["id"]
+
+      call_edges = edges.select { |record| record["source"] == run_id && record["relation"] == "calls" }
+      assert_equal ["Local#helper", "Local#unique"], call_edges.map { |record| nodes.find { |node| node["id"] == record["target"] }["qualified_name"] }.sort
+      assert call_edges.all? { |record| record["span"]["path"] == "local.rb" }
+      assert call_edges.all? { |record| record["span"]["start_line"] >= 3 }
+
+      call_unresolved = unresolved.select { |record| record["relation"] == "calls" }
+      assert_equal [
+        ["ambiguous", "ambiguous-target"],
+        ["missing", "missing-target"],
+        ["missing_with value: 1", "missing-target"]
+      ], call_unresolved.map { |record| [record["expression"], record["reason"]] }.sort
+      refute call_unresolved.any? { |record| record["expression"].include?("helper") }
+      assert unresolved.any? { |record| record["source"] == run_id && record["relation"] == "defines" && record["expression"] == "send" }
+      refute edges.any? { |record| record["relation"] == "calls" && record["span"]["start_line"] == 7 }
+      refute edges.any? { |record| record["relation"] == "calls" && record["span"]["start_line"] >= 9 }
     end
   end
 

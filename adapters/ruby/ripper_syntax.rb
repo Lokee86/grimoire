@@ -95,6 +95,27 @@ module LexiconRuby
       tokens.map { |token| token[1].to_s }.join
     end
 
+    def source_expression(value)
+      tokens = collect_tokens(value)
+      return "" if tokens.empty?
+
+      first = tokens.first
+      last = tokens.last
+      start_line, start_column = first[2]
+      end_line, end_column = last[2]
+      end_column += last[1].to_s.bytesize
+      lines = @source_lines[(start_line - 1)..(end_line - 1)].to_a
+      return expression_for(value) if lines.empty?
+
+      if lines.length == 1
+        return lines.first.to_s.byteslice(start_column...end_column).to_s.strip
+      end
+
+      lines[0] = lines[0].to_s.byteslice(start_column..).to_s
+      lines[-1] = lines[-1].to_s.byteslice(0...end_column).to_s
+      lines.join.strip
+    end
+
     def span_for(token)
       return nil unless token?(token)
 
