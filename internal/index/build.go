@@ -37,11 +37,18 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 	}
 
 	oldFiles := make(map[string]FileRecord)
+	baseRoot := ""
+	baseShards := make(map[string]string)
 	if previous != nil {
+		baseRoot = previous.baseRoot
+		for name, hash := range previous.baseShards {
+			baseShards[name] = hash
+		}
 		for _, file := range previous.Files {
 			oldFiles[file.Path] = file
 		}
 	}
+	dirtyShards := make(map[string]bool)
 
 	seen := make(map[string]struct{})
 	files := make([]FileRecord, 0, len(oldFiles))
@@ -98,6 +105,7 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 			Size:   info.Size(),
 			Chunks: chunkFile(relative, string(content)),
 		})
+		dirtyShards[shardName(relative)] = true
 		stats.Updated++
 		return nil
 	})
@@ -107,12 +115,16 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 
 	for path := range oldFiles {
 		if _, ok := seen[path]; !ok {
+			dirtyShards[shardName(path)] = true
 			stats.Removed++
 		}
 	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
 
-	return Snapshot{Version: FormatVersion, Files: files}, stats, nil
+	return Snapshot{
+		Version: FormatVersion, Files: files,
+		baseRoot: baseRoot, baseShards: baseShards, dirtyShards: dirtyShards,
+	}, stats, nil
 }
 
 func ignoredDirectory(name string) bool {

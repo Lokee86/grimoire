@@ -3,24 +3,28 @@ package index
 const FormatVersion = 1
 
 type Snapshot struct {
-	Version int          `json:"version"`
-	Files   []FileRecord `json:"files"`
+	Version int
+	Files   []FileRecord
+
+	baseRoot    string
+	baseShards  map[string]string
+	dirtyShards map[string]bool
 }
 
 type FileRecord struct {
-	Path   string  `json:"path"`
-	Hash   string  `json:"hash"`
-	Size   int64   `json:"size"`
-	Chunks []Chunk `json:"chunks"`
+	Path   string
+	Hash   string
+	Size   int64
+	Chunks []Chunk
 }
 
 type Chunk struct {
-	ID              string `json:"id"`
-	Path            string `json:"path"`
-	StartLine       int    `json:"start_line"`
-	EndLine         int    `json:"end_line"`
-	EstimatedTokens int    `json:"estimated_tokens"`
-	Text            string `json:"text"`
+	ID              string
+	Path            string
+	StartLine       int
+	EndLine         int
+	EstimatedTokens int
+	Text            string
 }
 
 func (snapshot Snapshot) AllChunks() []Chunk {

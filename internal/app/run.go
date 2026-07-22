@@ -38,7 +38,7 @@ func runIndex(args []string, stdout, stderr io.Writer) error {
 	flags := flag.NewFlagSet("index", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	root := flags.String("root", ".", "repository root")
-	state := flags.String("state", "", "prepared index path")
+	state := flags.String("state", "", "prepared index repository path")
 	maxFileBytes := flags.Int64("max-file-bytes", 0, "maximum indexed file size")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -73,7 +73,7 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	flags := flag.NewFlagSet("context", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	root := flags.String("root", ".", "repository root")
-	state := flags.String("state", "", "prepared index path")
+	state := flags.String("state", "", "prepared index repository path")
 	query := flags.String("query", "", "task or retrieval query")
 	budget := flags.Int("budget", 2000, "estimated content-token budget")
 	limit := flags.Int("candidate-limit", 200, "maximum ranked candidates")
@@ -106,7 +106,7 @@ func resolveState(root, state string) (string, error) {
 		return "", fmt.Errorf("resolve root: %w", err)
 	}
 	if state == "" {
-		return filepath.Join(absoluteRoot, ".grimoire", "index.json"), nil
+		return filepath.Join(absoluteRoot, ".grimoire"), nil
 	}
 	if filepath.IsAbs(state) {
 		return filepath.Clean(state), nil

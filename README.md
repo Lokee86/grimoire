@@ -5,6 +5,8 @@ Grimoire is a low-latency context compiler for software repositories. It maintai
 This repository currently contains the first lexical baseline:
 
 - incremental file indexing with unchanged-record reuse;
+- a private go-git object repository with deterministic binary index shards;
+- content-addressed snapshot publication through `refs/grimoire/state`;
 - deterministic fallback chunking;
 - lexical, filename, and path ranking;
 - whole-chunk budget fitting;
@@ -25,7 +27,7 @@ go build ./cmd/grimoire
 grimoire index --root /path/to/repository
 ```
 
-The prepared index is written to `/path/to/repository/.grimoire/index.json` by default. Re-running the command reuses unchanged file records.
+The prepared index is stored as a private bare go-git object repository at `/path/to/repository/.grimoire` by default. Binary file records are distributed across 256 content-addressed shards, and `refs/grimoire/state` atomically publishes the current snapshot. Re-running the command reuses unchanged shard objects.
 
 ## Compile context
 

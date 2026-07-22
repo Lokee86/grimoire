@@ -21,7 +21,7 @@ func TestIndexThenCompileContext(t *testing.T) {
 	if err := Run([]string{"index", "--root", root}, &indexOutput, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".grimoire", "index.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".grimoire", "objects")); err != nil {
 		t.Fatal(err)
 	}
 
