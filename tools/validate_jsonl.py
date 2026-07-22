@@ -27,6 +27,7 @@ NODE_KINDS = {
     "field",
     "variable",
     "constant",
+    "signal",
     "parameter",
     "import",
     "export",
