@@ -1,0 +1,16 @@
+[package]
+name = "grimoire-vector-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "grimoire_vector_ffi"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+grimoire-vector-core = { path = "../core" }
+
+[dev-dependencies]
+tempfile.workspace = true

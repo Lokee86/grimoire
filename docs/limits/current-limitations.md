@@ -2,19 +2,37 @@
 
 ## Status
 
-Grimoire has a prepared lexical baseline, exact package budgeting, and an operational local embedding provider. It is not yet a complete hybrid RAG engine.
+Grimoire has a prepared lexical baseline, exact package budgeting, an operational local embedding provider, persistent vector state, and exact semantic search. It is not yet a complete hybrid RAG engine.
 
-## Embeddings are not indexed yet
+## Semantic retrieval is separate from context compilation
 
-The Qwen3 model can be installed, served, queried, reduced to 512 dimensions, normalized, and probed. `grimoire index` does not yet embed chunks, and prepared snapshots do not persist vectors.
+`grimoire vector build` persists chunk vectors and `grimoire vector search` performs exact semantic retrieval. `grimoire context` still uses only the lexical baseline.
 
-Planned removal condition: add model-versioned incremental vector records and atomic publication with the source snapshot.
+Planned removal condition: fuse bounded lexical and semantic candidate sets before context selection.
 
-## No vector retrieval
+## Manual vector refresh
 
-`grimoire context` does not perform cosine or approximate nearest-neighbour search. The current request path remains lexical-only.
+Vector state is refreshed explicitly with `grimoire vector build`; source indexing does not automatically invoke model inference. Repeated builds reuse unchanged vector objects.
 
-Planned removal condition: retrieve semantic candidates from persisted normalized vectors, initially with the simplest measured implementation.
+Planned removal condition: add automatic maintenance while retaining explicit one-shot commands.
+
+## Windows-only Go native loader
+
+The Rust engine is portable, but the current Go dynamic-library bridge loads a DLL only on Windows. Other platform builds return an unavailable error.
+
+Planned removal condition: add equivalent loaders and release packaging for supported non-Windows targets.
+
+## Float32 exact scan only
+
+Snapshot format version 1 stores aligned `float32` vectors and performs exact dot-product scanning. It does not yet use float16, int8, 4-bit quantization, SIMD-specific kernels, or approximate-nearest-neighbour indexes.
+
+Planned removal condition: benchmark alternative encodings and kernels, adding complexity only when speed and retrieval-quality evidence justify it.
+
+## Immutable vector objects are not garbage-collected
+
+Deleted or replaced chunks disappear from the current snapshot, but reusable immutable objects remain in the object store.
+
+Planned removal condition: add safe reachability-based cleanup across retained snapshots.
 
 ## Linear lexical search
 
@@ -24,7 +42,7 @@ Planned removal condition: maintain incremental postings and use BM25 while pres
 
 ## No hybrid fusion
 
-Lexical and semantic result sets are not yet combined. There is no reciprocal-rank fusion or provider provenance in the context package.
+Lexical and semantic result sets are not yet combined. Semantic results are available separately, but there is no reciprocal-rank fusion or provider provenance in the context package.
 
 Planned removal condition: independently retrieve bounded lexical and vector candidate sets, then fuse their ranks deterministically.
 
@@ -75,6 +93,7 @@ Errors are human-readable Go errors. Stable diagnostic codes, JSON error envelop
 ## Related documentation
 
 - [Embedding model](../reference/embedding-model.md)
+- [Vector store](../reference/vector-store.md)
 - [Roadmap](../planning/roadmap.md)
 - [System overview](../architecture/system-overview.md)
 - [CLI](../reference/cli.md)

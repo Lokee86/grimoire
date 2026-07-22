@@ -6,7 +6,7 @@
 grimoire <command> [flags]
 ```
 
-Current top-level commands are `index`, `context`, `model`, and `version`.
+Current top-level commands are `index`, `context`, `model`, `vector`, and `version`.
 
 ## `grimoire model setup`
 
@@ -86,7 +86,7 @@ grimoire index [flags]
 | `--ignore-file <path>` | root and nested `.gitignore` files | Replacement Git-ignore file |
 | `--max-file-bytes <n>` | 2 MiB | Maximum eligible source file size |
 
-The current command prepares source chunks and exact token counts. It does not yet create embeddings or vector records.
+The command prepares source chunks and exact token counts. Persistent embeddings are built separately by `grimoire vector build`.
 
 Output:
 
@@ -102,6 +102,55 @@ Output:
   }
 }
 ```
+
+## `grimoire vector build`
+
+Embed missing prepared chunks and publish the current packed vector snapshot:
+
+```bash
+grimoire vector build [flags]
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--root <path>` | `.` | Repository root |
+| `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
+| `--endpoint <url>` | `http://127.0.0.1:8080/v1` | OpenAI-compatible embeddings base URL |
+| `--engine <path>` | discovered DLL | Rust vector-engine library |
+| `--batch-size <n>` | `16` | Documents per embedding request |
+| `--timeout <duration>` | `30m` | Complete build timeout |
+
+The command reuses immutable vectors for unchanged chunk text, embeds only missing source identities, and materializes a sorted memory-mapped snapshot.
+
+## `grimoire vector search`
+
+Run exact semantic search over the packed snapshot:
+
+```bash
+grimoire vector search --query <text> [flags]
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--root <path>` | `.` | Repository root used to resolve state |
+| `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
+| `--query <text>` | none | Required semantic query |
+| `--top-k <n>` | `20` | Maximum results |
+| `--endpoint <url>` | `http://127.0.0.1:8080/v1` | Embeddings base URL |
+| `--engine <path>` | discovered DLL | Rust vector-engine library |
+| `--timeout <duration>` | `2m` | Query embedding timeout |
+
+Results contain chunk identity, source path, line range, and exact dot-product score.
+
+## `grimoire vector info`
+
+Report native-library and snapshot availability:
+
+```bash
+grimoire vector info [--root <path>] [--state <path>] [--engine <path>]
+```
+
+When a snapshot exists, the result includes its embedding identity, dimensions, and vector count.
 
 ## `grimoire context`
 
@@ -119,7 +168,7 @@ grimoire context [flags]
 | `--budget <n>` | `2000` | Maximum `o200k_base` tokens in emitted JSON |
 | `--candidate-limit <n>` | `200` | Maximum ranked lexical candidates |
 
-The request path currently remains lexical-only. It does not contact the embedding endpoint until vector indexing and hybrid retrieval are implemented.
+The context request path remains lexical-only until semantic candidates are fused with lexical results. Use `grimoire vector search` for the implemented exact semantic path.
 
 ## `grimoire version`
 
@@ -135,6 +184,7 @@ Current value: `0.1.0-dev`.
 | --- | --- |
 | `GRIMOIRE_LLAMA_SERVER` | Explicit `llama.cpp` runtime executable |
 | `GRIMOIRE_EMBEDDING_MODEL` | Explicit local GGUF model file |
+| `GRIMOIRE_VECTOR_ENGINE` | Explicit Rust vector-engine DLL |
 
 ## Error behavior
 
@@ -143,6 +193,7 @@ Errors remain human-readable and do not yet have stable diagnostic codes or exit
 ## Related documentation
 
 - [Embedding model](embedding-model.md)
+- [Vector store](vector-store.md)
 - [Indexing](indexing.md)
 - [Context package](context-package.md)
 - [Prepared index](../architecture/prepared-index.md)

@@ -4,7 +4,7 @@
 
 Grimoire is a standalone repository RAG and context-compilation tool. It owns prepared retrieval state, lexical and semantic candidate retrieval, hybrid ranking, exact budgeted selection, and context-package output.
 
-The implemented foundation currently includes source preparation, a lexical baseline, exact output budgeting, and an operational local embedding provider. Vector persistence and hybrid retrieval remain under development.
+The implemented foundation includes source preparation, a lexical baseline, exact output budgeting, an operational local embedding provider, persistent content-addressed vectors, packed memory-mapped snapshots, and exact semantic search. Hybrid retrieval remains under development.
 
 ## Current flow
 
@@ -25,6 +25,14 @@ model setup / serve
     ├── embed raw document chunks
     └── reduce native 1024 dimensions to normalized 512 dimensions
 
+vector build / search
+    │
+    ├── reuse vectors by embedding identity and source-content hash
+    ├── batch-embed only missing chunks
+    ├── publish a sorted aligned float32 snapshot
+    ├── memory-map and validate the snapshot in Rust
+    └── run serial or concurrent exact dot-product search
+
 context command
     │
     ├── load prepared source state
@@ -33,7 +41,7 @@ context command
     └── emit verified JSON
 ```
 
-The embedding path is real and independently probeable, but it is not yet called by `index` or `context`.
+The embedding path is independently probeable and used by `vector build` and `vector search`. It is intentionally separate from source indexing, and `context` remains lexical-only until hybrid fusion is implemented.
 
 ## Target retrieval flow
 
@@ -62,10 +70,12 @@ Lexicon may later replace fallback boundaries with structural ranges, but the en
 | `internal/index` | Traversal, fallback chunking, source records, storage, and atomic publication |
 | `internal/retrieve` | Current lexical candidate scoring and deterministic ordering |
 | `internal/embedding` | Fixed model identity, verified setup, runtime launch, query formatting, HTTP client, reduction, normalization, and probing |
+| `internal/vectorstore` | Native-library discovery, ABI validation, caller-owned buffers, and snapshot-handle lifecycle |
+| `native/vector-engine` | Immutable vector objects, packed snapshot format, mmap validation, and exact concurrent search |
 | `internal/tokenizer` | Fixed `o200k_base` counting |
 | `internal/compiler` | Whole-chunk package selection and exact serialized-package accounting |
 
-Future vector storage and hybrid fusion should receive their own concrete ownership seams rather than being folded into the model client.
+Vector storage has its own Rust engine and Go bridge. Hybrid fusion should likewise receive a concrete ownership seam rather than being folded into the model client or compiler.
 
 ## Code map
 
@@ -75,6 +85,9 @@ cmd/grimoire/main.go
         ├── index.Build / index.Save
         ├── retrieve.Search
         ├── compiler.Compile / compiler.Marshal
+        ├── vector commands
+        │   ├── embedding.Client
+        │   └── vectorstore.Library / vectorstore.Engine
         └── model commands
             ├── embedding.Setup
             ├── embedding.Serve
@@ -91,7 +104,7 @@ Model identity, dimensions, preprocessing, runtime compatibility, and future vec
 
 ## Determinism
 
-Source preparation, current lexical ranking, and package compilation are deterministic for the same snapshot, query, limits, and budget.
+Source preparation, vector-object addressing, packed snapshot materialization, exact semantic result ordering, current lexical ranking, and package compilation are deterministic for the same inputs.
 
 Embedding inference is locally controlled and uses a fixed model artifact, prompt format, dimension reduction, and normalization. Exact floating-point values may still vary with runtime build and hardware backend; future vector compatibility must record enough identity to prevent silent mixing.
 
@@ -104,6 +117,7 @@ Grimoire does own its local embedding provider contract and vector retrieval sta
 ## Related documentation
 
 - [Embedding model](../reference/embedding-model.md)
+- [Vector store](../reference/vector-store.md)
 - [Prepared index](prepared-index.md)
 - [Context package](../reference/context-package.md)
 - [Current limitations](../limits/current-limitations.md)

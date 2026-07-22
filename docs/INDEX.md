@@ -24,6 +24,7 @@ The root [README](../README.md) is the product introduction and quick start. Thi
 - [Indexing](reference/indexing.md)
 - [Context package](reference/context-package.md)
 - [Embedding model](reference/embedding-model.md)
+- [Vector store](reference/vector-store.md)
 
 ## Development
 
@@ -48,3 +49,5 @@ The root [README](../README.md) is the product introduction and quick start. Thi
 - [`internal/retrieve`](../internal/retrieve/README.md)
 - [`internal/compiler`](../internal/compiler/README.md)
 - [`internal/embedding`](../internal/embedding/README.md)
+- [`internal/vectorstore`](../internal/vectorstore/README.md)
+- [`native/vector-engine`](../native/vector-engine/README.md)

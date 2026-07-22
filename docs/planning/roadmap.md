@@ -16,24 +16,27 @@ Implemented:
 - verified managed model/runtime setup on Windows x64;
 - an OpenAI-compatible local embedding client;
 - query instruction formatting, 512-dimensional reduction, and L2 normalization; and
-- live model serving and probing commands.
+- live model serving and probing commands;
+- content-addressed immutable chunk-vector objects;
+- unchanged-vector reuse by embedding and source-content identity;
+- versioned aligned float32 snapshot materialization;
+- memory-mapped validation;
+- a narrow caller-owned-buffer C ABI; and
+- exact serial/concurrent semantic search.
 
-The embedding provider is operational but is not yet connected to prepared chunk records or context retrieval.
+The embedding provider is connected through `vector build` and `vector search`. The context compiler remains lexical-only until hybrid fusion is implemented.
 
-## 1. Persistent chunk vectors
+## 1. Persistent chunk vectors — implemented
 
-Extend prepared state with model-versioned vector records.
+The initial persistent vector layer is complete. See [Vector store](../reference/vector-store.md).
 
-Required behavior:
+Unresolved follow-on work:
 
-- embed new and changed chunks in batches;
-- reuse unchanged vectors by chunk identity and embedding identity;
-- remove vectors for replaced or deleted chunks;
-- persist normalized 512-dimensional vectors separately from source records;
-- make interrupted indexing unable to publish a mixed snapshot; and
-- rebuild vectors when the model, dimensions, preprocessing, or schema changes.
-
-Initial exact search may scan the persisted vectors. Approximate nearest-neighbour machinery should be added only when measurements show it is needed.
+- benchmark float32 against float16 and int8 encodings;
+- add immutable-object garbage collection;
+- add non-Windows Go dynamic-library loaders;
+- automate vector refresh; and
+- consider approximate indexing only if exact-scan measurements require it.
 
 ## 2. Prepared lexical retrieval
 

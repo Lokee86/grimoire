@@ -5,6 +5,12 @@
 Run from the Grimoire repository root:
 
 ```bash
+cd native/vector-engine
+cargo fmt --all --check
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+cargo build -p grimoire-vector-ffi --release
+cd ../..
 gofmt -w ./cmd ./internal
 go test ./...
 go vet ./...
@@ -18,6 +24,9 @@ Formatting should produce no diff after the final run.
 | --- | --- |
 | CLI integration and flag wiring | `internal/app/run_test.go`, `internal/app/model_test.go` |
 | Embedding client and runtime contract | `internal/embedding/client_test.go`, `internal/embedding/runtime_test.go` |
+| Rust object, snapshot, search, and handle lifecycle | `native/vector-engine/crates/*` unit tests |
+| Go-to-Rust ABI integration | `internal/vectorstore/integration_windows_test.go` |
+| Index/embed/reuse/semantic-search application path | `internal/app/vector_test.go` |
 | Incremental traversal, ignore behavior, and exclusions | `internal/index/build_test.go` |
 | Binary shard and file codecs | `internal/index/codec_test.go` |
 | Manifest tokenizer identity and incompatible-version detection | `internal/index/objects_test.go` |
@@ -26,7 +35,7 @@ Formatting should produce no diff after the final run.
 | Lexical scoring and deterministic tie-breaking | `internal/retrieve/search_test.go` |
 | Whole-chunk fitting and exact serialized-package accounting | `internal/compiler/compiler_test.go` |
 
-Tests use temporary directories, local HTTP test servers, synthetic vectors, and locally constructed snapshots. They do not require an installed model or external service.
+Tests use temporary directories, local HTTP test servers, synthetic vectors, and locally constructed snapshots. They do not require an installed model or external service. Native integration tests require a built Rust DLL and skip when it is unavailable.
 
 Embedding coverage verifies query instruction formatting, OpenAI-compatible response handling, response-index ordering, 1024-to-512 reduction, normalization, and malformed-vector rejection.
 
@@ -37,6 +46,12 @@ grimoire model serve
 # in another shell
 grimoire model probe
 ```
+
+## Native vector verification
+
+The Rust suite validates immutable-object reuse/conflict rejection, deterministic snapshot construction, malformed layout rejection, exact ranking, and handle-close behavior. The Go integration test crosses the real DLL ABI and verifies caller-owned buffers, metadata, search ordering, close, and search-after-close failure.
+
+Before release, also run race-enabled Go tests and sanitizer-enabled Rust builds on supported toolchains. The C boundary is deliberately narrow enough for repeated open/search/close stress and malformed-input fuzzing.
 
 ## Retrieval benchmark
 
@@ -89,4 +104,5 @@ When behavior changes:
 - [System overview](../architecture/system-overview.md)
 - [Prepared index](../architecture/prepared-index.md)
 - [Embedding model](../reference/embedding-model.md)
+- [Vector store](../reference/vector-store.md)
 - [Current limitations](../limits/current-limitations.md)
