@@ -11,97 +11,82 @@ Implemented:
 - content-addressed prepared storage with atomic publication;
 - deterministic fallback chunks;
 - exact `o200k_base` chunk and package accounting;
-- a deterministic linear lexical baseline;
 - the fixed Qwen3 embedding-model contract;
 - verified managed model/runtime setup on Windows x64;
 - an OpenAI-compatible local embedding client;
-- query instruction formatting, 512-dimensional reduction, and L2 normalization; and
-- live model serving and probing commands;
+- query instruction formatting, 512-dimensional reduction, and L2 normalization;
 - content-addressed immutable chunk-vector objects;
 - unchanged-vector reuse by embedding and source-content identity;
 - versioned aligned float32 snapshot materialization;
 - memory-mapped validation;
-- a narrow caller-owned-buffer C ABI; and
-- exact serial/concurrent semantic search.
+- a narrow caller-owned-buffer C ABI;
+- exact serial/concurrent semantic search;
+- vector-backed `grimoire context` retrieval; and
+- deterministic lexical fallback when semantic retrieval is unavailable.
 
-The embedding provider is connected through `vector build` and `vector search`. The context compiler remains lexical-only until hybrid fusion is implemented.
+The normal context path now performs exact full-vector retrieval. BM25 or another general lexical engine is not a prerequisite and should only be added if measured retrieval failures justify its cost.
 
-## 1. Persistent chunk vectors — implemented
+## 1. Selection quality
 
-The initial persistent vector layer is complete. See [Vector store](../reference/vector-store.md).
+Improve final context construction now that semantic retrieval reaches the compiler.
 
-Unresolved follow-on work:
+Candidate work:
+
+- overlap and duplicate removal;
+- adjacent-chunk expansion;
+- file and subsystem diversity;
+- evidence-class reservations;
+- stable package fingerprints;
+- explicit omission reasons beyond budget pressure; and
+- retrieval-quality fixtures covering source code and documentation.
+
+Exact `o200k_base` package enforcement remains the final boundary.
+
+## 2. Targeted exact recovery
+
+Add inexpensive exact lookup for cases embeddings commonly under-rank:
+
+- paths and filenames;
+- raw identifiers;
+- quoted phrases;
+- configuration keys;
+- error codes; and
+- version strings.
+
+These lookups should be conditional and compact, not a mandatory full-text search pass. Their candidates must retain source, rank, and reason provenance.
+
+## 3. Incremental maintenance runtime
+
+Keep prepared and vector state current without requiring separate manual commands.
+
+Standalone Grimoire should own its own behavior. When hosted by Warlock, it should consume shared repository change events and supervision rather than duplicate the umbrella runtime.
+
+One-shot `index` and `vector build` commands must remain supported.
+
+## 4. Optional structural enrichment
+
+Consume Lexicon structural ranges and symbol facts when available while retaining the fallback chunker.
+
+Lexicon may improve chunk boundaries, symbol metadata, exact lookup, and replacement identity. It is not a prerequisite for embeddings, vector search, context compilation, or fallback operation.
+
+## 5. Optional evidence providers
+
+Add bounded provider interfaces for Arcana graph evidence, Demon Docs documentation evidence, Git-change evidence, and other Warlock facts.
+
+Grimoire remains responsible for retrieval, context selection, budgeting, provenance, and the final package.
+
+## 6. Vector-engine follow-on work
+
+Measure before increasing storage or search complexity:
 
 - benchmark float32 against float16 and int8 encodings;
 - add immutable-object garbage collection;
 - add non-Windows Go dynamic-library loaders;
-- automate vector refresh; and
-- consider approximate indexing only if exact-scan measurements require it.
+- add prepared-index identity validation stronger than vector-count checks;
+- optimize exact-scan kernels when measurements justify it; and
+- consider approximate indexing only if exact-scan latency becomes material.
 
-## 2. Prepared lexical retrieval
-
-Replace the current full chunk scan and custom substring score with standard lexical retrieval.
-
-Required behavior:
-
-- incremental inverted postings;
-- BM25 corpus scoring;
-- exact phrase, filename, path, symbol-like term, and heading boosts as separate inspectable signals;
-- deterministic tie-breaking; and
-- benchmark and retrieval-quality comparison against the current baseline.
-
-This work is independent of Lexicon. Fallback chunks remain valid searchable documents.
-
-## 3. Hybrid retrieval
-
-Retrieve lexical and semantic candidates independently, then combine them.
-
-Initial direction:
-
-- bounded BM25 and vector candidate pools;
-- deterministic reciprocal-rank fusion;
-- provider-specific ranks and scores retained as provenance;
-- lexical-only fallback when the model is unavailable; and
-- explicit package metadata describing which retrieval paths contributed.
-
-Raw BM25 and cosine values should not be treated as directly comparable scales.
-
-## 4. Selection quality
-
-Improve final context construction after hybrid retrieval is measurable.
-
-Candidate work:
-
-- overlap removal;
-- file and subsystem diversity;
-- adjacent-chunk expansion;
-- evidence-class reservations;
-- stable package fingerprints; and
-- explicit omission reasons beyond budget pressure.
-
-Exact `o200k_base` package enforcement remains the final boundary.
-
-## 5. Incremental maintenance runtime
-
-Keep lexical and vector state current without requiring a manual indexing command.
-
-Standalone Grimoire should own its own behavior. When hosted by Warlock, it should consume shared repository change events and supervision rather than duplicate the umbrella runtime.
-
-One-shot CLI indexing must remain supported.
-
-## 6. Optional structural enrichment
-
-Consume Lexicon structural ranges when available while retaining the fallback chunker.
-
-Lexicon may improve chunk boundaries, symbol metadata, and replacement identity. It is not a prerequisite for lexical search, embeddings, vector search, or hybrid retrieval.
-
-## 7. Optional evidence providers
-
-Add bounded provider interfaces for Arcana graph evidence, Demon Docs documentation evidence, Git-change evidence, and other Warlock facts.
-
-Grimoire remains responsible for retrieval fusion, context selection, budgeting, and the final package.
-
-## 8. Stable external contracts
+## 7. Stable external contracts
 
 Before a stable release, define:
 

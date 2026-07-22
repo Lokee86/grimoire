@@ -23,14 +23,15 @@
 
 ## Main files
 
-- `run.go` - top-level commands, source index/context operations, and shared JSON output.
+- `run.go` - top-level dispatch, source indexing, path resolution, and shared JSON output.
+- `context.go` - semantic context retrieval, compatibility checks, lexical fallback, and compilation.
 - `model.go` - embedding setup, runtime, information, and probe commands.
 - `vector.go` - vector search and information commands.
 - `vector_build.go` - incremental embedding and packed snapshot publication.
 - `vector_paths.go` - vector-state layout and source-content identities.
 - `run_test.go` - index-to-context integration coverage.
 - `model_test.go` - embedding command wiring coverage.
-- `vector_test.go` - index, embed, reuse, native search, and result mapping coverage.
+- `vector_test.go` - index, embed, reuse, native search, vector-backed context, and result mapping coverage.
 
 ## Dependencies
 

@@ -53,11 +53,12 @@ func TestIndexThenCompileContext(t *testing.T) {
 	}
 
 	var contextOutput bytes.Buffer
+	var contextErrors bytes.Buffer
 	if err := Run([]string{
 		"context", "--root", root,
 		"--query", "resolve damage",
 		"--budget", "500",
-	}, &contextOutput, &bytes.Buffer{}); err != nil {
+	}, &contextOutput, &contextErrors); err != nil {
 		t.Fatal(err)
 	}
 
@@ -70,5 +71,14 @@ func TestIndexThenCompileContext(t *testing.T) {
 	}
 	if result.Selections[0].Path != "damage.go" {
 		t.Fatalf("unexpected selection: %+v", result.Selections[0])
+	}
+	if len(result.RetrievalSources) != 1 || result.RetrievalSources[0] != "lexical" {
+		t.Fatalf("expected lexical fallback, got %+v", result.RetrievalSources)
+	}
+	if result.Selections[0].RetrievalSource != "lexical" || result.Selections[0].RetrievalRank != 1 {
+		t.Fatalf("unexpected fallback provenance: %+v", result.Selections[0])
+	}
+	if !bytes.Contains(contextErrors.Bytes(), []byte("using lexical fallback")) {
+		t.Fatalf("expected fallback warning, got %q", contextErrors.String())
 	}
 }

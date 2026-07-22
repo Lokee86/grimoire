@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Grimoire is a standalone repository RAG and context-compilation tool. It owns prepared retrieval state, lexical and semantic candidate retrieval, hybrid ranking, exact budgeted selection, and context-package output.
+Grimoire is a standalone repository RAG and context-compilation tool. It owns prepared retrieval state, exact semantic candidate retrieval, lexical failure fallback, exact budgeted selection, and context-package output.
 
-The implemented foundation includes source preparation, a lexical baseline, exact output budgeting, an operational local embedding provider, persistent content-addressed vectors, packed memory-mapped snapshots, and exact semantic search. Hybrid retrieval remains under development.
+The implemented foundation includes source preparation, a lexical fallback, exact output budgeting, an operational local embedding provider, persistent content-addressed vectors, packed memory-mapped snapshots, exact semantic search, and semantic context compilation.
 
 ## Current flow
 
@@ -35,31 +35,36 @@ vector build / search
 
 context command
     │
-    ├── load prepared source state
-    ├── perform current linear lexical ranking
+    ├── load prepared source state and the packed vector snapshot
+    ├── validate model identity, dimensions, and chunk count
+    ├── embed the query and run exact vector retrieval
+    ├── fall back to deterministic lexical ranking on semantic failure
     ├── fit whole chunks under the package budget
-    └── emit verified JSON
+    └── emit verified JSON with source/rank/score provenance
 ```
 
-The embedding path is independently probeable and used by `vector build` and `vector search`. It is intentionally separate from source indexing, and `context` remains lexical-only until hybrid fusion is implemented.
+The embedding path is independently probeable and used by `vector build`, `vector search`, and `context`. It remains separate from source indexing so explicit one-shot preparation and vector refresh stay independently controllable.
 
-## Target retrieval flow
+## Retrieval flow
 
 ```text
-prepared chunks
-    ├── incremental BM25 postings ───────► lexical candidates
-    └── incremental model vectors ──────► semantic candidates
-                                                │
-query ──► instructed query embedding ───────────┤
-                                                ▼
-                                      deterministic rank fusion
-                                                ▼
-                                       context selection
-                                                ▼
-                                  exact o200k_base package
+prepared chunks ──► incremental model vectors
+                              │
+query ──► instructed query embedding
+                              │
+                              ▼
+                 exact full-vector scan
+                              │
+                              ▼
+                    context selection
+                              │
+                              ▼
+               exact o200k_base package
+
+semantic failure ──► deterministic lexical fallback
 ```
 
-Lexicon may later replace fallback boundaries with structural ranges, but the entire retrieval path must work without it.
+Targeted exact lookup may later recover paths, identifiers, quoted phrases, configuration keys, and error codes. Lexicon may enrich chunks with authoritative symbols and structural ranges. Neither is required for the baseline semantic path.
 
 ## Package ownership
 
@@ -68,14 +73,14 @@ Lexicon may later replace fallback boundaries with structural ranges, but the en
 | `internal/app` | CLI parsing and operation orchestration |
 | `internal/ignore` | Git-ignore pattern loading and matching |
 | `internal/index` | Traversal, fallback chunking, source records, storage, and atomic publication |
-| `internal/retrieve` | Current lexical candidate scoring and deterministic ordering |
+| `internal/retrieve` | Shared candidate provenance plus lexical fallback scoring and deterministic ordering |
 | `internal/embedding` | Fixed model identity, verified setup, runtime launch, query formatting, HTTP client, reduction, normalization, and probing |
 | `internal/vectorstore` | Native-library discovery, ABI validation, caller-owned buffers, and snapshot-handle lifecycle |
 | `native/vector-engine` | Immutable vector objects, packed snapshot format, mmap validation, and exact concurrent search |
 | `internal/tokenizer` | Fixed `o200k_base` counting |
 | `internal/compiler` | Whole-chunk package selection and exact serialized-package accounting |
 
-Vector storage has its own Rust engine and Go bridge. Hybrid fusion should likewise receive a concrete ownership seam rather than being folded into the model client or compiler.
+Vector storage has its own Rust engine and Go bridge. Future exact lookup, structural enrichment, and selection policies should receive concrete ownership seams rather than being folded into the model client or compiler.
 
 ## Code map
 
@@ -83,8 +88,11 @@ Vector storage has its own Rust engine and Go bridge. Hybrid fusion should likew
 cmd/grimoire/main.go
     └── app.Run
         ├── index.Build / index.Save
-        ├── retrieve.Search
-        ├── compiler.Compile / compiler.Marshal
+        ├── context command
+        │   ├── embedding.Client
+        │   ├── vectorstore.Library / vectorstore.Engine
+        │   ├── retrieve.Search fallback
+        │   └── compiler.Compile / compiler.Marshal
         ├── vector commands
         │   ├── embedding.Client
         │   └── vectorstore.Library / vectorstore.Engine
@@ -104,13 +112,13 @@ Model identity, dimensions, preprocessing, runtime compatibility, and future vec
 
 ## Determinism
 
-Source preparation, vector-object addressing, packed snapshot materialization, exact semantic result ordering, current lexical ranking, and package compilation are deterministic for the same inputs.
+Source preparation, vector-object addressing, packed snapshot materialization, exact semantic result ordering, lexical fallback ranking, and package compilation are deterministic for the same inputs.
 
 Embedding inference is locally controlled and uses a fixed model artifact, prompt format, dimension reduction, and normalization. Exact floating-point values may still vary with runtime build and hardware backend; future vector compatibility must record enough identity to prevent silent mixing.
 
 ## Product boundaries
 
-Grimoire does not own language parsing, repository relationship graphs, documentation maintenance, agent orchestration, or generative inference. Those may supply optional evidence, but they are not prerequisites for baseline hybrid RAG.
+Grimoire does not own language parsing, repository relationship graphs, documentation maintenance, agent orchestration, or generative inference. Those may supply optional evidence, but they are not prerequisites for baseline semantic RAG.
 
 Grimoire does own its local embedding provider contract and vector retrieval state. It does not require hosted embedding APIs or hosted vector infrastructure.
 

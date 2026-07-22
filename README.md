@@ -2,7 +2,7 @@
 
 Grimoire is a standalone local repository RAG and context compiler in the [Warlock Toolchain](https://github.com/Lokee86/warlock-toolchain). It prepares repository evidence, performs lexical and semantic retrieval, and emits exact-budget context packages without owning an agent or generation step.
 
-The current implementation has incremental source preparation, a lexical baseline, a working local Qwen3 embedding provider, a custom content-addressed Rust vector engine, exact semantic search, and exact package budgeting. BM25, hybrid rank fusion, and stronger context selection remain next.
+The current implementation has incremental source preparation, a working local Qwen3 embedding provider, a custom content-addressed Rust vector engine, exact semantic retrieval in the context compiler, lexical failure fallback, and exact package budgeting. Stronger context selection, targeted exact lookup, and automatic maintenance remain next.
 
 ## Current capabilities
 
@@ -16,9 +16,9 @@ The current implementation has incremental source preparation, a lexical baselin
 - Versioned packed snapshots with sorted chunk IDs and aligned contiguous vectors.
 - Memory-mapped Rust validation and concurrent exact dot-product search.
 - A narrow C ABI with caller-owned buffers and no cross-runtime allocator ownership.
-- Inspectable deterministic lexical ranking and exact whole-chunk package fitting.
-
-`grimoire context` remains lexical-only until semantic candidates are fused with BM25 results. Exact semantic retrieval is available through `grimoire vector search`.
+- Vector-backed context compilation with model/count validation and lexical failure fallback.
+- Selection-level retrieval source, rank, score, and inspectable reasons.
+- Exact whole-chunk package fitting.
 
 ## Build
 
@@ -71,7 +71,7 @@ grimoire vector search \
   --top-k 20
 ```
 
-Compile the current bounded lexical context package:
+Compile a bounded semantic context package:
 
 ```bash
 grimoire context \
@@ -80,7 +80,7 @@ grimoire context \
   --budget 2000
 ```
 
-The default state location is `<repository>/.grimoire`.
+The default state location is `<repository>/.grimoire`. `context` uses the exact vector snapshot when available and emits a warning before falling back to the lexical baseline when semantic retrieval is unavailable or incompatible.
 
 ## Commands
 
@@ -93,7 +93,7 @@ grimoire index          Prepare or incrementally update source state.
 grimoire vector build   Embed missing chunks and publish a packed snapshot.
 grimoire vector search  Run exact semantic search over the snapshot.
 grimoire vector info    Report native library and snapshot availability.
-grimoire context        Rank current lexical candidates and emit bounded JSON.
+grimoire context        Retrieve semantic candidates and emit bounded JSON.
 grimoire version        Print the development version.
 ```
 
@@ -102,19 +102,21 @@ grimoire version        Print the development version.
 ```text
 repository files
       │
-      ├── prepared source objects ──► lexical baseline ──────────┐
-      │                                                         │
-      └── Qwen3 chunk embeddings                                │
-              │                                                  │
-              ▼                                                  │
-      content-addressed Rust vector objects                      │
-              │                                                  │
-              ▼                                                  │
-      packed mmap snapshot ──► exact concurrent vector search ───┤
-                                                                 ▼
-                                                       hybrid fusion next
-                                                                 ▼
-                                                    exact-budget package
+      ├── prepared source objects ────────────────────────────────┐
+      │                                                          │
+      └── Qwen3 chunk embeddings                                 │
+              │                                                   │
+              ▼                                                   │
+      content-addressed Rust vector objects                       │
+              │                                                   │
+              ▼                                                   │
+      packed mmap snapshot ──► exact concurrent vector search ────┤
+                                                                  ▼
+                                                       context selection
+                                                                  ▼
+                                                     exact-budget package
+
+If the semantic path is unavailable, the prepared source objects feed the deterministic lexical fallback.
 ```
 
 Lexicon is optional structural enrichment. Grimoire remains independently usable without Lexicon, Arcana, Demon Docs, Warlock, remote embeddings, or hosted vector storage.
@@ -144,4 +146,4 @@ go vet ./...
 
 ## Status
 
-The local embedding provider, persistent vector objects, packed snapshot, native ABI, and exact semantic search are implemented and verified. BM25 postings, hybrid fusion, automatic maintenance, and stronger selection remain unfinished.
+The local embedding provider, persistent vector objects, packed snapshot, native ABI, exact semantic search, and vector-backed context compilation are implemented and verified. Automatic maintenance, stronger selection, targeted exact lookup, and optional Lexicon enrichment remain unfinished.

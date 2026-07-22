@@ -81,4 +81,4 @@ grimoire model probe
 
 ## Current boundary
 
-The provider, managed setup, server launcher, query formatting, vector reduction, normalization, and health probe are implemented. Incremental chunk embedding, vector persistence, nearest-neighbour retrieval, and hybrid fusion are not yet connected to `grimoire index` or `grimoire context`.
+The provider, managed setup, server launcher, query formatting, vector reduction, normalization, incremental chunk embedding, persistent vector storage, exact nearest-neighbour retrieval, and vector-backed `grimoire context` integration are implemented. Source indexing and vector refresh remain separate explicit operations, and context selection still uses whole ranked chunks.

@@ -11,7 +11,9 @@ import (
 
 type Candidate struct {
 	Chunk   index.Chunk
-	Score   int
+	Score   float64
+	Source  string
+	Rank    int
 	Reasons []string
 }
 
@@ -42,6 +44,9 @@ func Search(snapshot index.Snapshot, query string, limit int) []Candidate {
 	if limit > 0 && len(candidates) > limit {
 		candidates = candidates[:limit]
 	}
+	for index := range candidates {
+		candidates[index].Rank = index + 1
+	}
 	return candidates
 }
 
@@ -54,7 +59,7 @@ func scoreChunk(chunk index.Chunk, phrase string, terms []string) Candidate {
 		firstLine = firstLine[:newline]
 	}
 
-	candidate := Candidate{Chunk: chunk}
+	candidate := Candidate{Chunk: chunk, Source: "lexical"}
 	if len(phrase) > 2 && strings.Contains(text, phrase) {
 		candidate.Score += 12
 		candidate.Reasons = append(candidate.Reasons, "exact query phrase in content")
@@ -74,7 +79,7 @@ func scoreChunk(chunk index.Chunk, phrase string, terms []string) Candidate {
 		}
 		occurrences := min(strings.Count(text, term), 5)
 		if occurrences > 0 {
-			candidate.Score += occurrences * 2
+			candidate.Score += float64(occurrences * 2)
 			candidate.Reasons = append(candidate.Reasons, "content matches "+term)
 		}
 	}

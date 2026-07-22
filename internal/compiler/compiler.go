@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	PackageVersion      = 2
+	PackageVersion      = 3
 	maxTokenCountPasses = 8
 )
 
@@ -26,13 +26,15 @@ type Package struct {
 }
 
 type Selection struct {
-	Path       string   `json:"path"`
-	StartLine  int      `json:"start_line"`
-	EndLine    int      `json:"end_line"`
-	Score      int      `json:"score"`
-	Reasons    []string `json:"reasons"`
-	TokenCount int      `json:"token_count"`
-	Content    string   `json:"content"`
+	Path            string   `json:"path"`
+	StartLine       int      `json:"start_line"`
+	EndLine         int      `json:"end_line"`
+	Score           float64  `json:"score"`
+	RetrievalSource string   `json:"retrieval_source"`
+	RetrievalRank   int      `json:"retrieval_rank"`
+	Reasons         []string `json:"reasons"`
+	TokenCount      int      `json:"token_count"`
+	Content         string   `json:"content"`
 }
 
 func Compile(
@@ -40,6 +42,7 @@ func Compile(
 	budget int,
 	indexVersion int,
 	indexTokenizer string,
+	retrievalSources []string,
 	candidates []retrieve.Candidate,
 ) (Package, error) {
 	if budget <= 0 {
@@ -55,7 +58,7 @@ func Compile(
 		Budget:           budget,
 		Tokenizer:        tokenizer.Name,
 		IndexVersion:     indexVersion,
-		RetrievalSources: []string{"lexical"},
+		RetrievalSources: append([]string(nil), retrievalSources...),
 		Selections:       make([]Selection, 0),
 		OmittedForBudget: len(candidates),
 	}
@@ -73,13 +76,15 @@ func Compile(
 	omitted := 0
 	for candidateIndex, candidate := range candidates {
 		selection := Selection{
-			Path:       candidate.Chunk.Path,
-			StartLine:  candidate.Chunk.StartLine,
-			EndLine:    candidate.Chunk.EndLine,
-			Score:      candidate.Score,
-			Reasons:    candidate.Reasons,
-			TokenCount: candidate.Chunk.TokenCount,
-			Content:    candidate.Chunk.Text,
+			Path:            candidate.Chunk.Path,
+			StartLine:       candidate.Chunk.StartLine,
+			EndLine:         candidate.Chunk.EndLine,
+			Score:           candidate.Score,
+			RetrievalSource: candidate.Source,
+			RetrievalRank:   candidate.Rank,
+			Reasons:         candidate.Reasons,
+			TokenCount:      candidate.Chunk.TokenCount,
+			Content:         candidate.Chunk.Text,
 		}
 		tentative := result
 		tentative.Selections = append(append([]Selection(nil), result.Selections...), selection)

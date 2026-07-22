@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/vectorstore"
 )
 
@@ -98,5 +99,55 @@ func TestVectorBuildReusesObjectsAndSearches(t *testing.T) {
 	}
 	if len(result.Results) != 1 || result.Results[0].Path != "damage.go" || result.Results[0].Score < 0.99 {
 		t.Fatalf("unexpected vector search: %+v", result.Results)
+	}
+
+	var contextOutput bytes.Buffer
+	var contextErrors bytes.Buffer
+	if err := Run([]string{
+		"context", "--root", root, "--endpoint", server.URL,
+		"--query", "where is damage resolved", "--candidate-limit", "1", "--budget", "500",
+	}, &contextOutput, &contextErrors); err != nil {
+		t.Fatal(err)
+	}
+	var contextPackage compiler.Package
+	if err := json.Unmarshal(contextOutput.Bytes(), &contextPackage); err != nil {
+		t.Fatal(err)
+	}
+	if contextErrors.Len() != 0 {
+		t.Fatalf("unexpected context warning: %s", contextErrors.String())
+	}
+	if len(contextPackage.RetrievalSources) != 1 || contextPackage.RetrievalSources[0] != "vector" {
+		t.Fatalf("expected vector retrieval, got %+v", contextPackage.RetrievalSources)
+	}
+	if len(contextPackage.Selections) != 1 {
+		t.Fatalf("expected one vector selection, got %+v", contextPackage.Selections)
+	}
+	selection := contextPackage.Selections[0]
+	if selection.Path != "damage.go" || selection.RetrievalSource != "vector" || selection.RetrievalRank != 1 || selection.Score < 0.99 {
+		t.Fatalf("unexpected vector context selection: %+v", selection)
+	}
+
+	if err := os.WriteFile(filepath.Join(root, "extra.go"), []byte("package extra\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	contextOutput.Reset()
+	contextErrors.Reset()
+	if err := Run([]string{
+		"context", "--root", root, "--endpoint", server.URL,
+		"--query", "resolve damage", "--candidate-limit", "2", "--budget", "500",
+	}, &contextOutput, &contextErrors); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(contextOutput.Bytes(), &contextPackage); err != nil {
+		t.Fatal(err)
+	}
+	if len(contextPackage.RetrievalSources) != 1 || contextPackage.RetrievalSources[0] != "lexical" {
+		t.Fatalf("expected stale-vector fallback, got %+v", contextPackage.RetrievalSources)
+	}
+	if !strings.Contains(contextErrors.String(), "vector snapshot has 1 chunks, prepared index has 2") {
+		t.Fatalf("expected stale-vector warning, got %q", contextErrors.String())
 	}
 }

@@ -2,13 +2,7 @@
 
 ## Status
 
-Grimoire has a prepared lexical baseline, exact package budgeting, an operational local embedding provider, persistent vector state, and exact semantic search. It is not yet a complete hybrid RAG engine.
-
-## Semantic retrieval is separate from context compilation
-
-`grimoire vector build` persists chunk vectors and `grimoire vector search` performs exact semantic retrieval. `grimoire context` still uses only the lexical baseline.
-
-Planned removal condition: fuse bounded lexical and semantic candidate sets before context selection.
+Grimoire has incremental prepared state, exact package budgeting, an operational local embedding provider, persistent vector state, exact semantic search, vector-backed context compilation, and deterministic lexical fallback. It is not yet a complete context-selection and evidence-enrichment system.
 
 ## Manual vector refresh
 
@@ -18,13 +12,13 @@ Planned removal condition: add automatic maintenance while retaining explicit on
 
 ## Windows-only Go native loader
 
-The Rust engine is portable, but the current Go dynamic-library bridge loads a DLL only on Windows. Other platform builds return an unavailable error.
+The Rust engine is portable, but the current Go dynamic-library bridge loads a DLL only on Windows. Other platform builds return an unavailable error and `context` uses the lexical fallback.
 
 Planned removal condition: add equivalent loaders and release packaging for supported non-Windows targets.
 
 ## Float32 exact scan only
 
-Snapshot format version 1 stores aligned `float32` vectors and performs exact dot-product scanning. It does not yet use float16, int8, 4-bit quantization, SIMD-specific kernels, or approximate-nearest-neighbour indexes.
+Snapshot format version 1 stores aligned `float32` vectors and performs exact dot-product scanning. It does not yet use float16, int8, narrower quantization, specialized SIMD kernels, or approximate-nearest-neighbour indexes.
 
 Planned removal condition: benchmark alternative encodings and kernels, adding complexity only when speed and retrieval-quality evidence justify it.
 
@@ -34,17 +28,23 @@ Deleted or replaced chunks disappear from the current snapshot, but reusable imm
 
 Planned removal condition: add safe reachability-based cleanup across retained snapshots.
 
-## Linear lexical search
+## Vector freshness validation is incomplete
 
-A context request scans all prepared chunks and applies fixed substring boosts. It does not use postings, corpus statistics, or BM25.
+`context` validates model identity, dimensions, and vector count against prepared state. It also rejects returned chunk IDs that are absent from the prepared snapshot. A changed repository with the same chunk count can still leave a stale vector snapshot undetected.
 
-Planned removal condition: maintain incremental postings and use BM25 while preserving inspectable metadata boosts.
+Planned removal condition: persist and validate a deterministic prepared-snapshot identity alongside the vector snapshot.
 
-## No hybrid fusion
+## Lexical fallback is linear
 
-Lexical and semantic result sets are not yet combined. Semantic results are available separately, but there is no reciprocal-rank fusion or provider provenance in the context package.
+When semantic retrieval is unavailable, the fallback scans all prepared chunks and applies fixed substring boosts. It does not use postings, corpus statistics, or BM25.
 
-Planned removal condition: independently retrieve bounded lexical and vector candidate sets, then fuse their ranks deterministically.
+This is intentionally a failure path rather than the normal retrieval path. A larger lexical engine should only be added if measured fallback use or retrieval failures justify its runtime and maintenance cost.
+
+## No targeted exact recovery
+
+The normal context path relies on semantic ranking. It does not yet perform cheap exact lookup for paths, filenames, raw identifiers, quoted phrases, configuration keys, error codes, or version strings.
+
+Planned removal condition: add compact conditional exact indexes and merge their candidates with semantic results while retaining provenance.
 
 ## Language-agnostic chunks
 
@@ -60,7 +60,7 @@ Planned removal condition: add verified pinned runtime assets for additional sup
 
 ## Whole-chunk selection only
 
-The compiler greedily considers candidates in ranked order. It does not deduplicate overlapping evidence, diversify by subsystem, reserve evidence classes, or optimize globally.
+The compiler greedily considers candidates in ranked order. It does not deduplicate overlapping evidence, expand useful neighbours, diversify by subsystem, reserve evidence classes, or optimize globally.
 
 Planned removal condition: add measured selection improvements without obscuring why evidence was selected.
 

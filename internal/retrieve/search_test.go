@@ -31,6 +31,9 @@ func TestSearchRanksFilenameAndContentDeterministically(t *testing.T) {
 	if results[0].Score <= results[1].Score {
 		t.Fatalf("expected strict score ordering: %+v", results)
 	}
+	if results[0].Source != "lexical" || results[0].Rank != 1 || results[1].Rank != 2 {
+		t.Fatalf("unexpected lexical provenance: %+v", results)
+	}
 }
 
 func TestSearchUsesStablePathTieBreak(t *testing.T) {

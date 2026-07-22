@@ -9,9 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/index"
-	"github.com/Lokee86/grimoire/internal/retrieve"
 )
 
 const Version = "0.1.0-dev"
@@ -76,45 +74,6 @@ func runIndex(args []string, stdout, stderr io.Writer) error {
 		Stats index.BuildStats `json:"stats"`
 	}{State: statePath, Files: len(snapshot.Files), Stats: stats}
 	return writeJSON(stdout, response)
-}
-
-func runContext(args []string, stdout, stderr io.Writer) error {
-	flags := flag.NewFlagSet("context", flag.ContinueOnError)
-	flags.SetOutput(stderr)
-	root := flags.String("root", ".", "repository root")
-	state := flags.String("state", "", "prepared index repository path")
-	query := flags.String("query", "", "task or retrieval query")
-	budget := flags.Int("budget", 2000, "maximum o200k_base tokens in the emitted package")
-	limit := flags.Int("candidate-limit", 200, "maximum ranked candidates")
-	if err := flags.Parse(args); err != nil {
-		return err
-	}
-	if *query == "" {
-		return errors.New("--query is required")
-	}
-	if *budget <= 0 {
-		return errors.New("--budget must be positive")
-	}
-
-	statePath, err := resolveState(*root, *state)
-	if err != nil {
-		return err
-	}
-	snapshot, err := index.Load(statePath)
-	if err != nil {
-		return fmt.Errorf("load prepared index: %w", err)
-	}
-	candidates := retrieve.Search(snapshot, *query, *limit)
-	result, err := compiler.Compile(*query, *budget, snapshot.Version, snapshot.Tokenizer, candidates)
-	if err != nil {
-		return err
-	}
-	data, err := compiler.Marshal(result)
-	if err != nil {
-		return err
-	}
-	_, err = stdout.Write(data)
-	return err
 }
 
 func resolveState(root, state string) (string, error) {

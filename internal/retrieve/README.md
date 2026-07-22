@@ -1,12 +1,13 @@
 # Retrieval
 
-`internal/retrieve` owns candidate discovery and deterministic lexical ranking over a prepared snapshot.
+`internal/retrieve` owns the deterministic lexical fallback and the shared candidate provenance shape used by lexical and vector retrieval.
 
 ## Owns
 
 - query normalization and term extraction;
 - fixed phrase, filename, path, leading-line, and content scoring;
 - inspectable score reasons;
+- provider source and rank provenance;
 - positive-score candidate filtering;
 - deterministic score/path/source-range ordering; and
 - candidate limiting.
@@ -17,7 +18,7 @@
 - chunk construction;
 - token-cost calculation;
 - budget fitting or output package structure; or
-- future Lexicon, Arcana, Demon Docs, or semantic provider execution.
+- Lexicon, Arcana, Demon Docs, or semantic provider execution.
 
 ## Main files
 
@@ -27,7 +28,7 @@
 
 ## Current complexity
 
-The current implementation scans all prepared chunks for each query and then sorts positive-score candidates. A prepared postings index is planned.
+The fallback scans all prepared chunks for each query and then sorts positive-score candidates. It is not used on the normal vector-backed context path. A larger lexical engine should only be added if measured retrieval failures justify its runtime and maintenance cost.
 
 ## Related documentation
 

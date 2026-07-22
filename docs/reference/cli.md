@@ -154,7 +154,7 @@ When a snapshot exists, the result includes its embedding identity, dimensions, 
 
 ## `grimoire context`
 
-Compile a bounded lexical context package from prepared state:
+Compile a bounded semantic context package from prepared and vector state:
 
 ```bash
 grimoire context [flags]
@@ -166,9 +166,12 @@ grimoire context [flags]
 | `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
 | `--query <text>` | none | Required retrieval query |
 | `--budget <n>` | `2000` | Maximum `o200k_base` tokens in emitted JSON |
-| `--candidate-limit <n>` | `200` | Maximum ranked lexical candidates |
+| `--candidate-limit <n>` | `200` | Maximum ranked semantic candidates |
+| `--endpoint <url>` | `http://127.0.0.1:8080/v1` | OpenAI-compatible embeddings base URL |
+| `--engine <path>` | discovered DLL | Rust vector-engine library |
+| `--timeout <duration>` | `2s` | Complete semantic retrieval timeout |
 
-The context request path remains lexical-only until semantic candidates are fused with lexical results. Use `grimoire vector search` for the implemented exact semantic path.
+The command validates vector model identity, dimensions, and vector count against prepared state, embeds the query, performs exact vector retrieval, and records selection-level source, rank, score, and reasons. If the vector path is missing, stale, incompatible, or unavailable, it writes a warning to stderr and uses the deterministic lexical fallback.
 
 ## `grimoire version`
 

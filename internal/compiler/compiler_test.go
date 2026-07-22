@@ -16,17 +16,23 @@ func TestCompileEnforcesSerializedPackageBudget(t *testing.T) {
 		candidate(t, "third.go", strings.Repeat("third value ", 80), 8),
 	}
 
-	full, err := Compile("query", 10_000, index.FormatVersion, tokenizer.Name, candidates)
+	full, err := Compile("query", 10_000, index.FormatVersion, tokenizer.Name, []string{"test"}, candidates)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(full.Selections) != len(candidates) {
 		t.Fatalf("expected all selections, got %+v", full.Selections)
 	}
+	if len(full.RetrievalSources) != 1 || full.RetrievalSources[0] != "test" {
+		t.Fatalf("unexpected retrieval sources: %+v", full.RetrievalSources)
+	}
+	if full.Selections[0].RetrievalSource != "test" || full.Selections[0].RetrievalRank != 1 {
+		t.Fatalf("unexpected selection provenance: %+v", full.Selections[0])
+	}
 	assertExactPackageCount(t, full)
 
 	tightBudget := full.TokenCount - 20
-	tight, err := Compile("query", tightBudget, index.FormatVersion, tokenizer.Name, candidates)
+	tight, err := Compile("query", tightBudget, index.FormatVersion, tokenizer.Name, []string{"test"}, candidates)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,13 +49,13 @@ func TestCompileEnforcesSerializedPackageBudget(t *testing.T) {
 }
 
 func TestCompileRejectsBudgetBelowPackageMetadata(t *testing.T) {
-	_, err := Compile("query", 1, index.FormatVersion, tokenizer.Name, nil)
+	_, err := Compile("query", 1, index.FormatVersion, tokenizer.Name, nil, nil)
 	if err == nil {
 		t.Fatal("expected a metadata budget error")
 	}
 }
 
-func candidate(t *testing.T, path, text string, score int) retrieve.Candidate {
+func candidate(t *testing.T, path, text string, score float64) retrieve.Candidate {
 	t.Helper()
 	count, err := tokenizer.Count(text)
 	if err != nil {
@@ -60,7 +66,7 @@ func candidate(t *testing.T, path, text string, score int) retrieve.Candidate {
 			Path: path, StartLine: 1, EndLine: 10,
 			TokenCount: count, Text: text,
 		},
-		Score: score,
+		Score: score, Source: "test", Rank: 1,
 	}
 }
 
