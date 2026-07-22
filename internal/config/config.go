@@ -7,13 +7,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+
+	lexfiles "github.com/Lokee86/lexicon/internal/files"
 )
 
 const Version = 1
 
 type Config struct {
-	Version     int    `json:"version"`
-	AdapterRoot string `json:"adapter_root"`
+	Version          int      `json:"version"`
+	AdapterRoot      string   `json:"adapter_root"`
+	EnabledLanguages []string `json:"enabled_languages,omitempty"`
 }
 
 func StateRoot(repository string) string {
@@ -35,6 +39,69 @@ func Save(repository, adapterRoot string) error {
 		return err
 	}
 	value := Config{Version: Version, AdapterRoot: absolute}
+	if existing, loadErr := Load(repository); loadErr == nil {
+		value.EnabledLanguages = existing.EnabledLanguages
+	}
+	return save(repository, value)
+}
+
+func SaveWithEnabledLanguages(repository, adapterRoot string, enabledLanguages []string) error {
+	absolute, err := filepath.Abs(adapterRoot)
+	if err != nil {
+		return err
+	}
+	normalized, err := NormalizeEnabledLanguages(enabledLanguages)
+	if err != nil {
+		return err
+	}
+	return save(repository, Config{Version: Version, AdapterRoot: absolute, EnabledLanguages: normalized})
+}
+
+func UpdateEnabledLanguages(repository string, enabledLanguages []string) error {
+	value, err := Load(repository)
+	if err != nil {
+		return err
+	}
+	value.EnabledLanguages, err = NormalizeEnabledLanguages(enabledLanguages)
+	if err != nil {
+		return err
+	}
+	return save(repository, value)
+}
+
+func NormalizeEnabledLanguages(enabledLanguages []string) ([]string, error) {
+	supported := make(map[string]struct{}, len(lexfiles.SupportedLanguages()))
+	for _, language := range lexfiles.SupportedLanguages() {
+		supported[language] = struct{}{}
+	}
+	set := make(map[string]struct{}, len(enabledLanguages))
+	for _, language := range enabledLanguages {
+		if _, ok := supported[language]; !ok {
+			return nil, fmt.Errorf("unsupported Lexicon language %q", language)
+		}
+		set[language] = struct{}{}
+	}
+	normalized := make([]string, 0, len(set))
+	for language := range set {
+		normalized = append(normalized, language)
+	}
+	sort.Strings(normalized)
+	return normalized, nil
+}
+
+func (value Config) LanguageEnabled(language string) bool {
+	if len(value.EnabledLanguages) == 0 {
+		return true
+	}
+	for _, enabled := range value.EnabledLanguages {
+		if enabled == language {
+			return true
+		}
+	}
+	return false
+}
+
+func save(repository string, value Config) error {
 	data, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
 		return err
@@ -56,6 +123,10 @@ func Load(repository string) (Config, error) {
 	}
 	if value.Version != Version {
 		return Config{}, fmt.Errorf("unsupported Lexicon configuration version %d", value.Version)
+	}
+	value.EnabledLanguages, err = NormalizeEnabledLanguages(value.EnabledLanguages)
+	if err != nil {
+		return Config{}, fmt.Errorf("validate Lexicon enabled languages: %w", err)
 	}
 	return value, nil
 }

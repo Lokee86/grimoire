@@ -51,6 +51,12 @@ var namedLanguages = map[string][]string{
 	"Gemfile": {"ruby"}, "Gemfile.lock": {"ruby"}, "project.godot": {"gdscript"},
 }
 
+var supportedLanguages = []string{"gdscript", "go", "python", "ruby", "rust", "typescript"}
+
+func SupportedLanguages() []string {
+	return append([]string(nil), supportedLanguages...)
+}
+
 func IgnoredDirectory(name string) bool {
 	_, ignored := ignoredDirectories[name]
 	return ignored

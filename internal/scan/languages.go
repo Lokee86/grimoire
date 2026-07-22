@@ -28,6 +28,16 @@ func languagesInTree(root string) ([]string, error) {
 	return sortedSet(set), err
 }
 
+func selectedLanguages(languages []string, enabled func(string) bool) []string {
+	selected := make([]string, 0, len(languages))
+	for _, language := range languages {
+		if enabled(language) {
+			selected = append(selected, language)
+		}
+	}
+	return selected
+}
+
 func hasLanguage(root, language string) (bool, error) {
 	found := false
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
@@ -49,13 +59,19 @@ func hasLanguage(root, language string) (bool, error) {
 }
 
 func libraryDriftLanguages(stateRoot string) ([]string, error) {
+	return libraryDriftLanguagesFor(stateRoot, func(string) bool { return true })
+}
+
+func libraryDriftLanguagesFor(stateRoot string, enabled func(string) bool) ([]string, error) {
 	required, err := languagesInTree(filepath.Join(stateRoot, "source"))
 	if err != nil {
 		return nil, err
 	}
 	requiredSet := make(map[string]struct{}, len(required))
 	for _, language := range required {
-		requiredSet[language] = struct{}{}
+		if enabled(language) {
+			requiredSet[language] = struct{}{}
+		}
 	}
 	libraryRoot := filepath.Join(stateRoot, "library")
 	entries, err := os.ReadDir(libraryRoot)
