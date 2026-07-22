@@ -1,16 +1,17 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createFileContext, extractDeclarations } from "./ast";
-import { readPathMappings, scanRepository } from "./discovery";
+import { createTypeScriptProgram, readPathMappings, scanRepository } from "./discovery";
 import { emitFacts, writeJsonl } from "./emission";
-import { resolveCalls, resolveImports, resolveRelationships } from "./resolution";
+import { resolveCalls } from "./call-resolution";
+import { resolveImports, resolveRelationships } from "./resolution";
 import { FactStore, type Fact } from "./model";
 
 export function buildFacts(repositoryPath: string, changedFiles?: string[], removedFiles?: string[]): Fact[] {
   const root = path.resolve(repositoryPath);
   if (!fs.statSync(root).isDirectory()) throw new Error(`repository is not a directory: ${repositoryPath}`);
   const repository = path.basename(root);
-  const facts = new FactStore(repository);
+  const facts = new FactStore(repository, root);
   const repositoryId = facts.addNode("repository", repository, ".", repository, repository);
   const { directories, files } = scanRepository(root);
   const directoryIds = new Map<string, string>();
@@ -23,10 +24,16 @@ export function buildFacts(repositoryPath: string, changedFiles?: string[], remo
     const parent = path.posix.dirname(directory) || ".";
     facts.addEdge(directoryIds.get(parent) ?? directoryIds.get(".")!, directoryIds.get(directory)!, "contains");
   }
-  const contexts = files.map((file) => createFileContext(root, file, directoryIds, facts));
+  const { checker, program } = createTypeScriptProgram(root, files);
+  const contexts = files.map((file) => {
+    const absolutePath = path.join(root, file.split("/").join(path.sep));
+    const sourceFile = program.getSourceFile(absolutePath);
+    if (!sourceFile) throw new Error(`TypeScript program did not load ${file}`);
+    return createFileContext(root, file, directoryIds, facts, sourceFile);
+  });
   for (const context of contexts) extractDeclarations(context, facts);
   resolveImports(facts, readPathMappings(root));
-  resolveCalls(facts);
+  resolveCalls(facts, checker);
   resolveRelationships(facts);
   return emitFacts(facts, changedFiles, removedFiles);
 }

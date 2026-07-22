@@ -62,6 +62,7 @@ export function recordExportedDeclaration(ownerId: string, node: ts.Node, name: 
 }
 
 export function recordExportAssignment(node: ts.ExportAssignment, ownerId: string, context: FileContext, facts: FactStore): void {
+  if (!node.isExportEquals) facts.defaultExports.set(context.moduleKey, node.expression);
   const recordSpan = spanFor(node, context.sourceFile, context.relativePath);
   const name = node.isExportEquals ? "=" : "default";
   const identity = `${context.moduleKey}::export:${recordSpan.start_line}:${recordSpan.start_column}:${name}`;

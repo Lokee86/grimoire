@@ -1,9 +1,8 @@
 import * as path from "node:path";
-import * as ts from "typescript";
+import { relativeSourcePath } from "./call-shared";
 import { expressionText, spanFor, spanForNodeId, staticTarget } from "./contract";
 import type { PathMapping } from "./discovery";
-import type { FactStore, ImportInfo, PendingCall, PendingRelationship } from "./model";
-import type { Span } from "./model";
+import type { FactStore, ImportInfo } from "./model";
 
 export function resolveImports(facts: FactStore, pathMappings: PathMapping[] = []): void {
   resolveReexportBindings(facts, pathMappings);
@@ -43,7 +42,7 @@ function resolveReexportBindings(facts: FactStore, pathMappings: PathMapping[]):
 export function resolveRelationships(facts: FactStore): void {
   for (const relationship of facts.relationships) {
     const targetName = staticTarget(relationship.expression);
-    const recordSpan = spanFor(relationship.expression, relationship.sourceFile, relationship.sourceFile.fileName.split(path.sep).join("/"));
+    const recordSpan = spanFor(relationship.expression, relationship.sourceFile, relativeSourcePath(facts, relationship.sourceFile));
     if (!targetName) {
       facts.addUnresolved(relationship.source, relationship.relation, expressionText(relationship.expression, relationship.sourceFile), "unsupported-form", recordSpan);
       continue;
@@ -52,46 +51,6 @@ export function resolveRelationships(facts: FactStore): void {
     if (target) facts.addEdge(relationship.source, target, relationship.relation, recordSpan);
     else facts.addUnresolved(relationship.source, relationship.relation, targetName, isImportedExternal(facts, relationship.moduleKey, targetName) ? "external-target" : "missing-target", recordSpan, targetName);
   }
-}
-
-export function resolveCalls(facts: FactStore): void {
-  for (const call of facts.calls) {
-    const recordSpan = spanFor(call.expression, call.sourceFile, call.sourceFile.fileName.split(path.sep).join("/"));
-    const targetName = directCallTarget(call);
-    if (!targetName) {
-      facts.addUnresolved(call.source, "calls", expressionText(call.expression, call.sourceFile), "unsupported-form", recordSpan);
-      continue;
-    }
-    const binding = facts.bindings.get(call.moduleKey)?.get(targetName);
-    const target = resolveSymbol(facts, call.moduleKey, call.scope, targetName);
-    const reason = callTargetReason(facts, call, target, binding);
-    if (reason) facts.addUnresolved(call.source, "calls", expressionText(call.expression, call.sourceFile), reason, recordSpan, targetName);
-    else facts.addEdge(call.source, target!, "calls", recordSpan);
-  }
-}
-
-function directCallTarget(call: PendingCall): string | null {
-  if (call.kind === "call") {
-    const expression = call.expression as ts.CallExpression;
-    if (expression.questionDotToken || !ts.isIdentifier(expression.expression)) return null;
-    return expression.expression.text;
-  }
-  const expression = call.expression as ts.NewExpression;
-  return ts.isIdentifier(expression.expression) ? expression.expression.text : null;
-}
-
-function callTargetReason(
-  facts: FactStore,
-  call: PendingCall,
-  target: string | null,
-  binding: { targetId: string | null; external: boolean } | undefined,
-): "missing-target" | "ambiguous-target" | "external-target" | "unsupported-form" | null {
-  if (binding && !binding.targetId) return binding.external ? "external-target" : "missing-target";
-  if (!target) return "missing-target";
-  const qualifiedName = findQualifiedName(facts, target);
-  if (facts.ambiguousSymbols.has(qualifiedName)) return "ambiguous-target";
-  const expectedKind = call.kind === "call" ? "function" : "type";
-  return facts.nodes.get(target)?.kind === expectedKind ? null : "unsupported-form";
 }
 
 function resolveSymbol(facts: FactStore, moduleKey: string, scope: string[], name: string): string | null {

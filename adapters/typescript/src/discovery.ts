@@ -25,6 +25,36 @@ export type PathMapping = {
   targets: string[];
 };
 
+export type TypeScriptProgram = {
+  checker: ts.TypeChecker;
+  program: ts.Program;
+};
+
+export function createTypeScriptProgram(root: string, files: string[]): TypeScriptProgram {
+  const configPath = ["tsconfig.json", "jsconfig.json"]
+    .map((name) => path.join(root, name))
+    .find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
+  let options: ts.CompilerOptions = {
+    allowJs: false,
+    jsx: ts.JsxEmit.Preserve,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Node10,
+    noEmit: true,
+    skipLibCheck: true,
+    target: ts.ScriptTarget.ESNext,
+  };
+  if (configPath) {
+    const config = ts.readConfigFile(configPath, ts.sys.readFile);
+    if (!config.error) {
+      const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, path.dirname(configPath), { noEmit: true, skipLibCheck: true }, configPath);
+      options = parsed.options;
+    }
+  }
+  const rootNames = files.map((relativePath) => path.join(root, relativePath.split("/").join(path.sep)));
+  const program = ts.createProgram({ rootNames, options });
+  return { checker: program.getTypeChecker(), program };
+}
+
 export function readPathMappings(root: string): PathMapping[] {
   const configPath = ["tsconfig.json", "jsconfig.json"]
     .map((name) => path.join(root, name))
