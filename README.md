@@ -7,6 +7,7 @@ This repository currently contains the first lexical baseline:
 - incremental file indexing with unchanged-record reuse;
 - a private go-git object repository with deterministic binary index shards;
 - content-addressed snapshot publication through `refs/grimoire/state`;
+- standard `.gitignore` traversal semantics with nested ignore files;
 - deterministic fallback chunking;
 - lexical, filename, and path ranking;
 - whole-chunk budget fitting;
@@ -28,6 +29,8 @@ grimoire index --root /path/to/repository
 ```
 
 The prepared index is stored as a private bare go-git object repository at `/path/to/repository/.grimoire` by default. Binary file records are distributed across 256 content-addressed shards, and `refs/grimoire/state` atomically publishes the current snapshot. Re-running the command reuses unchanged shard objects.
+
+Index traversal follows the repository's root and nested `.gitignore` files. To use another Git-ignore-syntax file instead, pass `--ignore-file path/to/file`; a relative path is resolved from the indexed repository root. `.git`, `.grimoire`, `.ddocs`, `.arcana`, `.warlock`, `.worktrees`, `.workingtrees`, and the configured state repository remain permanently excluded because indexing them would recurse into repository metadata or generated tool state.
 
 ## Compile context
 

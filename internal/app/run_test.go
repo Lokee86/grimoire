@@ -8,7 +8,34 @@ import (
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/compiler"
+	"github.com/Lokee86/grimoire/internal/index"
 )
+
+func TestIndexUsesConfiguredIgnoreFile(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".contextignore"), []byte("ignored.go\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "ignored.go"), []byte("package ignored\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "visible.go"), []byte("package visible\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Run([]string{
+		"index", "--root", root, "--ignore-file", ".contextignore",
+	}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := index.Load(filepath.Join(root, ".grimoire"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Files) != 1 || snapshot.Files[0].Path != "visible.go" {
+		t.Fatalf("unexpected indexed files: %+v", snapshot.Files)
+	}
+}
 
 func TestIndexThenCompileContext(t *testing.T) {
 	root := t.TempDir()

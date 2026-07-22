@@ -50,23 +50,102 @@ func TestBuildReusesUnchangedFiles(t *testing.T) {
 	}
 }
 
-func TestBuildExcludesWorktrees(t *testing.T) {
+func TestBuildExcludesToolStateDirectories(t *testing.T) {
 	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, ".worktrees", "branch"), 0o755); err != nil {
-		t.Fatal(err)
+	for _, path := range []string{
+		".worktrees/branch/hidden.go",
+		".workingtrees/branch/hidden.go",
+		".grimoire/objects/hidden.go",
+		".ddocs/state/hidden.go",
+		".arcana/index/hidden.go",
+		".warlock/runtime/hidden.go",
+	} {
+		writeBuildFile(t, root, path, "package hidden")
 	}
-	if err := os.WriteFile(filepath.Join(root, ".worktrees", "branch", "hidden.go"), []byte("package hidden"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "visible.go"), []byte("package visible"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeBuildFile(t, root, "visible.go", "package visible")
 
 	snapshot, _, err := Build(root, nil, BuildOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(snapshot.Files) != 1 || snapshot.Files[0].Path != "visible.go" {
-		t.Fatalf("unexpected files: %+v", snapshot.Files)
+	assertBuildPaths(t, snapshot, "visible.go")
+}
+
+func TestBuildUsesGitignoreHierarchy(t *testing.T) {
+	root := t.TempDir()
+	writeBuildFile(t, root, ".gitignore", "*.go\n!visible.go\nnested-ignored/\n")
+	writeBuildFile(t, root, "ignored.go", "package ignored")
+	writeBuildFile(t, root, "visible.go", "package visible")
+	writeBuildFile(t, root, "nested-ignored/hidden.go", "package hidden")
+	writeBuildFile(t, root, "nested/.gitignore", "hidden.go\n")
+	writeBuildFile(t, root, "nested/hidden.go", "package hidden")
+	writeBuildFile(t, root, "nested/visible.md", "# Visible")
+
+	snapshot, _, err := Build(root, nil, BuildOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertBuildPaths(t, snapshot, "nested/visible.md", "visible.go")
+}
+
+func TestBuildUsesConfiguredIgnoreFileInstead(t *testing.T) {
+	root := t.TempDir()
+	writeBuildFile(t, root, ".gitignore", "default.go\n")
+	writeBuildFile(t, root, ".contextignore", "custom.go\n")
+	writeBuildFile(t, root, "default.go", "package defaultpkg")
+	writeBuildFile(t, root, "custom.go", "package custom")
+	writeBuildFile(t, root, "visible.go", "package visible")
+
+	snapshot, _, err := Build(root, nil, BuildOptions{IgnoreFile: ".contextignore"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertBuildPaths(t, snapshot, "default.go", "visible.go")
+}
+
+func TestBuildDoesNotHardCodeVendor(t *testing.T) {
+	root := t.TempDir()
+	writeBuildFile(t, root, "vendor/dependency.go", "package dependency")
+
+	snapshot, _, err := Build(root, nil, BuildOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertBuildPaths(t, snapshot, "vendor/dependency.go")
+}
+
+func TestBuildExcludesConfiguredStatePath(t *testing.T) {
+	root := t.TempDir()
+	state := filepath.Join(root, ".cache", "grimoire")
+	writeBuildFile(t, root, ".cache/grimoire/objects/generated.go", "package generated")
+	writeBuildFile(t, root, "visible.go", "package visible")
+
+	snapshot, _, err := Build(root, nil, BuildOptions{ExcludePaths: []string{state}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertBuildPaths(t, snapshot, "visible.go")
+}
+
+func writeBuildFile(t *testing.T, root, name, content string) {
+	t.Helper()
+	path := filepath.Join(root, filepath.FromSlash(name))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func assertBuildPaths(t *testing.T, snapshot Snapshot, expected ...string) {
+	t.Helper()
+	if len(snapshot.Files) != len(expected) {
+		t.Fatalf("expected paths %v, got %+v", expected, snapshot.Files)
+	}
+	for index, path := range expected {
+		if snapshot.Files[index].Path != path {
+			t.Fatalf("expected paths %v, got %+v", expected, snapshot.Files)
+		}
 	}
 }

@@ -10,12 +10,16 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	ignorepolicy "github.com/Lokee86/grimoire/internal/ignore"
 )
 
 const defaultMaxFileBytes int64 = 2 << 20
 
 type BuildOptions struct {
 	MaxFileBytes int64
+	IgnoreFile   string
+	ExcludePaths []string
 }
 
 type BuildStats struct {
@@ -34,6 +38,14 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 	maxBytes := options.MaxFileBytes
 	if maxBytes <= 0 {
 		maxBytes = defaultMaxFileBytes
+	}
+	ignorePolicy, err := ignorepolicy.Load(absoluteRoot, options.IgnoreFile)
+	if err != nil {
+		return Snapshot{}, BuildStats{}, err
+	}
+	excludedPaths, err := normalizeExcludedPaths(absoluteRoot, options.ExcludePaths)
+	if err != nil {
+		return Snapshot{}, BuildStats{}, err
 	}
 
 	oldFiles := make(map[string]FileRecord)
@@ -58,13 +70,28 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 		if walkErr != nil {
 			return walkErr
 		}
-		if entry.IsDir() {
-			if path != absoluteRoot && ignoredDirectory(entry.Name()) {
+		if path != absoluteRoot && (permanentlyIgnoredDirectory(entry) || pathExcluded(path, excludedPaths)) {
+			if entry.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if !entry.Type().IsRegular() || !indexableFile(entry.Name()) {
+		if path != absoluteRoot {
+			ignored, err := ignorePolicy.Ignored(path, entry.IsDir())
+			if err != nil {
+				return err
+			}
+			if ignored {
+				if entry.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+		}
+		if entry.IsDir() {
+			return ignorePolicy.LoadDirectory(path)
+		}
+		if path == ignorePolicy.ControlFile() || !entry.Type().IsRegular() || !indexableFile(entry.Name()) {
 			return nil
 		}
 
@@ -125,16 +152,6 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 		Version: FormatVersion, Files: files,
 		baseRoot: baseRoot, baseShards: baseShards, dirtyShards: dirtyShards,
 	}, stats, nil
-}
-
-func ignoredDirectory(name string) bool {
-	switch name {
-	case ".git", ".grimoire", ".worktrees", ".workingtrees", ".obsidian",
-		"node_modules", "vendor", "target", "dist", "build", "coverage":
-		return true
-	default:
-		return false
-	}
 }
 
 func indexableFile(name string) bool {
