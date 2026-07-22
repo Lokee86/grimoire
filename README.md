@@ -6,14 +6,14 @@ It provides one reusable adapter per programming language and a normalized fact 
 
 ## Initial adapters
 
-| Language | Implementation | Initial parser |
-| --- | --- | --- |
-| Ruby | Ruby | Prism when available, Ripper-compatible fallback boundary |
-| Python | Python | Standard-library `ast` |
-| GDScript | Go | Lexical parser with an explicit upgrade seam for a full parser |
-| Rust | Rust | `syn` plus Cargo metadata |
-| TypeScript | TypeScript | TypeScript compiler API |
-| Go | Pending migration | Existing Arcana adapter |
+| Language | Implementation | Parser | Status |
+| --- | --- | --- | --- |
+| Ruby | Ruby | `Ripper` | Runnable slice |
+| Python | Python | Standard-library `ast` | Runnable slice |
+| GDScript | Go | Dedicated lexical/parser seam | Runnable slice |
+| Rust | Rust | `syn` plus Cargo metadata | Runnable slice |
+| TypeScript | TypeScript | TypeScript compiler API | Runnable slice |
+| Go | Pending migration | Existing Arcana adapter | Deferred |
 
 The Go adapter remains in Arcana temporarily while other Arcana work is active.
 
@@ -48,7 +48,9 @@ Each adapter remains self-contained in its own directory. Shared behavior is spe
 
 ## Status
 
-The repository and version-one fact contract are being established alongside initial adapters for Ruby, Python, GDScript, Rust, and TypeScript. The first implementations focus on repository structure, declarations, imports, containment, inheritance/implementation where practical, and direct call/reference evidence.
+Lexicon now has a version-one fact contract and runnable first slices for Ruby, Python, GDScript, Rust, and TypeScript. Each adapter provides deterministic repository structure, declarations, imports, containment, and language-appropriate inheritance or implementation evidence. Some adapters also provide bounded direct call or reference evidence where the first parser slice can resolve it soundly.
+
+These are functional foundations rather than complete semantic analyzers. Dynamic dispatch, generated code, framework-specific behavior, external-package resolution, and deeper type or call analysis remain explicit later work. Unsupported or ambiguous relationships are emitted as unresolved facts rather than guessed edges.
 
 ## License
 
