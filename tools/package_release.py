@@ -23,6 +23,14 @@ def run(command: list[str], cwd: Path) -> None:
     subprocess.run(command, cwd=cwd, check=True)
 
 
+def go_build_command(output: Path, package: str, version: str | None = None) -> list[str]:
+    command = ["go", "build", "-trimpath", "-buildvcs=false"]
+    if version:
+        command.extend(["-ldflags", f"-X github.com/Lokee86/lexicon/internal/cli.version={version}"])
+    command.extend(["-o", str(output), package])
+    return command
+
+
 def npm_executable() -> str:
     return "npm.cmd" if os.name == "nt" else "npm"
 
@@ -78,7 +86,7 @@ def build_typescript(repo: Path, output: Path) -> None:
         shutil.copytree(work / "node_modules", output / "node_modules")
 
 
-def build_distribution(repo: Path, output: Path) -> None:
+def build_distribution(repo: Path, output: Path, version: str | None = None) -> None:
     if output == repo or repo / "adapters" in output.parents or repo / "tools" in output.parents:
         raise ValueError("output must not replace repository sources")
     if output.exists():
@@ -87,7 +95,7 @@ def build_distribution(repo: Path, output: Path) -> None:
     adapters.mkdir(parents=True)
 
     lexicon = output / executable_name("lexicon")
-    run(["go", "build", "-trimpath", "-buildvcs=false", "-o", str(lexicon), "./cmd/lexicon"], repo)
+    run(go_build_command(lexicon, "./cmd/lexicon", version), repo)
     for language in ("go", "gdscript"):
         build_go_adapter(repo, adapters / language / executable_name("lexicon-" + language), language)
 
@@ -106,12 +114,13 @@ def main(argv: list[str]) -> int:
     parser.add_argument("output_path", nargs="?", type=Path, help="distribution directory")
     parser.add_argument("--output", dest="output_option", type=Path, help="distribution directory")
     parser.add_argument("--repo", type=Path, default=ROOT, help="Lexicon repository root")
+    parser.add_argument("--version", help="version embedded in the Lexicon executable")
     args = parser.parse_args(argv)
     output = args.output_option or args.output_path
     if output is None:
         parser.error("a distribution directory is required (use --output PATH)")
     try:
-        build_distribution(args.repo.resolve(), output.resolve())
+        build_distribution(args.repo.resolve(), output.resolve(), args.version)
     except (OSError, subprocess.CalledProcessError, ValueError) as error:
         print(f"package release: {error}", file=sys.stderr)
         return 1

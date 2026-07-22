@@ -2,7 +2,7 @@ package cli
 
 import "io"
 
-const version = "dev"
+var version = "dev"
 
 func runVersion(output io.Writer) error {
 	_, err := io.WriteString(output, "lexicon version "+version+"\n")
