@@ -4,6 +4,7 @@ import type { FactStore, ImportInfo, PendingRelationship } from "./model";
 import type { Span } from "./model";
 
 export function resolveImports(facts: FactStore): void {
+  resolveReexportBindings(facts);
   for (const info of facts.imports) {
     if (!info.source) {
       facts.addUnresolved(info.ownerId, "imports", info.expression, "unsupported-form", spanForNodeId(facts, info.nodeId));
@@ -19,10 +20,21 @@ export function resolveImports(facts: FactStore): void {
       else facts.addUnresolved(info.ownerId, "imports", info.expression, moduleId ? "missing-target" : (isRelative(info.source) ? "missing-target" : "external-target"), spanForNodeId(facts, info.nodeId), `${info.source}:${item.imported}`);
     }
   }
+}
+
+function resolveReexportBindings(facts: FactStore): void {
   for (const reexport of facts.reexports) {
-    const target = resolveModule(facts, reexport.moduleKey, reexport.source);
+    const targetModuleKey = resolveModuleKey(facts, reexport.moduleKey, reexport.source);
+    const target = targetModuleKey ? facts.modules.get(targetModuleKey) ?? null : null;
     if (target) facts.addEdge(reexport.ownerId, target, "imports", reexport.span);
     else facts.addUnresolved(reexport.ownerId, "imports", reexport.expression, isRelative(reexport.source) ? "missing-target" : "external-target", reexport.span, reexport.source);
+    if (!targetModuleKey) continue;
+    const bindings = facts.bindings.get(reexport.moduleKey) ?? new Map();
+    facts.bindings.set(reexport.moduleKey, bindings);
+    for (const name of reexport.names) {
+      const targetId = resolveExportedSymbol(facts, targetModuleKey, name.imported);
+      if (targetId) bindings.set(name.exported, { targetId, external: false });
+    }
   }
 }
 
@@ -69,7 +81,27 @@ function resolveImportTarget(facts: FactStore, importer: string, source: string,
   if (!moduleId) return null;
   if (item.kind === "side-effect" || item.kind === "default" || item.kind === "namespace") return moduleId;
   const targetModule = resolveModuleKey(facts, importer, source);
-  return facts.symbols.get(`${targetModule}.${item.imported}`) ?? null;
+  return targetModule ? resolveExportedSymbol(facts, targetModule, item.imported) : null;
+}
+
+function resolveExportedSymbol(facts: FactStore, moduleKey: string, name: string, seen = new Set<string>()): string | null {
+  const direct = facts.symbols.get(`${moduleKey}.${name}`);
+  if (direct) return direct;
+  const key = `${moduleKey}:${name}`;
+  if (seen.has(key)) return null;
+  seen.add(key);
+  const binding = facts.bindings.get(moduleKey)?.get(name);
+  if (binding?.targetId) return binding.targetId;
+  for (const reexport of facts.reexports) {
+    if (reexport.moduleKey !== moduleKey) continue;
+    const exported = reexport.names.find((item) => item.exported === name);
+    if (!exported) continue;
+    const targetModuleKey = resolveModuleKey(facts, moduleKey, reexport.source);
+    if (!targetModuleKey) continue;
+    const target = resolveExportedSymbol(facts, targetModuleKey, exported.imported, seen);
+    if (target) return target;
+  }
+  return null;
 }
 
 export function resolveModule(facts: FactStore, importer: string, source: string): string | null {
