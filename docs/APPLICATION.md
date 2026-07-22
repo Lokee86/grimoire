@@ -72,6 +72,25 @@ Objectstore garbage collection retains the snapshot named by `CURRENT` and the c
 
 The planner follows every preserved manifest's file and shared-object references. Execution deletes only unreferenced snapshot manifests and fact objects. Planning and deletion are deterministic, and execution rejects a plan if `CURRENT` changed after planning. `Store.GarbageCollect(options, dryRun)` performs the bounded plan-and-execute transaction; `dryRun` returns the same deletion lists without removing any files. The explicit planning and execution methods remain available when callers need to inspect a plan before applying it.
 
+## Snapshot export
+
+The objectstore export API writes standalone language libraries without changing
+the current snapshot or wiring a CLI command:
+
+```go
+err := (objectstore.Store{Root: "/repo/.lexicon"}).Export(
+    "CURRENT", "/tmp/lexicon-export", []string{"python", "go"},
+)
+```
+
+The snapshot argument may be `CURRENT`, an exact snapshot ID, or empty (which
+also resolves `CURRENT`). An empty language list exports every language;
+requested languages must exist in the manifest. Each selected language becomes
+`<language>.jsonl` in the destination. Export reconstructs the full header from
+manifest metadata, verifies every referenced object, combines shared and
+per-file records, sorts records deterministically, and atomically replaces each
+destination file.
+
 ## Transaction and recovery
 
 Only one process may update a repository at a time. Manual scans and daemon updates acquire the same advisory lock; a competing writer receives an explicit busy error.
