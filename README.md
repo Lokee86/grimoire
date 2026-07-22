@@ -13,9 +13,8 @@ It provides one reusable adapter per programming language and a normalized fact 
 | GDScript | Go | Dedicated lexical/parser seam | Runnable slice |
 | Rust | Rust | `syn` plus Cargo metadata | Runnable slice |
 | TypeScript | TypeScript | TypeScript compiler API | Runnable slice |
-| Go | Pending migration | Existing Arcana adapter | Deferred |
+| Go | Go | `go/parser`, `go/types`, SSA, and VTA | Complete semantic adapter |
 
-The Go adapter remains in Arcana temporarily while other Arcana work is active.
 
 ## Contract
 
@@ -36,6 +35,7 @@ Every adapter must:
 ```text
 adapters/
     gdscript/
+    go/
     python/
     ruby/
     rust/
@@ -48,9 +48,9 @@ Each adapter remains self-contained in its own directory. Shared behavior is spe
 
 ## Status
 
-Lexicon now has a version-one fact contract and runnable first slices for Ruby, Python, GDScript, Rust, and TypeScript. Each adapter provides deterministic repository structure, declarations, imports, containment, and language-appropriate inheritance or implementation evidence. Some adapters also provide bounded direct call or reference evidence where the first parser slice can resolve it soundly.
+Lexicon now has a version-one fact contract, a complete Go semantic adapter, and runnable first slices for Ruby, Python, GDScript, Rust, and TypeScript. Each adapter provides deterministic repository structure, declarations, imports, containment, and language-appropriate inheritance or implementation evidence. Some adapters also provide bounded direct call or reference evidence where the first parser slice can resolve it soundly.
 
-These are functional foundations rather than complete semantic analyzers. Dynamic dispatch, generated code, framework-specific behavior, external-package resolution, and deeper type or call analysis remain explicit later work. Unsupported or ambiguous relationships are emitted as unresolved facts rather than guessed edges.
+The non-Go adapters are functional foundations rather than complete semantic analyzers. Go includes type-aware internal and external calls, SSA/VTA possible dispatch, interfaces, closures, captures, conversions, and build-tag variants. Unsupported or ambiguous relationships remain unresolved rather than guessed.
 
 ## License
 
