@@ -67,7 +67,7 @@ spec/
 tools/
 ```
 
-Each adapter remains self-contained in its own directory. Shared behavior is specified by contract and fixtures rather than a cross-runtime helper library.
+Each adapter remains self-contained in its own directory. Shared behavior is specified by contract and fixtures rather than a cross-runtime helper library. See [`docs/RELEASE_PACKAGING.md`](docs/RELEASE_PACKAGING.md) for distribution builds and runtime requirements.
 
 ## Status
 
