@@ -106,3 +106,22 @@ func TestLanguagesListReportsConfiguredSelection(t *testing.T) {
 		t.Fatalf("languages output = %q", stdout.String())
 	}
 }
+
+func TestDemonReplacesDaemonCommand(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := Run([]string{"help"}, &stdout, &stderr); code != 0 {
+		t.Fatalf("help returned %d", code)
+	}
+	if !strings.Contains(stdout.String(), "demon") || strings.Contains(stdout.String(), "daemon") {
+		t.Fatalf("unexpected help output: %q", stdout.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	if code := Run([]string{"daemon"}, &stdout, &stderr); code != 2 {
+		t.Fatalf("daemon returned %d, want 2", code)
+	}
+	if !strings.Contains(stderr.String(), `unknown command "daemon"`) {
+		t.Fatalf("unexpected daemon error: %q", stderr.String())
+	}
+}

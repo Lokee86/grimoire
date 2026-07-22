@@ -29,8 +29,8 @@ func Run(arguments []string, stdout, stderr io.Writer) int {
 		err = runInit(ctx, arguments[1:], stdout, stderr)
 	case "scan":
 		err = runScan(ctx, arguments[1:], stdout, stderr)
-	case "daemon":
-		err = runDaemon(ctx, arguments[1:], stdout, stderr)
+	case "demon":
+		err = runDemon(ctx, arguments[1:], stdout, stderr)
 	case "rebuild":
 		err = runRebuild(ctx, arguments[1:], stdout, stderr)
 	case "export":
@@ -133,8 +133,8 @@ func runScan(ctx context.Context, arguments []string, stdout, stderr io.Writer) 
 	return nil
 }
 
-func runDaemon(ctx context.Context, arguments []string, stdout, stderr io.Writer) error {
-	flags := flag.NewFlagSet("daemon", flag.ContinueOnError)
+func runDemon(ctx context.Context, arguments []string, stdout, stderr io.Writer) error {
+	flags := flag.NewFlagSet("demon", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	repository := flags.String("repo", "", "repository to watch")
 	debounce := flags.Duration("debounce", 150*time.Millisecond, "quiet period before scanning changes")
@@ -150,10 +150,10 @@ func runDaemon(ctx context.Context, arguments []string, stdout, stderr io.Writer
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(stdout, "Lexicon daemon watching %s\n", scanner.Repository)
+	fmt.Fprintf(stdout, "Lexicon demon watching %s\n", scanner.Repository)
 	return lexwatch.Run(ctx, scanner, lexwatch.Options{Debounce: *debounce, Reconcile: *reconcile, Output: stderr})
 }
 
 func usage(output io.Writer) {
-	fmt.Fprintln(output, "Usage: lexicon <init|scan|daemon|rebuild|export|gc|languages|consumer|status|doctor|version> [options]")
+	fmt.Fprintln(output, "Usage: lexicon <init|scan|demon|rebuild|export|gc|languages|consumer|status|doctor|version> [options]")
 }

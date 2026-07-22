@@ -115,7 +115,7 @@ func Run(ctx context.Context, scanner *scan.Scanner, options Options) error {
 				report, scanErr = scanner.ScanPaths(ctx, paths)
 			}
 			if scanErr != nil {
-				fmt.Fprintf(options.Output, "lexicon daemon scan failed: %v\n", scanErr)
+				fmt.Fprintf(options.Output, "lexicon demon scan failed: %v\n", scanErr)
 				continue
 			}
 			writeReport(options.Output, "watch", report)

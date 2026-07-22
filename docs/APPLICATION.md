@@ -24,7 +24,7 @@ The `lexicon consumer` commands and `internal/consumer` package expose list, add
 ```text
 lexicon init [--repo PATH] [--adapters PATH] [--languages all|LIST]
 lexicon scan [--repo PATH]
-lexicon daemon [--repo PATH] [--debounce 150ms] [--reconcile 30s]
+lexicon demon [--repo PATH] [--debounce 150ms] [--reconcile 30s]
 lexicon rebuild [--repo PATH] [--languages LIST]
 lexicon languages [list] [--repo PATH]
 lexicon languages set [--repo PATH] --languages all|LIST
@@ -43,7 +43,7 @@ lexicon version
 
 `lexicon scan` replaces the private source mirror with the repository's current relevant files. The private Git repository supplies the diff from the last successful scan. For ordinary source-file modifications, Lexicon expands changed paths through the previous snapshot's reverse dependency graph, requests incremental records for that impacted file set, merges them into the materialized language library, and publishes a new immutable snapshot. Structural changes and adapter fingerprint changes use complete-language analysis.
 
-`lexicon daemon` watches the repository recursively and invokes the same scan transaction after a debounce. A periodic complete reconciliation repairs missed filesystem events.
+`lexicon demon` watches the repository recursively and invokes the same scan transaction after a debounce. A periodic complete reconciliation repairs missed filesystem events.
 
 `lexicon rebuild` forces complete analysis of all enabled detected languages or an explicit enabled subset. `lexicon languages set` updates the configured selection, removes disabled libraries, scans immediately, and publishes the resulting snapshot.
 
@@ -114,7 +114,7 @@ destination file.
 
 ## Transaction and recovery
 
-Only one process may update a repository at a time. Manual scans and daemon updates acquire the same advisory lock; a competing writer receives an explicit busy error.
+Only one process may update a repository at a time. Manual scans and demon updates acquire the same advisory lock; a competing writer receives an explicit busy error.
 
 Before each scan, Lexicon restores the materialized library from the last internal commit. A crash before commit therefore leaves no accepted library changes. A crash after the internal commit but before snapshot publication is repaired by the next scan, which reconstructs and republishes the snapshot without rerunning adapters when the source diff is empty.
 
@@ -130,6 +130,6 @@ Additions, deletions, renames, copies, language configuration changes, missing p
 
 ## Watch behavior
 
-The daemon ignores Git metadata, Lexicon state, linked worktrees, dependency directories, and build outputs. An optional repository-root `.lexiconignore` adds gitignore-compatible patterns, including comments, globs, `**`, path hierarchy, and `!` negation, on top of those permanent exclusions. Ignored files are omitted from complete mirror scans, path syncs, and daemon watch filtering. Permanent exclusions cannot be re-included by `.lexiconignore`; they include `.git/`, `.worktrees/`, `.workingtrees/`, the Warlock state directories, `node_modules/`, `vendor/`, `target/`, `dist/`, `build/`, `.venv/`, `venv/`, `__pycache__/`, and `.pytest_cache/`.
+The demon ignores Git metadata, Lexicon state, linked worktrees, dependency directories, and build outputs. An optional repository-root `.lexiconignore` adds gitignore-compatible patterns, including comments, globs, `**`, path hierarchy, and `!` negation, on top of those permanent exclusions. Ignored files are omitted from complete mirror scans, path syncs, and demon watch filtering. Permanent exclusions cannot be re-included by `.lexiconignore`; they include `.git/`, `.worktrees/`, `.workingtrees/`, the Warlock state directories, `node_modules/`, `vendor/`, `target/`, `dist/`, `build/`, `.venv/`, `venv/`, `__pycache__/`, and `.pytest_cache/`.
 
-The daemon keeps the loaded ignore policy in memory while processing filesystem events. A change to `.lexiconignore` reloads the policy, refreshes recursive watches, and triggers a complete scan. New directories are watched recursively. Deletes and renames remove their mirrored paths. Watcher errors trigger an immediate full reconciliation, and the configured reconciliation interval provides an additional recovery path.
+The demon keeps the loaded ignore policy in memory while processing filesystem events. A change to `.lexiconignore` reloads the policy, refreshes recursive watches, and triggers a complete scan. New directories are watched recursively. Deletes and renames remove their mirrored paths. Watcher errors trigger an immediate full reconciliation, and the configured reconciliation interval provides an additional recovery path.

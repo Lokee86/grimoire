@@ -37,7 +37,7 @@ Lexicon includes a standalone application that maintains the most recently obser
 ```text
 lexicon init [--languages all|LIST]
 lexicon scan
-lexicon daemon
+lexicon demon
 lexicon rebuild [--languages LIST]
 lexicon languages [list|set]
 lexicon status
@@ -48,15 +48,15 @@ lexicon consumer <list|add|remove|run>
 lexicon version
 ```
 
-`init` performs the first complete scan. `scan` updates only impacted facts when safe. `daemon` triggers the same transaction from filesystem events. `rebuild` forces complete analysis, adapter fingerprint changes automatically rebuild affected languages, and language selection can disable unused runtimes. The remaining commands inspect health, manage downstream consumers, export verified JSONL libraries, and prune unreachable immutable storage. See [`docs/APPLICATION.md`](docs/APPLICATION.md).
+`init` performs the first complete scan. `scan` updates only impacted facts when safe. `demon` triggers the same transaction from filesystem events. `rebuild` forces complete analysis, adapter fingerprint changes automatically rebuild affected languages, and language selection can disable unused runtimes. The remaining commands inspect health, manage downstream consumers, export verified JSONL libraries, and prune unreachable immutable storage. See [`docs/APPLICATION.md`](docs/APPLICATION.md).
 
 ### Ignore policy
 
-An optional repository-root `.lexiconignore` controls which otherwise relevant files Lexicon mirrors and watches. It uses gitignore-compatible patterns, including comments, globs, `**`, path hierarchy, and `!` negation. The policy is applied consistently to complete mirror scans, path syncs, and daemon watch filtering; changing `.lexiconignore` causes the daemon to reload the policy and perform a complete scan.
+An optional repository-root `.lexiconignore` controls which otherwise relevant files Lexicon mirrors and watches. It uses gitignore-compatible patterns, including comments, globs, `**`, path hierarchy, and `!` negation. The policy is applied consistently to complete mirror scans, path syncs, and demon watch filtering; changing `.lexiconignore` causes the demon to reload the policy and perform a complete scan.
 
 The permanent exclusions are always enforced and cannot be re-included by `.lexiconignore`: Git and worktree metadata, Warlock state directories (`.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, `.warlock/`), dependency directories (`node_modules/`, `vendor/`), and common build or tool state directories (`target/`, `dist/`, `build/`, `.venv/`, `venv/`, `__pycache__/`, `.pytest_cache/`).
 
-After every successful `scan`, Lexicon invokes registered one-shot consumers from `.lexicon/consumers/*.json`. This provides event-driven automation without requiring a consumer daemon: Arcana can register `arcana sync`, while the same registration also runs after daemon-triggered scans. Consumers receive `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID` in their environment.
+After every successful `scan`, Lexicon invokes registered one-shot consumers from `.lexicon/consumers/*.json`. This provides event-driven automation without requiring a consumer demon: Arcana can register `arcana sync`, while the same registration also runs after demon-triggered scans. Consumers receive `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID` in their environment.
 
 ## Repository layout
 

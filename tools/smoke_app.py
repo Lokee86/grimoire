@@ -150,12 +150,12 @@ def main() -> int:
         if restored_id != updated_id:
             raise RuntimeError("missing CURRENT pointer was not restored")
 
-        before_daemon = library.read_bytes()
+        before_demon = library.read_bytes()
         before_snapshot = current_path.read_bytes()
-        daemon = subprocess.Popen(
+        demon = subprocess.Popen(
             [
                 str(binary),
-                "daemon",
+                "demon",
                 "--repo",
                 str(repository),
                 "--debounce",
@@ -170,16 +170,16 @@ def main() -> int:
         try:
             time.sleep(0.5)
             source.write_text("def answer():\n    return 44\n", encoding="utf-8")
-            wait_for_change(library, before_daemon)
+            wait_for_change(library, before_demon)
             wait_for_change(current_path, before_snapshot)
             validate_snapshot(repository)
         finally:
-            daemon.terminate()
+            demon.terminate()
             try:
-                daemon.wait(timeout=5)
+                demon.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                daemon.kill()
-                daemon.wait(timeout=5)
+                demon.kill()
+                demon.wait(timeout=5)
 
         state = repository / ".lexicon" / "repo"
         count = subprocess.run(
