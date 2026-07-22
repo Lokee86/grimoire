@@ -66,6 +66,12 @@ Each snapshot manifest records the internal state commit, adapter and schema ver
 
 `CURRENT` contains the complete snapshot ID and is replaced atomically only after the internal state commit and every referenced object are durable. Consumers should resolve `CURRENT`, load the corresponding manifest, and then open its objects. They never need to observe the mutable mirror or materialized JSONL libraries.
 
+## Object garbage collection
+
+Objectstore garbage collection retains the snapshot named by `CURRENT` and the configured number of newest snapshot manifests. It also retains every snapshot named by a `snapshot_id` field in `.lexicon/consumer-state/*.json`; those pins protect consumer work that still refers to an older immutable snapshot. A pinned snapshot that is missing, or a pin file that is malformed or lacks a valid `snapshot_id`, is a hard error and aborts collection.
+
+The planner follows every preserved manifest's file and shared-object references. Execution deletes only unreferenced snapshot manifests and fact objects. Planning and deletion are deterministic, and execution rejects a plan if `CURRENT` changed after planning. `Store.GarbageCollect(options, dryRun)` performs the bounded plan-and-execute transaction; `dryRun` returns the same deletion lists without removing any files. The explicit planning and execution methods remain available when callers need to inspect a plan before applying it.
+
 ## Transaction and recovery
 
 Only one process may update a repository at a time. Manual scans and daemon updates acquire the same advisory lock; a competing writer receives an explicit busy error.
