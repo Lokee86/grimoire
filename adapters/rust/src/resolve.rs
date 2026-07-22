@@ -81,12 +81,33 @@ fn parent_module(module_qn: &str, crate_qn: &str) -> Option<String> {
     }
 }
 
-pub(crate) fn simple_use_path(tree: &UseTree) -> Option<String> {
-    let tokens = tree.to_token_stream().to_string();
-    if tokens.contains('{') || tokens.contains('*') || tokens.contains(" as ") {
-        return None;
+pub(crate) fn use_paths(tree: &UseTree) -> Option<Vec<String>> {
+    let mut paths = Vec::new();
+    collect_use_paths(tree, &[], &mut paths)?;
+    Some(paths)
+}
+
+fn collect_use_paths(tree: &UseTree, prefix: &[String], paths: &mut Vec<String>) -> Option<()> {
+    match tree {
+        UseTree::Path(path) => {
+            let mut next = prefix.to_vec();
+            next.push(path.ident.to_string());
+            collect_use_paths(&path.tree, &next, paths)
+        }
+        UseTree::Name(name) => {
+            let mut path = prefix.to_vec();
+            path.push(name.ident.to_string());
+            paths.push(path.join("::"));
+            Some(())
+        }
+        UseTree::Group(group) => {
+            for item in &group.items {
+                collect_use_paths(item, prefix, paths)?;
+            }
+            Some(())
+        }
+        UseTree::Glob(_) | UseTree::Rename(_) => None,
     }
-    Some(tokens.split_whitespace().collect::<String>())
 }
 
 pub(crate) fn normalized_tokens<T: ToTokens>(value: &T) -> String {
@@ -95,4 +116,25 @@ pub(crate) fn normalized_tokens<T: ToTokens>(value: &T) -> String {
         .to_string()
         .split_whitespace()
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expands_grouped_use_paths_and_rejects_unsupported_forms() {
+        let item: syn::ItemUse =
+            syn::parse_str("use crate::storage::{PackedGraph, write_packed};").unwrap();
+        assert_eq!(
+            use_paths(&item.tree),
+            Some(vec![
+                "crate::storage::PackedGraph".into(),
+                "crate::storage::write_packed".into(),
+            ])
+        );
+
+        let glob: syn::ItemUse = syn::parse_str("use super::*;").unwrap();
+        assert_eq!(use_paths(&glob.tree), None);
+    }
 }
