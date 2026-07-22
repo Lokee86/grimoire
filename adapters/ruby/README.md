@@ -33,9 +33,9 @@ python tools/validate_jsonl.py /path/to/facts.jsonl
 
 ## Supported slice
 
-The adapter emits repository, directory, file, module, type, method, constant, and import nodes; `contains` and `defines` declaration edges; `imports` edges for literal `require`, `require_relative`, and `load`; and `extends` edges for simple constant superclasses. File content IDs are SHA-256 identities of the original bytes, and all records are deterministically sorted with lexicographically ordered JSON object keys.
+The adapter emits repository, directory, file, module, type, method, constant, and import nodes; `contains` and `defines` declaration edges; `imports` edges for literal `require`, `require_relative`, and `load`; `extends` edges for simple constant superclasses; and conservative `calls` edges for bare calls that resolve to exactly one method defined on the same class or module owner. Call evidence retains repository-relative source spans and source-derived expressions. File content IDs are SHA-256 identities of the original bytes, and all records are deterministically sorted with lexicographically ordered JSON object keys.
 
-Dynamic require targets, common Ruby metaprogramming calls, singleton classes, alias/undef forms, and syntax that Ripper cannot represent as a complete AST produce unresolved records instead of guessed facts.
+Explicit receivers, inherited/framework dispatch, blocks, `send`, common Ruby metaprogramming calls, dynamic require targets, singleton classes, alias/undef forms, and syntax that Ripper cannot represent as a complete AST remain unresolved or unmodeled instead of being guessed.
 
 ## Tests
 

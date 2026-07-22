@@ -4,7 +4,7 @@ module LexiconRuby
   module RipperExtractor
     private
 
-    def visit(node, parent_id, namespace)
+    def visit(node, parent_id, namespace, in_block: false, skip_bare: false)
       return unless node.is_a?(Array)
 
       case node[0]
@@ -19,19 +19,28 @@ module LexiconRuby
       when :defs
         visit_method(node, parent_id, namespace, singleton: true)
       when :assign
-        visit_assignment(node, parent_id, namespace)
+        visit_assignment(node, parent_id, namespace, in_block: in_block)
       when :command
         process_call(node[1], node[2], parent_id, namespace)
-        visit(node[2], parent_id, namespace)
+        process_bare_call(node, node, parent_id, in_block: in_block)
+        visit(node[2], parent_id, namespace, in_block: in_block)
       when :command_call
         process_call(node[3], node[4], parent_id, namespace)
-        visit(node[1], parent_id, namespace)
-        visit(node[4], parent_id, namespace)
+        visit(node[1], parent_id, namespace, in_block: in_block, skip_bare: true)
+        visit(node[4], parent_id, namespace, in_block: in_block)
+      when :call
+        visit(node[1], parent_id, namespace, in_block: in_block, skip_bare: true)
       when :method_add_arg
         call = node[1]
         process_call(call_name_token(call), node[2], parent_id, namespace)
-        visit(call, parent_id, namespace)
-        visit(node[2], parent_id, namespace)
+        process_bare_call(node, call, parent_id, in_block: in_block) if bare_call_node?(call)
+        visit(call, parent_id, namespace, in_block: in_block)
+        visit(node[2], parent_id, namespace, in_block: in_block)
+      when :method_add_block
+        visit(node[1], parent_id, namespace, in_block: true)
+        visit(node[2], parent_id, namespace, in_block: true)
+      when :vcall
+        process_bare_call(node, node, parent_id, in_block: in_block, skip_bare: skip_bare)
       when :sclass
         add_unresolved(
           source: parent_id,
@@ -40,7 +49,7 @@ module LexiconRuby
           reason: "unsupported-form",
           span: span_for(first_token(node))
         )
-        visit_body(node[2], parent_id, namespace)
+        visit_body(node[2], parent_id, namespace, in_block: in_block)
       when :alias, :undef
         add_unresolved(
           source: parent_id,
@@ -50,19 +59,19 @@ module LexiconRuby
           span: span_for(first_token(node))
         )
       else
-        node.drop(1).each { |child| visit(child, parent_id, namespace) }
+        node.drop(1).each { |child| visit(child, parent_id, namespace, in_block: in_block, skip_bare: skip_bare) }
       end
     end
 
-    def visit_body(body, parent_id, namespace)
+    def visit_body(body, parent_id, namespace, in_block: false)
       return unless body
 
       if sexp_node?(body, :bodystmt)
-        body[1..].each { |part| visit(part, parent_id, namespace) }
+        body[1..].each { |part| visit_body(part, parent_id, namespace, in_block: in_block) }
       elsif body.is_a?(Array) && body.first.is_a?(Array)
-        body.each { |part| visit(part, parent_id, namespace) }
+        body.each { |part| visit(part, parent_id, namespace, in_block: in_block) }
       else
-        visit(body, parent_id, namespace)
+        visit(body, parent_id, namespace, in_block: in_block)
       end
     end
 
@@ -150,17 +159,19 @@ module LexiconRuby
       attributes["parameters"] = parameters unless parameters.empty?
       method_id = add_symbol("method", method_name, qualified_name, name_token, attributes)
       connect_declaration(parent_id, method_id, span_for(name_token))
+      @method_contexts[method_id] = { owner: owner_name, singleton: singleton }
+      @method_definitions[owner_name][method_name] << method_id unless owner_name.empty?
       visit_body(singleton ? node[4] : node[3], method_id, namespace)
     end
 
-    def visit_assignment(node, parent_id, namespace)
+    def visit_assignment(node, parent_id, namespace, in_block: false)
       name = const_name(node[1])
       if name
         qualified_name = qualify(namespace, name)
         constant_id = add_symbol("constant", name.split("::").last, qualified_name, node[1], {})
         connect_declaration(parent_id, constant_id, span_for(first_token(node[1])))
       end
-      visit(node[2], parent_id, namespace)
+      visit(node[2], parent_id, namespace, in_block: in_block)
     end
 
     def process_call(name_token, arguments, parent_id, namespace)
@@ -183,6 +194,48 @@ module LexiconRuby
           attributes: { "namespace" => namespace }
         )
       end
+    end
+
+    def bare_call_node?(node)
+      node.is_a?(Array) && %i[command fcall vcall].include?(node[0])
+    end
+
+    def process_bare_call(expression_node, call_node, source_id, in_block:, skip_bare: false)
+      return if in_block || skip_bare
+
+      context = @method_contexts[source_id]
+      return unless context && !context[:owner].empty?
+
+      name_token = call_name_token(call_node)
+      name = token_value(name_token)
+      return unless name
+      return if %w[require require_relative load].include?(name)
+      return if LexiconRuby::Contract::METAPROGRAMMING_CALLS.include?(name)
+
+      @pending_calls << {
+        source: source_id,
+        owner: context[:owner],
+        name: name,
+        expression: source_expression(expression_node),
+        span: span_for_expression(expression_node)
+      }
+    end
+
+    def span_for_expression(value)
+      tokens = collect_tokens(value)
+      return nil if tokens.empty?
+
+      first = tokens.first
+      last = tokens.last
+      start_line, start_column = first[2]
+      end_line, end_column = last[2]
+      {
+        "start_line" => start_line,
+        "start_column" => start_column + 1,
+        "end_line" => end_line,
+        "end_column" => end_column + last[1].to_s.length + 1,
+        "path" => @current_path
+      }
     end
 
     def process_import(name, name_token, arguments, parent_id)

@@ -24,6 +24,9 @@ class LexiconRubyAdapter
     @unresolved = []
     @type_nodes = Hash.new { |hash, key| hash[key] = [] }
     @pending_extends = []
+    @method_definitions = Hash.new { |hash, key| hash[key] = Hash.new { |inner, name| inner[name] = [] } }
+    @method_contexts = {}
+    @pending_calls = []
     @processed_calls = {}
     @source_lines = []
     @current_path = nil

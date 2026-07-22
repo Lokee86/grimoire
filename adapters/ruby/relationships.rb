@@ -41,6 +41,27 @@ module LexiconRuby
         )
         add_edge(source_id, target_id, "extends", span)
       end
+
+      resolve_local_calls
+    end
+
+    def resolve_local_calls
+      @pending_calls.each do |call|
+        method_ids = @method_definitions.dig(call[:owner], call[:name])
+        if method_ids.length == 1
+          add_edge(call[:source], method_ids.first, "calls", call[:span])
+          next
+        end
+
+        reason = method_ids.empty? ? "missing-target" : "ambiguous-target"
+        add_unresolved(
+          source: call[:source],
+          relation: "calls",
+          expression: call[:expression],
+          reason: reason,
+          span: call[:span]
+        )
+      end
     end
   end
 end
