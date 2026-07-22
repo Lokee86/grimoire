@@ -7,29 +7,42 @@ import (
 )
 
 const (
-	adapterVersion = "0.2.0"
+	adapterVersion = "0.3.0"
 	language       = "gdscript"
 )
 
 type sourceSpan = map[string]any
 
 type factSet struct {
-	nodes                     []map[string]any
-	edges                     []map[string]any
-	unresolved                []map[string]any
-	nodeByID                  map[string]map[string]any
-	edgeKeys                  map[string]struct{}
-	edgeOrderKeys             []string
-	unresolvedKeys            map[string]struct{}
-	unresolvedOrderKeys       []string
-	moduleByPath              map[string]string
-	classByName               map[string][]string
-	classByFileAndName        map[string]map[string][]string
-	methodByClassName         map[string]map[string][]string
-	methodByClassID           map[string]map[string][]string
-	preloadAliasByFileAndName map[string]map[string][]string
-	staticMethodByModulePath  map[string]map[string][]string
-	fileByPath                map[string]string
+	nodes                       []map[string]any
+	edges                       []map[string]any
+	unresolved                  []map[string]any
+	nodeByID                    map[string]map[string]any
+	edgeKeys                    map[string]struct{}
+	edgeOrderKeys               []string
+	unresolvedKeys              map[string]struct{}
+	unresolvedOrderKeys         []string
+	moduleByPath                map[string]string
+	classByName                 map[string][]string
+	classByFileAndName          map[string]map[string][]string
+	methodByClassName           map[string]map[string][]string
+	methodByClassID             map[string]map[string][]string
+	methodByOwnerID             map[string]map[string][]string
+	staticMethodByOwnerID       map[string]map[string][]string
+	typeByOwnerID               map[string]map[string][]string
+	ownerByFunctionID           map[string]string
+	declarationByID             map[string]*declaration
+	fileByDeclarationID         map[string]*parsedFile
+	declaredMemberByOwner       map[string]map[string]bool
+	declaredLocalByFunction     map[string]map[string]bool
+	parentByOwnerID             map[string][]string
+	externalParentByOwnerID     map[string]bool
+	scriptOwnerByPath           map[string]string
+	scriptOwnerCandidatesByPath map[string][]string
+	autoloadOwnerByName         map[string]string
+	preloadAliasByFileAndName   map[string]map[string][]string
+	staticMethodByModulePath    map[string]map[string][]string
+	fileByPath                  map[string]string
 }
 
 func node(kind, name, path, qualified, id string, span sourceSpan, content string, attributes ...map[string]any) map[string]any {
@@ -47,9 +60,16 @@ func node(kind, name, path, qualified, id string, span sourceSpan, content strin
 }
 
 func edge(source, target, relation string, span sourceSpan) map[string]any {
+	return edgeWithAttributes(source, target, relation, span, nil)
+}
+
+func edgeWithAttributes(source, target, relation string, span sourceSpan, attributes map[string]any) map[string]any {
 	record := map[string]any{"record": "edge", "relation": relation, "source": source, "target": target}
 	if span != nil {
 		record["span"] = span
+	}
+	if len(attributes) > 0 {
+		record["attributes"] = attributes
 	}
 	return record
 }
@@ -111,6 +131,68 @@ func (f *factSet) indexClassMethod(record map[string]any) {
 		}
 		f.methodByClassName[className][methodName] = append(f.methodByClassName[className][methodName], method["id"].(string))
 	}
+}
+
+func (f *factSet) indexDeclaration(pf *parsedFile, decl *declaration) {
+	if f.declarationByID == nil {
+		f.declarationByID = make(map[string]*declaration)
+		f.fileByDeclarationID = make(map[string]*parsedFile)
+		f.methodByOwnerID = make(map[string]map[string][]string)
+		f.staticMethodByOwnerID = make(map[string]map[string][]string)
+		f.typeByOwnerID = make(map[string]map[string][]string)
+		f.ownerByFunctionID = make(map[string]string)
+		f.declaredMemberByOwner = make(map[string]map[string]bool)
+		f.declaredLocalByFunction = make(map[string]map[string]bool)
+	}
+	f.declarationByID[decl.nodeID] = decl
+	f.fileByDeclarationID[decl.nodeID] = pf
+	if decl.kind == "variable" || decl.kind == "constant" {
+		if decl.ownerFunction != "" {
+			if f.declaredLocalByFunction[decl.ownerFunction] == nil {
+				f.declaredLocalByFunction[decl.ownerFunction] = make(map[string]bool)
+			}
+			f.declaredLocalByFunction[decl.ownerFunction][decl.name] = true
+		} else {
+			if f.declaredMemberByOwner[decl.ownerID] == nil {
+				f.declaredMemberByOwner[decl.ownerID] = make(map[string]bool)
+			}
+			f.declaredMemberByOwner[decl.ownerID][decl.name] = true
+		}
+	}
+	if decl.kind == "type" && decl.keyword != "class_name" {
+		if f.typeByOwnerID[decl.ownerID] == nil {
+			f.typeByOwnerID[decl.ownerID] = make(map[string][]string)
+		}
+		f.typeByOwnerID[decl.ownerID][decl.name] = append(f.typeByOwnerID[decl.ownerID][decl.name], decl.nodeID)
+		return
+	}
+	if decl.kind != "function" {
+		return
+	}
+	owner := decl.ownerID
+	if f.methodByOwnerID[owner] == nil {
+		f.methodByOwnerID[owner] = make(map[string][]string)
+	}
+	f.methodByOwnerID[owner][decl.name] = append(f.methodByOwnerID[owner][decl.name], decl.nodeID)
+	f.ownerByFunctionID[decl.nodeID] = owner
+	if decl.static {
+		if f.staticMethodByOwnerID[owner] == nil {
+			f.staticMethodByOwnerID[owner] = make(map[string][]string)
+		}
+		f.staticMethodByOwnerID[owner][decl.name] = append(f.staticMethodByOwnerID[owner][decl.name], decl.nodeID)
+	}
+}
+
+func (f *factSet) indexParent(source, target string) {
+	if f.parentByOwnerID == nil {
+		f.parentByOwnerID = make(map[string][]string)
+	}
+	for _, existing := range f.parentByOwnerID[source] {
+		if existing == target {
+			return
+		}
+	}
+	f.parentByOwnerID[source] = append(f.parentByOwnerID[source], target)
 }
 
 func (f *factSet) indexClassDeclaration(path, name, id string) {
