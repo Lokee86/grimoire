@@ -7,6 +7,7 @@ import (
 
 	"github.com/Lokee86/lexicon/internal/adapters"
 	"github.com/Lokee86/lexicon/internal/config"
+	"github.com/Lokee86/lexicon/internal/consumer"
 	"github.com/Lokee86/lexicon/internal/lock"
 	"github.com/Lokee86/lexicon/internal/objectstore"
 	"github.com/Lokee86/lexicon/internal/state"
@@ -101,11 +102,23 @@ func New(repository, stateRoot string, gitRepository *state.Repository, analyzer
 }
 
 func (s *Scanner) Scan(ctx context.Context) (Report, error) {
-	return s.scan(ctx, func() error { return s.Mirror.SyncAll(s.Repository) })
+	report, err := s.scan(ctx, func() error { return s.Mirror.SyncAll(s.Repository) })
+	return s.notifyConsumers(ctx, report, err)
 }
 
 func (s *Scanner) ScanPaths(ctx context.Context, paths []string) (Report, error) {
-	return s.scan(ctx, func() error { return s.Mirror.SyncPaths(s.Repository, paths) })
+	report, err := s.scan(ctx, func() error { return s.Mirror.SyncPaths(s.Repository, paths) })
+	return s.notifyConsumers(ctx, report, err)
+}
+
+func (s *Scanner) notifyConsumers(ctx context.Context, report Report, scanErr error) (Report, error) {
+	if scanErr != nil {
+		return report, scanErr
+	}
+	if err := consumer.Run(ctx, s.Repository, s.Store.Root, report.SnapshotID, s.Output); err != nil {
+		return report, err
+	}
+	return report, nil
 }
 
 func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, error) {

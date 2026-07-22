@@ -27,7 +27,7 @@ Every adapter must:
 - normalize repository paths to forward-slash relative paths;
 - use SHA-256 stable identities defined by the contract;
 - distinguish definite relationships from unresolved or ambiguous references;
-- exclude `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, and common language build/vendor directories;
+- exclude `.git/`, worktree metadata, common language build/vendor directories, and every Warlock state directory: `.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, and `.warlock/`;
 - avoid embedding consumer-specific policy or storage assumptions.
 
 ## Application
@@ -41,6 +41,8 @@ lexicon daemon
 ```
 
 `init` performs the first complete scan. `scan` replaces Lexicon's private source mirror, uses its internal Git diff and previous snapshot dependencies to update only impacted file records when safe, and publishes an immutable content-addressed snapshot. `daemon` watches the filesystem, updates changed paths after a short debounce, and periodically reconciles the complete repository. See [`docs/APPLICATION.md`](docs/APPLICATION.md).
+
+After every successful `scan`, Lexicon invokes registered one-shot consumers from `.lexicon/consumers/*.json`. This provides event-driven automation without requiring a consumer daemon: Arcana can register `arcana sync`, while the same registration also runs after daemon-triggered scans. Consumers receive `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID` in their environment.
 
 ## Repository layout
 

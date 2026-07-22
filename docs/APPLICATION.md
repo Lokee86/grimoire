@@ -2,6 +2,20 @@
 
 Lexicon keeps the most recently observed relevant repository state. It does not follow the source repository's commits, index, staging area, or branches.
 
+## Post-publication consumers
+
+Lexicon can invoke deterministic one-shot consumers after a successful scan has published or confirmed the current immutable snapshot. Consumer definitions live under `.lexicon/consumers/*.json`:
+
+```json
+{
+  "version": 1,
+  "command": "/absolute/path/to/arcana",
+  "args": ["sync", "--lexicon", "/repo/.lexicon", "--state", "/repo/.arcana"]
+}
+```
+
+Commands execute directly without a shell, in lexical filename order, with the repository as their working directory. Lexicon provides `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID`. A failed consumer fails the scan command and is retried on a later scan; the already-published Lexicon snapshot remains valid.
+
 ## Commands
 
 ```text
@@ -23,6 +37,8 @@ lexicon daemon [--repo PATH] [--debounce 150ms] [--reconcile 30s]
     config.json
     CURRENT
     LOCK
+    consumers/
+        arcana.json
     objects/
         ab/cdef...
     snapshots/
