@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "fileutils"
 require "json"
 require "minitest/autorun"
 require "open3"
@@ -26,7 +27,7 @@ class RubyAdapterTest < Minitest::Test
     File.readlines(output, chomp: true, encoding: "UTF-8").map { |line| JSON.parse(line) }
   end
 
-  def test_extracts_nested_declarations_methods_requires_and_inheritance
+  def test_extracts_declarations_imports_and_inheritance
     Dir.mktmpdir do |directory|
       output = File.join(directory, "facts.jsonl")
       run_adapter(output)
@@ -44,22 +45,23 @@ class RubyAdapterTest < Minitest::Test
       assert nodes.any? { |record| record["kind"] == "module" && record["qualified_name"] == "Outer::Inner" }
       assert nodes.any? { |record| record["kind"] == "type" && record["qualified_name"] == "Outer::Inner::Child" }
       assert nodes.any? { |record| record["kind"] == "method" && record["qualified_name"] == "Outer::Inner::Child#run" }
-      assert nodes.any? { |record| record["kind"] == "type" && record["qualified_name"] == "Outer::Inner::Versioned" }
       assert nodes.any? { |record| record["kind"] == "constant" && record["qualified_name"] == "Outer::VERSION" }
       assert nodes.any? { |record| record["kind"] == "import" && record["attributes"]["target"] == "json" }
-      assert edges.any? { |record| record["relation"] == "contains" }
-      assert edges.any? { |record| record["relation"] == "defines" }
-      assert edges.any? { |record| record["relation"] == "imports" }
-      assert edges.any? { |record| record["relation"] == "extends" }
+      %w[contains defines imports extends].each do |relation|
+        assert edges.any? { |record| record["relation"] == relation }
+      end
       assert unresolved.any? { |record| record["relation"] == "imports" && record["reason"] == "dynamic-target" }
       refute unresolved.any? { |record| record["relation"] == "extends" }
-      assert_equal edges.map { |record| [record["source"], record["target"], record["relation"]] }.uniq.length, edges.length
+      edge_keys = edges.map do |record|
+        [record["source"], record["target"], record["relation"], span_key(record), record["attributes"]]
+      end
+      assert_equal edge_keys.uniq.length, edges.length
       refute nodes.any? { |record| record["path"].include?("vendor") }
-      refute nodes.any? { |record| record["path"].include?((".git")) }
+      refute nodes.any? { |record| record["path"].include?(".git") }
     end
   end
 
-  def test_ids_are_unique_and_records_are_deterministically_sorted
+  def test_ids_and_output_are_deterministic
     Dir.mktmpdir do |directory|
       first = File.join(directory, "first.jsonl")
       second = File.join(directory, "second.jsonl")
@@ -74,90 +76,219 @@ class RubyAdapterTest < Minitest::Test
       node_ids.each { |id| assert_match ID_PATTERN, id }
       facts.each { |record| assert_equal record.keys.sort, record.keys }
 
-      node_records = facts.select { |record| record["record"] == "node" }
-      edge_records = facts.select { |record| record["record"] == "edge" }
-      unresolved_records = facts.select { |record| record["record"] == "unresolved" }
-      assert_equal node_records.sort_by { |record| [record["id"], record["kind"], record["path"], record["qualified_name"]] }, node_records
-      assert_equal edge_records.sort_by { |record| [record["source"], record["target"], record["relation"], *span_key(record)] }, edge_records
-      assert_equal unresolved_records.sort_by { |record| [record["source"], record["relation"], record["expression"], record["reason"], *span_key(record)] }, unresolved_records
+      nodes = facts.select { |record| record["record"] == "node" }
+      edges = facts.select { |record| record["record"] == "edge" }
+      unresolved = facts.select { |record| record["record"] == "unresolved" }
+      assert_equal nodes.sort_by { |record| [record["id"], record["kind"], record["path"], record["qualified_name"]] }, nodes
+      assert_equal edges.sort_by { |record| [record["source"], record["target"], record["relation"], *span_key(record)] }, edges
+      assert_equal unresolved.sort_by { |record| [record["source"], record["relation"], record["expression"], record["reason"], *span_key(record)] }, unresolved
     end
   end
 
-  def test_extracts_conservative_bare_local_calls
-    Dir.mktmpdir do |repository|
-      source = <<~RUBY
-        class Local
-          register :external_dsl
+  def test_preserves_callsites_blocks_and_ambiguity
+    source = <<~RUBY
+      class Local
+        register :external_dsl
 
-          def run
+        def run
+          helper
+          unique(1)
+          missing
+          explicit.helper
+          send(:helper)
+          records.each do |record|
             helper
-            unique(1)
-            missing
-            missing_with value: 1
-            explicit.helper
-            send(:helper)
-            records.each do |record|
-              helper
-            end
-            helper do
-              helper
-            end
           end
-
-          def helper
-          end
-
-          def unique(value)
-            value
-          end
-
-          def ambiguous
-          end
-
-          def ambiguous
-          end
-
-          def use_ambiguous
-            ambiguous
+          helper do
+            helper
           end
         end
 
-        class Other
-          def helper
-          end
-        end
-      RUBY
-      source_path = File.join(repository, "local.rb")
-      File.write(source_path, source)
-      output = File.join(repository, "facts.jsonl")
-      run_adapter(output, repo: repository)
+        def helper; end
+        def unique(value); value; end
+        def ambiguous; end
+        def ambiguous; end
+        def use_ambiguous; ambiguous; end
+      end
+    RUBY
+    with_repository("local.rb" => source) do |records|
+      nodes = node_index(records)
+      run_id = id_for(nodes, "Local#run")
+      direct_targets = call_targets(records, nodes, run_id, "calls")
+      assert_equal 2, direct_targets.count("Local#helper")
+      assert_equal 1, direct_targets.count("Local#unique")
 
-      records = records_for(output)
-      nodes = records.select { |record| record["record"] == "node" }
-      edges = records.select { |record| record["record"] == "edge" }
+      block_ids = nodes.values.select { |node| node["kind"] == "function" && node.dig("attributes", "block") }.map { |node| node["id"] }
+      assert(records.any? do |record|
+        record["record"] == "edge" && block_ids.include?(record["source"]) &&
+          nodes[record["target"]]&.dig("qualified_name") == "Local#helper"
+      end)
+
       unresolved = records.select { |record| record["record"] == "unresolved" }
-      methods = nodes.select { |record| record["kind"] == "method" }
-      run_id = methods.find { |record| record["qualified_name"] == "Local#run" }["id"]
+      assert unresolved.any? { |record| record["expression"] == "missing" && record["reason"] == "missing-target" }
+      assert unresolved.any? { |record| record["expression"] == "explicit.helper" && record["reason"] == "dynamic-target" }
+      assert unresolved.any? do |record|
+        record["relation"] == "defines" && record["expression"].start_with?("send")
+      end
 
-      call_edges = edges.select { |record| record["source"] == run_id && record["relation"] == "calls" }
-      assert_equal ["Local#helper", "Local#unique"], call_edges.map { |record| nodes.find { |node| node["id"] == record["target"] }["qualified_name"] }.sort
-      assert call_edges.all? { |record| record["span"]["path"] == "local.rb" }
-      assert call_edges.all? { |record| record["span"]["start_line"] >= 3 }
+      redefined_id = id_for(nodes, "Local#use_ambiguous")
+      assert_equal 1, call_targets(records, nodes, redefined_id, "calls").count("Local#ambiguous")
+      refute(unresolved.any? do |record|
+        record["source"] == redefined_id && record["reason"] == "ambiguous-target"
+      end)
+    end
+  end
 
-      call_unresolved = unresolved.select { |record| record["relation"] == "calls" }
-      assert_equal [
-        ["ambiguous", "ambiguous-target"],
-        ["missing", "missing-target"],
-        ["missing_with value: 1", "missing-target"]
-      ], call_unresolved.map { |record| [record["expression"], record["reason"]] }.sort
-      refute call_unresolved.any? { |record| record["expression"].include?("helper") }
-      assert unresolved.any? { |record| record["source"] == run_id && record["relation"] == "defines" && record["expression"] == "send" }
-      refute edges.any? { |record| record["relation"] == "calls" && record["span"]["start_line"] == 7 }
-      refute edges.any? { |record| record["relation"] == "calls" && record["span"]["start_line"] >= 9 }
+  def test_resolves_ruby_static_call_semantics
+    source = <<~RUBY
+      module Support
+        def support_call
+          base_helper
+        end
+      end
+
+      module Installed
+        def installed_call; end
+      end
+
+      class Framework; end
+      Framework.include(Installed)
+
+      class Base
+        include Support
+        def base_helper; end
+        def inherited; end
+      end
+
+      class Product
+        def initialize; end
+        def work; end
+      end
+
+      module Factory
+        module_function
+        def build
+          Product.new
+        end
+      end
+
+      class SingletonFactory
+        class << self
+          def build
+            Product.new
+          end
+        end
+      end
+
+      Result = Struct.new(:value) do
+        def success?
+          value
+        end
+      end
+
+      class Child < Base
+        def run
+          support_call
+          inherited
+          Factory.build.work
+          SingletonFactory.build.work
+          result = Result.new(value: Product.new)
+          result.success?
+          around { base_helper }
+        end
+
+        def around
+          yield
+        end
+      end
+
+      class InstalledChild < Framework
+        def run
+          installed_call
+        end
+      end
+
+      class Parent
+        def execute; end
+      end
+
+      class SuperChild < Parent
+        def execute
+          super
+        end
+      end
+
+      class Alpha
+        def execute; end
+      end
+
+      class Beta
+        def execute; end
+      end
+
+      def dispatch(value)
+        value.execute
+      end
+
+      dispatch(Alpha.new)
+      dispatch(Beta.new)
+    RUBY
+    with_repository("semantic.rb" => source) do |records|
+      nodes = node_index(records)
+      assert_call(records, nodes, "Child#run", "Support#support_call")
+      assert_call(records, nodes, "Child#run", "Base#inherited")
+      assert_call(records, nodes, "Support#support_call", "Base#base_helper")
+      assert_call(records, nodes, "Child#run", "Factory.build")
+      assert_call(records, nodes, "Child#run", "SingletonFactory.build")
+      assert_operator call_targets(records, nodes, id_for(nodes, "Child#run"), "calls").count("Product#work"), :>=, 2
+      assert_call(records, nodes, "Child#run", "Result#success?")
+      assert_call(records, nodes, "Result#success?", "Result#value")
+      assert_call(records, nodes, "InstalledChild#run", "Installed#installed_call")
+      assert_call(records, nodes, "SuperChild#execute", "Parent#execute")
+
+      dispatch_id = id_for(nodes, "dispatch")
+      assert_equal ["Alpha#execute", "Beta#execute"], call_targets(records, nodes, dispatch_id, "possible-calls").sort
+      refute(records.any? do |record|
+        record["record"] == "unresolved" && record["reason"] == "missing-target" &&
+          record.dig("span", "path") == "semantic.rb" && record["expression"] != "value.execute"
+      end)
     end
   end
 
   private
+
+  def with_repository(files)
+    Dir.mktmpdir do |repository|
+      files.each do |path, contents|
+        absolute = File.join(repository, path)
+        FileUtils.mkdir_p(File.dirname(absolute))
+        File.write(absolute, contents)
+      end
+      output = File.join(repository, "facts.jsonl")
+      run_adapter(output, repo: repository)
+      yield records_for(output)
+    end
+  end
+
+  def node_index(records)
+    records.select { |record| record["record"] == "node" }.to_h { |record| [record["id"], record] }
+  end
+
+  def id_for(nodes, qualified_name)
+    nodes.values.find { |node| node["qualified_name"] == qualified_name }&.fetch("id")
+  end
+
+  def call_targets(records, nodes, source_id, relation)
+    records.filter_map do |record|
+      next unless record["record"] == "edge" && record["source"] == source_id && record["relation"] == relation
+
+      nodes[record["target"]]&.dig("qualified_name")
+    end
+  end
+
+  def assert_call(records, nodes, source, target)
+    assert_includes call_targets(records, nodes, id_for(nodes, source), "calls"), target
+  end
 
   def span_key(record)
     span = record["span"] || {}

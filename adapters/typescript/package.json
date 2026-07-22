@@ -1,11 +1,11 @@
 {
   "name": "lexicon-typescript-adapter",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
-  "description": "Self-contained Lexicon TypeScript compiler API adapter",
+  "description": "Self-contained Lexicon JavaScript and TypeScript compiler API adapter",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test tests/adapter.test.js",
+    "test": "npm run build && node --test tests/*.test.js",
     "validate": "node dist/cli.js --help"
   },
   "dependencies": {

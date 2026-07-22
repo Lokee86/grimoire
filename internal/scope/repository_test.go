@@ -20,6 +20,22 @@ func TestBuildCopiesOnlySelectedSourcesAndLanguageConfiguration(t *testing.T) {
 	assertMissing(t, filepath.Join(repository, "b.py"))
 }
 
+func TestBuildScopesJavaScriptAndCopiesJavaScriptConfiguration(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "src/a.js", "export const value = 1;\n")
+	writeFixture(t, root, "src/b.js", "export const value = 2;\n")
+	writeFixture(t, root, "jsconfig.json", "{\"compilerOptions\":{}}\n")
+	writeFixture(t, root, "package.json", "{\"type\":\"module\"}\n")
+	repository, err := Build(root, t.TempDir(), "typescript", []string{"src/a.js"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertExists(t, filepath.Join(repository, "src", "a.js"))
+	assertExists(t, filepath.Join(repository, "jsconfig.json"))
+	assertExists(t, filepath.Join(repository, "package.json"))
+	assertMissing(t, filepath.Join(repository, "src", "b.js"))
+}
+
 func TestBuildExpandsGoPackageCompanions(t *testing.T) {
 	root := t.TempDir()
 	writeFixture(t, root, "go.mod", "module example.com/test\n")

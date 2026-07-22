@@ -22,11 +22,19 @@ export type PendingRelationship = {
 };
 
 export type PendingCall = {
-  expression: ts.CallExpression | ts.NewExpression;
-  kind: "call" | "constructor";
+  expression: ts.CallExpression | ts.NewExpression | ts.TaggedTemplateExpression | ts.JsxOpeningLikeElement;
+  kind: "call" | "constructor" | "tagged-template" | "jsx";
   moduleKey: string;
   scope: string[];
   source: string;
+  sourceFile: ts.SourceFile;
+};
+
+export type PendingCallableAlias = {
+  source: string;
+  expressions: ts.Expression[];
+  moduleKey: string;
+  scope: string[];
   sourceFile: ts.SourceFile;
 };
 
@@ -77,8 +85,22 @@ export class FactStore {
   readonly reexports: PendingReexport[] = [];
   readonly relationships: PendingRelationship[] = [];
   readonly calls: PendingCall[] = [];
+  readonly declarationIds = new Map<ts.Node, string>();
+  readonly idDeclarations = new Map<string, ts.Node[]>();
+  readonly callableAliases: PendingCallableAlias[] = [];
+  readonly defaultExports = new Map<string, ts.Expression>();
+  readonly defaultExportIds = new Map<string, string>();
+  readonly commonJsExports = new Map<string, Map<string, ts.Expression>>();
 
-  constructor(readonly repository: string) {}
+  constructor(readonly repository: string, readonly root: string) {}
+
+  registerDeclaration(node: ts.Node | undefined, id: string): void {
+    if (!node) return;
+    this.declarationIds.set(node, id);
+    const declarations = this.idDeclarations.get(id) ?? [];
+    if (!declarations.includes(node)) declarations.push(node);
+    this.idDeclarations.set(id, declarations);
+  }
 
   addNode(
     kind: string,

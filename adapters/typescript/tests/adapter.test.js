@@ -88,6 +88,34 @@ function makeFixture() {
       "}",
       "",
     ].join("\n"),
+    "src/semantics.ts": [
+      "export interface Runner { run(): string }",
+      "export class BaseRunner implements Runner { run(): string { return 'base'; } }",
+      "export class ChildRunner extends BaseRunner { run(): string { return 'child'; } }",
+      "export class Worker { run(): void {} }",
+      "export function localCallback(): void {}",
+      "export function invokeRunner(runner: Runner): string { return runner.run(); }",
+      "export function exactRunner(): string { return new ChildRunner().run(); }",
+      "export function invokeCallback(callback: () => void): void { callback(); }",
+      "export function higherOrder(): void { invokeCallback(localCallback); }",
+      "export function methodCalls(worker: Worker): void { worker.run(); worker?.run(); }",
+      "export const arrowCallable = () => 1;",
+      "export function arrowCaller(): number { return arrowCallable(); }",
+      "export function tag(strings: TemplateStringsArray): string { return strings[0]; }",
+      "export function taggedCaller(): string { return tag`value`; }",
+      "",
+    ].join("\n"),
+    "src/default-component.tsx": [
+      "export function InnerComponent(): null { return null; }",
+      "export const AssignedComponent = Object.assign(InnerComponent, {});",
+      "export default AssignedComponent;",
+      "",
+    ].join("\n"),
+    "src/default-consumer.tsx": [
+      'import DefaultComponent from "./default-component";',
+      "export function RenderDefault() { return <DefaultComponent />; }",
+      "",
+    ].join("\n"),
     "src/through-barrel.ts": [
       'import { RenamedBase, RenamedNamed } from "./barrel";',
       "export class Through extends RenamedBase implements RenamedNamed {}",
@@ -166,7 +194,7 @@ test("extracts TypeScript declarations, imports, exports, inheritance, and exclu
   const unresolved = recordsOf(records, "unresolved");
 
   assert.deepEqual(records[0], {
-    adapter_version: "0.2.0",
+    adapter_version: "0.4.0",
     language: "typescript",
     record: "lexicon",
     repository: path.basename(repo),
@@ -233,15 +261,56 @@ test("emits conservative direct function and constructor call facts", () => {
   const localWorker = nodes.find((record) => record.qualified_name === "src/calls.LocalWorker");
   const importedWorker = nodes.find((record) => record.qualified_name === "src/call-targets.ImportedWorker");
   const aliasTarget = nodes.find((record) => record.qualified_name === "src/alias-target.AliasTarget");
-  assert.ok(caller && method && localHelper && importedHelper && localWorker && importedWorker && aliasTarget);
-  for (const target of [localHelper, importedHelper]) assert.ok(edges.some((record) => record.source === caller.id && record.target === target.id && record.relation === "calls"));
+  const overloaded = nodes.find((record) => record.qualified_name === "src/calls.overloaded");
+  const callable = nodes.find((record) => record.qualified_name === "src/calls.callable");
+  assert.ok(caller && method && localHelper && importedHelper && localWorker && importedWorker && aliasTarget && overloaded && callable);
+  for (const target of [localHelper, importedHelper, overloaded, callable]) assert.ok(edges.some((record) => record.source === caller.id && record.target === target.id && record.relation === "calls"));
   for (const target of [localWorker, importedWorker, aliasTarget]) assert.ok(edges.some((record) => record.source === caller.id && record.target === target.id && record.relation === "calls"));
   assert.ok(edges.some((record) => record.source === method.id && record.target === localHelper.id && record.relation === "calls"));
   assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "external-target" && record.candidate_name === "externalHelper"));
   assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "missing-target" && record.candidate_name === "MissingHelper"));
-  assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "unsupported-form" && record.expression === "worker.run()"));
-  assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "ambiguous-target" && record.candidate_name === "overloaded"));
-  assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "unsupported-form" && record.candidate_name === "callable"));
+  assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "dynamic-target" && record.expression === "worker.run()"));
+  assert.ok(!unresolved.some((record) => record.source === caller.id && ["overloaded", "callable"].includes(record.candidate_name)));
+});
+
+test("resolves compiler-backed methods, dispatch, callbacks, JSX, wrappers, and tagged templates", () => {
+  const repo = makeFixture();
+  const records = runAdapter(repo, path.join(repo, "facts.jsonl"));
+  const nodes = recordsOf(records, "node");
+  const edges = recordsOf(records, "edge");
+  const unresolved = recordsOf(records, "unresolved");
+  const node = (qualifiedName) => nodes.find((record) => record.qualified_name === qualifiedName);
+  const invokeRunner = node("src/semantics.invokeRunner");
+  const exactRunner = node("src/semantics.exactRunner");
+  const baseRun = node("src/semantics.BaseRunner.run");
+  const childRun = node("src/semantics.ChildRunner.run");
+  const interfaceRun = node("src/semantics.Runner.run");
+  const higherOrder = node("src/semantics.higherOrder");
+  const invokeCallback = node("src/semantics.invokeCallback");
+  const localCallback = node("src/semantics.localCallback");
+  const methodCalls = node("src/semantics.methodCalls");
+  const workerRun = node("src/semantics.Worker.run");
+  const arrowCaller = node("src/semantics.arrowCaller");
+  const arrowCallable = node("src/semantics.arrowCallable");
+  const taggedCaller = node("src/semantics.taggedCaller");
+  const tag = node("src/semantics.tag");
+  const renderDefault = node("src/default-consumer.RenderDefault");
+  const assigned = node("src/default-component.AssignedComponent");
+  const inner = node("src/default-component.InnerComponent");
+  for (const value of [invokeRunner, exactRunner, baseRun, childRun, interfaceRun, higherOrder, invokeCallback, localCallback, methodCalls, workerRun, arrowCaller, arrowCallable, taggedCaller, tag, renderDefault, assigned, inner]) assert.ok(value);
+
+  for (const target of [baseRun, childRun]) assert.ok(edges.some((record) => record.source === invokeRunner.id && record.target === target.id && record.relation === "possible-calls"));
+  assert.ok(!edges.some((record) => record.source === invokeRunner.id && record.target === interfaceRun.id && ["calls", "possible-calls"].includes(record.relation)));
+  assert.ok(edges.some((record) => record.source === exactRunner.id && record.target === childRun.id && record.relation === "calls"));
+  assert.ok(edges.some((record) => record.source === higherOrder.id && record.target === invokeCallback.id && record.relation === "calls"));
+  assert.ok(edges.some((record) => record.source === invokeCallback.id && record.target === localCallback.id && record.relation === "calls"));
+  assert.ok(edges.some((record) => record.source === higherOrder.id && record.target === localCallback.id && record.relation === "possible-calls" && record.attributes?.callback === true));
+  assert.equal(edges.filter((record) => record.source === methodCalls.id && record.target === workerRun.id && record.relation === "calls").length, 2);
+  assert.ok(edges.some((record) => record.source === arrowCaller.id && record.target === arrowCallable.id && record.relation === "calls"));
+  assert.ok(edges.some((record) => record.source === taggedCaller.id && record.target === tag.id && record.relation === "calls"));
+  assert.ok(edges.some((record) => record.source === renderDefault.id && record.target === assigned.id && record.relation === "calls"));
+  assert.ok(edges.some((record) => record.source === assigned.id && record.target === inner.id && record.relation === "calls" && record.attributes?.wrapper === true));
+  assert.ok(!unresolved.some((record) => [invokeRunner.id, exactRunner.id, higherOrder.id, invokeCallback.id, methodCalls.id, arrowCaller.id, taggedCaller.id, renderDefault.id].includes(record.source) && record.relation === "calls" && record.reason === "missing-target"));
 });
 
 test("uses contract IDs, canonical ordering, and stable repeat runs", () => {

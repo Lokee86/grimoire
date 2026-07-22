@@ -9,6 +9,11 @@ func TestLanguages(t *testing.T) {
 	tests := map[string][]string{
 		"main.go":       {"go"},
 		"src/app.tsx":   {"typescript"},
+		"src/feed.js":   {"typescript"},
+		"src/view.jsx":  {"typescript"},
+		"config.mjs":    {"typescript"},
+		"legacy.cjs":    {"typescript"},
+		"jsconfig.json": {"typescript"},
 		"Cargo.toml":    {"rust"},
 		"project.godot": {"gdscript"},
 		"README.md":     nil,
@@ -33,6 +38,7 @@ func TestIgnoredDirectory(t *testing.T) {
 		".ritual",
 		".warlock",
 		".git",
+		".astro",
 		"node_modules",
 		"target",
 	} {
