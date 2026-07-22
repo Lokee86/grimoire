@@ -1,3 +1,7 @@
+# Linked worktrees
+.worktrees/
+.workingtrees/
+
 # Adapter build output
 **/node_modules/
 **/target/
