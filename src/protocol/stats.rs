@@ -44,13 +44,7 @@ impl ProtocolSnapshot {
                 unresolved_calls += 1;
             }
         }
-        let resolved_calls = relations.get("calls").copied().unwrap_or(0);
-        let observed_calls = resolved_calls + unresolved_calls;
-        let call_coverage = if observed_calls == 0 {
-            1.0
-        } else {
-            resolved_calls as f64 / observed_calls as f64
-        };
+        let resolved_call_relationships = relations.get("calls").copied().unwrap_or(0);
 
         Ok(json!({
             "node_count": self.graph.node_count(),
@@ -61,10 +55,12 @@ impl ProtocolSnapshot {
             "edges_by_relation": relations,
             "unresolved_by_reason": unresolved_reasons,
             "call_resolution": {
-                "resolved": resolved_calls,
-                "unresolved": unresolved_calls,
-                "observed": observed_calls,
-                "coverage": call_coverage,
+                "resolved_unique_relationships": resolved_call_relationships,
+                "unresolved_references": unresolved_calls,
+                "coverage_available": false,
+                "coverage": Value::Null,
+                "coverage_unavailable_reason":
+                    "resolved call sites are deduplicated into graph relationships",
             },
         }))
     }

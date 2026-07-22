@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
 use crate::repository::{
-    CatalogueEntry, NodeKey, RepositoryCatalogue, RepositoryFacts, UnresolvedReferenceFact,
+    CatalogueEntry, NodeKey, REPOSITORY_MANIFEST_FILE, RepositoryCatalogue, RepositorySnapshot,
+    UnresolvedReferenceFact,
 };
-use crate::storage::PackedGraph;
+use crate::snapshot::GraphSnapshot;
 use crate::synthetic::NodeId;
 
 use super::error::ProtocolError;
@@ -18,28 +18,21 @@ use super::response::{failure, success};
 #[derive(Debug)]
 pub struct ProtocolSnapshot {
     pub(crate) root: PathBuf,
-    pub(crate) graph: PackedGraph,
+    pub(crate) graph: GraphSnapshot,
     pub(crate) catalogue: RepositoryCatalogue,
     pub(crate) unresolved: Vec<UnresolvedReferenceFact>,
     pub(crate) node_ids: BTreeMap<NodeKey, NodeId>,
 }
 
 impl ProtocolSnapshot {
-    /// Opens and validates the three repository snapshot artifacts.
+    /// Opens and validates a manifest-bound repository snapshot.
     pub fn open(root: impl AsRef<Path>) -> Result<Self, ProtocolError> {
         let root = root.as_ref().to_path_buf();
-        let graph = PackedGraph::open(root.join("graph.arcana"))?;
-        let catalogue = RepositoryCatalogue::read(root.join("catalogue.tsv"))?;
-        let unresolved_text = fs::read_to_string(root.join("unresolved.tsv"))?;
-        let unresolved = RepositoryFacts::parse(&unresolved_text)?.unresolved;
-
-        if graph.node_count() as usize != catalogue.len() {
-            return Err(ProtocolError::InvalidSnapshot(format!(
-                "graph has {} nodes but catalogue has {} entries",
-                graph.node_count(),
-                catalogue.len()
-            )));
-        }
+        let repository = RepositorySnapshot::open(root.join(REPOSITORY_MANIFEST_FILE))
+            .map_err(|error| ProtocolError::InvalidSnapshot(error.to_string()))?;
+        let graph = repository.graph().clone();
+        let catalogue = repository.catalogue().clone();
+        let unresolved = repository.unresolved().unresolved.clone();
 
         let node_ids = catalogue
             .entries()

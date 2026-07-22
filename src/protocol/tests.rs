@@ -6,10 +6,13 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use serde_json::Value;
 
 use crate::repository::{
-    ContentId, EdgeFact, NodeFact, NodeKey, NodeKind, RelationKind, RepositoryFacts,
-    UnresolvedReason, UnresolvedReferenceFact, compile_repository_facts, write_catalogue,
+    ContentId, EdgeFact, NodeFact, NodeKey, NodeKind, PublishRepositorySnapshot, RelationKind,
+    RepositoryFacts, UnresolvedReason, UnresolvedReferenceFact, compile_repository_facts,
+    publish_repository_snapshot, relation_to_edge_kind, write_catalogue,
 };
-use crate::storage::write_packed;
+use crate::snapshot::{OverlayChanges, publish_snapshot, write_overlay};
+use crate::storage::{PackedGraph, write_packed};
+use crate::synthetic::{Edge, NodeId};
 
 use super::{ProtocolSnapshot, serve_jsonl};
 
@@ -63,7 +66,19 @@ fn serves_repository_queries_and_snapshot_diffs() {
     let stats = request(&snapshot, r#"{"op":"stats"}"#);
     assert_eq!(stats["result"]["node_count"], 3);
     assert_eq!(stats["result"]["edge_count"], 1);
-    assert_eq!(stats["result"]["call_resolution"]["coverage"], 0.5);
+    assert_eq!(
+        stats["result"]["call_resolution"]["resolved_unique_relationships"],
+        1
+    );
+    assert_eq!(
+        stats["result"]["call_resolution"]["unresolved_references"],
+        1
+    );
+    assert_eq!(
+        stats["result"]["call_resolution"]["coverage_available"],
+        false
+    );
+    assert!(stats["result"]["call_resolution"]["coverage"].is_null());
 
     let diff = request(
         &snapshot,
@@ -77,6 +92,24 @@ fn serves_repository_queries_and_snapshot_diffs() {
     assert_eq!(diff["result"]["counts"]["metadata_changed"], 1);
     assert_eq!(diff["result"]["counts"]["relationship_changed"], 1);
     assert_eq!(diff["result"]["graph_changed"], true);
+}
+
+#[test]
+fn opens_verified_overlay_snapshots() {
+    let directory = TestDirectory::new();
+    let snapshot_path = directory.path.join("overlay");
+    write_overlay_snapshot(&snapshot_path);
+    let snapshot = ProtocolSnapshot::open(&snapshot_path).unwrap();
+
+    let neighbors = request(
+        &snapshot,
+        r#"{"op":"neighbors","node_id":1,"direction":"outgoing","relation":"calls"}"#,
+    );
+    assert_eq!(neighbors["result"]["count"], 0);
+
+    let stats = request(&snapshot, r#"{"op":"stats"}"#);
+    assert_eq!(stats["result"]["edge_count"], 0);
+    assert_eq!(stats["result"]["edges_by_relation"]["calls"], Value::Null);
 }
 
 #[test]
@@ -113,9 +146,61 @@ fn write_snapshot(path: &Path, facts: RepositoryFacts) {
     fs::create_dir(path).unwrap();
     let compiled = compile_repository_facts(&facts).unwrap();
     write_packed(path.join("graph.arcana"), &compiled.dataset).unwrap();
+    publish_snapshot(path.join("graph.manifest"), "graph.arcana", None, 1).unwrap();
+    write_repository_metadata(path, &compiled, &facts);
+}
+
+fn write_overlay_snapshot(path: &Path) {
+    fs::create_dir(path).unwrap();
+    let base_facts = current_facts();
+    let mut visible_facts = current_facts();
+    visible_facts.edges.clear();
+    let base_compiled = compile_repository_facts(&base_facts).unwrap();
+    let visible_compiled = compile_repository_facts(&visible_facts).unwrap();
+    write_packed(path.join("graph.arcana"), &base_compiled.dataset).unwrap();
+    let base = PackedGraph::open(path.join("graph.arcana")).unwrap();
+    let changes = OverlayChanges {
+        removed: vec![Edge {
+            source: NodeId(1),
+            target: NodeId(2),
+            kind: relation_to_edge_kind(&RelationKind::Calls),
+        }],
+        added: Vec::new(),
+    };
+    write_overlay(path.join("overlay.arcana"), &base, &changes).unwrap();
+    publish_snapshot(
+        path.join("graph.manifest"),
+        "graph.arcana",
+        Some(Path::new("overlay.arcana")),
+        1,
+    )
+    .unwrap();
+    write_repository_metadata(path, &visible_compiled, &visible_facts);
+}
+
+fn write_repository_metadata(
+    path: &Path,
+    compiled: &crate::repository::CompiledRepository,
+    facts: &RepositoryFacts,
+) {
     write_catalogue(path.join("catalogue.tsv"), &compiled.catalogue).unwrap();
-    let unresolved = RepositoryFacts::with_unresolved(Vec::new(), Vec::new(), compiled.unresolved);
+    let unresolved =
+        RepositoryFacts::with_unresolved(Vec::new(), Vec::new(), compiled.unresolved.clone());
     fs::write(path.join("unresolved.tsv"), unresolved.encode()).unwrap();
+    fs::write(path.join("facts.tsv"), facts.encode()).unwrap();
+    publish_repository_snapshot(
+        path.join("repository.manifest"),
+        PublishRepositorySnapshot {
+            graph_manifest_file: Path::new("graph.manifest"),
+            catalogue_file: Path::new("catalogue.tsv"),
+            unresolved_file: Path::new("unresolved.tsv"),
+            facts_file: Path::new("facts.tsv"),
+            adapter_name: "test",
+            adapter_version: "1",
+            created_unix_seconds: 1,
+        },
+    )
+    .unwrap();
 }
 
 fn current_facts() -> RepositoryFacts {
