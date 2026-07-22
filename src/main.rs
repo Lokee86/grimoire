@@ -1,3 +1,9 @@
+mod cli;
+mod cli_commands;
+
+#[cfg(test)]
+mod cli_tests;
+
 use std::env;
 use std::fs::{self, File};
 use std::process::ExitCode;
@@ -7,28 +13,40 @@ use arcana_graph::benchmark::{
 };
 use arcana_graph::{PROJECT_NAME, PROJECT_VERSION, about};
 
-const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds";
-
 fn main() -> ExitCode {
-    let mut arguments = env::args().skip(1);
-
-    match arguments.next().as_deref() {
-        None => {
+    match cli::parse(env::args().skip(1)) {
+        Ok(cli::Command::Help) => {
             println!("{PROJECT_NAME} — {}", about());
-            println!("{USAGE}");
+            println!("{}", cli::USAGE);
             ExitCode::SUCCESS
         }
-        Some("-h" | "--help") if arguments.next().is_none() => {
-            println!("{USAGE}");
-            ExitCode::SUCCESS
-        }
-        Some("-V" | "--version") if arguments.next().is_none() => {
+        Ok(cli::Command::Version) => {
             println!("{PROJECT_NAME} {PROJECT_VERSION}");
             ExitCode::SUCCESS
         }
-        Some("benchmark") => run_benchmark_command(arguments.collect()),
-        Some(argument) => {
-            eprintln!("arcana: unexpected argument '{argument}'\n\n{USAGE}");
+        Ok(cli::Command::Benchmark(arguments)) => run_benchmark_command(arguments),
+        Ok(cli::Command::ImportFacts(command)) => match cli_commands::run_import_facts(&command) {
+            Ok(summary) => {
+                print!("{summary}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("arcana import-facts: {error}");
+                ExitCode::FAILURE
+            }
+        },
+        Ok(cli::Command::Query(command)) => match cli_commands::run_query(&command) {
+            Ok(output) => {
+                print!("{output}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("arcana query: {error}");
+                ExitCode::FAILURE
+            }
+        },
+        Err(error) => {
+            eprintln!("arcana: {error}\n\n{}", cli::USAGE);
             ExitCode::from(2)
         }
     }

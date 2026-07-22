@@ -92,6 +92,44 @@ replacement. `compact_snapshot` materializes the visible graph into a new packed
 base, verifies its edge count and checksum, and publishes a new base-only
 manifest last. The source snapshot remains untouched.
 
+## Repository ingestion
+
+ArcanaGraph now accepts language-neutral repository facts and compiles them into
+the same dense packed graph format used by its synthetic workloads. The compiled
+output contains:
+
+- `graph.arcana` — packed forward and reverse adjacency;
+- `catalogue.tsv` — dense node IDs mapped back to stable keys, paths, names,
+  kinds, content IDs, and source spans.
+
+The first adapter uses Go's standard `go/parser` and `go/ast` packages. It emits
+repository, directory, file, package, import, type, function, method, and test
+nodes, plus containment, definition, import, and conservative direct-call edges.
+
+```text
+go run ./adapters/go \
+  -repo /path/to/go/module \
+  -output target/repository.facts.tsv
+
+cargo run --release -- import-facts \
+  --facts target/repository.facts.tsv \
+  --output target/repository-index
+
+cargo run --release -- query \
+  --graph target/repository-index/graph.arcana \
+  --catalogue target/repository-index/catalogue.tsv \
+  --name ExampleFunction \
+  --reverse \
+  --relation calls
+```
+
+The current Go call resolver deliberately emits only unambiguous, unqualified,
+same-package function calls. Selector calls, method dispatch, built-ins,
+cross-package calls, closures, and recursive self-calls remain unresolved rather
+than becoming speculative graph edges. See
+[`docs/GO_ADAPTER_VALIDATION.md`](docs/GO_ADAPTER_VALIDATION.md) for the first
+real-repository results.
+
 ## Benchmarks
 
 The benchmark harness compares immutable overlays against rebuilding a complete
@@ -118,14 +156,14 @@ graph checksums and query fingerprints.
 
 ## Next implementation steps
 
-1. Validate mutation and compaction policy against captured Demon Docs and
-   Space Rocks repository graphs.
-2. Define compaction triggers from overlay size, mutation rate, reopen frequency,
-   and expected query mix rather than one fixed percentage.
-3. Add separate-process cold and mixed-cache benchmark modes.
-4. Stream compaction directly into the packed writer if materialization becomes
-   a measured memory bottleneck.
-5. Measure ordinary buffered reads before introducing memory mapping.
+1. Resolve Go selector calls, methods, and internal cross-package calls without
+   emitting speculative edges.
+2. Convert file-level fact changes into overlays instead of rebuilding the full
+   repository fact set.
+3. Bind catalogues cryptographically to their packed graph artifacts and publish
+   them through the snapshot manifest.
+4. Define compaction triggers from real mutation rates and query mixes.
+5. Add the Rust adapter through the same language-neutral fact boundary.
 
 ## Development
 
