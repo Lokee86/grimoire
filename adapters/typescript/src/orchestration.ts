@@ -1,9 +1,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createFileContext, extractDeclarations } from "./ast";
-import { scanRepository } from "./discovery";
+import { readPathMappings, scanRepository } from "./discovery";
 import { emitFacts, writeJsonl } from "./emission";
-import { resolveImports, resolveRelationships } from "./resolution";
+import { resolveCalls, resolveImports, resolveRelationships } from "./resolution";
 import { FactStore, type Fact } from "./model";
 
 export function buildFacts(repositoryPath: string): Fact[] {
@@ -25,7 +25,8 @@ export function buildFacts(repositoryPath: string): Fact[] {
   }
   const contexts = files.map((file) => createFileContext(root, file, directoryIds, facts));
   for (const context of contexts) extractDeclarations(context, facts);
-  resolveImports(facts);
+  resolveImports(facts, readPathMappings(root));
+  resolveCalls(facts);
   resolveRelationships(facts);
   return emitFacts(facts);
 }

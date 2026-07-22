@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as ts from "typescript";
 
 export const EXCLUDED_DIRECTORIES = new Set([
   ".git", ".worktrees", ".workingtrees", ".warlock", "node_modules",
@@ -17,6 +18,34 @@ export function moduleKeyFor(relativePath: string): string {
 }
 
 export type RepositoryFiles = { directories: string[]; files: string[] };
+
+export type PathMapping = {
+  baseUrl: string;
+  pattern: string;
+  targets: string[];
+};
+
+export function readPathMappings(root: string): PathMapping[] {
+  const configPath = ["tsconfig.json", "jsconfig.json"]
+    .map((name) => path.join(root, name))
+    .find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
+  if (!configPath) return [];
+
+  const parsed = ts.parseConfigFileTextToJson(configPath, fs.readFileSync(configPath, "utf8"));
+  const compilerOptions = parsed.config?.compilerOptions;
+  const paths = compilerOptions?.paths;
+  if (!paths || typeof paths !== "object" || Array.isArray(paths)) return [];
+  const configDirectory = path.dirname(configPath);
+  const baseUrl = normalizeRelative(root, path.resolve(configDirectory, typeof compilerOptions.baseUrl === "string" ? compilerOptions.baseUrl : "."));
+  const mappings: PathMapping[] = [];
+  for (const [pattern, rawTargets] of Object.entries(paths as Record<string, unknown>)) {
+    const wildcardCount = (pattern.match(/\*/g) ?? []).length;
+    if (wildcardCount > 1 || !Array.isArray(rawTargets)) continue;
+    const targets = rawTargets.filter((target): target is string => typeof target === "string" && (target.match(/\*/g) ?? []).length <= 1);
+    if (targets.length > 0) mappings.push({ baseUrl, pattern, targets });
+  }
+  return mappings;
+}
 
 export function scanRepository(root: string): RepositoryFiles {
   const directories = ["."];

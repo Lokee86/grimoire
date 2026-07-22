@@ -13,6 +13,16 @@ const CLI = path.join(ADAPTER_ROOT, "dist", "cli.js");
 function makeFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "lexicon-typescript-"));
   const files = {
+    "tsconfig.json": JSON.stringify({
+      compilerOptions: {
+        baseUrl: ".",
+        paths: {
+          "@/*": ["src/*"],
+          "@exact": ["src/exact-target"],
+          "@ambiguous": ["src/ambiguous-a", "src/ambiguous-b"],
+        },
+      },
+    }),
     "src/base.ts": [
       "export interface Named { id: string }",
       "export class Base { run(): void {} }",
@@ -21,15 +31,63 @@ function makeFixture() {
       "",
     ].join("\n"),
     "src/child.ts": [
+      'import { AliasTarget } from "@/alias-target";',
+      'import { ExactTarget } from "@exact";',
+      'import { Ambiguous } from "@ambiguous";',
+      'import { Missing } from "@/missing";',
       'import { Base, Named, BASE as VALUE } from "./base";',
       "export interface Child extends Named {}",
       "export class Child extends Base implements Named {",
       "  value = VALUE;",
+      "  ambiguous: Ambiguous | Missing;",
       "  method(): void { void import(\"./dynamic\"); }",
       "}",
       "",
     ].join("\n"),
     "src/barrel.ts": 'export { Base as RenamedBase, Named as RenamedNamed } from "./base";\n',
+    "src/alias-target.ts": "export class AliasTarget { value = 1; }\n",
+    "src/exact-target.ts": "export class ExactTarget { value = 2; }\n",
+    "src/ambiguous-a.ts": "export class Ambiguous {}\n",
+    "src/ambiguous-b.ts": "export class Ambiguous {}\n",
+    "src/alias-barrel.ts": 'export { AliasTarget as RenamedAliasTarget } from "@/alias-target";\n',
+    "src/alias-consumer.ts": [
+      'import { RenamedAliasTarget } from "./alias-barrel";',
+      "export class AliasConsumer extends RenamedAliasTarget {}",
+      "",
+    ].join("\n"),
+    "src/call-targets.ts": [
+      "export function importedHelper(): void {}",
+      "export class ImportedWorker {}",
+      "",
+    ].join("\n"),
+    "src/calls.ts": [
+      'import { importedHelper, ImportedWorker } from "./call-targets";',
+      'import { AliasTarget } from "@/alias-target";',
+      'import { externalHelper } from "external-package";',
+      'import { MissingHelper } from "./missing";',
+      "function localHelper(): void {}",
+      "function overloaded(value: string): void;",
+      "function overloaded(value: number): void;",
+      "function overloaded(value: string | number): void {}",
+      "class LocalWorker {}",
+      "const callable = () => 1;",
+      "export function caller(): void {",
+      "  localHelper();",
+      "  importedHelper();",
+      "  new LocalWorker();",
+      "  new ImportedWorker();",
+      "  new AliasTarget();",
+      "  externalHelper();",
+      "  MissingHelper();",
+      "  worker.run();",
+      "  overloaded(1);",
+      "  callable();",
+      "}",
+      "export class CallSite {",
+      "  run(): void { localHelper(); }",
+      "}",
+      "",
+    ].join("\n"),
     "src/through-barrel.ts": [
       'import { RenamedBase, RenamedNamed } from "./barrel";',
       "export class Through extends RenamedBase implements RenamedNamed {}",
@@ -108,7 +166,7 @@ test("extracts TypeScript declarations, imports, exports, inheritance, and exclu
   const unresolved = recordsOf(records, "unresolved");
 
   assert.deepEqual(records[0], {
-    adapter_version: "0.1.0",
+    adapter_version: "0.2.0",
     language: "typescript",
     record: "lexicon",
     repository: path.basename(repo),
@@ -126,6 +184,27 @@ test("extracts TypeScript declarations, imports, exports, inheritance, and exclu
   assert.ok(nodes.some((record) => record.kind === "constant" && record.qualified_name === "src/base.BASE"));
 });
 
+test("resolves exact and wildcard tsconfig aliases without guessing missing or ambiguous targets", () => {
+  const repo = makeFixture();
+  const records = runAdapter(repo, path.join(repo, "facts.jsonl"));
+  const nodes = recordsOf(records, "node");
+  const edges = recordsOf(records, "edge");
+  const unresolved = recordsOf(records, "unresolved");
+  const child = nodes.find((record) => record.kind === "module" && record.qualified_name === "src/child");
+  const aliasTargetModule = nodes.find((record) => record.kind === "module" && record.qualified_name === "src/alias-target");
+  const aliasTarget = nodes.find((record) => record.qualified_name === "src/alias-target.AliasTarget");
+  const exactTarget = nodes.find((record) => record.qualified_name === "src/exact-target.ExactTarget");
+  const aliasBarrel = nodes.find((record) => record.kind === "module" && record.qualified_name === "src/alias-barrel");
+  const consumer = nodes.find((record) => record.qualified_name === "src/alias-consumer.AliasConsumer");
+  assert.ok(child && aliasTargetModule && aliasTarget && exactTarget && aliasBarrel && consumer);
+  assert.ok(edges.some((record) => record.source === child.id && record.target === aliasTarget.id && record.relation === "imports"));
+  assert.ok(edges.some((record) => record.source === child.id && record.target === exactTarget.id && record.relation === "imports"));
+  assert.ok(edges.some((record) => record.source === aliasBarrel.id && record.target === aliasTargetModule.id && record.relation === "imports"));
+  assert.ok(edges.some((record) => record.source === consumer.id && record.target === aliasTarget.id && record.relation === "extends"));
+  assert.ok(unresolved.some((record) => record.source === child.id && record.reason === "missing-target" && record.candidate_name === "@/missing:Missing"));
+  assert.ok(unresolved.some((record) => record.source === child.id && record.reason === "ambiguous-target" && record.candidate_name === "@ambiguous:Ambiguous"));
+});
+
 test("resolves heritage through named barrel re-exports", () => {
   const repo = makeFixture();
   const records = runAdapter(repo, path.join(repo, "facts.jsonl"));
@@ -139,6 +218,30 @@ test("resolves heritage through named barrel re-exports", () => {
   assert.ok(edges.some((record) => record.source === through.id && record.target === base.id && record.relation === "extends"));
   assert.ok(edges.some((record) => record.source === through.id && record.target === named.id && record.relation === "implements"));
   assert.ok(!unresolved.some((record) => record.source === through.id && ["extends", "implements"].includes(record.relation)));
+});
+
+test("emits conservative direct function and constructor call facts", () => {
+  const repo = makeFixture();
+  const records = runAdapter(repo, path.join(repo, "facts.jsonl"));
+  const nodes = recordsOf(records, "node");
+  const edges = recordsOf(records, "edge");
+  const unresolved = recordsOf(records, "unresolved");
+  const caller = nodes.find((record) => record.qualified_name === "src/calls.caller");
+  const method = nodes.find((record) => record.qualified_name === "src/calls.CallSite.run");
+  const localHelper = nodes.find((record) => record.qualified_name === "src/calls.localHelper");
+  const importedHelper = nodes.find((record) => record.qualified_name === "src/call-targets.importedHelper");
+  const localWorker = nodes.find((record) => record.qualified_name === "src/calls.LocalWorker");
+  const importedWorker = nodes.find((record) => record.qualified_name === "src/call-targets.ImportedWorker");
+  const aliasTarget = nodes.find((record) => record.qualified_name === "src/alias-target.AliasTarget");
+  assert.ok(caller && method && localHelper && importedHelper && localWorker && importedWorker && aliasTarget);
+  for (const target of [localHelper, importedHelper]) assert.ok(edges.some((record) => record.source === caller.id && record.target === target.id && record.relation === "calls"));
+  for (const target of [localWorker, importedWorker, aliasTarget]) assert.ok(edges.some((record) => record.source === caller.id && record.target === target.id && record.relation === "calls"));
+  assert.ok(edges.some((record) => record.source === method.id && record.target === localHelper.id && record.relation === "calls"));
+  assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "external-target" && record.candidate_name === "externalHelper"));
+  assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "missing-target" && record.candidate_name === "MissingHelper"));
+  assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "unsupported-form" && record.expression === "worker.run()"));
+  assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "ambiguous-target" && record.candidate_name === "overloaded"));
+  assert.ok(unresolved.some((record) => record.source === caller.id && record.relation === "calls" && record.reason === "unsupported-form" && record.candidate_name === "callable"));
 });
 
 test("uses contract IDs, canonical ordering, and stable repeat runs", () => {
