@@ -127,6 +127,23 @@ cargo run --release -- query \
   --relation calls
 ```
 
+For integrations, `arcana protocol` opens the verified repository snapshot once
+and serves one JSON response for every JSON request line on standard input:
+
+```text
+cargo run --release -- protocol --snapshot target/repository-index
+{"id":"stats","op":"stats"}
+{"id":"symbol","op":"resolve_symbol","name":"ExampleFunction"}
+{"id":"calls","op":"neighbors","node_id":42,"direction":"outgoing","relation":"calls"}
+{"id":"unresolved","op":"unresolved","path":"internal/example.go","reason":"unsupported-form"}
+{"id":"diff","op":"diff","other_snapshot":"target/previous-index"}
+```
+
+The stable protocol identifier is `arcana.query.v1`. Supported operations are
+`resolve_symbol`, `resolve_file`, `list_nodes`, `neighbors`, `unresolved`,
+`stats`, and `diff`. Request IDs are echoed unchanged, and malformed or failed
+requests return JSON errors without terminating the stream.
+
 The Go resolver handles concrete same-package and internal cross-package
 functions and methods, including recursive self-calls. Built-ins, type
 conversions, external APIs, dynamic dispatch, ambiguity, and missing targets are

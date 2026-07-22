@@ -1,5 +1,6 @@
 mod cli;
 mod cli_commands;
+mod cli_protocol;
 mod cli_query;
 mod cli_update;
 
@@ -56,6 +57,13 @@ fn main() -> ExitCode {
             }
             Err(error) => {
                 eprintln!("arcana query: {error}");
+                ExitCode::FAILURE
+            }
+        },
+        Ok(cli::Command::Protocol(command)) => match cli_protocol::run_protocol(&command) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("arcana protocol: {error}");
                 ExitCode::FAILURE
             }
         },

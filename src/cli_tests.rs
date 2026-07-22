@@ -62,6 +62,17 @@ fn parses_import_and_query_arguments() {
     assert!(command.reverse);
     assert_eq!(command.name, "caller");
     assert_eq!(command.relation, Some(RelationKind::Calls));
+
+    let command = cli::parse([
+        "protocol".to_owned(),
+        "--snapshot".to_owned(),
+        "target/repository-index".to_owned(),
+    ])
+    .expect("protocol arguments should parse");
+    let Command::Protocol(command) = command else {
+        panic!("wrong command")
+    };
+    assert_eq!(command.snapshot, PathBuf::from("target/repository-index"));
 }
 
 #[test]
