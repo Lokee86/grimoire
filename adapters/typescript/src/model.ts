@@ -21,6 +21,15 @@ export type PendingRelationship = {
   scope: string[];
 };
 
+export type PendingCall = {
+  expression: ts.CallExpression | ts.NewExpression;
+  kind: "call" | "constructor";
+  moduleKey: string;
+  scope: string[];
+  source: string;
+  sourceFile: ts.SourceFile;
+};
+
 export type ImportName = {
   imported: string;
   local: string;
@@ -62,10 +71,12 @@ export class FactStore {
   readonly unresolved = new Map<string, Fact>();
   readonly modules = new Map<string, string>();
   readonly symbols = new Map<string, string>();
+  readonly ambiguousSymbols = new Set<string>();
   readonly bindings = new Map<string, Map<string, Binding>>();
   readonly imports: ImportInfo[] = [];
   readonly reexports: PendingReexport[] = [];
   readonly relationships: PendingRelationship[] = [];
+  readonly calls: PendingCall[] = [];
 
   constructor(readonly repository: string) {}
 

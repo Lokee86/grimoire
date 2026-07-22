@@ -4,7 +4,7 @@ import * as ts from "typescript";
 import { declarationName, digest, expressionText, hasModifier, spanFor } from "./contract";
 import { moduleKeyFor, normalizeRelative } from "./discovery";
 import { recordExportAssignment, recordExportDeclaration, recordExportedDeclaration, recordImport, recordImportEquals } from "./ast-imports";
-import type { FactStore, FileContext } from "./model";
+import type { FactStore, FileContext, PendingCall } from "./model";
 
 export function createFileContext(root: string, relativePath: string, directoryIds: Map<string, string>, facts: FactStore): FileContext {
   const absolutePath = path.join(root, relativePath.split("/").join(path.sep));
@@ -45,13 +45,22 @@ function visit(node: ts.Node, ownerId: string, scope: string[], context: FileCon
   if (ts.isPropertyDeclaration(node) || ts.isPropertySignature(node)) return visitProperty(node, ownerId, scope, context, facts);
   if (ts.isVariableStatement(node)) return visitVariableList(node.declarationList, ownerId, scope, context, facts);
   if (ts.isVariableDeclarationList(node) && !ts.isVariableStatement(node.parent)) return visitVariableList(node, ownerId, scope, context, facts);
-  if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) facts.addUnresolved(ownerId, "imports", expressionText(node, context.sourceFile), "dynamic-target", spanFor(node, context.sourceFile, context.relativePath));
+  if (ts.isNewExpression(node)) recordCall(node, "constructor", ownerId, scope, context, facts);
+  else if (ts.isCallExpression(node)) {
+    if (node.expression.kind === ts.SyntaxKind.ImportKeyword) facts.addUnresolved(ownerId, "imports", expressionText(node, context.sourceFile), "dynamic-target", spanFor(node, context.sourceFile, context.relativePath));
+    else recordCall(node, "call", ownerId, scope, context, facts);
+  }
   node.forEachChild((child) => visit(child, ownerId, scope, context, facts));
+}
+
+function recordCall(expression: PendingCall["expression"], kind: PendingCall["kind"], source: string, scope: string[], context: FileContext, facts: FactStore): void {
+  facts.calls.push({ expression, kind, moduleKey: context.moduleKey, scope, source, sourceFile: context.sourceFile });
 }
 
 function addSymbol(kind: string, name: string, scope: string[], node: ts.Node, ownerId: string, context: FileContext, facts: FactStore): string {
   const qualifiedName = `${context.moduleKey}.${[...scope, name].join(".")}`;
   const id = facts.addNode(kind, name, context.relativePath, qualifiedName, qualifiedName, spanFor(node, context.sourceFile, context.relativePath));
+  if (facts.symbols.has(qualifiedName)) facts.ambiguousSymbols.add(qualifiedName);
   facts.symbols.set(qualifiedName, id);
   facts.addEdge(ownerId, id, "defines", spanFor(node, context.sourceFile, context.relativePath));
   return id;
@@ -112,6 +121,6 @@ function visitVariableList(list: ts.VariableDeclarationList, ownerId: string, sc
     const name = declarationName(declaration.name) ?? "<computed>";
     const id = addSymbol(kind, name, scope, declaration, ownerId, context, facts);
     if (hasModifier(list.parent, ts.SyntaxKind.ExportKeyword)) recordExportedDeclaration(ownerId, list.parent, name, id, context, facts);
-    declaration.forEachChild((child) => visit(child, id, [...scope, name], context, facts));
+    declaration.forEachChild((child) => visit(child, ownerId, [...scope, name], context, facts));
   }
 }

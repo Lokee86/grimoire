@@ -47,18 +47,19 @@ File nodes carry the SHA-256 digest of the original file bytes. No absolute chec
 
 ## Supported facts
 
-The adapter emits repository, directory, file, module, class/type, interface, function, method, constructor, field, variable/constant, import, and export nodes. It emits `contains` edges for repository structure and file/module ownership, `defines` edges for declarations and import/export facts, `imports` edges for resolved local modules and named symbols, `extends` edges for statically resolved class/interface heritage, and `implements` edges for statically resolved class contracts.
+The adapter emits repository, directory, file, module, class/type, interface, function, method, constructor, field, variable/constant, import, and export nodes. It emits `contains` edges for repository structure and file/module ownership, `defines` edges for declarations and import/export facts, `imports` edges for resolved local modules and named symbols, `extends` edges for statically resolved class/interface heritage, `implements` edges for statically resolved class contracts, and conservative `calls` edges for direct identifier function calls and identifier constructors that resolve to one scanned target.
 
 It scans `.ts` and `.tsx` files in sorted repository-relative path order. It excludes `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, `node_modules/`, `build/`, `dist/`, coverage/cache directories, vendor directories, and other common generated output directories.
 
 ## Current limits
 
-- Resolution is repository-local and syntax-based. It does not execute TypeScript, read `tsconfig.json` path aliases, inspect package exports, or inspect installed packages.
-- Relative imports resolve literal module paths and `/index` modules only. External packages are represented by unresolved `external-target` records rather than guessed nodes.
+- Resolution is repository-local and syntax-based. It does not execute TypeScript, inspect package exports, or inspect installed packages.
+- Relative imports resolve literal module paths and `/index` modules. Exact and single-wildcard `baseUrl`/`paths` mappings from a repository `tsconfig.json` or `jsconfig.json` resolve only unique scanned local targets.
+- External packages are represented by unresolved `external-target` records rather than guessed nodes.
 - Named imports and simple dotted heritage expressions resolve when the target declaration is scanned. Default and namespace imports resolve to their module node.
 - Dynamic `import(...)`, computed heritage targets, computed names, malformed source, generated declarations, and unsupported relationships produce unresolved records rather than guessed edges.
 - Export declarations are represented as `export` nodes. Static re-export sources also produce an `imports` edge when the local module is available.
-- This slice does not infer calls, references, overload resolution, decorators, type-checker symbols, path aliases, or runtime module loading.
+- Direct identifier calls and constructors resolve only to one scanned function or type. Property/element calls, callable variables, optional chains, overloads, method dispatch, JSX, references, decorators, type-checker-only symbols, and runtime module loading remain unresolved or unmodeled.
 
 ## Tests
 
