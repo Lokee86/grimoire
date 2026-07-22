@@ -19,6 +19,7 @@ EXCLUDED_DIRECTORIES = frozenset(
         ".bundle",
         ".eggs",
         ".mypy_cache",
+        ".next",
         ".nox",
         ".pytest_cache",
         ".ruff_cache",

@@ -2,228 +2,34 @@
 
 from __future__ import annotations
 
-import ast
-
-from .contract import BUILTINS, expression_text, span
-from .model import CallInfo, Facts, FileContext, ImportInfo, LocalAssignmentInfo
-
-
-def _dotted(node: ast.AST) -> str | None:
-    if isinstance(node, ast.Name):
-        return node.id
-    if isinstance(node, ast.Attribute):
-        parent = _dotted(node.value)
-        return f"{parent}.{node.attr}" if parent else None
-    return None
-
-
-def resolve_relative_module(info: ImportInfo) -> str:
-    if info.relative_level == 0:
-        return info.target_module or ""
-    current_parts = info.module_name.split(".") if info.module_name else []
-    package_parts = current_parts if info.is_package else current_parts[:-1]
-    remove = max(info.relative_level - 1, 0)
-    if remove:
-        package_parts = package_parts[:-remove] if remove <= len(package_parts) else []
-    suffix = (info.target_module or "").split(".") if info.target_module else []
-    return ".".join(package_parts + suffix)
-
-
-def _resolve_module_name(facts: Facts, requested: str) -> str | None:
-    if requested in facts.modules:
-        return requested
-    if "." not in requested:
-        return None
-    matches = [name for name in facts.modules if name.endswith(f".{requested}")]
-    return matches[0] if len(matches) == 1 else None
-
-
-def resolve_reference(
-    facts: Facts,
-    module_name: str,
-    class_qname: str | None,
-    reference: str | None,
-) -> tuple[str | None, str]:
-    if not reference:
-        return None, "unsupported-form"
-    if reference in BUILTINS:
-        return None, "builtin-target"
-    parts = reference.split(".")
-    if class_qname and parts[0] in {"self", "cls"} and len(parts) == 2:
-        candidate = f"{class_qname}.{parts[1]}"
-        if candidate in facts.symbols:
-            return facts.symbols[candidate], ""
-    binding = facts.module_bindings.get((module_name, parts[0]))
-    if binding and binding[0]:
-        base_qname = next((qname for qname, value in facts.symbols.items() if value == binding[0]), None)
-        if base_qname:
-            candidate = ".".join([base_qname, *parts[1:]])
-            if candidate in facts.symbols:
-                return facts.symbols[candidate], ""
-        if len(parts) == 1:
-            return binding[0], ""
-    candidates = [".".join([module_name, *parts]), reference]
-    if class_qname and len(parts) == 1:
-        candidates.insert(0, f"{class_qname}.{reference}")
-    for candidate in candidates:
-        if candidate in facts.symbols:
-            return facts.symbols[candidate], ""
-        if candidate in facts.modules:
-            return facts.modules[candidate], ""
-    if binding and binding[1] == "external":
-        return None, "external-target"
-    return None, "missing-target"
-
-
-def resolve_import(facts: Facts, info: ImportInfo) -> tuple[str | None, str]:
-    if info.star:
-        return None, "unsupported-form"
-    module_name = resolve_relative_module(info)
-    resolved_module_name = _resolve_module_name(facts, module_name)
-    if info.target_name is None:
-        target = facts.modules.get(resolved_module_name) if resolved_module_name else None
-        return (target, "") if target else (None, "external-target")
-    symbol = f"{module_name}.{info.target_name}" if module_name else info.target_name
-    if symbol in facts.symbols:
-        return facts.symbols[symbol], ""
-    if symbol in facts.modules:
-        return facts.modules[symbol], ""
-    if resolved_module_name:
-        symbol = f"{resolved_module_name}.{info.target_name}"
-        if symbol in facts.symbols:
-            return facts.symbols[symbol], ""
-        if symbol in facts.modules:
-            return facts.modules[symbol], ""
-        return None, "missing-target"
-    return None, "external-target"
-
-
-def _call_resolution(facts: Facts, call: CallInfo) -> tuple[str | None, str]:
-    reference = _dotted(call.callee)
-    if reference is None:
-        return None, "dynamic-target"
-    if reference in {"importlib.import_module", "import_module", "__import__"}:
-        return None, "dynamic-target"
-    local_target, local_reason = _local_call_resolution(facts, call)
-    if local_target or local_reason != "not-local":
-        return local_target, local_reason
-    return resolve_reference(facts, call.module_name, call.class_qname, reference)
-
-
-def _position(node: ast.AST, *, end: bool = False) -> tuple[int, int]:
-    line_name = "end_lineno" if end else "lineno"
-    column_name = "end_col_offset" if end else "col_offset"
-    return (getattr(node, line_name, 0), getattr(node, column_name, 0))
-
-
-def _assignment_precedes(assignment: LocalAssignmentInfo, call: CallInfo) -> bool:
-    return _position(assignment.assignment_node, end=True) <= _position(call.expression_node)
-
-
-def _class_method_target(facts: Facts, class_id: str, method_name: str) -> str | None:
-    class_qname = next(
-        (
-            qname
-            for qname, identifier in facts.symbols.items()
-            if identifier == class_id and facts.symbol_kinds.get(qname) == "type"
-        ),
-        None,
-    )
-    if class_qname is None:
-        return None
-    method_qname = f"{class_qname}.{method_name}"
-    method_id = facts.symbols.get(method_qname)
-    return method_id if facts.symbol_kinds.get(method_qname) == "method" else None
-
-
-def _constructor_target(facts: Facts, assignment: LocalAssignmentInfo) -> tuple[str | None, str]:
-    if assignment.constructor is None:
-        return None, "ambiguous-target"
-    reference = _dotted(assignment.constructor.func)
-    target_id, reason = resolve_reference(
-        facts,
-        assignment.module_name,
-        assignment.class_qname,
-        reference,
-    )
-    if target_id and any(
-        identifier == target_id and facts.symbol_kinds.get(qname) == "type"
-        for qname, identifier in facts.symbols.items()
-    ):
-        return target_id, ""
-    return None, "ambiguous-target" if reason == "missing-target" else reason
-
-
-def _local_call_resolution(facts: Facts, call: CallInfo) -> tuple[str | None, str]:
-    if call.scope_id is None or not isinstance(call.callee, ast.Attribute) or not isinstance(call.callee.value, ast.Name):
-        return None, "not-local"
-
-    local_name = call.callee.value.id
-    assignments = sorted(
-        (
-            assignment
-            for assignment in facts.local_assignments
-            if assignment.module_name == call.module_name
-            and assignment.scope_id == call.scope_id
-            and assignment.name == local_name
-            and _assignment_precedes(assignment, call)
-        ),
-        key=lambda assignment: _position(assignment.assignment_node),
-    )
-    if not assignments:
-        return None, "not-local"
-
-    target_id: str | None = None
-    invalidated = False
-    for assignment in assignments:
-        if invalidated:
-            continue
-        if assignment.branch_dependent or assignment.constructor is None:
-            target_id = None
-            invalidated = True
-            continue
-        candidate_id, _ = _constructor_target(facts, assignment)
-        if candidate_id is None:
-            target_id = None
-            invalidated = True
-        elif target_id is None:
-            target_id = candidate_id
-        elif target_id != candidate_id:
-            target_id = None
-            invalidated = True
-    if invalidated or target_id is None:
-        return None, "ambiguous-target" if invalidated else "missing-target"
-
-    method_id = _class_method_target(facts, target_id, call.callee.attr)
-    return (method_id, "") if method_id else (None, "missing-target")
+from .bindings import BindingResolver, dotted, resolve_relative_module
+from .callgraph import CallGraphResolver
+from .contract import expression_text, span
+from .model import CallInfo, Facts, FileContext
 
 
 def _import_span(facts: Facts, node_id: str) -> dict[str, object] | None:
     return facts.nodes.get(node_id, {}).get("span")
 
 
-def _source_for_call(call: CallInfo, contexts: list[FileContext]) -> str:
-    for context in contexts:
-        if context.module_name == call.module_name:
-            return context.source
-    return ""
+def _context_for_call(call: CallInfo, contexts: list[FileContext]) -> FileContext | None:
+    return next((context for context in contexts if context.module_name == call.module_name), None)
 
 
 def _call_span(call: CallInfo, contexts: list[FileContext]) -> dict[str, object] | None:
-    for context in contexts:
-        if context.module_name == call.module_name:
-            return span(call.expression_node, context.relative_path, context.lines)
-    return None
+    context = _context_for_call(call, contexts)
+    return span(call.expression_node, context.relative_path, context.lines) if context else None
+
+
+def _call_expression(call: CallInfo, contexts: list[FileContext]) -> str:
+    context = _context_for_call(call, contexts)
+    return expression_text(call.expression_node, context.source if context else "")
 
 
 def resolve_facts(facts: Facts, contexts: list[FileContext]) -> None:
-    for info in facts.imports:
-        target_id, reason = resolve_import(facts, info)
-        if info.owner_id == facts.modules.get(info.module_name) and info.binding:
-            facts.module_bindings[(info.module_name, info.binding)] = (
-                target_id,
-                "external" if target_id is None and reason == "external-target" else reason,
-            )
+    bindings = BindingResolver(facts)
+    import_results = bindings.resolve_imports()
+    for info, (target_id, reason) in zip(facts.imports, import_results):
         import_span = _import_span(facts, info.node_id)
         if target_id:
             facts.add_edge(info.owner_id, target_id, "imports", record_span=import_span)
@@ -238,9 +44,8 @@ def resolve_facts(facts: Facts, contexts: list[FileContext]) -> None:
             )
 
     for inheritance in facts.inheritances:
-        target_name = _dotted(inheritance.base)
-        target_id, reason = resolve_reference(
-            facts,
+        target_name = dotted(inheritance.base)
+        target_id, reason = bindings.resolve_reference(
             inheritance.module_name,
             inheritance.class_qname,
             target_name,
@@ -258,17 +63,27 @@ def resolve_facts(facts: Facts, contexts: list[FileContext]) -> None:
                 candidate_name=target_name,
             )
 
+    callgraph = CallGraphResolver(facts, bindings)
     for call in facts.calls:
-        target_id, reason = _call_resolution(facts, call)
+        target_ids, reason = callgraph.resolve_call(call)
         call_span = _call_span(call, contexts)
-        if target_id:
-            facts.add_edge(call.owner_id, target_id, "calls", record_span=call_span)
+        if len(target_ids) == 1:
+            facts.add_edge(call.owner_id, target_ids[0], "calls", record_span=call_span)
+        elif target_ids:
+            for target_id in target_ids:
+                facts.add_edge(
+                    call.owner_id,
+                    target_id,
+                    "possible-calls",
+                    record_span=call_span,
+                    attributes={"candidate_count": len(target_ids)},
+                )
         else:
             facts.add_unresolved(
                 call.owner_id,
                 "calls",
-                expression_text(call.expression_node, _source_for_call(call, contexts)),
+                _call_expression(call, contexts),
                 reason,
                 record_span=call_span,
-                candidate_name=_dotted(call.callee),
+                candidate_name=dotted(call.callee),
             )
