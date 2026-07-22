@@ -51,10 +51,7 @@ func NewClient(endpoint string) *Client {
 }
 
 func (client *Client) EmbedQuery(ctx context.Context, query string) ([]float32, error) {
-	if strings.TrimSpace(query) == "" {
-		return nil, errors.New("embedding query is empty")
-	}
-	vectors, err := client.embed(ctx, []string{FormatQuery(query)})
+	vectors, err := client.EmbedQueries(ctx, []string{query})
 	if err != nil {
 		return nil, err
 	}

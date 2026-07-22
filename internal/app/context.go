@@ -12,7 +12,6 @@ import (
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/retrieve"
-	"github.com/Lokee86/grimoire/internal/vectorstore"
 )
 
 func runContext(args []string, stdout, stderr io.Writer) error {
@@ -26,11 +25,24 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
 	timeout := flags.Duration("timeout", 2*time.Second, "semantic retrieval timeout")
+	modeValue := flags.String("query-embedding-mode", string(embedding.QueryModeFast), "query embedding mode: fast, full, or quality")
+	windowTokens := flags.Int("query-window-tokens", embedding.DefaultQueryWindowTokens, "tokens per fast query window")
+	maxTokens := flags.Int("query-max-tokens", embedding.DefaultQueryMaxTokens, "maximum query tokens embedded")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if *query == "" || *budget <= 0 || *limit <= 0 || *timeout <= 0 {
 		return errors.New("--query and positive --budget, --candidate-limit, and --timeout are required")
+	}
+	mode, err := embedding.ParseQueryMode(*modeValue)
+	if err != nil {
+		return err
+	}
+	queryOptions := embedding.QueryOptions{
+		Mode: mode, WindowTokens: *windowTokens, MaxTokens: *maxTokens,
+	}
+	if err := queryOptions.Validate(); err != nil {
+		return err
 	}
 
 	statePath, err := resolveState(*root, *state)
@@ -44,7 +56,9 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
-	baseCandidates, err := semanticCandidates(ctx, snapshot, statePath, *query, *endpoint, *enginePath, *limit)
+	baseCandidates, err := semanticCandidates(
+		ctx, snapshot, statePath, *query, *endpoint, *enginePath, *limit, queryOptions,
+	)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "warning: semantic retrieval unavailable; using lexical fallback: %v\n", err)
 		baseCandidates = retrieve.Search(snapshot, *query, *limit)
@@ -64,65 +78,4 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	}
 	_, err = stdout.Write(data)
 	return err
-}
-
-func semanticCandidates(
-	ctx context.Context,
-	snapshot index.Snapshot,
-	statePath string,
-	query string,
-	endpoint string,
-	enginePath string,
-	limit int,
-) ([]retrieve.Candidate, error) {
-	paths := resolveVectorPaths(statePath)
-	chunks := snapshot.AllChunks()
-	manifest, err := validateVectorSnapshotManifest(paths.Manifest, snapshot, len(chunks))
-	if err != nil {
-		return nil, err
-	}
-	library, err := vectorstore.Load(enginePath)
-	if err != nil {
-		return nil, err
-	}
-	defer library.Close()
-	engine, err := library.OpenSnapshot(paths.Snapshot)
-	if err != nil {
-		return nil, err
-	}
-	defer engine.Close()
-	info, err := engine.Info()
-	if err != nil {
-		return nil, err
-	}
-	if err := validateVectorEngineInfo(manifest, info); err != nil {
-		return nil, err
-	}
-	queryVector, err := embedding.NewClient(endpoint).EmbedQuery(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	if info.Dimensions != len(queryVector) {
-		return nil, fmt.Errorf("vector snapshot has %d dimensions, query has %d", info.Dimensions, len(queryVector))
-	}
-	hits, err := engine.Search(queryVector, limit)
-	if err != nil {
-		return nil, err
-	}
-	byID := make(map[string]index.Chunk, len(chunks))
-	for _, chunk := range chunks {
-		byID[chunk.ID] = chunk
-	}
-	candidates := make([]retrieve.Candidate, 0, len(hits))
-	for rank, hit := range hits {
-		chunk, exists := byID[hit.ID]
-		if !exists {
-			return nil, fmt.Errorf("vector result %s is absent from the prepared index", hit.ID)
-		}
-		candidates = append(candidates, retrieve.Candidate{
-			Chunk: chunk, Score: float64(hit.Score), Source: "vector", Rank: rank + 1,
-			Reasons: []string{"semantic vector similarity"},
-		})
-	}
-	return candidates, nil
 }

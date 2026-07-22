@@ -37,7 +37,8 @@ context command
     │
     ├── load prepared source state and the packed vector snapshot
     ├── validate the exact prepared-index identity, model, dimensions, and chunk count
-    ├── embed the query and run exact vector retrieval
+    ├── plan fast, full, or quality query embeddings
+    ├── batch query inputs and search returned vectors concurrently
     ├── fall back to deterministic lexical ranking on semantic failure
     ├── recover concrete identifiers, paths, phrases, keys, codes, and versions
     ├── merge provider candidates without duplicate chunks
@@ -53,9 +54,10 @@ The embedding path is independently probeable and used by `vector build`, `vecto
 ```text
 prepared chunks ──► incremental model vectors
                               │
-query ──► instructed query embedding ──► exact full-vector scan ──┐
-                                                                 │
-query ──► conditional exact-signal recovery ──────────────────────┤
+query ──► capped full or 16-token windows ──► batched embeddings ──┐
+                                                                    │
+                                           concurrent exact scans ──┤
+query ──► conditional exact-signal recovery ────────────────────────┤
                                                                  ▼
                                                    provider candidate merge
                                                                  │
@@ -79,7 +81,7 @@ Exact recovery activates only for concrete literal signals rather than adding a 
 | `internal/ignore` | Git-ignore pattern loading and matching |
 | `internal/index` | Traversal, fallback chunking, source records, storage, and atomic publication |
 | `internal/retrieve` | Shared candidate provenance, targeted exact recovery, and lexical fallback ranking |
-| `internal/embedding` | Fixed model identity, verified setup, runtime launch, query formatting, HTTP client, reduction, normalization, and probing |
+| `internal/embedding` | Fixed model identity, verified setup, runtime launch, query planning/batching, formatting, HTTP client, reduction, normalization, and probing |
 | `internal/vectorstore` | Native-library discovery, ABI validation, caller-owned buffers, and snapshot-handle lifecycle |
 | `native/vector-engine` | Immutable vector objects, packed snapshot format, mmap validation, and exact concurrent search |
 | `internal/tokenizer` | Fixed `o200k_base` counting |
@@ -113,7 +115,7 @@ cmd/grimoire/main.go
 
 The fixed provider is `Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0`, served locally through `llama.cpp`.
 
-Queries receive the fixed repository retrieval instruction. Documents remain raw. Native 1024-dimensional output is truncated to the first 512 Matryoshka dimensions and L2-normalized inside Grimoire. Inner product is therefore cosine similarity.
+Queries receive the fixed repository retrieval instruction. Fast mode caps the query at 128 `o200k_base` tokens, divides it into non-overlapping 16-token windows, and sends the windows in one embeddings request. Full mode sends one capped query; quality mode sends both forms. Documents remain raw. Native 1024-dimensional output is truncated to the first 512 Matryoshka dimensions and L2-normalized inside Grimoire. Inner product is therefore cosine similarity.
 
 Model identity, dimensions, preprocessing, runtime compatibility, and future vector schema must collectively determine whether persisted vectors can be reused.
 

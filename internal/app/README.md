@@ -24,7 +24,8 @@
 ## Main files
 
 - `run.go` - top-level dispatch, source indexing, path resolution, and shared JSON output.
-- `context.go` - semantic retrieval, compatibility checks, lexical fallback, and compilation.
+- `context.go` - context CLI flags, semantic fallback, and package compilation.
+- `context_semantic.go` - query planning, batched embeddings, concurrent vector searches, and deterministic hit merging.
 - `context_candidates.go` - exact/vector/lexical merge, duplicate-provider evidence, curation, and source reporting.
 - `model.go` - embedding setup, runtime, information, and probe commands.
 - `vector.go` - vector search and information commands.

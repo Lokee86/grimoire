@@ -91,11 +91,24 @@ func runVectorSearch(args []string, stdout, stderr io.Writer) error {
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
 	timeout := flags.Duration("timeout", 2*time.Minute, "query embedding timeout")
+	modeValue := flags.String("query-embedding-mode", string(embedding.QueryModeFast), "query embedding mode: fast, full, or quality")
+	windowTokens := flags.Int("query-window-tokens", embedding.DefaultQueryWindowTokens, "tokens per fast query window")
+	maxTokens := flags.Int("query-max-tokens", embedding.DefaultQueryMaxTokens, "maximum query tokens embedded")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if *query == "" || *topK <= 0 || *timeout <= 0 {
 		return errors.New("--query, positive --top-k, and positive --timeout are required")
+	}
+	mode, err := embedding.ParseQueryMode(*modeValue)
+	if err != nil {
+		return err
+	}
+	queryOptions := embedding.QueryOptions{
+		Mode: mode, WindowTokens: *windowTokens, MaxTokens: *maxTokens,
+	}
+	if err := queryOptions.Validate(); err != nil {
+		return err
 	}
 	statePath, err := resolveState(*root, *state)
 	if err != nil {
@@ -131,20 +144,11 @@ func runVectorSearch(args []string, stdout, stderr io.Writer) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
-	queryVector, err := embedding.NewClient(*endpoint).EmbedQuery(ctx, *query)
+	candidates, err := queryVectorCandidates(
+		ctx, engine, info, chunks, *query, *endpoint, *topK, queryOptions,
+	)
 	if err != nil {
 		return err
-	}
-	if info.Dimensions != len(queryVector) {
-		return fmt.Errorf("vector snapshot has %d dimensions, query has %d", info.Dimensions, len(queryVector))
-	}
-	hits, err := engine.Search(queryVector, *topK)
-	if err != nil {
-		return err
-	}
-	chunksByID := make(map[string]index.Chunk, len(chunks))
-	for _, chunk := range chunks {
-		chunksByID[chunk.ID] = chunk
 	}
 	type result struct {
 		ID        string  `json:"id"`
@@ -153,13 +157,13 @@ func runVectorSearch(args []string, stdout, stderr io.Writer) error {
 		EndLine   int     `json:"end_line"`
 		Score     float32 `json:"score"`
 	}
-	results := make([]result, 0, len(hits))
-	for _, hit := range hits {
-		chunk, exists := chunksByID[hit.ID]
-		if !exists {
-			continue
-		}
-		results = append(results, result{ID: hit.ID, Path: chunk.Path, StartLine: chunk.StartLine, EndLine: chunk.EndLine, Score: hit.Score})
+	results := make([]result, 0, len(candidates))
+	for _, candidate := range candidates {
+		chunk := candidate.Chunk
+		results = append(results, result{
+			ID: chunk.ID, Path: chunk.Path, StartLine: chunk.StartLine,
+			EndLine: chunk.EndLine, Score: float32(candidate.Score),
+		})
 	}
 	return writeJSON(stdout, struct {
 		Model   string   `json:"model"`

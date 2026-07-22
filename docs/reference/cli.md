@@ -139,8 +139,13 @@ grimoire vector search --query <text> [flags]
 | `--endpoint <url>` | `http://127.0.0.1:8080/v1` | Embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--timeout <duration>` | `2m` | Query embedding timeout |
+| `--query-embedding-mode <mode>` | `fast` | `fast`, `full`, or `quality` query plan |
+| `--query-window-tokens <n>` | `16` | Tokens per fast-mode window |
+| `--query-max-tokens <n>` | `128` | Maximum query tokens embedded |
 
-Results contain chunk identity, source path, line range, and exact dot-product score.
+`fast` mechanically partitions the capped query into non-overlapping windows, sends all windows in one embedding request, searches their vectors concurrently, and merges duplicate results. It is the measured latency default for uncached queries on the supported local runtime. `full` embeds the capped full query once. `quality` embeds both the full query and every fast-mode window before the same concurrent search and merge.
+
+Results contain chunk identity, source path, line range, and the best exact dot-product score across the query vectors that matched each chunk.
 
 ## `grimoire vector info`
 
@@ -170,8 +175,11 @@ grimoire context [flags]
 | `--endpoint <url>` | `http://127.0.0.1:8080/v1` | OpenAI-compatible embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--timeout <duration>` | `2s` | Complete semantic retrieval timeout |
+| `--query-embedding-mode <mode>` | `fast` | `fast`, `full`, or `quality` query plan |
+| `--query-window-tokens <n>` | `16` | Tokens per fast-mode window |
+| `--query-max-tokens <n>` | `128` | Maximum query tokens embedded |
 
-The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged, deduplicated, diversified, and expanded with bounded prepared neighbours before exact-budget compilation. If the vector path is missing, stale, incompatible, or unavailable, the command writes a warning to stderr and substitutes the deterministic lexical fallback before the same exact-recovery and curation stages.
+The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds fixed non-overlapping windows in one batch and searches the returned vectors concurrently. `full` embeds the capped full query once. `quality` adds the full-query vector to the fast-mode windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged, deduplicated, diversified, and expanded with bounded prepared neighbours before exact-budget compilation. If the vector path is missing, stale, incompatible, or unavailable, the command writes a warning to stderr and substitutes the deterministic lexical fallback before the same exact-recovery and curation stages.
 
 ## `grimoire version`
 

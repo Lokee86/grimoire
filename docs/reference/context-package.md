@@ -28,7 +28,7 @@ The current package version is `3`.
       "retrieval_source": "vector",
       "retrieval_rank": 1,
       "reasons": [
-        "semantic vector similarity"
+        "semantic vector similarity from split window 1/1"
       ],
       "token_count": 126,
       "content": "..."
@@ -61,9 +61,9 @@ The values above illustrate the schema. The recorded `token_count` in real outpu
 | `path` | string | Repository-relative slash-normalized source path |
 | `start_line` | integer | One-based inclusive source start line |
 | `end_line` | integer | One-based inclusive source end line |
-| `score` | number | Provider-native ranking score; adjacent expansion uses zero because it is not independently ranked |
+| `score` | number | Provider-native ranking score; vector candidates use their best similarity across query inputs, while adjacent expansion uses zero |
 | `retrieval_source` | string | Source that produced the candidate: `exact`, `vector`, `lexical`, or `adjacent` |
-| `retrieval_rank` | integer | One-based provider rank before curation; adjacent expansion uses zero |
+| `retrieval_rank` | integer | One-based provider rank after deterministic same-provider query-vector merging and before curation; adjacent expansion uses zero |
 | `reasons` | string array | Inspectable provider explanation |
 | `token_count` | integer | Exact `o200k_base` count of the prepared chunk text |
 | `content` | string | Exact prepared chunk text |
@@ -109,6 +109,8 @@ If the budget cannot fit even the package metadata with no selections, the comma
 ## Retrieval behavior
 
 The normal path uses the configured embedding endpoint and exact vector snapshot. Before query embedding, Grimoire requires the persistent vector manifest's prepared identity to exactly match the current content-addressed prepared-index root. It then validates model identity, dimensions, vector count, and returned chunk IDs.
+
+Fast mode caps the query at 128 `o200k_base` tokens, divides it into non-overlapping 16-token windows, and submits all windows in one embedding request. The returned vectors are searched concurrently. Full mode submits one capped full query. Quality mode submits both forms. Duplicate vector hits retain the best similarity, record every matching query input in `reasons`, and receive one deterministic merged vector rank.
 
 Concrete query signals—such as quoted phrases, paths, filenames, identifiers, configuration keys, error codes, and versions—also activate targeted exact recovery. Exact and semantic candidates are merged before deterministic curation and exact-budget fitting.
 

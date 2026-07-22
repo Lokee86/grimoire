@@ -53,6 +53,29 @@ July 22, 2026 Windows amd64 baseline on an Intel i9-11900H, median of three runs
 
 They exclude repository loading, model inference, native vector scanning, and JSON package serialization unless the benchmark explicitly includes them. The curation allocation count is acceptable for the current bounded candidate set but is an obvious optimization target if complete context latency shows it matters.
 
+## Live query-embedding modes
+
+Run the local model service, then execute:
+
+```bash
+GRIMOIRE_EMBEDDING_BENCHMARK_ENDPOINT=http://127.0.0.1:8080/v1 \
+  go test ./internal/embedding -run '^$' \
+  -bench BenchmarkLiveQueryEmbeddingModes -benchtime=3x -count=3
+```
+
+The benchmark generates a distinct query for every iteration so the `llama.cpp` prompt cache cannot turn repeated-query reuse into an apparent embedding-speed improvement. Each value below is the median of three independent three-iteration runs on the same Windows amd64 i9-11900H system.
+
+| Query tokens | `fast`: 16-token batch | `full`: one query | `quality`: full plus windows |
+| ---: | ---: | ---: | ---: |
+| 16 | 75.5 ms | 69.5 ms | 68.7 ms |
+| 32 | 78.9 ms | 157.6 ms | 206.2 ms |
+| 64 | 83.4 ms | 314.3 ms | 602.5 ms |
+| 128 | 506.4 ms | 660.4 ms | 1,445.3 ms |
+
+Fast mode sends all windows in one embeddings request. The local runtime can process several short inputs through its available slots, while one long uncached input becomes progressively more expensive. At 32 and 64 tokens, the split batch was about 2.0x and 3.8x faster respectively. At 128 tokens, eight windows require multiple slot waves but still beat the full query by about 23%. Absolute latency varies with machine load and thermal state; the ordering remained stable across repeated cache-resistant runs.
+
+For queries of 16 tokens or fewer, all modes reduce to one input and observed differences are measurement noise. Repeated identical queries may favor `full` because the local runtime has prompt caching enabled; the default targets the more typical uncached repository-task query. `quality` intentionally spends substantially more time to preserve both global-query meaning and mechanically isolated concepts.
+
 ## Repository-scale baseline
 
 The current baseline repositories are:

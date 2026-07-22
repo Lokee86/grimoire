@@ -43,6 +43,44 @@ func TestClientFormatsQueryAndNormalizesTruncatedVectors(t *testing.T) {
 	}
 }
 
+func TestClientBatchesQueriesInOneRequest(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		requests++
+		var body embeddingsRequest
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if len(body.Input) != 3 {
+			t.Fatalf("got %d inputs, want 3", len(body.Input))
+		}
+		data := make([]map[string]any, len(body.Input))
+		for index := range body.Input {
+			if !strings.HasPrefix(body.Input[index], "Instruct: "+QueryInstruction+"\nQuery:") {
+				t.Fatalf("input %d was not query-formatted: %q", index, body.Input[index])
+			}
+			vector := make([]float64, NativeDimensions)
+			vector[index] = 1
+			data[index] = map[string]any{"index": index, "embedding": vector}
+		}
+		_ = json.NewEncoder(writer).Encode(map[string]any{"data": data})
+	}))
+	defer server.Close()
+
+	vectors, err := NewClient(server.URL).EmbedQueries(context.Background(), []string{"one", "two", "three"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requests != 1 || len(vectors) != 3 {
+		t.Fatalf("requests=%d vectors=%d", requests, len(vectors))
+	}
+	for index, vector := range vectors {
+		if vector[index] != 1 {
+			t.Fatalf("vector %d was not restored to request order", index)
+		}
+	}
+}
+
 func TestClientPreservesResponseIndexes(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		first := make([]float64, NativeDimensions)

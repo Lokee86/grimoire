@@ -17,6 +17,7 @@ The current implementation has incremental source preparation, a working local Q
 - Memory-mapped Rust validation and concurrent exact dot-product search.
 - A narrow C ABI with caller-owned buffers and no cross-runtime allocator ownership.
 - Vector-backed context compilation with exact prepared-index identity validation and lexical failure fallback.
+- Measured split-window batch embedding by default, with opt-in full-query and combined quality modes.
 - Conditional recovery for identifiers, paths, filenames, quoted phrases, configuration keys, error codes, and versions.
 - Candidate deduplication, overlap removal, file/subsystem diversity, and bounded adjacent-chunk expansion.
 - Selection-level retrieval source, rank, score, and inspectable reasons.
@@ -82,7 +83,7 @@ grimoire context \
   --budget 2000
 ```
 
-The default state location is `<repository>/.grimoire`. `context` uses the exact vector snapshot when available and emits a warning before falling back to the lexical baseline when semantic retrieval is unavailable or incompatible.
+The default state location is `<repository>/.grimoire`. `context` uses the exact vector snapshot when available and emits a warning before falling back to the lexical baseline when semantic retrieval is unavailable or incompatible. Query embedding defaults to `fast`, which batches deterministic 16-token windows and searches the returned vectors concurrently. Use `--query-embedding-mode full` for one capped full-query embedding or `--query-embedding-mode quality` for both approaches.
 
 ## Commands
 
@@ -114,9 +115,10 @@ repository files
               ▼                                                   │
       packed mmap snapshot ──► exact concurrent vector search ────┤
                                                                   │
-query literals ──► conditional exact recovery ────────────────────┤
-                                                                  ▼
-                                               merge and candidate curation
+query ──► configurable full/split batch embedding ─► concurrent searches ─┤
+query literals ──► conditional exact recovery ────────────────────────────┤
+                                                                           ▼
+                                                    merge and candidate curation
                                                                   ▼
                                                      exact-budget package
 
