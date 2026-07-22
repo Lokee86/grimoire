@@ -29,6 +29,12 @@ function makeFixture() {
       "}",
       "",
     ].join("\n"),
+    "src/barrel.ts": 'export { Base as RenamedBase, Named as RenamedNamed } from "./base";\n',
+    "src/through-barrel.ts": [
+      'import { RenamedBase, RenamedNamed } from "./barrel";',
+      "export class Through extends RenamedBase implements RenamedNamed {}",
+      "",
+    ].join("\n"),
     "src/index.tsx": [
       'import React from "react";',
       'export { Child } from "./child";',
@@ -118,6 +124,21 @@ test("extracts TypeScript declarations, imports, exports, inheritance, and exclu
   assert.ok(nodes.some((record) => record.kind === "interface" && record.qualified_name === "src/child.Child"));
   assert.ok(nodes.some((record) => record.kind === "method" && record.qualified_name === "src/child.Child.method"));
   assert.ok(nodes.some((record) => record.kind === "constant" && record.qualified_name === "src/base.BASE"));
+});
+
+test("resolves heritage through named barrel re-exports", () => {
+  const repo = makeFixture();
+  const records = runAdapter(repo, path.join(repo, "facts.jsonl"));
+  const nodes = recordsOf(records, "node");
+  const edges = recordsOf(records, "edge");
+  const unresolved = recordsOf(records, "unresolved");
+  const through = nodes.find((record) => record.qualified_name === "src/through-barrel.Through");
+  const base = nodes.find((record) => record.qualified_name === "src/base.Base");
+  const named = nodes.find((record) => record.qualified_name === "src/base.Named");
+  assert.ok(through && base && named);
+  assert.ok(edges.some((record) => record.source === through.id && record.target === base.id && record.relation === "extends"));
+  assert.ok(edges.some((record) => record.source === through.id && record.target === named.id && record.relation === "implements"));
+  assert.ok(!unresolved.some((record) => record.source === through.id && ["extends", "implements"].includes(record.relation)));
 });
 
 test("uses contract IDs, canonical ordering, and stable repeat runs", () => {

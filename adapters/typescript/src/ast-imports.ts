@@ -41,7 +41,15 @@ export function recordExportDeclaration(node: ts.ExportDeclaration, ownerId: str
   const identity = `${context.moduleKey}::export:${recordSpan.start_line}:${recordSpan.start_column}`;
   const id = facts.addNode("export", names.join(","), context.relativePath, identity, identity, recordSpan, { expression: expressionText(node, context.sourceFile) });
   facts.addEdge(ownerId, id, "defines", recordSpan);
-  if (source) facts.reexports.push({ ownerId, moduleKey: context.moduleKey, source, expression: expressionText(node, context.sourceFile), span: recordSpan });
+  if (source) {
+    const names = node.exportClause && ts.isNamedExports(node.exportClause)
+      ? node.exportClause.elements.map((element) => ({
+        imported: element.propertyName?.text ?? element.name.text,
+        exported: element.name.text,
+      }))
+      : [];
+    facts.reexports.push({ ownerId, moduleKey: context.moduleKey, source, expression: expressionText(node, context.sourceFile), names, span: recordSpan });
+  }
   else if (node.moduleSpecifier) facts.addUnresolved(ownerId, "imports", expressionText(node, context.sourceFile), "unsupported-form", recordSpan);
 }
 

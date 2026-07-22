@@ -42,6 +42,7 @@ export type PendingReexport = {
   moduleKey: string;
   source: string;
   expression: string;
+  names: { imported: string; exported: string }[];
   span: Span;
 };
 
