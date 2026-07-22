@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -16,6 +18,11 @@ type Config struct {
 
 func StateRoot(repository string) string {
 	return filepath.Join(repository, ".lexicon")
+}
+
+func AnalysisID() string {
+	sum := sha256.Sum256([]byte("lexicon:analysis-config:v1"))
+	return "sha256:" + hex.EncodeToString(sum[:])
 }
 
 func Path(repository string) string {

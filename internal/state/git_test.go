@@ -58,6 +58,41 @@ func TestRepositoryTracksOneReplaceableStateCommit(t *testing.T) {
 	}
 }
 
+func TestRestoreLibraryRollsBackUncommittedOutput(t *testing.T) {
+	root := t.TempDir()
+	repository, err := Ensure(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	library := filepath.Join(root, "library")
+	if err := os.MkdirAll(library, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(library, "python.jsonl")
+	if err := os.WriteFile(path, []byte("old\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.StageAll(); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.CommitState(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("partial\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.RestoreLibrary(); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "old\n" {
+		t.Fatalf("library = %q", data)
+	}
+}
+
 func TestParseRename(t *testing.T) {
 	data := []byte("R100\x00source/old.py\x00source/new.py\x00")
 	changes := parseChanges(data)

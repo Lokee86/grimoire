@@ -42,7 +42,38 @@ def wait_for_change(path: Path, previous: bytes, timeout: float = 10.0) -> None:
         if path.exists() and path.read_bytes() != previous:
             return
         time.sleep(0.1)
-    raise RuntimeError("daemon did not update the Python library")
+    raise RuntimeError(f"file did not change: {path}")
+
+
+def load_snapshot(repository: Path) -> tuple[str, dict[str, object]]:
+    root = repository / ".lexicon"
+    snapshot_id = (root / "CURRENT").read_text(encoding="utf-8").strip()
+    manifest_path = root / "snapshots" / f"{snapshot_id.removeprefix('sha256:')}.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    return snapshot_id, manifest
+
+
+def validate_snapshot(repository: Path) -> tuple[str, dict[str, object]]:
+    snapshot_id, manifest = load_snapshot(repository)
+    root = repository / ".lexicon"
+    for language in manifest["languages"]:
+        object_ids = [file["object_id"] for file in language["files"]]
+        shared = language.get("shared_object_id")
+        if shared:
+            object_ids.append(shared)
+        for object_id in object_ids:
+            digest = object_id.removeprefix("sha256:")
+            if not (root / "objects" / digest[:2] / digest[2:]).is_file():
+                raise RuntimeError(f"missing fact object: {object_id}")
+    return snapshot_id, manifest
+
+
+def file_objects(manifest: dict[str, object]) -> dict[tuple[str, str], str]:
+    result: dict[tuple[str, str], str] = {}
+    for language in manifest["languages"]:
+        for file in language["files"]:
+            result[(language["language"], file["path"])] = file["object_id"]
+    return result
 
 
 def main() -> int:
@@ -74,17 +105,37 @@ def main() -> int:
             if not records or records[0].get("record") != "lexicon":
                 raise RuntimeError(f"{language} library did not contain a Lexicon header")
         library = library_root / "python.jsonl"
+        initial_id, initial_manifest = validate_snapshot(repository)
 
         source.write_text("def answer():\n    return 43\n", encoding="utf-8")
         updated = run(binary, "scan", "--repo", str(repository))
         if "updated 1 files: python" not in updated.stdout:
             raise RuntimeError(f"unexpected incremental scan output: {updated.stdout}")
+        updated_id, updated_manifest = validate_snapshot(repository)
+        if updated_id == initial_id:
+            raise RuntimeError("source change did not publish a new snapshot")
+        initial_objects = file_objects(initial_manifest)
+        updated_objects = file_objects(updated_manifest)
+        if initial_objects[("ruby", "main.rb")] != updated_objects[("ruby", "main.rb")]:
+            raise RuntimeError("unchanged Ruby fact object was not reused")
 
-        current = run(binary, "scan", "--repo", str(repository))
-        if "Lexicon is current" not in current.stdout:
-            raise RuntimeError(f"unexpected no-op scan output: {current.stdout}")
+        current_path = repository / ".lexicon" / "CURRENT"
+        current_path.write_text(initial_id + "\n", encoding="utf-8")
+        repaired = run(binary, "scan", "--repo", str(repository))
+        if "Lexicon is current" not in repaired.stdout:
+            raise RuntimeError(f"unexpected recovery scan output: {repaired.stdout}")
+        repaired_id, _ = validate_snapshot(repository)
+        if repaired_id != updated_id:
+            raise RuntimeError("stale CURRENT pointer was not repaired")
+
+        current_path.unlink()
+        run(binary, "scan", "--repo", str(repository))
+        restored_id, _ = validate_snapshot(repository)
+        if restored_id != updated_id:
+            raise RuntimeError("missing CURRENT pointer was not restored")
 
         before_daemon = library.read_bytes()
+        before_snapshot = current_path.read_bytes()
         daemon = subprocess.Popen(
             [
                 str(binary),
@@ -104,6 +155,8 @@ def main() -> int:
             time.sleep(0.5)
             source.write_text("def answer():\n    return 44\n", encoding="utf-8")
             wait_for_change(library, before_daemon)
+            wait_for_change(current_path, before_snapshot)
+            validate_snapshot(repository)
         finally:
             daemon.terminate()
             try:

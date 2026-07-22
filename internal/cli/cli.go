@@ -71,6 +71,7 @@ func runInit(ctx context.Context, arguments []string, stdout, stderr io.Writer) 
 	if len(report.Languages) > 0 {
 		fmt.Fprintf(stdout, "libraries: %s\n", strings.Join(report.Languages, ", "))
 	}
+	fmt.Fprintf(stdout, "snapshot: %s\n", report.SnapshotID)
 	return nil
 }
 
@@ -90,10 +91,16 @@ func runScan(ctx context.Context, arguments []string, stdout, stderr io.Writer) 
 		return err
 	}
 	if len(report.Changed) == 0 {
-		fmt.Fprintln(stdout, "Lexicon is current")
+		if len(report.Languages) > 0 {
+			fmt.Fprintf(stdout, "rebuilt libraries: %s\n", strings.Join(report.Languages, ", "))
+			fmt.Fprintf(stdout, "snapshot: %s\n", report.SnapshotID)
+			return nil
+		}
+		fmt.Fprintf(stdout, "Lexicon is current: %s\n", report.SnapshotID)
 		return nil
 	}
 	fmt.Fprintf(stdout, "updated %d files: %s\n", len(report.Changed), strings.Join(report.Languages, ", "))
+	fmt.Fprintf(stdout, "snapshot: %s\n", report.SnapshotID)
 	return nil
 }
 
