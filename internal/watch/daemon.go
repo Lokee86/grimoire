@@ -27,7 +27,11 @@ func Run(ctx context.Context, scanner *scan.Scanner, options Options) error {
 		return err
 	}
 	defer watcher.Close()
-	if err := addTree(watcher, scanner.Repository); err != nil {
+	policy, err := lexfiles.LoadIgnorePolicy(scanner.Repository)
+	if err != nil {
+		return err
+	}
+	if err := addTree(watcher, scanner.Repository, policy); err != nil {
 		return err
 	}
 	if report, err := scanner.Scan(ctx); err != nil {
@@ -42,6 +46,7 @@ func Run(ctx context.Context, scanner *scan.Scanner, options Options) error {
 		options.Reconcile = 30 * time.Second
 	}
 	pending := make(map[string]struct{})
+	fullScan := false
 	var timer *time.Timer
 	var timerChannel <-chan time.Time
 	reconcile := time.NewTicker(options.Reconcile)
@@ -54,12 +59,34 @@ func Run(ctx context.Context, scanner *scan.Scanner, options Options) error {
 			if !ok {
 				return nil
 			}
-			if ignored(scanner.Repository, event.Name) {
+			if lexfiles.IsIgnoreFile(scanner.Repository, event.Name) {
+				policy, err = lexfiles.LoadIgnorePolicy(scanner.Repository)
+				if err != nil {
+					return err
+				}
+				if err := addTree(watcher, scanner.Repository, policy); err != nil {
+					return err
+				}
+				clear(pending)
+				fullScan = true
+				if timer == nil {
+					timer = time.NewTimer(options.Debounce)
+				} else if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
+				timer.Reset(options.Debounce)
+				timerChannel = timer.C
+				continue
+			}
+			if ignored(policy, event.Name) {
 				continue
 			}
 			if event.Op&fsnotify.Create != 0 {
 				if info, statErr := os.Stat(event.Name); statErr == nil && info.IsDir() {
-					_ = addTree(watcher, event.Name)
+					_ = addTree(watcher, event.Name, policy)
 				}
 			}
 			if relevantEvent(event) {
@@ -79,7 +106,14 @@ func Run(ctx context.Context, scanner *scan.Scanner, options Options) error {
 			paths := sortedKeys(pending)
 			clear(pending)
 			timerChannel = nil
-			report, scanErr := scanner.ScanPaths(ctx, paths)
+			var report scan.Report
+			var scanErr error
+			if fullScan {
+				fullScan = false
+				report, scanErr = scanner.Scan(ctx)
+			} else {
+				report, scanErr = scanner.ScanPaths(ctx, paths)
+			}
 			if scanErr != nil {
 				fmt.Fprintf(options.Output, "lexicon daemon scan failed: %v\n", scanErr)
 				continue
@@ -107,7 +141,7 @@ func Run(ctx context.Context, scanner *scan.Scanner, options Options) error {
 	}
 }
 
-func addTree(watcher *fsnotify.Watcher, root string) error {
+func addTree(watcher *fsnotify.Watcher, root string, policy lexfiles.IgnorePolicy) error {
 	return filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -115,24 +149,16 @@ func addTree(watcher *fsnotify.Watcher, root string) error {
 		if !entry.IsDir() {
 			return nil
 		}
-		if path != root && lexfiles.IgnoredDirectory(entry.Name()) {
+		if path != root && policy.Ignored(path, true) {
 			return filepath.SkipDir
 		}
 		return watcher.Add(path)
 	})
 }
 
-func ignored(root, path string) bool {
-	relative, err := filepath.Rel(root, path)
-	if err != nil || strings.HasPrefix(relative, "..") {
-		return true
-	}
-	for _, part := range strings.Split(filepath.Clean(relative), string(filepath.Separator)) {
-		if lexfiles.IgnoredDirectory(part) {
-			return true
-		}
-	}
-	return false
+func ignored(policy lexfiles.IgnorePolicy, path string) bool {
+	info, err := os.Lstat(path)
+	return policy.Ignored(path, err == nil && info.IsDir())
 }
 
 func relevantEvent(event fsnotify.Event) bool {

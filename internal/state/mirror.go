@@ -17,16 +17,23 @@ type Mirror struct {
 }
 
 func (m Mirror) SyncAll(source string) error {
+	policy, err := lexfiles.LoadIgnorePolicy(source)
+	if err != nil {
+		return err
+	}
 	desired := make(map[string]string)
-	err := filepath.WalkDir(source, func(path string, entry fs.DirEntry, walkErr error) error {
+	err = filepath.WalkDir(source, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 		if path == source {
 			return nil
 		}
-		if lexfiles.SkipDir(path, entry) {
-			return filepath.SkipDir
+		if policy.Ignored(path, entry.IsDir()) {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if entry.IsDir() || !lexfiles.Relevant(path) || entry.Type()&os.ModeSymlink != 0 {
 			return nil
@@ -50,6 +57,10 @@ func (m Mirror) SyncAll(source string) error {
 }
 
 func (m Mirror) SyncPaths(source string, paths []string) error {
+	policy, err := lexfiles.LoadIgnorePolicy(source)
+	if err != nil {
+		return err
+	}
 	sort.Strings(paths)
 	for _, path := range paths {
 		absolute := path
@@ -60,7 +71,7 @@ func (m Mirror) SyncPaths(source string, paths []string) error {
 		if err != nil || relative == "." || strings.HasPrefix(relative, "..") {
 			continue
 		}
-		if containsIgnoredDirectory(relative) {
+		if policy.Ignored(absolute, false) {
 			continue
 		}
 		info, statErr := os.Lstat(absolute)
@@ -71,8 +82,11 @@ func (m Mirror) SyncPaths(source string, paths []string) error {
 			}
 			return statErr
 		}
+		if policy.Ignored(absolute, info.IsDir()) {
+			continue
+		}
 		if info.IsDir() {
-			if err := m.syncDirectory(source, relative); err != nil {
+			if err := m.syncDirectory(source, relative, policy); err != nil {
 				return err
 			}
 			continue
@@ -88,15 +102,18 @@ func (m Mirror) SyncPaths(source string, paths []string) error {
 	return nil
 }
 
-func (m Mirror) syncDirectory(source, relative string) error {
+func (m Mirror) syncDirectory(source, relative string, policy lexfiles.IgnorePolicy) error {
 	directory := filepath.Join(source, relative)
 	desired := make(map[string]string)
 	err := filepath.WalkDir(directory, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
-		if lexfiles.SkipDir(path, entry) {
-			return filepath.SkipDir
+		if policy.Ignored(path, entry.IsDir()) {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if entry.IsDir() || entry.Type()&os.ModeSymlink != 0 || !lexfiles.Relevant(path) {
 			return nil
@@ -171,13 +188,4 @@ func (m Mirror) removeMissing(desired map[string]string) error {
 		}
 		return nil
 	})
-}
-
-func containsIgnoredDirectory(path string) bool {
-	for _, part := range strings.Split(filepath.Clean(path), string(filepath.Separator)) {
-		if lexfiles.IgnoredDirectory(part) {
-			return true
-		}
-	}
-	return false
 }
