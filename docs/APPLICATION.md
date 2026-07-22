@@ -10,11 +10,14 @@ Lexicon can invoke deterministic one-shot consumers after a successful scan has 
 {
   "version": 1,
   "command": "/absolute/path/to/arcana",
-  "args": ["sync", "--lexicon", "/repo/.lexicon", "--state", "/repo/.arcana"]
+  "args": ["sync", "--lexicon", "/repo/.lexicon", "--state", "/repo/.arcana"],
+  "timeout": "30s"
 }
 ```
 
-Commands execute directly without a shell, in lexical filename order, with the repository as their working directory. Lexicon provides `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID`. A failed consumer fails the scan command and is retried on a later scan; the already-published Lexicon snapshot remains valid.
+Commands execute directly without a shell, in lexical filename order, with the repository as their working directory. `timeout` is optional; existing definitions without it remain unlimited. Lexicon provides `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID`. Lexicon attempts every registered consumer, aggregates failures, and retries failed consumers on a later scan. After a successful invocation, its state file contains deterministic JSON such as `{"version":1,"snapshot_id":"sha256:..."}` and is replaced atomically; failed invocations leave their previous state unchanged. The already-published Lexicon snapshot remains valid.
+
+The `internal/consumer` package exposes `ListDefinitions`, `AddDefinition`, `RemoveDefinition`, and `RunOne` for future operators. Definition names are simple `.json` filenames; path traversal and other extensions are rejected. Listing is lexical, adding replaces an existing definition atomically, removal deletes both the definition and its consumer state, and `RunOne` executes only the selected definition against the supplied snapshot ID.
 
 ## Commands
 
@@ -38,6 +41,8 @@ lexicon daemon [--repo PATH] [--debounce 150ms] [--reconcile 30s]
     CURRENT
     LOCK
     consumers/
+        arcana.json
+    consumer-state/
         arcana.json
     objects/
         ab/cdef...
