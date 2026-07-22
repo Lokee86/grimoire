@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { writeFacts } from "./adapter";
+import { writeFacts } from "./orchestration";
 
 function usage(): string {
   return "Usage: node dist/cli.js --repo <repository> --output <jsonl path|->";
