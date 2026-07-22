@@ -1,0 +1,15 @@
+[package]
+name = "lexicon-rust-adapter"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1"
+cargo_metadata = "0.18"
+clap = { version = "4", features = ["derive"] }
+proc-macro2 = { version = "1", features = ["span-locations"] }
+quote = "1"
+serde_json = "1"
+sha2 = "0.10"
+syn = { version = "2", features = ["full", "parsing", "printing"] }
