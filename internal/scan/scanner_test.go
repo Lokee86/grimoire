@@ -124,3 +124,48 @@ func TestScanUsesInternalDiffAndAffectedLanguage(t *testing.T) {
 		t.Fatalf("current snapshot: %v", err)
 	}
 }
+
+func TestScanForcesFullRebuildWhenAdapterFingerprintDrifts(t *testing.T) {
+	source := t.TempDir()
+	stateRoot := t.TempDir()
+	adapterRoot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(source, "main.py"), []byte("value = 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(adapterRoot, "python"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	adapterFile := filepath.Join(adapterRoot, "python", "adapter.py")
+	if err := os.WriteFile(adapterFile, []byte("value = 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitRepository, err := state.Ensure(stateRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	analyzer := &fakeAnalyzer{}
+	scanner := New(source, stateRoot, gitRepository, analyzer, io.Discard)
+	scanner.AdapterRoot = adapterRoot
+	prepareSnapshot(t, scanner, gitRepository)
+	if err := os.WriteFile(adapterFile, []byte("value = 2\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := scanner.Scan(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Changed) != 0 || !reflect.DeepEqual(report.Languages, []string{"python"}) {
+		t.Fatalf("report = %#v", report)
+	}
+	if len(analyzer.requests) != 2 || analyzer.requests[1].ChangedFiles != nil {
+		t.Fatalf("requests = %#v", analyzer.requests)
+	}
+	_, manifest, err := scanner.Store.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Languages[0].AdapterFingerprint == "" {
+		t.Fatal("published snapshot omitted adapter fingerprint")
+	}
+}

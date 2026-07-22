@@ -14,13 +14,14 @@ import (
 )
 
 type Scanner struct {
-	Repository string
-	StateRoot  string
-	Git        *state.Repository
-	Mirror     state.Mirror
-	Analyzer   adapters.Analyzer
-	Store      objectstore.Store
-	Output     io.Writer
+	Repository  string
+	StateRoot   string
+	AdapterRoot string
+	Git         *state.Repository
+	Mirror      state.Mirror
+	Analyzer    adapters.Analyzer
+	Store       objectstore.Store
+	Output      io.Writer
 }
 
 type Report struct {
@@ -91,14 +92,27 @@ func Open(repository string, output io.Writer) (*Scanner, error) {
 
 func New(repository, stateRoot string, gitRepository *state.Repository, analyzer adapters.Analyzer, output io.Writer) *Scanner {
 	return &Scanner{
-		Repository: repository,
-		StateRoot:  stateRoot,
-		Git:        gitRepository,
-		Mirror:     state.Mirror{Root: filepath.Join(stateRoot, "source")},
-		Analyzer:   analyzer,
-		Store:      objectstore.Store{Root: config.StateRoot(repository)},
-		Output:     output,
+		Repository:  repository,
+		StateRoot:   stateRoot,
+		AdapterRoot: adapterRoot(analyzer),
+		Git:         gitRepository,
+		Mirror:      state.Mirror{Root: filepath.Join(stateRoot, "source")},
+		Analyzer:    analyzer,
+		Store:       objectstore.Store{Root: config.StateRoot(repository)},
+		Output:      output,
 	}
+}
+
+func adapterRoot(analyzer adapters.Analyzer) string {
+	switch value := analyzer.(type) {
+	case adapters.Runner:
+		return value.Root
+	case *adapters.Runner:
+		if value != nil {
+			return value.Root
+		}
+	}
+	return ""
 }
 
 func (s *Scanner) Scan(ctx context.Context) (Report, error) {
@@ -147,6 +161,11 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 	if err != nil {
 		return Report{}, err
 	}
+	adapterDrift, err := s.adapterDriftLanguages()
+	if err != nil {
+		return Report{}, err
+	}
+	drift = mergeLanguages(drift, adapterDrift)
 	plans, err := s.plansFor(changes, drift)
 	if err != nil {
 		return Report{}, err

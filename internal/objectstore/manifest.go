@@ -6,10 +6,16 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/Lokee86/lexicon/internal/adapters"
 )
 
-func (s Store) BuildManifest(stateRoot, stateCommit, analysisConfigID string) (Manifest, error) {
+func (s Store) BuildManifest(stateRoot, stateCommit, analysisConfigID string, adapterRoots ...string) (Manifest, error) {
 	libraryRoot := filepath.Join(stateRoot, "library")
+	adapterRoot := ""
+	if len(adapterRoots) > 0 {
+		adapterRoot = adapterRoots[0]
+	}
 	entries, err := os.ReadDir(libraryRoot)
 	if os.IsNotExist(err) {
 		entries = nil
@@ -30,6 +36,13 @@ func (s Store) BuildManifest(stateRoot, stateCommit, analysisConfigID string) (M
 		)
 		if err != nil {
 			return Manifest{}, fmt.Errorf("ingest %s library: %w", language, err)
+		}
+		if adapterRoot != "" {
+			fingerprint, err := adapters.Fingerprint(adapterRoot, language)
+			if err != nil {
+				return Manifest{}, fmt.Errorf("fingerprint %s adapter: %w", language, err)
+			}
+			languageEntry.AdapterFingerprint = fingerprint
 		}
 		languages = append(languages, languageEntry)
 	}
