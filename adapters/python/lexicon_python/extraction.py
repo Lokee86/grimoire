@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 
 from .contract import expression_text, span
-from .model import CallInfo, Facts, FileContext, ImportInfo, InheritanceInfo
+from .model import CallInfo, Facts, FileContext, ImportInfo, InheritanceInfo, LocalAssignmentInfo
 
 
 class DeclarationVisitor(ast.NodeVisitor):
@@ -16,6 +16,7 @@ class DeclarationVisitor(ast.NodeVisitor):
         self.function_stack: list[tuple[str, str]] = []
         self.owner_stack: list[str] = [context.module_id]
         self.import_index = 0
+        self.control_flow_depth = 0
 
     @property
     def owner_id(self) -> str:
@@ -24,6 +25,10 @@ class DeclarationVisitor(ast.NodeVisitor):
     @property
     def class_qname(self) -> str | None:
         return self.class_stack[-1][0] if self.class_stack else None
+
+    @property
+    def scope_id(self) -> str | None:
+        return self.owner_id if self.function_stack else None
 
     def _attributes(self, node: ast.AST) -> dict[str, object]:
         decorators = sorted(expression_text(item, self.context.source) for item in getattr(node, "decorator_list", []))
@@ -97,8 +102,11 @@ class DeclarationVisitor(ast.NodeVisitor):
         )
         self.function_stack.append((qname, node.name))
         self.owner_stack.append(identifier)
+        previous_control_flow_depth = self.control_flow_depth
+        self.control_flow_depth = 0
         for statement in node.body:
             self.visit(statement)
+        self.control_flow_depth = previous_control_flow_depth
         self.owner_stack.pop()
         self.function_stack.pop()
 
@@ -159,12 +167,94 @@ class DeclarationVisitor(ast.NodeVisitor):
         if self.owner_id == self.context.module_id and binding:
             self.facts.module_bindings[(self.context.module_name, binding)] = (None, "unresolved")
 
+    def _record_local_write(self, target: ast.Name, node: ast.AST, constructor: ast.Call | None = None) -> None:
+        if self.scope_id is None:
+            return
+        self.facts.local_assignments.append(
+            LocalAssignmentInfo(
+                module_name=self.context.module_name,
+                scope_id=self.scope_id,
+                class_qname=self.class_qname,
+                name=target.id,
+                assignment_node=node,
+                constructor=constructor,
+                branch_dependent=self.control_flow_depth > 0,
+            )
+        )
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and isinstance(node.value, ast.Call):
+            self._record_local_write(node.targets[0], node, node.value)
+        else:
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    self._record_local_write(target, node)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if isinstance(node.target, ast.Name):
+            self._record_local_write(node.target, node)
+        self.generic_visit(node)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> None:
+        if isinstance(node.target, ast.Name):
+            self._record_local_write(node.target, node)
+        self.generic_visit(node)
+
+    def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
+        if isinstance(node.target, ast.Name):
+            self._record_local_write(node.target, node)
+        self.generic_visit(node)
+
+    def _visit_branch(self, nodes: list[ast.stmt]) -> None:
+        self.control_flow_depth += 1
+        for statement in nodes:
+            self.visit(statement)
+        self.control_flow_depth -= 1
+
+    def visit_If(self, node: ast.If) -> None:
+        self.visit(node.test)
+        self._visit_branch(node.body)
+        self._visit_branch(node.orelse)
+
+    def visit_For(self, node: ast.For) -> None:
+        self.visit(node.target)
+        self.visit(node.iter)
+        self._visit_branch(node.body)
+        self._visit_branch(node.orelse)
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+        self.visit(node.target)
+        self.visit(node.iter)
+        self._visit_branch(node.body)
+        self._visit_branch(node.orelse)
+
+    def visit_While(self, node: ast.While) -> None:
+        self.visit(node.test)
+        self._visit_branch(node.body)
+        self._visit_branch(node.orelse)
+
+    def visit_Try(self, node: ast.Try) -> None:
+        self._visit_branch(node.body)
+        for handler in node.handlers:
+            self._visit_branch([handler])
+        self._visit_branch(node.orelse)
+        self._visit_branch(node.finalbody)
+
+    def visit_Match(self, node: ast.Match) -> None:
+        self.visit(node.subject)
+        for case in node.cases:
+            if case.guard is not None:
+                self.visit(case.guard)
+            self._visit_branch(case.body)
+
     def visit_Call(self, node: ast.Call) -> None:
         self.facts.calls.append(
             CallInfo(
                 module_name=self.context.module_name,
                 owner_id=self.owner_id,
                 class_qname=self.class_qname,
+                scope_id=self.scope_id,
                 expression_node=node,
                 callee=node.func,
             )

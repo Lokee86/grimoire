@@ -1,6 +1,6 @@
 """Standard-library Lexicon Python adapter."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .adapter import build_facts, write_facts
 

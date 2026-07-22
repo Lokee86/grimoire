@@ -30,6 +30,18 @@ class PythonAdapterTest(unittest.TestCase):
             "        return 1\n",
         )
         self._write(
+            "pkg/known.py",
+            "class Worker:\n"
+            "    def run(self):\n"
+            "        return 1\n",
+        )
+        self._write(
+            "pkg/other.py",
+            "class Alternate:\n"
+            "    def run(self):\n"
+            "        return 1\n",
+        )
+        self._write(
             "pkg/child.py",
             "from .base import Base\n"
             "import pkg.base as base\n"
@@ -138,12 +150,96 @@ class PythonAdapterTest(unittest.TestCase):
             )
         )
 
+    def test_local_constructor_calls_are_precise_and_conservative(self) -> None:
+        self._write("left/config.py", "class Worker:\n    def run(self): pass\n")
+        self._write("right/config.py", "class Worker:\n    def run(self): pass\n")
+        self._write(
+            "local_precision.py",
+            "from pkg.known import Worker\n"
+            "from pkg.other import Alternate\n"
+            "from config import Worker as AmbiguousWorker\n\n"
+            "def precise():\n"
+            "    worker = Worker()\n"
+            "    return worker.run()\n\n"
+            "def branch_dependent(flag):\n"
+            "    worker = Worker()\n"
+            "    if flag:\n"
+            "        worker = Worker()\n"
+            "    return worker.run()\n\n"
+            "def conflicting():\n"
+            "    worker = Worker()\n"
+            "    worker = Alternate()\n"
+            "    return worker.run()\n\n"
+            "def attribute_based():\n"
+            "    holder.worker = Worker()\n"
+            "    return holder.worker.run()\n\n"
+            "def unknown_method():\n"
+            "    worker = Worker()\n"
+            "    return worker.missing()\n\n"
+            "def ambiguous_class():\n"
+            "    worker = AmbiguousWorker()\n"
+            "    return worker.run()\n",
+        )
+        records = self._run(self.repo / "facts.jsonl")
+        nodes = [record for record in records if record["record"] == "node"]
+        edges = [record for record in records if record["record"] == "edge"]
+        unresolved = [record for record in records if record["record"] == "unresolved"]
+        worker_run = next(record for record in nodes if record.get("qualified_name") == "pkg.known.Worker.run")
+        alternate_run = next(record for record in nodes if record.get("qualified_name") == "pkg.other.Alternate.run")
+        function_ids = {
+            record["qualified_name"].rsplit(".", 1)[-1]: record["id"]
+            for record in nodes
+            if record["kind"] == "function" and record["path"] == "local_precision.py"
+        }
+
+        self.assertTrue(
+            any(
+                record["relation"] == "calls"
+                and record["source"] == function_ids["precise"]
+                and record["target"] == worker_run["id"]
+                for record in edges
+            )
+        )
+        for function_name in ("branch_dependent", "conflicting", "attribute_based", "unknown_method", "ambiguous_class"):
+            self.assertFalse(
+                any(
+                    record["relation"] == "calls"
+                    and record["source"] == function_ids[function_name]
+                    and record["target"] in {worker_run["id"], alternate_run["id"]}
+                    for record in edges
+                )
+            )
+        self.assertTrue(any(record["expression"] == "worker.run()" and record["reason"] == "ambiguous-target" for record in unresolved))
+        self.assertTrue(any(record["expression"] == "holder.worker.run()" for record in unresolved))
+        self.assertTrue(any(record["expression"] == "worker.missing()" and record["reason"] == "missing-target" for record in unresolved))
+
+    def test_runtime_builtin_namespace_is_classified(self) -> None:
+        self._write(
+            "builtins_usage.py",
+            "def use(values):\n"
+            "    sorted(values)\n"
+            "    frozenset(values)\n"
+            "    KeyError('missing')\n"
+            "    Exception('failed')\n"
+            "    SystemExit(1)\n",
+        )
+        records = self._run(self.repo / "facts.jsonl")
+        unresolved = [
+            record
+            for record in records
+            if record["record"] == "unresolved"
+            and record["relation"] == "calls"
+            and record.get("span", {}).get("path") == "builtins_usage.py"
+        ]
+        self.assertEqual(len(unresolved), 5)
+        self.assertEqual({record["reason"] for record in unresolved}, {"builtin-target"})
+
     def test_ids_content_and_header(self) -> None:
         output = self.repo / "facts.jsonl"
         records = self._run(output)
         header = records[0]
         self.assertEqual(header, {
-            "adapter_version": "0.1.0",
+            "adapter_version": "0.2.0",
             "language": "python",
             "record": "lexicon",
             "repository": "fixture-repository",

@@ -33,14 +33,16 @@ File nodes also carry the SHA-256 content identity of the original file bytes. A
 
 ## Supported facts
 
-The adapter emits repository, directory, file, module, type, function, method, and import nodes. It emits `contains` edges for repository structure and file/module ownership, `defines` edges for declarations, `imports` edges for resolved in-repository modules/symbols, `extends` edges for simple resolved inheritance, and direct `calls` edges when a callable is statically identified. Unsupported, dynamic, external, builtin, or missing targets are represented as `unresolved` records instead of guessed edges.
+The adapter emits repository, directory, file, module, type, function, method, and import nodes. It emits `contains` edges for repository structure and file/module ownership, `defines` edges for declarations, `imports` edges for resolved in-repository modules/symbols, `extends` edges for simple resolved inheritance, and direct `calls` edges when a callable is statically identified. It also tracks simple function-local assignments such as `worker = Worker()` and resolves a later `worker.run()` only when the constructor and method are uniquely known; conflicting or control-flow-dependent assignments invalidate that inference. Unsupported, dynamic, external, builtin, ambiguous, or missing targets are represented as `unresolved` records instead of guessed edges.
 
 Python files are scanned in deterministic order while excluding `.git/`, `.worktrees/`, `.workingtrees/`, `.warlock/`, `__pycache__/`, `.pytest_cache/`, `.bundle/`, `node_modules/`, `target/`, build/dist/virtual-environment directories, and vendor directories.
 
 ## Current limits
 
 - Resolution is repository-local and syntax-based; it does not execute imports or inspect installed packages.
+- Local constructor-flow resolution is deliberately intraprocedural and linear; branch-dependent, conflicting, attribute-based, factory-produced, and reassigned values remain unresolved.
 - Calls through computed attributes, factories, dynamic imports, and other non-dotted callable expressions remain unresolved.
+- Builtin classification uses the running Python interpreter's authoritative builtin namespace.
 - Inheritance resolution covers simple names and dotted names that map to scanned modules or declarations; metaclasses, generated bases, and runtime mutation are not inferred.
 - Python files that cannot be decoded or parsed still produce file/module facts plus an unresolved parse record, but no declarations from the file.
 - Imports inside function bodies are represented as import facts, but only module-level bindings participate in cross-file symbol resolution.

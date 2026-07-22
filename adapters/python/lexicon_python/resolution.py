@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 
 from .contract import BUILTINS, expression_text, span
-from .model import CallInfo, Facts, FileContext, ImportInfo
+from .model import CallInfo, Facts, FileContext, ImportInfo, LocalAssignmentInfo
 
 
 def _dotted(node: ast.AST) -> str | None:
@@ -104,7 +104,98 @@ def _call_resolution(facts: Facts, call: CallInfo) -> tuple[str | None, str]:
         return None, "dynamic-target"
     if reference in {"importlib.import_module", "import_module", "__import__"}:
         return None, "dynamic-target"
+    local_target, local_reason = _local_call_resolution(facts, call)
+    if local_target or local_reason != "not-local":
+        return local_target, local_reason
     return resolve_reference(facts, call.module_name, call.class_qname, reference)
+
+
+def _position(node: ast.AST, *, end: bool = False) -> tuple[int, int]:
+    line_name = "end_lineno" if end else "lineno"
+    column_name = "end_col_offset" if end else "col_offset"
+    return (getattr(node, line_name, 0), getattr(node, column_name, 0))
+
+
+def _assignment_precedes(assignment: LocalAssignmentInfo, call: CallInfo) -> bool:
+    return _position(assignment.assignment_node, end=True) <= _position(call.expression_node)
+
+
+def _class_method_target(facts: Facts, class_id: str, method_name: str) -> str | None:
+    class_qname = next(
+        (
+            qname
+            for qname, identifier in facts.symbols.items()
+            if identifier == class_id and facts.symbol_kinds.get(qname) == "type"
+        ),
+        None,
+    )
+    if class_qname is None:
+        return None
+    method_qname = f"{class_qname}.{method_name}"
+    method_id = facts.symbols.get(method_qname)
+    return method_id if facts.symbol_kinds.get(method_qname) == "method" else None
+
+
+def _constructor_target(facts: Facts, assignment: LocalAssignmentInfo) -> tuple[str | None, str]:
+    if assignment.constructor is None:
+        return None, "ambiguous-target"
+    reference = _dotted(assignment.constructor.func)
+    target_id, reason = resolve_reference(
+        facts,
+        assignment.module_name,
+        assignment.class_qname,
+        reference,
+    )
+    if target_id and any(
+        identifier == target_id and facts.symbol_kinds.get(qname) == "type"
+        for qname, identifier in facts.symbols.items()
+    ):
+        return target_id, ""
+    return None, "ambiguous-target" if reason == "missing-target" else reason
+
+
+def _local_call_resolution(facts: Facts, call: CallInfo) -> tuple[str | None, str]:
+    if call.scope_id is None or not isinstance(call.callee, ast.Attribute) or not isinstance(call.callee.value, ast.Name):
+        return None, "not-local"
+
+    local_name = call.callee.value.id
+    assignments = sorted(
+        (
+            assignment
+            for assignment in facts.local_assignments
+            if assignment.module_name == call.module_name
+            and assignment.scope_id == call.scope_id
+            and assignment.name == local_name
+            and _assignment_precedes(assignment, call)
+        ),
+        key=lambda assignment: _position(assignment.assignment_node),
+    )
+    if not assignments:
+        return None, "not-local"
+
+    target_id: str | None = None
+    invalidated = False
+    for assignment in assignments:
+        if invalidated:
+            continue
+        if assignment.branch_dependent or assignment.constructor is None:
+            target_id = None
+            invalidated = True
+            continue
+        candidate_id, _ = _constructor_target(facts, assignment)
+        if candidate_id is None:
+            target_id = None
+            invalidated = True
+        elif target_id is None:
+            target_id = candidate_id
+        elif target_id != candidate_id:
+            target_id = None
+            invalidated = True
+    if invalidated or target_id is None:
+        return None, "ambiguous-target" if invalidated else "missing-target"
+
+    method_id = _class_method_target(facts, target_id, call.callee.attr)
+    return (method_id, "") if method_id else (None, "missing-target")
 
 
 def _import_span(facts: Facts, node_id: str) -> dict[str, object] | None:

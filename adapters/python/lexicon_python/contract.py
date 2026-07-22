@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import builtins as python_builtins
 import hashlib
 from typing import Any
 
@@ -35,53 +36,7 @@ EXCLUDED_DIRECTORIES = frozenset(
     }
 )
 
-BUILTINS = frozenset(
-    {
-        "__import__",
-        "abs",
-        "all",
-        "any",
-        "bool",
-        "bytes",
-        "callable",
-        "classmethod",
-        "dict",
-        "dir",
-        "enumerate",
-        "filter",
-        "float",
-        "getattr",
-        "hasattr",
-        "hash",
-        "int",
-        "isinstance",
-        "issubclass",
-        "iter",
-        "len",
-        "list",
-        "map",
-        "max",
-        "min",
-        "next",
-        "object",
-        "open",
-        "print",
-        "property",
-        "range",
-        "repr",
-        "reversed",
-        "set",
-        "setattr",
-        "staticmethod",
-        "str",
-        "sum",
-        "super",
-        "tuple",
-        "type",
-        "vars",
-        "zip",
-    }
-)
+BUILTINS = frozenset(dir(python_builtins))
 
 
 def digest(value: str | bytes) -> str:
