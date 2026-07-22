@@ -48,7 +48,7 @@ grimoire model serve [flags]
 | `--runtime <path>` | discovered runtime | `llama-server` or `llama` executable |
 | `--model-file <path>` | managed model, then fixed remote model reference | Local GGUF file |
 | `--host <address>` | `127.0.0.1` | Bind address |
-| `--port <n>` | `8080` | Bind port |
+| `--port <n>` | `9876` | Bind port |
 | `--context-size <n>` | `8192` | Runtime context size |
 | `--ubatch-size <n>` | `2048` | Runtime physical batch size |
 
@@ -64,7 +64,7 @@ grimoire model probe [flags]
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--endpoint <url>` | `http://127.0.0.1:8080/v1` | OpenAI-compatible embeddings base URL |
+| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
 | `--query <text>` | sample code-retrieval query | Query to instruct and embed |
 | `--document <text>` | sample source passage | Raw document to embed |
 | `--timeout <duration>` | `2m` | Request timeout |
@@ -115,7 +115,7 @@ grimoire vector build [flags]
 | --- | --- | --- |
 | `--root <path>` | `.` | Repository root |
 | `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
-| `--endpoint <url>` | `http://127.0.0.1:8080/v1` | OpenAI-compatible embeddings base URL |
+| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--batch-size <n>` | `16` | Documents per embedding request |
 | `--timeout <duration>` | `30m` | Complete build timeout |
@@ -136,14 +136,16 @@ grimoire vector search --query <text> [flags]
 | `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
 | `--query <text>` | none | Required semantic query |
 | `--top-k <n>` | `20` | Maximum results |
-| `--endpoint <url>` | `http://127.0.0.1:8080/v1` | Embeddings base URL |
+| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--timeout <duration>` | `2m` | Query embedding timeout |
 | `--query-embedding-mode <mode>` | `fast` | `fast`, `full`, or `quality` query plan |
-| `--query-window-tokens <n>` | `16` | Tokens per fast-mode window |
-| `--query-max-tokens <n>` | `128` | Maximum query tokens embedded |
+| `--query-window-tokens <n>` | `16` | Tokens per split-query window |
+| `--query-batch-tokens <n>` | `64` | Maximum split-query tokens per embedding request |
+| `--query-batch-concurrency <n>` | `2` | Maximum concurrent query embedding requests |
+| `--query-max-tokens <n>` | `0` | Optional query-token limit; zero keeps the complete query |
 
-`fast` mechanically partitions the capped query into non-overlapping windows, sends all windows in one embedding request, searches their vectors concurrently, and merges duplicate results. It is the measured latency default for uncached queries on the supported local runtime. `full` embeds the capped full query once. `quality` embeds both the full query and every fast-mode window before the same concurrent search and merge.
+`fast` mechanically partitions the complete query into non-overlapping windows, groups those windows into requests capped at 64 query tokens, runs at most two requests concurrently, searches the returned vectors concurrently, and merges duplicate results. `full` embeds the complete query once. `quality` embeds both the full query and every split window. `--query-max-tokens` remains an optional explicit safety limit; its default of zero does not truncate the query.
 
 Results contain chunk identity, source path, line range, and the best exact dot-product score across the query vectors that matched each chunk.
 
@@ -172,14 +174,16 @@ grimoire context [flags]
 | `--query <text>` | none | Required retrieval query |
 | `--budget <n>` | `2000` | Maximum `o200k_base` tokens in emitted JSON |
 | `--candidate-limit <n>` | `200` | Maximum merged exact plus semantic/fallback primary candidates before curation |
-| `--endpoint <url>` | `http://127.0.0.1:8080/v1` | OpenAI-compatible embeddings base URL |
+| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--timeout <duration>` | `2s` | Complete semantic retrieval timeout |
 | `--query-embedding-mode <mode>` | `fast` | `fast`, `full`, or `quality` query plan |
-| `--query-window-tokens <n>` | `16` | Tokens per fast-mode window |
-| `--query-max-tokens <n>` | `128` | Maximum query tokens embedded |
+| `--query-window-tokens <n>` | `16` | Tokens per split-query window |
+| `--query-batch-tokens <n>` | `64` | Maximum split-query tokens per embedding request |
+| `--query-batch-concurrency <n>` | `2` | Maximum concurrent query embedding requests |
+| `--query-max-tokens <n>` | `0` | Optional query-token limit; zero keeps the complete query |
 
-The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds fixed non-overlapping windows in one batch and searches the returned vectors concurrently. `full` embeds the capped full query once. `quality` adds the full-query vector to the fast-mode windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged, deduplicated, diversified, and expanded with bounded prepared neighbours before exact-budget compilation. If the vector path is missing, stale, incompatible, or unavailable, the command writes a warning to stderr and substitutes the deterministic lexical fallback before the same exact-recovery and curation stages.
+The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds the complete query as fixed non-overlapping windows grouped into bounded 64-token requests, with at most two requests active concurrently. `full` embeds the complete query once. `quality` adds the full-query vector to the split windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged, deduplicated, diversified, and expanded with bounded prepared neighbours before exact-budget compilation. If the vector path is missing, stale, incompatible, or unavailable, the command writes a warning to stderr and substitutes the deterministic lexical fallback before the same exact-recovery and curation stages.
 
 ## `grimoire version`
 

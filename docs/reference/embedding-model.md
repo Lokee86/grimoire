@@ -11,7 +11,7 @@ Grimoire's first semantic provider is:
 | Native dimensions | 1024 |
 | Stored dimensions | 512 |
 | Similarity | Inner product over L2-normalized vectors |
-| Default endpoint | `http://127.0.0.1:8080/v1` |
+| Default endpoint | `http://127.0.0.1:9876/v1` |
 | Grimoire identity | `qwen3-embedding-0.6b-q8_0-512d` |
 
 Grimoire keeps the first 512 Matryoshka dimensions from the model's native vector and normalizes that reduced vector itself. This identity must be part of future vector-record compatibility checks.

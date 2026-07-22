@@ -23,7 +23,7 @@ Formatting should produce no diff after the final run.
 | Area | Primary tests |
 | --- | --- |
 | CLI integration and flag wiring | `internal/app/run_test.go`, `internal/app/model_test.go` |
-| Embedding client, query planning, and runtime contract | `internal/embedding/client_test.go`, `internal/embedding/query_test.go`, `internal/embedding/runtime_test.go` |
+| Embedding client, query planning/batching, and runtime contract | `internal/embedding/client_test.go`, `internal/embedding/query_test.go`, `internal/embedding/query_batch_test.go`, `internal/embedding/runtime_test.go` |
 | Rust object, snapshot, search, and handle lifecycle | `native/vector-engine/crates/*` unit tests |
 | Go-to-Rust ABI integration | `internal/vectorstore/integration_windows_test.go` |
 | Index/embed/reuse/semantic-search application path | `internal/app/vector_test.go` |
@@ -71,9 +71,10 @@ The benchmarks include query parsing, relevant chunk scans, reason construction,
 These are warm algorithm baselines, not complete command latency. To compare live query-embedding plans without prompt-cache bias, run the local model and execute:
 
 ```bash
-GRIMOIRE_EMBEDDING_BENCHMARK_ENDPOINT=http://127.0.0.1:8080/v1 \
+GRIMOIRE_EMBEDDING_BENCHMARK_ENDPOINT=http://127.0.0.1:9876/v1 \
   go test ./internal/embedding -run '^$' \
-  -bench BenchmarkLiveQueryEmbeddingModes -benchtime=3x -count=3
+  -bench 'BenchmarkLiveQuery(EmbeddingModes|RequestBatching)' \
+  -benchtime=3x -count=3
 ```
 
 Repository-scale semantic measurements, query-mode results, and the checked-in quality corpus are documented in [Retrieval quality and latency baselines](retrieval-quality.md).

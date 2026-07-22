@@ -28,4 +28,10 @@ func TestServeArgsForLlamaMulticallAndLocalModel(t *testing.T) {
 	if len(got) < 4 || got[0] != "serve" || got[1] != "-m" || got[2] != "model.gguf" {
 		t.Fatalf("unexpected args: %v", got)
 	}
+	for index := range got[:len(got)-1] {
+		if got[index] == "--port" && got[index+1] == "9876" {
+			return
+		}
+	}
+	t.Fatalf("default port missing from args: %v", got)
 }

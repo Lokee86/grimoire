@@ -17,12 +17,13 @@ func TestModelInfoReportsFixedContract(t *testing.T) {
 	}
 	var result struct {
 		Model      string `json:"model"`
+		Endpoint   string `json:"endpoint"`
 		Dimensions int    `json:"dimensions"`
 	}
 	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if result.Model != embedding.ModelReference || result.Dimensions != embedding.Dimensions {
+	if result.Model != embedding.ModelReference || result.Endpoint != embedding.DefaultEndpoint || result.Dimensions != embedding.Dimensions {
 		t.Fatalf("unexpected model info: %+v", result)
 	}
 }

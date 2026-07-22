@@ -54,7 +54,7 @@ The embedding path is independently probeable and used by `vector build`, `vecto
 ```text
 prepared chunks ──► incremental model vectors
                               │
-query ──► capped full or 16-token windows ──► batched embeddings ──┐
+query ──► full query or complete 16-token window stream ──► bounded embedding requests ──┐
                                                                     │
                                            concurrent exact scans ──┤
 query ──► conditional exact-signal recovery ────────────────────────┤
@@ -115,7 +115,7 @@ cmd/grimoire/main.go
 
 The fixed provider is `Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0`, served locally through `llama.cpp`.
 
-Queries receive the fixed repository retrieval instruction. Fast mode caps the query at 128 `o200k_base` tokens, divides it into non-overlapping 16-token windows, and sends the windows in one embeddings request. Full mode sends one capped query; quality mode sends both forms. Documents remain raw. Native 1024-dimensional output is truncated to the first 512 Matryoshka dimensions and L2-normalized inside Grimoire. Inner product is therefore cosine similarity.
+Queries receive the fixed repository retrieval instruction. Fast mode retains the complete query, divides it into non-overlapping 16-token windows, groups windows into requests containing at most 64 query tokens, and runs at most two requests concurrently. Full mode sends the complete query once; quality mode sends the full query plus the bounded split-window requests. An optional nonzero query-token limit can be configured explicitly, but the default is unlimited. Documents remain raw. Native 1024-dimensional output is truncated to the first 512 Matryoshka dimensions and L2-normalized inside Grimoire. Inner product is therefore cosine similarity.
 
 Model identity, dimensions, preprocessing, runtime compatibility, and future vector schema must collectively determine whether persisted vectors can be reused.
 

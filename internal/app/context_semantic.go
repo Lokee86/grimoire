@@ -62,11 +62,7 @@ func queryVectorCandidates(
 	if err != nil {
 		return nil, err
 	}
-	texts := make([]string, len(plan))
-	for index, input := range plan {
-		texts[index] = input.Text
-	}
-	vectors, err := embedding.NewClient(endpoint).EmbedQueries(ctx, texts)
+	vectors, err := embedding.NewClient(endpoint).EmbedQueryPlan(ctx, plan, queryOptions)
 	if err != nil {
 		return nil, err
 	}

@@ -9,7 +9,8 @@ const (
 	ModelReference   = ModelRepository + ":" + ModelVariant
 	NativeDimensions = 1024
 	Dimensions       = 512
-	DefaultEndpoint  = "http://127.0.0.1:8080/v1"
+	DefaultPort      = 9876
+	DefaultEndpoint  = "http://127.0.0.1:9876/v1"
 
 	QueryInstruction = "Given a software development query, retrieve relevant source code and documentation from a repository"
 )

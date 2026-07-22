@@ -102,7 +102,7 @@ func runModelServe(args []string, stdout, stderr io.Writer) error {
 	runtimePath := flags.String("runtime", "", "llama.cpp server executable")
 	modelPath := flags.String("model-file", "", "local GGUF path; defaults to the official Hugging Face Q8_0 artifact")
 	host := flags.String("host", "127.0.0.1", "embedding service host")
-	port := flags.Int("port", 8080, "embedding service port")
+	port := flags.Int("port", embedding.DefaultPort, "embedding service port")
 	contextSize := flags.Int("context-size", 8192, "llama.cpp context size")
 	ubatchSize := flags.Int("ubatch-size", 2048, "llama.cpp physical batch size")
 	if err := flags.Parse(args); err != nil {

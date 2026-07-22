@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -20,11 +19,11 @@ func BenchmarkLiveQueryEmbeddingModes(b *testing.B) {
 	for _, tokenCount := range []int{16, 32, 64, 128} {
 		for _, mode := range []QueryMode{QueryModeFast, QueryModeFull, QueryModeQuality} {
 			b.Run(fmt.Sprintf("tokens_%d/%s", tokenCount, mode), func(b *testing.B) {
-				inputs := benchmarkInputs(b, tokenCount, mode)
+				plans := benchmarkPlans(b, tokenCount, mode)
 				b.ResetTimer()
 				for index := range b.N {
 					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-					_, err := client.EmbedQueries(ctx, inputs[index])
+					_, err := client.EmbedQueryPlan(ctx, plans[index].inputs, plans[index].options)
 					cancel()
 					if err != nil {
 						b.Fatal(err)
@@ -35,37 +34,88 @@ func BenchmarkLiveQueryEmbeddingModes(b *testing.B) {
 	}
 }
 
-func benchmarkInputs(b *testing.B, tokenCount int, mode QueryMode) [][]string {
+func BenchmarkLiveQueryRequestBatching(b *testing.B) {
+	endpoint := os.Getenv("GRIMOIRE_EMBEDDING_BENCHMARK_ENDPOINT")
+	if endpoint == "" {
+		b.Skip("set GRIMOIRE_EMBEDDING_BENCHMARK_ENDPOINT to a live embeddings endpoint")
+	}
+	client := NewClient(endpoint)
+	for _, tokenCount := range []int{128, 256, 512} {
+		for _, strategy := range []string{"all_windows", "sequential_64", "bounded_64"} {
+			b.Run(fmt.Sprintf("tokens_%d/%s", tokenCount, strategy), func(b *testing.B) {
+				plans := benchmarkPlans(b, tokenCount, QueryModeFast)
+				b.ResetTimer()
+				for index := range b.N {
+					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+					err := embedBenchmarkStrategy(ctx, client, plans[index], strategy)
+					cancel()
+					if err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
+		}
+	}
+}
+
+func embedBenchmarkStrategy(ctx context.Context, client *Client, plan benchmarkPlan, strategy string) error {
+	if strategy == "bounded_64" {
+		_, err := client.EmbedQueryPlan(ctx, plan.inputs, plan.options)
+		return err
+	}
+	batches, err := queryBatches(plan.inputs, plan.options)
+	if err != nil {
+		return err
+	}
+	if strategy == "all_windows" {
+		all := queryBatch{inputs: plan.inputs}
+		_, err = client.embedQueryBatch(ctx, all)
+		return err
+	}
+	for _, batch := range batches {
+		if _, err = client.embedQueryBatch(ctx, batch); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type benchmarkPlan struct {
+	inputs  []QueryInput
+	options QueryOptions
+}
+
+func benchmarkPlans(b *testing.B, tokenCount int, mode QueryMode) []benchmarkPlan {
 	b.Helper()
-	inputs := make([][]string, b.N)
+	plans := make([]benchmarkPlan, b.N)
 	salt := time.Now().UnixNano()
 	for iteration := range b.N {
 		query := benchmarkQuery(b, tokenCount, fmt.Sprintf("%d-%s-%d", salt, mode, iteration))
-		plan, err := PlanQuery(query, QueryOptions{
-			Mode: mode, WindowTokens: DefaultQueryWindowTokens, MaxTokens: tokenCount,
-		})
+		options := DefaultQueryOptions()
+		options.Mode = mode
+		options.MaxTokens = tokenCount
+		inputs, err := PlanQuery(query, options)
 		if err != nil {
 			b.Fatal(err)
 		}
-		inputs[iteration] = make([]string, len(plan))
-		for index, item := range plan {
-			inputs[iteration][index] = item.Text
-		}
+		plans[iteration] = benchmarkPlan{inputs: inputs, options: options}
 	}
-	return inputs
+	return plans
 }
 
 func benchmarkQuery(b *testing.B, tokenCount int, variant string) string {
 	b.Helper()
-	source := "benchmark variant " + variant + " " + strings.Repeat(
-		"repository vector snapshot freshness fallback exact token budget consumer contract ", 64,
-	)
-	tokens, err := tokenizer.Encode(source)
-	if err != nil {
-		b.Fatal(err)
-	}
-	if len(tokens) < tokenCount {
-		b.Fatalf("benchmark source has %d tokens, need %d", len(tokens), tokenCount)
+	tokens := make([]uint, 0, tokenCount)
+	for window := 0; len(tokens) < tokenCount; window++ {
+		segment := fmt.Sprintf(
+			"variant %s window %d repository vector snapshot freshness fallback exact token budget consumer contract ",
+			variant, window,
+		)
+		segmentTokens, err := tokenizer.Encode(segment)
+		if err != nil {
+			b.Fatal(err)
+		}
+		tokens = append(tokens, segmentTokens[:min(DefaultQueryWindowTokens, len(segmentTokens))]...)
 	}
 	query, err := tokenizer.Decode(tokens[:tokenCount])
 	if err != nil {

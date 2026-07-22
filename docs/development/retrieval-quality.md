@@ -58,23 +58,32 @@ They exclude repository loading, model inference, native vector scanning, and JS
 Run the local model service, then execute:
 
 ```bash
-GRIMOIRE_EMBEDDING_BENCHMARK_ENDPOINT=http://127.0.0.1:8080/v1 \
+GRIMOIRE_EMBEDDING_BENCHMARK_ENDPOINT=http://127.0.0.1:9876/v1 \
   go test ./internal/embedding -run '^$' \
-  -bench BenchmarkLiveQueryEmbeddingModes -benchtime=3x -count=3
+  -bench 'BenchmarkLiveQuery(EmbeddingModes|RequestBatching)' \
+  -benchtime=3x -count=3
 ```
 
-The benchmark generates a distinct query for every iteration so the `llama.cpp` prompt cache cannot turn repeated-query reuse into an apparent embedding-speed improvement. Each value below is the median of three independent three-iteration runs on the same Windows amd64 i9-11900H system.
+The benchmark gives every 16-token window iteration-specific material so the `llama.cpp` prompt cache cannot make repeated later windows appear artificially cheap. Each value below is the median of three independent three-iteration runs on the same Windows amd64 i9-11900H system.
 
-| Query tokens | `fast`: 16-token batch | `full`: one query | `quality`: full plus windows |
+| Query tokens | `fast`: bounded split requests | `full`: one query | `quality`: full plus windows |
 | ---: | ---: | ---: | ---: |
-| 16 | 75.5 ms | 69.5 ms | 68.7 ms |
-| 32 | 78.9 ms | 157.6 ms | 206.2 ms |
-| 64 | 83.4 ms | 314.3 ms | 602.5 ms |
-| 128 | 506.4 ms | 660.4 ms | 1,445.3 ms |
+| 16 | 69.0 ms | 70.9 ms | 68.3 ms |
+| 32 | 113.2 ms | 207.6 ms | 298.4 ms |
+| 64 | 214.0 ms | 497.5 ms | 693.1 ms |
+| 128 | 303.6 ms | 1,088.5 ms | 1,350.0 ms |
 
-Fast mode sends all windows in one embeddings request. The local runtime can process several short inputs through its available slots, while one long uncached input becomes progressively more expensive. At 32 and 64 tokens, the split batch was about 2.0x and 3.8x faster respectively. At 128 tokens, eight windows require multiple slot waves but still beat the full query by about 23%. Absolute latency varies with machine load and thermal state; the ordering remained stable across repeated cache-resistant runs.
+Fast mode retains the complete query, divides it into 16-token windows, groups at most four windows into each request, and runs at most two requests concurrently. At 32, 64, and 128 tokens it was about 1.8x, 2.3x, and 3.6x faster than one full-query embedding. For queries of 16 tokens or fewer, all modes reduce to one input and observed differences are measurement noise. `quality` intentionally spends more time to preserve both global-query meaning and mechanically isolated concepts.
 
-For queries of 16 tokens or fewer, all modes reduce to one input and observed differences are measurement noise. Repeated identical queries may favor `full` because the local runtime has prompt caching enabled; the default targets the more typical uncached repository-task query. `quality` intentionally spends substantially more time to preserve both global-query meaning and mechanically isolated concepts.
+The request-shape benchmark isolates whether split windows should all be sent in one request or grouped into bounded 64-token requests:
+
+| Query tokens | All windows in one request | Sequential 64-token requests | Bounded 64-token requests, concurrency 2 |
+| ---: | ---: | ---: | ---: |
+| 128 | 386.1 ms | 317.5 ms | 292.9 ms |
+| 256 | 497.1 ms | 507.0 ms | 456.4 ms |
+| 512 | 875.9 ms | 917.8 ms | 813.1 ms |
+
+Bounded 64-token requests were approximately 24%, 8%, and 7% faster than one all-window request at 128, 256, and 512 tokens respectively. The complete query is still represented; longer queries produce more bounded requests rather than being truncated. Absolute latency varies with machine load and runtime scheduling, so comparisons should be made within each benchmark row rather than across separate benchmark runs.
 
 ## Repository-scale baseline
 

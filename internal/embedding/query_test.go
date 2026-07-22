@@ -7,9 +7,9 @@ import (
 	"github.com/Lokee86/grimoire/internal/tokenizer"
 )
 
-func TestPlanQueryFastCapsAndGroupsTokens(t *testing.T) {
+func TestPlanQueryFastOptionalCapAndWindows(t *testing.T) {
 	query := strings.Repeat("alpha beta gamma delta ", 80)
-	options := QueryOptions{Mode: QueryModeFast, WindowTokens: 16, MaxTokens: 40}
+	options := testQueryOptions(QueryModeFast, 40)
 	inputs, err := PlanQuery(query, options)
 	if err != nil {
 		t.Fatal(err)
@@ -23,7 +23,7 @@ func TestPlanQueryFastCapsAndGroupsTokens(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if count > 16 {
+		if count > options.WindowTokens {
 			t.Fatalf("window %d has %d tokens", index, count)
 		}
 		total += count
@@ -33,17 +33,40 @@ func TestPlanQueryFastCapsAndGroupsTokens(t *testing.T) {
 	}
 }
 
+func TestPlanQueryFastIsUnlimitedByDefault(t *testing.T) {
+	query := strings.Repeat("alpha beta gamma delta ", 80)
+	inputs, err := PlanQuery(query, DefaultQueryOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := tokenizer.Count(strings.TrimSpace(query))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := 0
+	for _, input := range inputs {
+		count, countErr := tokenizer.Count(input.Text)
+		if countErr != nil {
+			t.Fatal(countErr)
+		}
+		got += count
+	}
+	if got != want {
+		t.Fatalf("planned %d tokens, want complete query with %d", got, want)
+	}
+}
+
 func TestPlanQueryModes(t *testing.T) {
 	query := strings.Repeat("alpha beta gamma delta ", 20)
-	fast, err := PlanQuery(query, QueryOptions{Mode: QueryModeFast, WindowTokens: 16, MaxTokens: 64})
+	fast, err := PlanQuery(query, testQueryOptions(QueryModeFast, 64))
 	if err != nil {
 		t.Fatal(err)
 	}
-	full, err := PlanQuery(query, QueryOptions{Mode: QueryModeFull, WindowTokens: 16, MaxTokens: 64})
+	full, err := PlanQuery(query, testQueryOptions(QueryModeFull, 64))
 	if err != nil {
 		t.Fatal(err)
 	}
-	quality, err := PlanQuery(query, QueryOptions{Mode: QueryModeQuality, WindowTokens: 16, MaxTokens: 64})
+	quality, err := PlanQuery(query, testQueryOptions(QueryModeQuality, 64))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,9 +79,7 @@ func TestPlanQueryModes(t *testing.T) {
 }
 
 func TestPlanQueryQualityDoesNotDuplicateShortQuery(t *testing.T) {
-	inputs, err := PlanQuery("find damage", QueryOptions{
-		Mode: QueryModeQuality, WindowTokens: 16, MaxTokens: 128,
-	})
+	inputs, err := PlanQuery("find damage", testQueryOptions(QueryModeQuality, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,12 +90,21 @@ func TestPlanQueryQualityDoesNotDuplicateShortQuery(t *testing.T) {
 
 func TestQueryOptionsRejectInvalidValues(t *testing.T) {
 	for _, options := range []QueryOptions{
-		{Mode: "unknown", WindowTokens: 16, MaxTokens: 128},
-		{Mode: QueryModeFast, WindowTokens: 0, MaxTokens: 128},
-		{Mode: QueryModeFast, WindowTokens: 32, MaxTokens: 16},
+		{Mode: "unknown", WindowTokens: 16, BatchTokens: 64, BatchConcurrency: 2},
+		{Mode: QueryModeFast, WindowTokens: 0, BatchTokens: 64, BatchConcurrency: 2},
+		{Mode: QueryModeFast, WindowTokens: 32, BatchTokens: 16, BatchConcurrency: 2},
+		{Mode: QueryModeFast, WindowTokens: 16, BatchTokens: 64, BatchConcurrency: 0},
+		{Mode: QueryModeFast, WindowTokens: 16, BatchTokens: 64, BatchConcurrency: 2, MaxTokens: -1},
 	} {
 		if err := options.Validate(); err == nil {
 			t.Fatalf("expected invalid options: %+v", options)
 		}
 	}
+}
+
+func testQueryOptions(mode QueryMode, maxTokens int) QueryOptions {
+	options := DefaultQueryOptions()
+	options.Mode = mode
+	options.MaxTokens = maxTokens
+	return options
 }

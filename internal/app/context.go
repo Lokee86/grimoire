@@ -27,7 +27,9 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	timeout := flags.Duration("timeout", 2*time.Second, "semantic retrieval timeout")
 	modeValue := flags.String("query-embedding-mode", string(embedding.QueryModeFast), "query embedding mode: fast, full, or quality")
 	windowTokens := flags.Int("query-window-tokens", embedding.DefaultQueryWindowTokens, "tokens per fast query window")
-	maxTokens := flags.Int("query-max-tokens", embedding.DefaultQueryMaxTokens, "maximum query tokens embedded")
+	batchTokens := flags.Int("query-batch-tokens", embedding.DefaultQueryBatchTokens, "maximum split-query tokens per embedding request")
+	batchConcurrency := flags.Int("query-batch-concurrency", embedding.DefaultQueryBatchConcurrency, "maximum concurrent query embedding requests")
+	maxTokens := flags.Int("query-max-tokens", embedding.DefaultQueryMaxTokens, "optional maximum query tokens embedded; zero means unlimited")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -39,7 +41,8 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	queryOptions := embedding.QueryOptions{
-		Mode: mode, WindowTokens: *windowTokens, MaxTokens: *maxTokens,
+		Mode: mode, WindowTokens: *windowTokens, BatchTokens: *batchTokens,
+		BatchConcurrency: *batchConcurrency, MaxTokens: *maxTokens,
 	}
 	if err := queryOptions.Validate(); err != nil {
 		return err

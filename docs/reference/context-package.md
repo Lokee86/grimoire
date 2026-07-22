@@ -110,7 +110,7 @@ If the budget cannot fit even the package metadata with no selections, the comma
 
 The normal path uses the configured embedding endpoint and exact vector snapshot. Before query embedding, Grimoire requires the persistent vector manifest's prepared identity to exactly match the current content-addressed prepared-index root. It then validates model identity, dimensions, vector count, and returned chunk IDs.
 
-Fast mode caps the query at 128 `o200k_base` tokens, divides it into non-overlapping 16-token windows, and submits all windows in one embedding request. The returned vectors are searched concurrently. Full mode submits one capped full query. Quality mode submits both forms. Duplicate vector hits retain the best similarity, record every matching query input in `reasons`, and receive one deterministic merged vector rank.
+Fast mode retains the complete query, divides it into non-overlapping 16-token windows, groups windows into requests containing at most 64 query tokens, and runs at most two embedding requests concurrently. Full mode submits the complete query once. Quality mode submits the full query plus the bounded split-window requests. A nonzero `--query-max-tokens` value is an explicit optional limit; zero leaves the query untruncated. Duplicate vector hits retain the best similarity, record every matching query input in `reasons`, and receive one deterministic merged vector rank.
 
 Concrete query signals—such as quoted phrases, paths, filenames, identifiers, configuration keys, error codes, and versions—also activate targeted exact recovery. Exact and semantic candidates are merged before deterministic curation and exact-budget fitting.
 

@@ -16,14 +16,18 @@ const (
 	QueryModeFull    QueryMode = "full"
 	QueryModeQuality QueryMode = "quality"
 
-	DefaultQueryWindowTokens = 16
-	DefaultQueryMaxTokens    = 128
+	DefaultQueryWindowTokens     = 16
+	DefaultQueryBatchTokens      = 64
+	DefaultQueryBatchConcurrency = 2
+	DefaultQueryMaxTokens        = 0
 )
 
 type QueryOptions struct {
-	Mode         QueryMode
-	WindowTokens int
-	MaxTokens    int
+	Mode             QueryMode
+	WindowTokens     int
+	BatchTokens      int
+	BatchConcurrency int
+	MaxTokens        int
 }
 
 type QueryInput struct {
@@ -48,6 +52,7 @@ func (client *Client) EmbedQueries(ctx context.Context, queries []string) ([][]f
 func DefaultQueryOptions() QueryOptions {
 	return QueryOptions{
 		Mode: QueryModeFast, WindowTokens: DefaultQueryWindowTokens,
+		BatchTokens: DefaultQueryBatchTokens, BatchConcurrency: DefaultQueryBatchConcurrency,
 		MaxTokens: DefaultQueryMaxTokens,
 	}
 }
@@ -74,7 +79,7 @@ func PlanQuery(query string, options QueryOptions) ([]QueryInput, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(tokens) > options.MaxTokens {
+	if options.MaxTokens > 0 && len(tokens) > options.MaxTokens {
 		tokens = tokens[:options.MaxTokens]
 	}
 	full, err := tokenizer.Decode(tokens)
@@ -107,11 +112,14 @@ func (options QueryOptions) Validate() error {
 	if _, err := ParseQueryMode(string(options.Mode)); err != nil {
 		return err
 	}
-	if options.WindowTokens <= 0 || options.MaxTokens <= 0 {
-		return errors.New("positive query window and maximum token counts are required")
+	if options.WindowTokens <= 0 || options.BatchTokens <= 0 || options.BatchConcurrency <= 0 {
+		return errors.New("positive query window, batch, and concurrency values are required")
 	}
-	if options.WindowTokens > options.MaxTokens {
-		return errors.New("query window tokens cannot exceed query maximum tokens")
+	if options.MaxTokens < 0 {
+		return errors.New("query maximum tokens cannot be negative")
+	}
+	if options.WindowTokens > options.BatchTokens {
+		return errors.New("query window tokens cannot exceed query batch tokens")
 	}
 	return nil
 }

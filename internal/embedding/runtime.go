@@ -73,7 +73,7 @@ func ServeArgs(runtimePath string, options ServeOptions) []string {
 	}
 	port := options.Port
 	if port <= 0 {
-		port = 8080
+		port = DefaultPort
 	}
 	contextSize := options.ContextSize
 	if contextSize <= 0 {
