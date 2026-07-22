@@ -60,15 +60,19 @@ func analyzeRepository(repo string, selections ...[]string) ([]byte, error) {
 		parsed = append(parsed, pf)
 	}
 
-	discoverClasses(facts, parsed)
 	for _, pf := range parsed {
 		processDeclarations(facts, pf)
 	}
 	for _, pf := range parsed {
-		processImportsAndCalls(facts, pf)
-	}
-	for _, pf := range parsed {
 		processExtends(facts, pf)
+	}
+	if err := processProjectAutoloads(root, facts); err != nil {
+		return nil, err
+	}
+	model := buildSemanticModel(facts, parsed)
+	for _, pf := range parsed {
+		processImports(facts, pf)
+		processCalls(facts, model, pf)
 	}
 	return facts.render(repositoryName, changedFiles, removedFiles), nil
 }
@@ -116,28 +120,6 @@ func addFileFacts(facts *factSet, pf *parsedFile, content []byte, dirs []string)
 	dir := filepath.ToSlash(filepath.Dir(filepath.FromSlash(pf.path)))
 	facts.addEdge(edge(dirIDs[dir], fileID, "contains", nil))
 	facts.addEdge(edge(fileID, moduleID, "contains", nil))
-}
-
-func discoverClasses(facts *factSet, parsed []*parsedFile) {
-	for _, pf := range parsed {
-		typeOccurrences := make(map[string]int)
-		for i := range pf.declarations {
-			decl := &pf.declarations[i]
-			if decl.kind != "type" || decl.name == "" {
-				continue
-			}
-			baseKey := pf.path + "::type::" + decl.name
-			occurrence := typeOccurrences[baseKey]
-			typeOccurrences[baseKey] = occurrence + 1
-			decl.key = baseKey
-			if occurrence > 0 {
-				decl.key += fmt.Sprintf("#%d", occurrence+1)
-			}
-			decl.nodeID = nodeID("type", decl.key)
-			pf.classID = decl.nodeID
-			facts.classByName[decl.name] = append(facts.classByName[decl.name], decl.nodeID)
-		}
-	}
 }
 
 func collectSources(root string) ([]string, []string, error) {
