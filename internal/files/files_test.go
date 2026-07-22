@@ -21,7 +21,21 @@ func TestLanguages(t *testing.T) {
 }
 
 func TestIgnoredDirectory(t *testing.T) {
-	for _, name := range []string{".git", ".lexicon", "node_modules", "target"} {
+	for _, name := range []string{
+		".ddocs",
+		".lexicon",
+		".arcana",
+		".grimoire",
+		".pitlord",
+		".cantrip",
+		".homunculus",
+		".incubus",
+		".ritual",
+		".warlock",
+		".git",
+		"node_modules",
+		"target",
+	} {
 		if !IgnoredDirectory(name) {
 			t.Fatalf("expected %q to be ignored", name)
 		}

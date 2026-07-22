@@ -8,9 +8,30 @@ import (
 )
 
 var ignoredDirectories = map[string]struct{}{
-	".git": {}, ".lexicon": {}, ".warlock": {}, ".worktrees": {}, ".workingtrees": {},
-	"node_modules": {}, "vendor": {}, "target": {}, "dist": {}, "build": {},
-	".venv": {}, "venv": {}, "__pycache__": {}, ".pytest_cache": {},
+	// Warlock toolchain state is generated state, never repository source.
+	".ddocs":      {},
+	".lexicon":    {},
+	".arcana":     {},
+	".grimoire":   {},
+	".pitlord":    {},
+	".cantrip":    {},
+	".homunculus": {},
+	".incubus":    {},
+	".ritual":     {},
+	".warlock":    {},
+
+	".git":          {},
+	".worktrees":    {},
+	".workingtrees": {},
+	"node_modules":  {},
+	"vendor":        {},
+	"target":        {},
+	"dist":          {},
+	"build":         {},
+	".venv":         {},
+	"venv":          {},
+	"__pycache__":   {},
+	".pytest_cache": {},
 }
 
 var extensionLanguages = map[string]string{
