@@ -1,0 +1,164 @@
+package app
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/Lokee86/grimoire/internal/compiler"
+	"github.com/Lokee86/grimoire/internal/index"
+	"github.com/Lokee86/grimoire/internal/retrieve"
+	"github.com/Lokee86/grimoire/internal/selection"
+)
+
+type retrievalQualityCase struct {
+	Name          string   `json:"name"`
+	Query         string   `json:"query"`
+	SemanticPaths []string `json:"semantic_paths"`
+	MustInclude   []string `json:"must_include"`
+	MustSources   []string `json:"must_sources"`
+	Budget        int      `json:"budget"`
+}
+
+func TestRetrievalQualityFixtures(t *testing.T) {
+	root := filepath.Join("testdata", "retrieval-quality")
+	state := filepath.Join(t.TempDir(), "state")
+	if err := Run([]string{"index", "--root", root, "--state", state}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := index.Load(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(root, "cases.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cases []retrievalQualityCase
+	if err := json.Unmarshal(data, &cases); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, fixture := range cases {
+		t.Run(fixture.Name, func(t *testing.T) {
+			semantic := fixtureSemanticCandidates(snapshot, fixture.Query, fixture.SemanticPaths)
+			exact := retrieve.Exact(snapshot, fixture.Query, 20)
+			merged := mergeFixtureCandidates(exact, semantic)
+			curated := selection.Curate(snapshot, merged)
+			pkg, err := compiler.Compile(
+				fixture.Query, fixture.Budget, snapshot.Version, snapshot.Tokenizer,
+				fixtureSources(curated), curated,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assertFixtureCoverage(t, fixture, pkg)
+			first, err := compiler.Marshal(pkg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			repeated := selection.Curate(snapshot, mergeFixtureCandidates(exact, semantic))
+			secondPkg, err := compiler.Compile(
+				fixture.Query, fixture.Budget, snapshot.Version, snapshot.Tokenizer,
+				fixtureSources(repeated), repeated,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			second, err := compiler.Marshal(secondPkg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(first, second) {
+				t.Fatal("fixture package is not deterministic")
+			}
+		})
+	}
+}
+
+func fixtureSemanticCandidates(snapshot index.Snapshot, query string, paths []string) []retrieve.Candidate {
+	ranked := retrieve.Search(snapshot, query, 0)
+	byPath := make(map[string]index.Chunk)
+	for _, candidate := range ranked {
+		if _, exists := byPath[candidate.Chunk.Path]; !exists {
+			byPath[candidate.Chunk.Path] = candidate.Chunk
+		}
+	}
+	allByPath := make(map[string][]index.Chunk)
+	for _, chunk := range snapshot.AllChunks() {
+		allByPath[chunk.Path] = append(allByPath[chunk.Path], chunk)
+	}
+	result := make([]retrieve.Candidate, 0, len(paths))
+	for rank, path := range paths {
+		chunk, exists := byPath[path]
+		if !exists && len(allByPath[path]) > 0 {
+			chunk, exists = allByPath[path][0], true
+		}
+		if exists {
+			result = append(result, retrieve.Candidate{
+				Chunk: chunk, Score: float64(len(paths) - rank), Source: "vector", Rank: rank + 1,
+				Reasons: []string{"retrieval-quality fixture semantic rank"},
+			})
+		}
+	}
+	return result
+}
+
+func mergeFixtureCandidates(groups ...[]retrieve.Candidate) []retrieve.Candidate {
+	seen := make(map[string]struct{})
+	var merged []retrieve.Candidate
+	for _, group := range groups {
+		for _, candidate := range group {
+			if _, exists := seen[candidate.Chunk.ID]; exists {
+				continue
+			}
+			seen[candidate.Chunk.ID] = struct{}{}
+			merged = append(merged, candidate)
+		}
+	}
+	return merged
+}
+
+func fixtureSources(candidates []retrieve.Candidate) []string {
+	seen := make(map[string]struct{})
+	var sources []string
+	for _, candidate := range candidates {
+		if _, exists := seen[candidate.Source]; exists {
+			continue
+		}
+		seen[candidate.Source] = struct{}{}
+		sources = append(sources, candidate.Source)
+	}
+	return sources
+}
+
+func assertFixtureCoverage(t *testing.T, fixture retrievalQualityCase, pkg compiler.Package) {
+	t.Helper()
+	paths := make(map[string]struct{})
+	seenRanges := make(map[string]struct{})
+	for _, selected := range pkg.Selections {
+		paths[selected.Path] = struct{}{}
+		key := fmt.Sprintf("%s:%d:%d", selected.Path, selected.StartLine, selected.EndLine)
+		if _, exists := seenRanges[key]; exists {
+			t.Fatalf("duplicate selected range %s", key)
+		}
+		seenRanges[key] = struct{}{}
+	}
+	for _, path := range fixture.MustInclude {
+		if _, exists := paths[path]; !exists {
+			t.Fatalf("required path %s missing from %+v", path, pkg.Selections)
+		}
+	}
+	sources := make(map[string]struct{})
+	for _, source := range pkg.RetrievalSources {
+		sources[source] = struct{}{}
+	}
+	for _, source := range fixture.MustSources {
+		if _, exists := sources[source]; !exists {
+			t.Fatalf("required source %s missing from %+v", source, pkg.RetrievalSources)
+		}
+	}
+}

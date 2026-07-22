@@ -126,46 +126,20 @@ func embedMissing(
 	missing []vectorChunk,
 	batchSize int,
 ) error {
-	file, err := os.Create(paths.Ingest)
-	if err != nil {
-		return err
-	}
-	writer := bufio.NewWriter(file)
-	encoder := json.NewEncoder(writer)
 	for start := 0; start < len(missing); start += batchSize {
 		end := min(start+batchSize, len(missing))
-		documents := make([]string, end-start)
-		for index, entry := range missing[start:end] {
+		batch := missing[start:end]
+		documents := make([]string, len(batch))
+		for index, entry := range batch {
 			documents[index] = entry.Chunk.Text
 		}
-		vectors, embedErr := client.EmbedDocuments(ctx, documents)
-		if embedErr != nil {
-			file.Close()
-			return embedErr
+		vectors, err := client.EmbedDocuments(ctx, documents)
+		if err != nil {
+			return err
 		}
-		for index, vector := range vectors {
-			if err := encoder.Encode(struct {
-				Source string    `json:"source"`
-				Vector []float32 `json:"vector"`
-			}{missing[start+index].Source, vector}); err != nil {
-				file.Close()
-				return err
-			}
+		if err := ingestVectorBatch(library, paths, batch, vectors); err != nil {
+			return err
 		}
-	}
-	if err := writer.Flush(); err != nil {
-		file.Close()
-		return err
-	}
-	if err := file.Close(); err != nil {
-		return err
-	}
-	count, err := library.IngestJSONL(paths.Store, embedding.Identity(), paths.Ingest)
-	if err != nil {
-		return err
-	}
-	if count != uint64(len(missing)) {
-		return fmt.Errorf("vector engine ingested %d records, expected %d", count, len(missing))
 	}
 	return nil
 }

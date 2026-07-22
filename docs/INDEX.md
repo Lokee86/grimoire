@@ -30,6 +30,7 @@ The root [README](../README.md) is the product introduction and quick start. Thi
 
 - [Development index](development/INDEX.md)
 - [Testing and benchmarks](development/testing-and-benchmarks.md)
+- [Retrieval quality and latency baselines](development/retrieval-quality.md)
 
 ## Limits
 
@@ -47,6 +48,7 @@ The root [README](../README.md) is the product introduction and quick start. Thi
 - [`internal/index`](../internal/index/README.md)
 - [`internal/ignore`](../internal/ignore/README.md)
 - [`internal/retrieve`](../internal/retrieve/README.md)
+- [`internal/selection`](../internal/selection/README.md)
 - [`internal/compiler`](../internal/compiler/README.md)
 - [`internal/embedding`](../internal/embedding/README.md)
 - [`internal/vectorstore`](../internal/vectorstore/README.md)

@@ -33,6 +33,9 @@ Formatting should produce no diff after the final run.
 | Prepared repository persistence, validation, reuse, and conflicts | `internal/index/store_test.go` |
 | `o200k_base` initialization and known token count | `internal/tokenizer/tokenizer_test.go` |
 | Lexical scoring and deterministic tie-breaking | `internal/retrieve/search_test.go` |
+| Targeted exact recovery and signal extraction | `internal/retrieve/exact_test.go` |
+| Candidate deduplication, overlap handling, diversity, and neighbours | `internal/selection/selection_test.go` |
+| End-to-end deterministic retrieval-quality fixtures | `internal/app/retrieval_quality_test.go` |
 | Whole-chunk fitting and exact serialized-package accounting | `internal/compiler/compiler_test.go` |
 
 Tests use temporary directories, local HTTP test servers, synthetic vectors, and locally constructed snapshots. They do not require an installed model or external service. Native integration tests require a built Rust DLL and skip when it is unavailable.
@@ -53,41 +56,25 @@ The Rust suite validates immutable-object reuse/conflict rejection, deterministi
 
 Before release, also run race-enabled Go tests and sanitizer-enabled Rust builds on supported toolchains. The C boundary is deliberately narrow enough for repeated open/search/close stress and malformed-input fuzzing.
 
-## Retrieval benchmark
+## Retrieval and selection benchmarks
 
 ```bash
-go test ./internal/retrieve \
-  -bench BenchmarkSearchTenThousandChunks \
+go test ./internal/retrieve ./internal/selection \
+  -bench 'Benchmark(Search|Exact|Curate)' \
   -benchmem
 ```
 
-The benchmark constructs a prepared in-memory snapshot containing 10,000 chunks, then measures `retrieve.Search`.
+The retrieval benchmarks construct prepared in-memory snapshots containing 10,000 chunks. They measure the lexical failure path and conditional exact recovery separately. The selection benchmark measures deterministic curation of 200 ranked candidates with prepared neighbours.
 
-It includes:
+The benchmarks include query parsing, relevant chunk scans, reason construction, candidate sorting or reordering, deduplication, overlap checks, and neighbour lookup as appropriate. They exclude filesystem traversal, source-file reads, hashing, chunk construction, go-git loading, model inference, native vector scanning, and complete context-package serialization.
 
-- query parsing;
-- scanning prepared chunks;
-- lexical scoring and reason construction;
-- candidate collection;
-- sorting; and
-- candidate limiting.
-
-It excludes:
-
-- filesystem traversal;
-- source-file reads;
-- hashing;
-- chunk construction;
-- go-git repository loading; and
-- context-package budget fitting.
-
-The benchmark therefore measures the current warm retrieval algorithm, not complete command latency.
+These are warm algorithm baselines, not complete command latency. Repository-scale semantic measurements and the checked-in quality corpus are documented in [Retrieval quality and latency baselines](retrieval-quality.md).
 
 ## Interpreting performance
 
-Current retrieval is linear in the number and size of prepared chunks, followed by candidate sorting. The benchmark is useful as a regression baseline, but it should not be treated as proof that the current full prepared-chunk scan will scale to every target repository.
+The lexical fallback and initial targeted exact recovery are linear in prepared chunk text. They are useful regression baselines, but they should not be treated as proof that full scans scale to every repository. Exact recovery is conditional and skipped for ordinary natural-language queries.
 
-Future postings-index work should add side-by-side benchmarks rather than replacing this baseline immediately. That preserves evidence of the algorithmic change.
+Any future compact exact index or postings structure should add side-by-side benchmarks rather than replacing the existing baselines immediately. That preserves evidence of the algorithmic change.
 
 ## Documentation verification
 

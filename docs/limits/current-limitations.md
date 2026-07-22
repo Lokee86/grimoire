@@ -34,11 +34,11 @@ When semantic retrieval is unavailable, the fallback scans all prepared chunks a
 
 This is intentionally a failure path rather than the normal retrieval path. A larger lexical engine should only be added if measured fallback use or retrieval failures justify its runtime and maintenance cost.
 
-## No targeted exact recovery
+## Targeted exact recovery still scans prepared chunks
 
-The normal context path relies on semantic ranking. It does not yet perform cheap exact lookup for paths, filenames, raw identifiers, quoted phrases, configuration keys, error codes, or version strings.
+Exact recovery is conditional and skipped for ordinary natural-language queries, but an activated query currently scans prepared chunk paths and text. It does not yet use a persistent compact identifier/path index.
 
-Planned removal condition: add compact conditional exact indexes and merge their candidates with semantic results while retaining provenance.
+Planned removal condition: add a compact index only when repository-scale benchmarks show the conditional scan is material.
 
 ## Language-agnostic chunks
 
@@ -52,11 +52,11 @@ Planned removal condition: optionally consume Lexicon structural ranges while re
 
 Planned removal condition: add verified pinned runtime assets for additional supported platforms.
 
-## Whole-chunk selection only
+## Selection remains heuristic and whole-chunk based
 
-The compiler greedily considers candidates in ranked order. It does not deduplicate overlapping evidence, expand useful neighbours, diversify by subsystem, reserve evidence classes, or optimize globally.
+Candidate curation removes duplicates and overlapping ranges, promotes file/subsystem diversity, and adds bounded prepared neighbours. The compiler still greedily fits complete chunks and does not optimize globally, reserve evidence classes, or trim excerpts within a chunk.
 
-Planned removal condition: add measured selection improvements without obscuring why evidence was selected.
+Planned removal condition: add stronger policy only when deterministic quality fixtures demonstrate a concrete failure.
 
 ## Single output tokenizer
 

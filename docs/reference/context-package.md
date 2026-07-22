@@ -50,7 +50,7 @@ The values above illustrate the schema. The recorded `token_count` in real outpu
 | `tokenizer` | string | Tokenizer used for chunk and package accounting; currently `o200k_base` |
 | `token_count` | integer | Exact token count of the complete emitted JSON package |
 | `index_version` | integer | Prepared-index format version |
-| `retrieval_sources` | string array | Candidate providers used to construct this package; normally `vector`, or `lexical` after semantic fallback |
+| `retrieval_sources` | string array | Candidate sources involved in construction, ordered by first curated use; may include `exact`, `vector`, `lexical`, and `adjacent` |
 | `selections` | object array | Ranked chunks retained under the complete package budget |
 | `omitted_for_budget` | integer | Ranked candidates rejected because adding the complete chunk would exceed the package budget |
 
@@ -61,9 +61,9 @@ The values above illustrate the schema. The recorded `token_count` in real outpu
 | `path` | string | Repository-relative slash-normalized source path |
 | `start_line` | integer | One-based inclusive source start line |
 | `end_line` | integer | One-based inclusive source end line |
-| `score` | number | Provider-native ranking score; vector similarity for semantic retrieval or the fallback lexical score |
-| `retrieval_source` | string | Provider that produced the candidate, currently `vector` or `lexical` |
-| `retrieval_rank` | integer | One-based rank assigned by that provider before package budgeting |
+| `score` | number | Provider-native ranking score; adjacent expansion uses zero because it is not independently ranked |
+| `retrieval_source` | string | Source that produced the candidate: `exact`, `vector`, `lexical`, or `adjacent` |
+| `retrieval_rank` | integer | One-based provider rank before curation; adjacent expansion uses zero |
 | `reasons` | string array | Inspectable provider explanation |
 | `token_count` | integer | Exact `o200k_base` count of the prepared chunk text |
 | `content` | string | Exact prepared chunk text |
@@ -74,13 +74,17 @@ The selection-level count is useful evidence metadata, but it is not sufficient 
 
 ## Ordering
 
-Vector selections preserve the exact native search order, including the vector engine's deterministic tie-breaking. Lexical fallback selections use:
+Each provider assigns its own deterministic order and rank. Exact recovery candidates are merged before vector or lexical candidates because they represent concrete literal evidence. Duplicate chunk IDs are retained once, with another-provider evidence recorded in the reasons.
 
-1. descending lexical score;
-2. ascending path; and
-3. ascending source start line.
+Curation then:
 
-Package budgeting preserves candidate order but may omit a larger candidate and later retain a smaller one that still fits.
+1. removes later duplicate and overlapping ranges;
+2. applies bounded soft file/subsystem diversity while preserving all unique primaries;
+3. emits the first four diversified primaries;
+4. emits their deduplicated immediate prepared neighbours; and
+5. emits the remaining primaries.
+
+Provider ranks are provenance only and are never compared across providers. Package budgeting preserves curated order but may omit a larger candidate and later retain a smaller one that still fits.
 
 ## Budget behavior
 
@@ -106,7 +110,9 @@ If the budget cannot fit even the package metadata with no selections, the comma
 
 The normal path uses the configured embedding endpoint and exact vector snapshot. Before query embedding, Grimoire requires the persistent vector manifest's prepared identity to exactly match the current content-addressed prepared-index root. It then validates model identity, dimensions, vector count, and returned chunk IDs.
 
-When semantic retrieval is unavailable or incompatible, `context` writes a warning to stderr and emits a package built from the deterministic lexical fallback. The output package identifies the actual provider through `retrieval_sources` and each selection's provenance fields.
+Concrete query signals—such as quoted phrases, paths, filenames, identifiers, configuration keys, error codes, and versions—also activate targeted exact recovery. Exact and semantic candidates are merged before deterministic curation and exact-budget fitting.
+
+When semantic retrieval is unavailable or incompatible, `context` writes a warning to stderr and substitutes the deterministic lexical fallback. Targeted exact recovery and candidate curation still run. The output identifies actual candidate sources through `retrieval_sources` and each selection's provenance fields.
 
 ## Budget boundary
 

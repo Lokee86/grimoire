@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Grimoire is a standalone repository RAG and context-compilation tool. It owns prepared retrieval state, exact semantic candidate retrieval, lexical failure fallback, exact budgeted selection, and context-package output.
+Grimoire is a standalone repository RAG and context-compilation tool. It owns prepared retrieval state, exact semantic retrieval, targeted literal recovery, lexical failure fallback, candidate curation, exact budgeted compilation, and context-package output.
 
-The implemented foundation includes source preparation, a lexical fallback, exact output budgeting, an operational local embedding provider, persistent content-addressed vectors, packed memory-mapped snapshots, exact semantic search, and semantic context compilation.
+The implemented foundation includes source preparation, targeted exact and lexical retrieval, exact output budgeting, an operational local embedding provider, persistent content-addressed vectors, packed memory-mapped snapshots, exact semantic search, and deterministic context curation.
 
 ## Current flow
 
@@ -39,7 +39,10 @@ context command
     ├── validate the exact prepared-index identity, model, dimensions, and chunk count
     ├── embed the query and run exact vector retrieval
     ├── fall back to deterministic lexical ranking on semantic failure
-    ├── fit whole chunks under the package budget
+    ├── recover concrete identifiers, paths, phrases, keys, codes, and versions
+    ├── merge provider candidates without duplicate chunks
+    ├── remove overlap, diversify evidence, and add bounded neighbours
+    ├── fit curated whole chunks under the package budget
     └── emit verified JSON with source/rank/score provenance
 ```
 
@@ -50,21 +53,23 @@ The embedding path is independently probeable and used by `vector build`, `vecto
 ```text
 prepared chunks ──► incremental model vectors
                               │
-query ──► instructed query embedding
-                              │
-                              ▼
-                 exact full-vector scan
-                              │
-                              ▼
-                    context selection
-                              │
-                              ▼
-               exact o200k_base package
-
-semantic failure ──► deterministic lexical fallback
+query ──► instructed query embedding ──► exact full-vector scan ──┐
+                                                                 │
+query ──► conditional exact-signal recovery ──────────────────────┤
+                                                                 ▼
+                                                   provider candidate merge
+                                                                 │
+semantic failure ──► deterministic lexical fallback ──────────────┤
+                                                                 ▼
+                                           deduplication and overlap removal
+                                                                 │
+                                           diversity and neighbour expansion
+                                                                 │
+                                                                 ▼
+                                                   exact o200k_base package
 ```
 
-Targeted exact lookup may later recover paths, identifiers, quoted phrases, configuration keys, and error codes. Lexicon may enrich chunks with authoritative symbols and structural ranges. Neither is required for the baseline semantic path.
+Exact recovery activates only for concrete literal signals rather than adding a mandatory general lexical pass. Lexicon may later enrich chunks with authoritative symbols and structural ranges, but it is not required for the standalone retrieval path.
 
 ## Package ownership
 
@@ -73,14 +78,15 @@ Targeted exact lookup may later recover paths, identifiers, quoted phrases, conf
 | `internal/app` | CLI parsing and operation orchestration |
 | `internal/ignore` | Git-ignore pattern loading and matching |
 | `internal/index` | Traversal, fallback chunking, source records, storage, and atomic publication |
-| `internal/retrieve` | Shared candidate provenance plus lexical fallback scoring and deterministic ordering |
+| `internal/retrieve` | Shared candidate provenance, targeted exact recovery, and lexical fallback ranking |
 | `internal/embedding` | Fixed model identity, verified setup, runtime launch, query formatting, HTTP client, reduction, normalization, and probing |
 | `internal/vectorstore` | Native-library discovery, ABI validation, caller-owned buffers, and snapshot-handle lifecycle |
 | `native/vector-engine` | Immutable vector objects, packed snapshot format, mmap validation, and exact concurrent search |
 | `internal/tokenizer` | Fixed `o200k_base` counting |
-| `internal/compiler` | Whole-chunk package selection and exact serialized-package accounting |
+| `internal/selection` | Candidate deduplication, overlap handling, diversity, and bounded neighbour expansion |
+| `internal/compiler` | Whole-chunk budget fitting and exact serialized-package accounting |
 
-Vector storage has its own Rust engine and Go bridge. Future exact lookup, structural enrichment, and selection policies should receive concrete ownership seams rather than being folded into the model client or compiler.
+Vector storage has its own Rust engine and Go bridge. Retrieval, curation, and package fitting remain separate concrete seams so model access does not absorb selection policy.
 
 ## Code map
 
@@ -91,7 +97,8 @@ cmd/grimoire/main.go
         ├── context command
         │   ├── embedding.Client
         │   ├── vectorstore.Library / vectorstore.Engine
-        │   ├── retrieve.Search fallback
+        │   ├── retrieve.Exact / retrieve.Search fallback
+        │   ├── selection.Curate
         │   └── compiler.Compile / compiler.Marshal
         ├── vector commands
         │   ├── embedding.Client
@@ -112,7 +119,7 @@ Model identity, dimensions, preprocessing, runtime compatibility, and future vec
 
 ## Determinism
 
-Source preparation, vector-object addressing, packed snapshot materialization, exact semantic result ordering, lexical fallback ranking, and package compilation are deterministic for the same inputs.
+Source preparation, vector-object addressing, packed snapshot materialization, exact semantic result ordering, literal recovery, lexical fallback ranking, candidate curation, and package compilation are deterministic for the same inputs.
 
 Embedding inference is locally controlled and uses a fixed model artifact, prompt format, dimension reduction, and normalization. Exact floating-point values may still vary with runtime build and hardware backend; future vector compatibility must record enough identity to prevent silent mixing.
 

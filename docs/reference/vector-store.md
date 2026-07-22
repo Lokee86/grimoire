@@ -12,7 +12,7 @@ For the fixed embedding identity, vector state is stored below:
 <state>/vectors/qwen3-embedding-0.6b-q8_0-512d/
 ```
 
-The directory contains an immutable object store, the current packed snapshot, and a persistent snapshot manifest. Temporary JSONL ingest and record-list files are removed after publication.
+The directory contains an immutable object store, the current packed snapshot, and a persistent snapshot manifest. Embedding batches are ingested into immutable objects as they complete, allowing interrupted builds to reuse completed work. Temporary JSONL ingest and record-list files are removed after use.
 
 ## Object identity and reuse
 

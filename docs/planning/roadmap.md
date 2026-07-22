@@ -22,39 +22,37 @@ Implemented:
 - a narrow caller-owned-buffer C ABI;
 - exact serial/concurrent semantic search;
 - vector-backed `grimoire context` retrieval;
-- a persistent vector-snapshot manifest bound to the exact prepared-index identity; and
+- a persistent vector-snapshot manifest bound to the exact prepared-index identity;
+- conditional exact recovery for concrete repository literals;
+- deterministic candidate deduplication, overlap removal, diversity, and neighbour expansion; and
 - deterministic lexical fallback when semantic retrieval is unavailable.
 
 The normal context path now performs exact full-vector retrieval. BM25 or another general lexical engine is not a prerequisite and should only be added if measured retrieval failures justify its cost.
 
-## 1. Selection quality
+## 1. Selection-quality follow-on work
 
-Improve final context construction now that semantic retrieval reaches the compiler.
+Implemented selection now removes duplicates and overlapping ranges, applies soft file/subsystem diversity, and adds bounded prepared neighbours before exact-budget compilation. Checked-in quality fixtures cover the initial behavior.
 
-Candidate work:
+Remaining work:
 
-- overlap and duplicate removal;
-- adjacent-chunk expansion;
-- file and subsystem diversity;
-- evidence-class reservations;
+- evidence-class reservations when real failures justify them;
 - stable package fingerprints;
-- explicit omission reasons beyond budget pressure; and
-- retrieval-quality fixtures covering source code and documentation.
+- explicit omission reasons beyond budget pressure;
+- larger source-code and documentation quality corpora; and
+- global or budget-aware optimization only when fixtures show the deterministic greedy boundary is inadequate.
 
 Exact `o200k_base` package enforcement remains the final boundary.
 
-## 2. Targeted exact recovery
+## 2. Exact-recovery follow-on work
 
-Add inexpensive exact lookup for cases embeddings commonly under-rank:
+The initial conditional path recovers paths, filenames, raw identifiers, quoted phrases, configuration keys, error codes, and version strings with source/rank/reason provenance.
 
-- paths and filenames;
-- raw identifiers;
-- quoted phrases;
-- configuration keys;
-- error codes; and
-- version strings.
+Remaining work:
 
-These lookups should be conditional and compact, not a mandatory full-text search pass. Their candidates must retain source, rank, and reason provenance.
+- reduce new real-world misses into deterministic fixtures;
+- benchmark compact persistent indexes against the initial conditional scan;
+- add an index only when repository-scale measurements justify its maintenance cost; and
+- avoid turning exact recovery into a mandatory general full-text pass.
 
 ## 3. Incremental maintenance runtime
 

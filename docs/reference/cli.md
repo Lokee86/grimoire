@@ -166,12 +166,12 @@ grimoire context [flags]
 | `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
 | `--query <text>` | none | Required retrieval query |
 | `--budget <n>` | `2000` | Maximum `o200k_base` tokens in emitted JSON |
-| `--candidate-limit <n>` | `200` | Maximum ranked semantic candidates |
+| `--candidate-limit <n>` | `200` | Maximum merged exact plus semantic/fallback primary candidates before curation |
 | `--endpoint <url>` | `http://127.0.0.1:8080/v1` | OpenAI-compatible embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--timeout <duration>` | `2s` | Complete semantic retrieval timeout |
 
-The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count, performs exact vector retrieval, and records selection-level source, rank, score, and reasons. If the vector path is missing, stale, incompatible, or unavailable, it writes a warning to stderr and uses the deterministic lexical fallback.
+The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged, deduplicated, diversified, and expanded with bounded prepared neighbours before exact-budget compilation. If the vector path is missing, stale, incompatible, or unavailable, the command writes a warning to stderr and substitutes the deterministic lexical fallback before the same exact-recovery and curation stages.
 
 ## `grimoire version`
 

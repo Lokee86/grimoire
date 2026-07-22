@@ -44,16 +44,16 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
-	candidates, err := semanticCandidates(ctx, snapshot, statePath, *query, *endpoint, *enginePath, *limit)
-	sources := []string{"vector"}
+	baseCandidates, err := semanticCandidates(ctx, snapshot, statePath, *query, *endpoint, *enginePath, *limit)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "warning: semantic retrieval unavailable; using lexical fallback: %v\n", err)
-		candidates = retrieve.Search(snapshot, *query, *limit)
-		sources = []string{"lexical"}
+		baseCandidates = retrieve.Search(snapshot, *query, *limit)
 	}
+	candidates := curateContextCandidates(snapshot, *query, baseCandidates, *limit)
 
 	result, err := compiler.Compile(
-		*query, *budget, snapshot.Version, snapshot.Tokenizer, sources, candidates,
+		*query, *budget, snapshot.Version, snapshot.Tokenizer,
+		contextCandidateSources(candidates), candidates,
 	)
 	if err != nil {
 		return err

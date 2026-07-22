@@ -2,7 +2,7 @@
 
 Grimoire is a standalone local repository RAG and context compiler in the [Warlock Toolchain](https://github.com/Lokee86/warlock-toolchain). It prepares repository evidence, performs lexical and semantic retrieval, and emits exact-budget context packages without owning an agent or generation step.
 
-The current implementation has incremental source preparation, a working local Qwen3 embedding provider, a custom content-addressed Rust vector engine, exact semantic retrieval in the context compiler, lexical failure fallback, and exact package budgeting. Stronger context selection, targeted exact lookup, and automatic maintenance remain next.
+The current implementation has incremental source preparation, a working local Qwen3 embedding provider, a custom content-addressed Rust vector engine, exact semantic retrieval, targeted literal recovery, deterministic candidate curation, lexical failure fallback, and exact package budgeting. Automatic maintenance and optional structural enrichment remain next.
 
 ## Current capabilities
 
@@ -17,6 +17,8 @@ The current implementation has incremental source preparation, a working local Q
 - Memory-mapped Rust validation and concurrent exact dot-product search.
 - A narrow C ABI with caller-owned buffers and no cross-runtime allocator ownership.
 - Vector-backed context compilation with exact prepared-index identity validation and lexical failure fallback.
+- Conditional recovery for identifiers, paths, filenames, quoted phrases, configuration keys, error codes, and versions.
+- Candidate deduplication, overlap removal, file/subsystem diversity, and bounded adjacent-chunk expansion.
 - Selection-level retrieval source, rank, score, and inspectable reasons.
 - Exact whole-chunk package fitting.
 
@@ -111,12 +113,14 @@ repository files
               │                                                   │
               ▼                                                   │
       packed mmap snapshot ──► exact concurrent vector search ────┤
+                                                                  │
+query literals ──► conditional exact recovery ────────────────────┤
                                                                   ▼
-                                                       context selection
+                                               merge and candidate curation
                                                                   ▼
                                                      exact-budget package
 
-If the semantic path is unavailable, the prepared source objects feed the deterministic lexical fallback.
+If the semantic path is unavailable, the prepared source objects feed the deterministic lexical fallback before the same merge and curation stage.
 ```
 
 Lexicon is optional structural enrichment. Grimoire remains independently usable without Lexicon, Arcana, Demon Docs, Warlock, remote embeddings, or hosted vector storage.
@@ -146,4 +150,4 @@ go vet ./...
 
 ## Status
 
-The local embedding provider, persistent vector objects, packed snapshot, native ABI, exact semantic search, and vector-backed context compilation are implemented and verified. Automatic maintenance, stronger selection, targeted exact lookup, and optional Lexicon enrichment remain unfinished.
+The local embedding provider, persistent vector objects, packed snapshot, native ABI, exact semantic search, targeted exact recovery, deterministic candidate curation, and vector-backed context compilation are implemented and verified. Automatic maintenance, optional Lexicon enrichment, and stable external contracts remain unfinished.

@@ -1,0 +1,6 @@
+[damage]
+max_per_hit = 25
+shield_gate = true
+
+[protocol]
+version = "v2.4.1"

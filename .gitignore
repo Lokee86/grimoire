@@ -1,4 +1,6 @@
 .grimoire/
+.worktrees/
+.workingtrees/
 /grimoire
 /grimoire.exe
 coverage.out
