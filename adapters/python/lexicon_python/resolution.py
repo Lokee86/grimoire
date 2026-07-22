@@ -29,6 +29,15 @@ def resolve_relative_module(info: ImportInfo) -> str:
     return ".".join(package_parts + suffix)
 
 
+def _resolve_module_name(facts: Facts, requested: str) -> str | None:
+    if requested in facts.modules:
+        return requested
+    if "." not in requested:
+        return None
+    matches = [name for name in facts.modules if name.endswith(f".{requested}")]
+    return matches[0] if len(matches) == 1 else None
+
+
 def resolve_reference(
     facts: Facts,
     module_name: str,
@@ -70,15 +79,21 @@ def resolve_import(facts: Facts, info: ImportInfo) -> tuple[str | None, str]:
     if info.star:
         return None, "unsupported-form"
     module_name = resolve_relative_module(info)
+    resolved_module_name = _resolve_module_name(facts, module_name)
     if info.target_name is None:
-        target = facts.modules.get(module_name)
+        target = facts.modules.get(resolved_module_name) if resolved_module_name else None
         return (target, "") if target else (None, "external-target")
     symbol = f"{module_name}.{info.target_name}" if module_name else info.target_name
     if symbol in facts.symbols:
         return facts.symbols[symbol], ""
     if symbol in facts.modules:
         return facts.modules[symbol], ""
-    if module_name in facts.modules:
+    if resolved_module_name:
+        symbol = f"{resolved_module_name}.{info.target_name}"
+        if symbol in facts.symbols:
+            return facts.symbols[symbol], ""
+        if symbol in facts.modules:
+            return facts.modules[symbol], ""
         return None, "missing-target"
     return None, "external-target"
 
