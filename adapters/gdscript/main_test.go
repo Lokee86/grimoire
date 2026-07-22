@@ -142,6 +142,73 @@ func TestAnalyzeIsDeterministicAcrossRepeatRuns(t *testing.T) {
 	}
 }
 
+func TestAnalyzeResolvesUniqueClassCallsAndKeepsDynamicCallsUnresolved(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "actor.gd", `class_name Actor
+func spawn():
+    pass
+`)
+	writeFixture(t, root, "caller.gd", `class_name Caller
+func run(instance):
+    Actor.spawn()
+    Actor.new()
+    instance.spawn()
+`)
+	writeFixture(t, root, "ambiguous_one.gd", `class_name Ambiguous
+func ping():
+    pass
+`)
+	writeFixture(t, root, "ambiguous_two.gd", `class_name Ambiguous
+func ping():
+    pass
+`)
+	writeFixture(t, root, "ambiguous_caller.gd", `func run():
+    Ambiguous.ping()
+    Ambiguous.new()
+`)
+
+	data, err := analyzeRepository(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := decodeRecords(t, data)
+	actor := findNode(records, "type", "Actor", "actor.gd")
+	spawn := findNode(records, "function", "spawn", "actor.gd")
+	if actor == nil || spawn == nil {
+		t.Fatalf("missing Actor declarations: actor=%#v spawn=%#v", actor, spawn)
+	}
+
+	resolved := map[string]bool{}
+	for _, record := range records {
+		if record["record"] == "edge" && record["relation"] == "calls" && record["target"] == spawn["id"] {
+			resolved["Actor.spawn()"] = true
+		}
+		if record["record"] == "edge" && record["relation"] == "calls" && record["target"] == actor["id"] {
+			resolved["Actor.new()"] = true
+		}
+	}
+	if !resolved["Actor.spawn()"] || !resolved["Actor.new()"] {
+		t.Fatalf("class calls were not resolved: %v", resolved)
+	}
+
+	var unresolvedCalls []string
+	for _, record := range records {
+		if record["record"] == "unresolved" && record["relation"] == "calls" {
+			unresolvedCalls = append(unresolvedCalls, record["expression"].(string))
+		}
+	}
+	for _, expected := range []string{"instance.spawn()", "Ambiguous.ping()", "Ambiguous.new()"} {
+		if !contains(unresolvedCalls, expected) {
+			t.Errorf("missing unresolved dotted call %q in %v", expected, unresolvedCalls)
+		}
+	}
+	for _, unexpected := range []string{"Actor.spawn()", "Actor.new()"} {
+		if contains(unresolvedCalls, unexpected) {
+			t.Errorf("unique class call remained unresolved: %q", unexpected)
+		}
+	}
+}
+
 func TestJSONLRecordsUseContractOrder(t *testing.T) {
 	root := t.TempDir()
 	writeFixture(t, root, "one.gd", "class_name One\n")

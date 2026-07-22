@@ -14,13 +14,14 @@ const (
 type sourceSpan = map[string]any
 
 type factSet struct {
-	nodes        []map[string]any
-	edges        []map[string]any
-	unresolved   []map[string]any
-	nodeByID     map[string]map[string]any
-	moduleByPath map[string]string
-	classByName  map[string][]string
-	fileByPath   map[string]string
+	nodes             []map[string]any
+	edges             []map[string]any
+	unresolved        []map[string]any
+	nodeByID          map[string]map[string]any
+	moduleByPath      map[string]string
+	classByName       map[string][]string
+	methodByClassName map[string]map[string][]string
+	fileByPath        map[string]string
 }
 
 func node(kind, name, path, qualified, id string, span sourceSpan, content string, attributes ...map[string]any) map[string]any {
@@ -69,6 +70,27 @@ func (f *factSet) addEdge(record map[string]any) {
 		}
 	}
 	f.edges = append(f.edges, record)
+	f.indexClassMethod(record)
+}
+
+func (f *factSet) indexClassMethod(record map[string]any) {
+	if record["relation"] != "defines" {
+		return
+	}
+	owner, ownerOK := f.nodeByID[record["source"].(string)]
+	method, methodOK := f.nodeByID[record["target"].(string)]
+	if !ownerOK || !methodOK || owner["kind"] != "type" || method["kind"] != "function" {
+		return
+	}
+	className, _ := owner["name"].(string)
+	if len(f.classByName[className]) != 1 {
+		return
+	}
+	if f.methodByClassName[className] == nil {
+		f.methodByClassName[className] = make(map[string][]string)
+	}
+	methodName, _ := method["name"].(string)
+	f.methodByClassName[className][methodName] = append(f.methodByClassName[className][methodName], method["id"].(string))
 }
 
 func (f *factSet) addUnresolved(record map[string]any) {

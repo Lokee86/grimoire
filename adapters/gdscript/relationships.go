@@ -60,6 +60,10 @@ func processImportsAndCalls(facts *factSet, pf *parsedFile) {
 				facts.addEdge(edge(owner, ids[0], "calls", call.span))
 				continue
 			}
+			if target, ok := resolveClassCall(facts, call.callee); ok {
+				facts.addEdge(edge(owner, target, "calls", call.span))
+				continue
+			}
 			reason := "dynamic-target"
 			if isSimpleCallee(call.callee) {
 				reason = "missing-target"
@@ -70,6 +74,25 @@ func processImportsAndCalls(facts *factSet, pf *parsedFile) {
 			facts.addUnresolved(unresolved(owner, "calls", call.expr, reason, call.span))
 		}
 	}
+}
+
+func resolveClassCall(facts *factSet, callee string) (string, bool) {
+	parts := strings.Split(callee, ".")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", false
+	}
+	classIDs := facts.classByName[parts[0]]
+	if len(classIDs) != 1 {
+		return "", false
+	}
+	if parts[1] == "new" {
+		return classIDs[0], true
+	}
+	methodIDs := facts.methodByClassName[parts[0]][parts[1]]
+	if len(methodIDs) != 1 {
+		return "", false
+	}
+	return methodIDs[0], true
 }
 
 func ownerForStatement(pf *parsedFile, stmt statement) string {
