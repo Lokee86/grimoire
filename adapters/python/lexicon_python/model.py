@@ -42,8 +42,20 @@ class CallInfo:
     module_name: str
     owner_id: str
     class_qname: str | None
+    scope_id: str | None
     expression_node: ast.Call
     callee: ast.AST
+
+
+@dataclass
+class LocalAssignmentInfo:
+    module_name: str
+    scope_id: str
+    class_qname: str | None
+    name: str
+    assignment_node: ast.AST
+    constructor: ast.Call | None
+    branch_dependent: bool
 
 
 @dataclass
@@ -81,6 +93,7 @@ class Facts:
     imports: list[ImportInfo] = field(default_factory=list)
     inheritances: list[InheritanceInfo] = field(default_factory=list)
     calls: list[CallInfo] = field(default_factory=list)
+    local_assignments: list[LocalAssignmentInfo] = field(default_factory=list)
     module_bindings: dict[tuple[str, str], tuple[str | None, str]] = field(default_factory=dict)
 
     def add_node(
