@@ -13,9 +13,8 @@ It provides one reusable adapter per programming language and a normalized fact 
 | GDScript | Go | Lexical parser with an explicit upgrade seam for a full parser |
 | Rust | Rust | `syn` plus Cargo metadata |
 | TypeScript | TypeScript | TypeScript compiler API |
-| Go | Pending migration | Existing Arcana adapter |
+| Go | Go | `go/parser`, `go/types`, SSA, and VTA |
 
-The Go adapter remains in Arcana temporarily while other Arcana work is active.
 
 ## Contract
 
@@ -48,7 +47,7 @@ Each adapter remains self-contained in its own directory. Shared behavior is spe
 
 ## Status
 
-The repository and version-one fact contract are being established alongside initial adapters for Ruby, Python, GDScript, Rust, and TypeScript. The first implementations focus on repository structure, declarations, imports, containment, inheritance/implementation where practical, and direct call/reference evidence.
+The repository and version-one fact contract include adapters for Go, Ruby, Python, GDScript, Rust, and TypeScript. The first implementations focus on repository structure, declarations, imports, containment, inheritance/implementation where practical, and direct call/reference evidence.
 
 ## License
 
