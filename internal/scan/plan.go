@@ -29,6 +29,9 @@ func (s *Scanner) plansFor(changes []state.Change, drift []string) ([]analysisPl
 		}
 		for _, path := range paths {
 			for _, language := range lexfiles.Languages(path) {
+				if !s.languageEnabled(language) {
+					continue
+				}
 				plan := plans[language]
 				if plan == nil {
 					plan = &analysisPlan{Language: language}

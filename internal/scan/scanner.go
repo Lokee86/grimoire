@@ -3,7 +3,9 @@ package scan
 import (
 	"context"
 	"io"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Lokee86/lexicon/internal/adapters"
 	"github.com/Lokee86/lexicon/internal/config"
@@ -14,14 +16,15 @@ import (
 )
 
 type Scanner struct {
-	Repository  string
-	StateRoot   string
-	AdapterRoot string
-	Git         *state.Repository
-	Mirror      state.Mirror
-	Analyzer    adapters.Analyzer
-	Store       objectstore.Store
-	Output      io.Writer
+	Repository       string
+	StateRoot        string
+	AdapterRoot      string
+	EnabledLanguages []string
+	Git              *state.Repository
+	Mirror           state.Mirror
+	Analyzer         adapters.Analyzer
+	Store            objectstore.Store
+	Output           io.Writer
 }
 
 type Report struct {
@@ -50,11 +53,20 @@ func Initialize(ctx context.Context, repository, adapterRoot string, output io.W
 		return nil, Report{}, err
 	}
 	scanner := New(absolute, stateRoot, gitRepository, adapters.Runner{Root: adapterRoot}, output)
+	configuration, err := config.Load(absolute)
+	if err != nil {
+		return nil, Report{}, err
+	}
+	scanner.EnabledLanguages = configuration.EnabledLanguages
 	if err := scanner.Mirror.SyncAll(absolute); err != nil {
 		return nil, Report{}, err
 	}
 	languages, err := languagesInTree(filepath.Join(stateRoot, "source"))
 	if err != nil {
+		return nil, Report{}, err
+	}
+	languages = selectedLanguages(languages, scanner.languageEnabled)
+	if _, err := scanner.pruneDisabledLibraries(); err != nil {
 		return nil, Report{}, err
 	}
 	if err := scanner.analyzeFull(ctx, languages); err != nil {
@@ -87,7 +99,9 @@ func Open(repository string, output io.Writer) (*Scanner, error) {
 	if err != nil {
 		return nil, err
 	}
-	return New(absolute, stateRoot, gitRepository, adapters.Runner{Root: configuration.AdapterRoot}, output), nil
+	scanner := New(absolute, stateRoot, gitRepository, adapters.Runner{Root: configuration.AdapterRoot}, output)
+	scanner.EnabledLanguages = configuration.EnabledLanguages
+	return scanner, nil
 }
 
 func New(repository, stateRoot string, gitRepository *state.Repository, analyzer adapters.Analyzer, output io.Writer) *Scanner {
@@ -147,6 +161,10 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 	if err := s.Git.RestoreLibrary(); err != nil {
 		return Report{}, err
 	}
+	pruned, err := s.pruneDisabledLibraries()
+	if err != nil {
+		return Report{}, err
+	}
 	if err := synchronize(); err != nil {
 		return Report{}, err
 	}
@@ -157,7 +175,7 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 	if err != nil {
 		return Report{}, err
 	}
-	drift, err := libraryDriftLanguages(s.StateRoot)
+	drift, err := libraryDriftLanguagesFor(s.StateRoot, s.languageEnabled)
 	if err != nil {
 		return Report{}, err
 	}
@@ -171,6 +189,16 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 		return Report{}, err
 	}
 	if len(changes) == 0 && len(plans) == 0 {
+		if pruned {
+			if err := s.Git.StageAll(); err != nil {
+				return Report{}, err
+			}
+			if err := s.Git.CommitState(); err != nil {
+				return Report{}, err
+			}
+			snapshotID, err := s.publishSnapshot()
+			return Report{SnapshotID: snapshotID}, err
+		}
 		snapshotID, err := s.ensureSnapshot()
 		return Report{SnapshotID: snapshotID}, err
 	}
@@ -189,4 +217,34 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 		return Report{}, err
 	}
 	return Report{Changed: changes, Languages: languages, SnapshotID: snapshotID}, nil
+}
+
+func (s *Scanner) languageEnabled(language string) bool {
+	return config.Config{EnabledLanguages: s.EnabledLanguages}.LanguageEnabled(language)
+}
+
+func (s *Scanner) pruneDisabledLibraries() (bool, error) {
+	libraryRoot := filepath.Join(s.StateRoot, "library")
+	entries, err := os.ReadDir(libraryRoot)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	removed := false
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".jsonl" {
+			continue
+		}
+		language := strings.TrimSuffix(entry.Name(), ".jsonl")
+		if s.languageEnabled(language) {
+			continue
+		}
+		if err := os.Remove(filepath.Join(libraryRoot, entry.Name())); err != nil && !os.IsNotExist(err) {
+			return false, err
+		}
+		removed = true
+	}
+	return removed, nil
 }
