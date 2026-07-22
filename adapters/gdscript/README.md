@@ -42,15 +42,18 @@ The lexical/parser seam recognizes:
 - `func` declarations, including multiline parameter lists and `static`/`async` modifiers;
 - `signal`, `const`, and `var` declarations, including a simple declared type;
 - `preload()` and `load()` references with static `res://` paths;
-- direct calls to uniquely defined functions in the same script.
+- direct calls to uniquely defined functions in the same script;
+- class calls resolved by exact same-file declarations before repository-wide unique names;
+- explicitly typed parameter, local, and member receiver calls when the target class and method are unique;
+- literal `const Alias = preload("res://...gd")` bindings for constructors and top-level static functions.
 
-It emits `contains` and `defines` containment/definition edges, `imports` and `references` edges for import references, `extends` edges for known local classes or scripts, and `calls` edges for uniquely resolved local functions. Dynamic, missing, ambiguous, builtin, and external targets are represented as unresolved records instead of speculative targets.
+It emits `contains` and `defines` containment/definition edges, `imports` and `references` edges for import references, `extends` edges for known local classes or scripts, and conservative `calls` edges for exact local functions, class/static calls, explicitly typed receivers, and literal preload aliases. Dynamic, missing, ambiguous, builtin, external, instance-through-preload, and non-GDScript targets are represented as unresolved records instead of speculative targets.
 
 ## Exclusions and limits
 
 The scanner skips `.git`, `.worktrees`, `.workingtrees`, `.warlock`, `node_modules`, `target`, `__pycache__`, `.pytest_cache`, `.bundle`, `vendor`, `.godot`, `.import`, `build`, `dist`, `bin`, and `obj` directories. Only directories on the path to a `.gd` file become directory facts.
 
-This is intentionally a first runnable lexical slice, not a complete GDScript parser. It does not evaluate expressions, follow generated paths, resolve project settings or autoloads, infer dynamic dispatch, parse every annotation, or model all Godot builtins. Unsupported syntax remains evidence-free or unresolved; the adapter does not guess.
+This remains a conservative lexical adapter rather than a complete GDScript compiler. It does not evaluate expressions, follow generated paths, resolve project settings or autoloads, infer untyped or dynamic dispatch, resolve preload aliases with computed paths, parse every annotation, or model all Godot builtins. Unsupported syntax remains evidence-free or unresolved; the adapter does not guess.
 
 ## Tests
 

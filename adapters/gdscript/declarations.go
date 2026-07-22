@@ -6,19 +6,22 @@ import (
 )
 
 type declaration struct {
-	kind       string
-	name       string
-	nameIndex  int
-	indent     int
-	span       sourceSpan
-	extends    string
-	attributes map[string]any
-	parameters []string
-	static     bool
-	async      bool
-	nodeID     string
-	key        string
-	ownerKey   string
+	kind           string
+	name           string
+	nameIndex      int
+	indent         int
+	span           sourceSpan
+	extends        string
+	attributes     map[string]any
+	parameters     []string
+	parameterTypes map[string]string
+	typeName       string
+	preloadPath    string
+	static         bool
+	async          bool
+	nodeID         string
+	key            string
+	ownerKey       string
 }
 
 type parsedFile struct {
@@ -92,6 +95,12 @@ func processDeclarations(facts *factSet, pf *parsedFile) {
 				decl.key += fmt.Sprintf("#%d", occurrence+1)
 			}
 			decl.nodeID = nodeID(decl.kind, decl.key)
+		}
+		if decl.kind == "type" {
+			facts.indexClassDeclaration(pf.path, decl.name, decl.nodeID)
+		}
+		if decl.preloadPath != "" {
+			facts.indexPreloadAlias(pf.path, decl.name, decl.preloadPath)
 		}
 		attrs := cloneMap(decl.attributes)
 		if decl.kind == "function" {
@@ -188,6 +197,7 @@ func parseDeclaration(stmt statement) *declaration {
 		if open := nextToken(stmt.tokens, nameIndex+1, "("); open >= 0 {
 			if close := matchingParen(stmt.tokens, open); close >= 0 {
 				decl.parameters = parseParameters(stmt.tokens[open+1 : close])
+				decl.parameterTypes = explicitParameterTypes(decl.parameters)
 			}
 		}
 	}
@@ -198,10 +208,46 @@ func parseDeclaration(stmt statement) *declaration {
 	}
 	if keyword == "var" {
 		if colon := indexOfTokenAfter(stmt.tokens, ":", nameIndex); colon > nameIndex {
-			decl.attributes["type"] = joinTokensUntil(stmt.tokens[colon+1:], "=")
+			decl.typeName = joinTokensUntil(stmt.tokens[colon+1:], "=")
+			decl.attributes["type"] = decl.typeName
 		}
 	}
+	if keyword == "const" {
+		decl.preloadPath = parseStaticPreloadPath(stmt.tokens[nameIndex+1:])
+	}
 	return decl
+}
+
+func explicitParameterTypes(parameters []string) map[string]string {
+	types := make(map[string]string)
+	for _, parameter := range parameters {
+		colon := strings.Index(parameter, ":")
+		if colon <= 0 {
+			continue
+		}
+		name := strings.TrimSpace(parameter[:colon])
+		typeName := strings.TrimSpace(strings.SplitN(parameter[colon+1:], "=", 2)[0])
+		if name != "" && typeName != "" {
+			types[name] = typeName
+		}
+	}
+	return types
+}
+
+func parseStaticPreloadPath(tokens []token) string {
+	equals := indexOfToken(tokens, "=")
+	if equals < 0 || equals+3 >= len(tokens) || tokens[equals+1].text != "preload" || tokens[equals+2].text != "(" {
+		return ""
+	}
+	close := matchingParen(tokens, equals+2)
+	if close != equals+4 || close != len(tokens)-1 || tokens[equals+3].kind != tokenString {
+		return ""
+	}
+	path, ok := normalizeImportPath(tokens[equals+3].text)
+	if !ok {
+		return ""
+	}
+	return path
 }
 
 func parseParameters(tokens []token) []string {

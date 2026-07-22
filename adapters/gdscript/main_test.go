@@ -227,6 +227,198 @@ func ping():
 	}
 }
 
+func TestAnalyzeResolvesOnlyExplicitlyTypedReceivers(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "actor.gd", `class_name Actor
+func spawn():
+    pass
+`)
+	writeFixture(t, root, "caller.gd", `class_name Caller
+var member: Actor
+func run(argument: Actor):
+    var local: Actor
+    argument.spawn()
+    local.spawn()
+    member.spawn()
+`)
+	writeFixture(t, root, "ambiguous_one.gd", `class_name Duplicate
+func spawn():
+    pass
+`)
+	writeFixture(t, root, "ambiguous_two.gd", `class_name Duplicate
+func spawn():
+    pass
+`)
+	writeFixture(t, root, "ambiguous_caller.gd", `func run(argument: Duplicate):
+    argument.spawn()
+    Node.spawn()
+    missing.spawn()
+    untyped.spawn()
+`)
+
+	data, err := analyzeRepository(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := decodeRecords(t, data)
+	spawn := findNode(records, "function", "spawn", "actor.gd")
+	if spawn == nil {
+		t.Fatal("missing Actor.spawn declaration")
+	}
+
+	resolved := 0
+	var unresolvedCalls []string
+	for _, record := range records {
+		if record["record"] == "edge" && record["relation"] == "calls" && record["target"] == spawn["id"] {
+			resolved++
+		}
+		if record["record"] == "unresolved" && record["relation"] == "calls" {
+			unresolvedCalls = append(unresolvedCalls, record["expression"].(string))
+		}
+	}
+	if resolved != 3 {
+		t.Fatalf("typed parameter/local/member calls resolved=%d, want 3", resolved)
+	}
+	for _, expected := range []string{"argument.spawn()", "Node.spawn()", "missing.spawn()", "untyped.spawn()"} {
+		if !contains(unresolvedCalls, expected) {
+			t.Errorf("receiver call was not left unresolved: %q in %v", expected, unresolvedCalls)
+		}
+	}
+}
+
+func TestAnalyzePrefersSameFileClassDeclarations(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "external.gd", `class_name Widget
+func ping():
+    pass
+`)
+	writeFixture(t, root, "caller.gd", `class_name Widget
+func ping():
+    pass
+var member: Widget
+func run():
+    Widget.ping()
+    Widget.new()
+    member.ping()
+`)
+	writeFixture(t, root, "ambiguous.gd", `class_name Duplicate
+func ping():
+    pass
+`)
+	writeFixture(t, root, "ambiguous_caller.gd", `class_name Duplicate
+func ping():
+    pass
+class_name Duplicate
+func ping():
+    pass
+var member: Duplicate
+func run():
+    Duplicate.ping()
+    Duplicate.new()
+    member.ping()
+`)
+
+	data, err := analyzeRepository(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := decodeRecords(t, data)
+	localWidget := findNode(records, "type", "Widget", "caller.gd")
+	localPing := findNode(records, "function", "ping", "caller.gd")
+	externalPing := findNode(records, "function", "ping", "external.gd")
+	if localWidget == nil || localPing == nil || externalPing == nil {
+		t.Fatalf("missing Widget declarations: local=%#v local method=%#v external method=%#v", localWidget, localPing, externalPing)
+	}
+
+	var localCalls, externalCalls int
+	var unresolvedCalls []string
+	for _, record := range records {
+		if record["record"] == "edge" && record["relation"] == "calls" {
+			switch record["target"] {
+			case localPing["id"], localWidget["id"]:
+				localCalls++
+			case externalPing["id"]:
+				externalCalls++
+			}
+		}
+		if record["record"] == "unresolved" && record["relation"] == "calls" {
+			unresolvedCalls = append(unresolvedCalls, record["expression"].(string))
+		}
+	}
+	if localCalls != 3 || externalCalls != 0 {
+		t.Fatalf("same-file calls resolved local=%d external=%d unresolved=%v", localCalls, externalCalls, unresolvedCalls)
+	}
+	for _, expected := range []string{"Duplicate.ping()", "Duplicate.new()", "member.ping()"} {
+		if !contains(unresolvedCalls, expected) {
+			t.Errorf("ambiguous same-file call was resolved: %q in %v", expected, unresolvedCalls)
+		}
+	}
+}
+
+func TestAnalyzeResolvesStaticPreloadAliasesConservatively(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "scripts/tool.gd", `static func build():
+    pass
+func instance_method():
+    pass
+`)
+	writeFixture(t, root, "scripts/typed_tool.gd", `class_name TypedTool
+`)
+	writeFixture(t, root, "scripts/ambiguous.gd", `class_name Duplicate
+class_name Duplicate
+`)
+	writeFixture(t, root, "caller.gd", `const Tool = preload("res://scripts/tool.gd")
+const TypedAlias = preload("res://scripts/typed_tool.gd")
+const Missing = preload("res://scripts/missing.gd")
+const Dynamic = preload(script_path)
+const Loaded = load("res://scripts/tool.gd")
+const ResourceAlias = preload("res://data/resource.tres")
+const Ambiguous = preload("res://scripts/ambiguous.gd")
+func run():
+    Tool.new()
+    Tool.build()
+    Tool.instance_method()
+    Tool.missing()
+    TypedAlias.new()
+    Missing.new()
+    Dynamic.new()
+    Loaded.new()
+    ResourceAlias.new()
+    Ambiguous.new()
+`)
+
+	data, err := analyzeRepository(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := decodeRecords(t, data)
+	toolModule := findNode(records, "module", "tool", "scripts/tool.gd")
+	build := findNode(records, "function", "build", "scripts/tool.gd")
+	typedTool := findNode(records, "type", "TypedTool", "scripts/typed_tool.gd")
+	if toolModule == nil || build == nil || typedTool == nil {
+		t.Fatalf("missing preload targets: module=%#v build=%#v type=%#v", toolModule, build, typedTool)
+	}
+
+	resolvedTargets := map[string]int{}
+	var unresolvedCalls []string
+	for _, record := range records {
+		if record["record"] == "edge" && record["relation"] == "calls" {
+			resolvedTargets[record["target"].(string)]++
+		}
+		if record["record"] == "unresolved" && record["relation"] == "calls" {
+			unresolvedCalls = append(unresolvedCalls, record["expression"].(string))
+		}
+	}
+	if resolvedTargets[toolModule["id"].(string)] != 1 || resolvedTargets[build["id"].(string)] != 1 || resolvedTargets[typedTool["id"].(string)] != 1 {
+		t.Fatalf("preload aliases resolved to unexpected targets: %v", resolvedTargets)
+	}
+	for _, expected := range []string{"Tool.instance_method()", "Tool.missing()", "Missing.new()", "Dynamic.new()", "Loaded.new()", "ResourceAlias.new()", "Ambiguous.new()"} {
+		if !contains(unresolvedCalls, expected) {
+			t.Errorf("preload call was not left unresolved: %q in %v", expected, unresolvedCalls)
+		}
+	}
+}
+
 func TestJSONLRecordsUseContractOrder(t *testing.T) {
 	root := t.TempDir()
 	writeFixture(t, root, "one.gd", "class_name One\n")
