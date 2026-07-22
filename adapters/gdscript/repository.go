@@ -29,10 +29,11 @@ func analyzeRepository(repo string) ([]byte, error) {
 	}
 	repositoryName := filepath.Base(filepath.Clean(root))
 	facts := &factSet{
-		nodeByID:     make(map[string]map[string]any),
-		moduleByPath: make(map[string]string),
-		classByName:  make(map[string][]string),
-		fileByPath:   make(map[string]string),
+		nodeByID:          make(map[string]map[string]any),
+		moduleByPath:      make(map[string]string),
+		classByName:       make(map[string][]string),
+		methodByClassName: make(map[string]map[string][]string),
+		fileByPath:        make(map[string]string),
 	}
 	addRepositoryFacts(facts, repositoryName, dirs)
 
