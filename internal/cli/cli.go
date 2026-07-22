@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -32,6 +31,12 @@ func Run(arguments []string, stdout, stderr io.Writer) int {
 		err = runScan(ctx, arguments[1:], stdout, stderr)
 	case "daemon":
 		err = runDaemon(ctx, arguments[1:], stdout, stderr)
+	case "status":
+		err = runStatus(arguments[1:], stdout, stderr)
+	case "doctor":
+		err = runDoctor(arguments[1:], stdout, stderr)
+	case "version":
+		err = runVersion(stdout)
 	case "help", "-h", "--help":
 		usage(stdout)
 		return 0
@@ -50,12 +55,12 @@ func Run(arguments []string, stdout, stderr io.Writer) int {
 func runInit(ctx context.Context, arguments []string, stdout, stderr io.Writer) error {
 	flags := flag.NewFlagSet("init", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	repository := flags.String("repo", ".", "repository to initialize")
+	repository := flags.String("repo", "", "repository to initialize")
 	adapterRoot := flags.String("adapters", "", "Lexicon adapters directory")
 	if err := flags.Parse(arguments); err != nil {
 		return err
 	}
-	root, err := absolute(*repository)
+	root, err := initRepository(*repository)
 	if err != nil {
 		return err
 	}
@@ -78,11 +83,15 @@ func runInit(ctx context.Context, arguments []string, stdout, stderr io.Writer) 
 func runScan(ctx context.Context, arguments []string, stdout, stderr io.Writer) error {
 	flags := flag.NewFlagSet("scan", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	repository := flags.String("repo", ".", "repository to scan")
+	repository := flags.String("repo", "", "repository to scan")
 	if err := flags.Parse(arguments); err != nil {
 		return err
 	}
-	scanner, err := scan.Open(*repository, stdout)
+	root, err := resolveRepository(*repository)
+	if err != nil {
+		return err
+	}
+	scanner, err := scan.Open(root, stdout)
 	if err != nil {
 		return err
 	}
@@ -107,13 +116,17 @@ func runScan(ctx context.Context, arguments []string, stdout, stderr io.Writer) 
 func runDaemon(ctx context.Context, arguments []string, stdout, stderr io.Writer) error {
 	flags := flag.NewFlagSet("daemon", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	repository := flags.String("repo", ".", "repository to watch")
+	repository := flags.String("repo", "", "repository to watch")
 	debounce := flags.Duration("debounce", 150*time.Millisecond, "quiet period before scanning changes")
 	reconcile := flags.Duration("reconcile", 30*time.Second, "full reconciliation interval")
 	if err := flags.Parse(arguments); err != nil {
 		return err
 	}
-	scanner, err := scan.Open(*repository, stdout)
+	root, err := resolveRepository(*repository)
+	if err != nil {
+		return err
+	}
+	scanner, err := scan.Open(root, stdout)
 	if err != nil {
 		return err
 	}
@@ -121,21 +134,6 @@ func runDaemon(ctx context.Context, arguments []string, stdout, stderr io.Writer
 	return lexwatch.Run(ctx, scanner, lexwatch.Options{Debounce: *debounce, Reconcile: *reconcile, Output: stderr})
 }
 
-func absolute(path string) (string, error) {
-	value, err := filepath.Abs(path)
-	if err != nil {
-		return "", err
-	}
-	info, err := os.Stat(value)
-	if err != nil {
-		return "", err
-	}
-	if !info.IsDir() {
-		return "", fmt.Errorf("repository is not a directory: %s", value)
-	}
-	return value, nil
-}
-
 func usage(output io.Writer) {
-	fmt.Fprintln(output, "Usage: lexicon <init|scan|daemon> [options]")
+	fmt.Fprintln(output, "Usage: lexicon <init|scan|daemon|status|doctor|version> [options]")
 }

@@ -61,6 +61,10 @@ func runOne(
 	return saveSnapshot(stateRoot, name, snapshotID)
 }
 
+func Validate(path string) (Definition, error) {
+	return load(path)
+}
+
 func load(path string) (Definition, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
