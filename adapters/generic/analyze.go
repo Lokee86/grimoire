@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 )
 
-const adapterVersion = "0.1.0"
+const adapterVersion = "0.2.0"
 
 var genericLanguagePattern = regexp.MustCompile(`^generic-([a-z0-9]+)$`)
 

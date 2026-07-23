@@ -10,8 +10,9 @@ For every accepted UTF-8 source file, the adapter emits:
 
 - a file node and content identity;
 - a module node owned by that file;
-- high-confidence keyword-based type and function declarations;
+- high-confidence type and function declarations using shared and language-family recognizers;
 - static import/include/use evidence;
+- comment and string masking before declaration recognition, preventing source-like text from becoming facts;
 - unresolved `imports` records for import targets that the generic adapter cannot safely resolve.
 
 It deliberately does not emit resolved calls, dispatch targets, inheritance, dataflow, or other language-specific semantics. Those belong in a dedicated adapter.
