@@ -76,6 +76,21 @@ function makeJavaScriptFixture() {
       "export function higherOrder() { invokeCallback(localCallback); }",
       "",
     ].join("\n"),
+    "src/runtime-flow.jsx": [
+      "export function first() {}",
+      "export function second() {}",
+      "export function invoke(callback) { callback(); }",
+      "export function choose(flag) { invoke(flag ? first : second); }",
+      "export function configure({ handler }) { handler(); }",
+      "export function configureCaller() { configure({ handler: first }); }",
+      "export function DynamicView({ Component }) { return <Component />; }",
+      "export class Clocked {",
+      "  constructor({ now = Date.now } = {}) { this.now = now; }",
+      "  read() { return this.now(); }",
+      "}",
+      "export function readClock() { return new Clocked().read(); }",
+      "",
+    ].join("\n"),
   };
   for (const [relative, content] of Object.entries(files)) {
     const target = path.join(root, relative);
@@ -151,6 +166,20 @@ test("scans and resolves JavaScript ESM, JSX, CommonJS, and JSDoc call flow", ()
   assert.ok(hasEdge(edges, higherOrder, invokeCallback, "calls"));
   assert.ok(hasEdge(edges, invokeCallback, localCallback, "calls"));
   assert.ok(hasEdge(edges, higherOrder, localCallback, "possible-calls", { callback: true }));
+
+  const invoke = findNode(nodes, "src/runtime-flow.invoke");
+  const first = findNode(nodes, "src/runtime-flow.first");
+  const second = findNode(nodes, "src/runtime-flow.second");
+  const configure = findNode(nodes, "src/runtime-flow.configure");
+  const dynamicView = findNode(nodes, "src/runtime-flow.DynamicView");
+  const clockRead = findNode(nodes, "src/runtime-flow.Clocked.read");
+  assert.ok(hasEdge(edges, invoke, first, "possible-calls"));
+  assert.ok(hasEdge(edges, invoke, second, "possible-calls"));
+  assert.ok(hasEdge(edges, configure, first, "calls"));
+  assert.ok(unresolved.some((record) => record.source === invoke.id && record.reason === "dynamic-target"));
+  assert.ok(!unresolved.some((record) => record.source === invoke.id && record.reason === "ambiguous-target"));
+  assert.ok(unresolved.some((record) => record.source === dynamicView.id && record.reason === "dynamic-target"));
+  assert.ok(unresolved.some((record) => record.source === clockRead.id && record.reason === "external-target"));
 
   assert.ok(!unresolved.some((record) => record.relation === "calls" && [
     "missing-target",

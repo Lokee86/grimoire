@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import { emitCallbackEdges, emitCallableAliases, propagateArguments } from "./call-flow";
-import { unresolvedCallReason } from "./call-classification";
+import { multiTargetCallReason, unresolvedCallReason } from "./call-classification";
 import { callTargetName, relativeSourcePath, sameSet, type ParameterTargets } from "./call-shared";
 import { resolveCallTargets } from "./call-targets";
 import { expressionText, spanFor } from "./contract";
@@ -57,7 +57,7 @@ function emitCall(
       call.source,
       "calls",
       expressionText(call.expression, call.sourceFile),
-      "ambiguous-target",
+      multiTargetCallReason(checker, call),
       recordSpan,
       callTargetName(call),
     );

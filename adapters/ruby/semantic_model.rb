@@ -134,6 +134,7 @@ module LexiconRuby
 
   EXTERNAL_BARE_CALLS = Set.new(%w[
     render redirect_to head params cookies session request response
+    action_name controller_path
     before_action after_action around_action skip_before_action rescue_from
     validates validate belongs_to has_one has_many scope enum serialize
     attribute attribute_alias accepts_nested_attributes_for

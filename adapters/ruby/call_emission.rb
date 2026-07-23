@@ -23,7 +23,7 @@ module LexiconRuby
             source: call.source,
             relation: "calls",
             expression: call.expression,
-            reason: "ambiguous-target",
+            reason: multi_target_reason(call),
             span: call.span,
             attributes: call_attributes(call).merge("candidate_count" => targets.length)
           )
@@ -39,6 +39,12 @@ module LexiconRuby
         end
         add_edge(call.source, call.block_id, "possible-calls", call.span, { "block" => true }) if call.block_id
       end
+    end
+
+    def multi_target_reason(call)
+      return "dynamic-target" if call.kind == :yield || call.receiver
+
+      "ambiguous-target"
     end
 
     def call_attributes(call)

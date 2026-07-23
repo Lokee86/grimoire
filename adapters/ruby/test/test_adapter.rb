@@ -139,6 +139,75 @@ class RubyAdapterTest < Minitest::Test
     end
   end
 
+  def test_classifies_runtime_dispatch_without_false_static_ambiguity
+    source = <<~RUBY
+      module FrameworkConcern
+        def request_context
+          request
+          controller_path
+        end
+      end
+
+      class HarnessOne
+        include FrameworkConcern
+        def request; end
+        def controller_path; end
+      end
+
+      class HarnessTwo
+        include FrameworkConcern
+        def request; end
+        def controller_path; end
+      end
+
+      class Around
+        def call
+          yield
+        end
+      end
+
+      Around.new.call { :first }
+      Around.new.call { :second }
+
+      class Injected
+        def initialize(clock)
+          @clock = clock
+        end
+
+        def run
+          @clock.call
+        end
+      end
+
+      Injected.new(-> { 1 }).run
+      Injected.new(-> { 2 }).run
+    RUBY
+    with_repository("runtime_dispatch.rb" => source) do |records|
+      nodes = node_index(records)
+      unresolved = records.select { |record| record["record"] == "unresolved" && record["relation"] == "calls" }
+
+      concern_id = id_for(nodes, "FrameworkConcern#request_context")
+      %w[request controller_path].each do |expression|
+        assert unresolved.any? do |record|
+          record["source"] == concern_id && record["expression"] == expression && record["reason"] == "external-target"
+        end
+      end
+      concern_possible = records.select do |record|
+        record["record"] == "edge" && record["source"] == concern_id && record["relation"] == "possible-calls"
+      end
+      assert_empty concern_possible
+
+      around_id = id_for(nodes, "Around#call")
+      injected_id = id_for(nodes, "Injected#run")
+      assert unresolved.any? { |record| record["source"] == around_id && record["reason"] == "dynamic-target" }
+      assert unresolved.any? { |record| record["source"] == injected_id && record["reason"] == "dynamic-target" }
+      runtime_ambiguous = unresolved.select do |record|
+        [around_id, injected_id].include?(record["source"]) && record["reason"] == "ambiguous-target"
+      end
+      assert_empty runtime_ambiguous
+    end
+  end
+
   def test_excludes_complete_warlock_state_directory_set
     directories = %w[.ddocs .lexicon .arcana .grimoire .pitlord .cantrip .homunculus .incubus .ritual .warlock]
     files = directories.to_h { |directory| ["#{directory}/ignored.rb", "class IgnoredState; end\n"] }

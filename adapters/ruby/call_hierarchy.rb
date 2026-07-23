@@ -64,7 +64,10 @@ module LexiconRuby
       return @method_definitions.dig("", false, name).to_a if owner.to_s.empty?
 
       candidates = singleton ? lookup_singleton(owner, name) : lookup_instance(owner, name)
-      if candidates.empty? && type_info(owner)&.kind == "module"
+      return candidates.uniq unless candidates.empty?
+      return [] if LexiconRuby::EXTERNAL_BARE_CALLS.include?(name)
+
+      if type_info(owner)&.kind == "module"
         @mixin_hosts[owner].each { |host| candidates.concat(lookup_instance(host, name)) }
       end
       candidates.uniq

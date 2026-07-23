@@ -2,7 +2,8 @@ import * as path from "node:path";
 import * as ts from "typescript";
 import type { FactStore, PendingCall } from "./model";
 
-export type ParameterTargets = Map<ts.ParameterDeclaration, Set<string>>;
+export type ParameterTarget = ts.ParameterDeclaration | ts.BindingElement;
+export type ParameterTargets = Map<ParameterTarget, Set<string>>;
 
 export function callArguments(call: PendingCall): readonly ts.Expression[] | null {
   if (call.kind === "call") return (call.expression as ts.CallExpression).arguments;

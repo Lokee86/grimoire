@@ -164,12 +164,16 @@ export function resolveExpressionTargets(
   checker: ts.TypeChecker,
   expression: ts.Expression,
   parameterTargets: ParameterTargets,
+  visited = new Set<ts.Node>(),
 ): Set<string> {
   const unwrapped = unwrapExpression(expression);
+  if (visited.has(unwrapped)) return new Set();
+  const nextVisited = new Set(visited);
+  nextVisited.add(unwrapped);
   if (ts.isConditionalExpression(unwrapped)) {
     return mergeSets(
-      resolveExpressionTargets(facts, checker, unwrapped.whenTrue, parameterTargets),
-      resolveExpressionTargets(facts, checker, unwrapped.whenFalse, parameterTargets),
+      resolveExpressionTargets(facts, checker, unwrapped.whenTrue, parameterTargets, nextVisited),
+      resolveExpressionTargets(facts, checker, unwrapped.whenFalse, parameterTargets, nextVisited),
     );
   }
   const targets = new Set<string>();
@@ -182,10 +186,11 @@ export function resolveExpressionTargets(
     targets,
     parameterTargets,
     false,
+    nextVisited,
   );
   const type = checker.getTypeAtLocation(unwrapped);
   for (const signature of type.getCallSignatures()) {
-    addSignatureTarget(facts, checker, signature, targets, parameterTargets, false);
+    addSignatureTarget(facts, checker, signature, targets, parameterTargets, false, nextVisited);
   }
   return targets;
 }
@@ -197,9 +202,10 @@ function addSignatureTarget(
   targets: Set<string>,
   parameterTargets: ParameterTargets,
   includeTypes: boolean,
+  visited = new Set<ts.Node>(),
 ): void {
   const declaration = signature.getDeclaration();
-  if (declaration) addDeclarationTarget(facts, checker, declaration, targets, parameterTargets, includeTypes);
+  if (declaration) addDeclarationTarget(facts, checker, declaration, targets, parameterTargets, includeTypes, visited);
 }
 
 function addSymbolTargets(
@@ -209,14 +215,15 @@ function addSymbolTargets(
   targets: Set<string>,
   parameterTargets: ParameterTargets,
   includeTypes: boolean,
+  visited = new Set<ts.Node>(),
 ): void {
   if (!symbol) return;
   const resolved = (symbol.flags & ts.SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(symbol) : symbol;
   for (const declaration of resolved.declarations ?? []) {
-    addDeclarationTarget(facts, checker, declaration, targets, parameterTargets, includeTypes);
+    addDeclarationTarget(facts, checker, declaration, targets, parameterTargets, includeTypes, visited);
   }
   if (resolved.valueDeclaration) {
-    addDeclarationTarget(facts, checker, resolved.valueDeclaration, targets, parameterTargets, includeTypes);
+    addDeclarationTarget(facts, checker, resolved.valueDeclaration, targets, parameterTargets, includeTypes, visited);
   }
 }
 
@@ -227,15 +234,29 @@ function addDeclarationTarget(
   targets: Set<string>,
   parameterTargets: ParameterTargets,
   includeTypes: boolean,
+  visited = new Set<ts.Node>(),
 ): void {
-  const parameter = enclosingParameter(declaration);
+  if (visited.has(declaration)) return;
+  const nextVisited = new Set(visited);
+  nextVisited.add(declaration);
+  const parameter = enclosingParameterTarget(declaration);
   if (parameter) {
     for (const target of parameterTargets.get(parameter) ?? []) targets.add(target);
+    if (ts.isBindingElement(parameter) && parameter.initializer) {
+      for (const target of resolveExpressionTargets(facts, checker, parameter.initializer, parameterTargets, nextVisited)) {
+        targets.add(target);
+      }
+    }
     return;
   }
   if (ts.isExportAssignment(declaration)) {
-    for (const target of resolveExpressionTargets(facts, checker, declaration.expression, parameterTargets)) targets.add(target);
+    for (const target of resolveExpressionTargets(facts, checker, declaration.expression, parameterTargets, nextVisited)) targets.add(target);
     return;
+  }
+  const valueExpression = declarationValueExpression(declaration);
+  if (valueExpression) {
+    for (const target of resolveExpressionTargets(facts, checker, valueExpression, parameterTargets, nextVisited)) targets.add(target);
+    if (targets.size > 0) return;
   }
   const direct = declarationId(facts, declaration);
   if (direct && isCallableTarget(facts, direct, includeTypes)) {
@@ -246,7 +267,7 @@ function addDeclarationTarget(
   if (!named.name) return;
   const symbol = checker.getSymbolAtLocation(named.name);
   if (symbol && (symbol.flags & ts.SymbolFlags.Alias) !== 0) {
-    addSymbolTargets(facts, checker, symbol, targets, parameterTargets, includeTypes);
+    addSymbolTargets(facts, checker, symbol, targets, parameterTargets, includeTypes, nextVisited);
   }
 }
 
@@ -259,13 +280,26 @@ function isCallableTarget(facts: FactStore, target: string, includeTypes: boolea
   );
 }
 
-function enclosingParameter(node: ts.Node): ts.ParameterDeclaration | null {
+function enclosingParameterTarget(node: ts.Node): ts.ParameterDeclaration | ts.BindingElement | null {
   let current: ts.Node | undefined = node;
   while (current && !ts.isSourceFile(current)) {
-    if (ts.isParameter(current)) return current;
+    if (ts.isBindingElement(current) || ts.isParameter(current)) return current;
     if (isSignatureDeclaration(current) && current !== node) return null;
     current = current.parent;
   }
+  return null;
+}
+
+function declarationValueExpression(node: ts.Node): ts.Expression | null {
+  if (
+    ts.isVariableDeclaration(node)
+    || ts.isPropertyDeclaration(node)
+    || ts.isParameter(node)
+    || ts.isBindingElement(node)
+  ) return node.initializer ?? null;
+  if (ts.isPropertyAssignment(node)) return node.initializer;
+  if (ts.isShorthandPropertyAssignment(node)) return node.name;
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) return node.right;
   return null;
 }
 

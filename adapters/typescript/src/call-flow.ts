@@ -4,6 +4,8 @@ import {
   callArguments,
   isSignatureDeclaration,
   relativeSourcePath,
+  unwrapExpression,
+  type ParameterTarget,
   type ParameterTargets,
 } from "./call-shared";
 import { resolveExpressionTargets } from "./call-targets";
@@ -25,18 +27,114 @@ export function propagateArguments(
         const expressions = parameter.dotDotDotToken ? args.slice(index) : args[index] ? [args[index]] : [];
         for (const expression of expressions) {
           if (ts.isSpreadElement(expression)) continue;
-          const candidates = resolveExpressionTargets(facts, checker, expression, parameterTargets);
-          if (candidates.size === 0) continue;
-          const existing = parameterTargets.get(parameter) ?? new Set<string>();
-          const before = existing.size;
-          for (const candidate of candidates) existing.add(candidate);
-          parameterTargets.set(parameter, existing);
-          changed = changed || existing.size !== before;
+          changed = propagateParameterBinding(
+            facts,
+            checker,
+            parameter,
+            parameter.name,
+            expression,
+            parameterTargets,
+          ) || changed;
         }
       });
     }
   }
   return changed;
+}
+
+function propagateParameterBinding(
+  facts: FactStore,
+  checker: ts.TypeChecker,
+  parameter: ts.ParameterDeclaration,
+  binding: ts.BindingName,
+  expression: ts.Expression,
+  parameterTargets: ParameterTargets,
+): boolean {
+  if (ts.isIdentifier(binding)) {
+    const candidates = resolveExpressionTargets(facts, checker, expression, parameterTargets);
+    return mergeParameterTargets(parameterTargets, parameter, candidates);
+  }
+  if (!ts.isObjectBindingPattern(binding)) return false;
+
+  const object = objectLiteralForExpression(checker, expression);
+  let changed = false;
+  for (const element of binding.elements) {
+    if (element.dotDotDotToken) continue;
+    const propertyName = bindingElementPropertyName(element);
+    const value = propertyName && object ? objectPropertyExpression(object, propertyName) : undefined;
+    const candidateExpression = value ?? element.initializer;
+    if (!candidateExpression) continue;
+    if (ts.isIdentifier(element.name)) {
+      const candidates = resolveExpressionTargets(facts, checker, candidateExpression, parameterTargets);
+      changed = mergeParameterTargets(parameterTargets, element, candidates) || changed;
+    } else {
+      changed = propagateParameterBinding(
+        facts,
+        checker,
+        parameter,
+        element.name,
+        candidateExpression,
+        parameterTargets,
+      ) || changed;
+    }
+  }
+  return changed;
+}
+
+function mergeParameterTargets(
+  parameterTargets: ParameterTargets,
+  key: ParameterTarget,
+  candidates: Set<string>,
+): boolean {
+  if (candidates.size === 0) return false;
+  const existing = parameterTargets.get(key) ?? new Set<string>();
+  const before = existing.size;
+  for (const candidate of candidates) existing.add(candidate);
+  parameterTargets.set(key, existing);
+  return existing.size !== before;
+}
+
+function objectLiteralForExpression(
+  checker: ts.TypeChecker,
+  expression: ts.Expression,
+): ts.ObjectLiteralExpression | null {
+  const unwrapped = unwrapExpression(expression);
+  if (ts.isObjectLiteralExpression(unwrapped)) return unwrapped;
+  if (!ts.isIdentifier(unwrapped)) return null;
+  const symbol = checker.getSymbolAtLocation(unwrapped);
+  const resolved = symbol && (symbol.flags & ts.SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(symbol) : symbol;
+  for (const declaration of resolved?.declarations ?? []) {
+    if (ts.isVariableDeclaration(declaration) && declaration.initializer) {
+      const initializer = unwrapExpression(declaration.initializer);
+      if (ts.isObjectLiteralExpression(initializer)) return initializer;
+    }
+  }
+  return null;
+}
+
+function bindingElementPropertyName(element: ts.BindingElement): string | null {
+  const name = element.propertyName ?? element.name;
+  if (ts.isIdentifier(name) || ts.isStringLiteralLike(name) || ts.isNumericLiteral(name)) return name.text;
+  return null;
+}
+
+function objectPropertyExpression(
+  object: ts.ObjectLiteralExpression,
+  propertyName: string,
+): ts.Expression | undefined {
+  for (const property of object.properties) {
+    const name = propertyNameText(property.name);
+    if (name !== propertyName) continue;
+    if (ts.isPropertyAssignment(property)) return property.initializer;
+    if (ts.isShorthandPropertyAssignment(property)) return property.name;
+  }
+  return undefined;
+}
+
+function propertyNameText(name: ts.PropertyName | undefined): string | null {
+  if (!name) return null;
+  if (ts.isIdentifier(name) || ts.isStringLiteralLike(name) || ts.isNumericLiteral(name)) return name.text;
+  return null;
 }
 
 function callableDeclarations(facts: FactStore, target: string): ts.SignatureDeclaration[] {
