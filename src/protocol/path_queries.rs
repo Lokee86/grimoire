@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use serde_json::{Value, json};
 
 use crate::repository::RelationKind;
@@ -29,14 +27,18 @@ impl ProtocolSnapshot {
         let mut state = PathSearch {
             snapshot: self,
             target,
-            allowed: allowed.as_ref(),
+            allowed,
             max_depth,
             limit,
             paths: Vec::new(),
             truncated: false,
             nodes: vec![start],
             relations: Vec::new(),
-            visited: BTreeSet::from([start]),
+            visited: {
+                let mut visited = vec![false; self.graph.node_count() as usize];
+                visited[start.0 as usize] = true;
+                visited
+            },
         };
         state.walk(start)?;
         let values = state
@@ -65,7 +67,7 @@ impl ProtocolSnapshot {
         let target = require_node(self, to_node_id)?;
         let max_depth = bounded_depth(max_depth);
         let allowed = call_relations(include_possible);
-        let chain = shortest_path(self, start, target, Some(&allowed), max_depth)?;
+        let chain = shortest_path(self, start, target, Some(allowed), max_depth)?;
         let value = chain
             .as_ref()
             .map(|(nodes, relations)| path_value(self, nodes, relations))
@@ -84,14 +86,14 @@ impl ProtocolSnapshot {
 struct PathSearch<'a> {
     snapshot: &'a ProtocolSnapshot,
     target: NodeId,
-    allowed: Option<&'a BTreeSet<RelationKind>>,
+    allowed: Option<super::traversal::RelationMask>,
     max_depth: usize,
     limit: usize,
     paths: Vec<(Vec<NodeId>, Vec<RelationKind>)>,
     truncated: bool,
     nodes: Vec<NodeId>,
     relations: Vec<RelationKind>,
-    visited: BTreeSet<NodeId>,
+    visited: Vec<bool>,
 }
 
 impl PathSearch<'_> {
@@ -118,15 +120,17 @@ impl PathSearch<'_> {
                 self.truncated = true;
                 break;
             }
-            if !self.visited.insert(neighbor) {
+            let index = neighbor.0 as usize;
+            if self.visited[index] {
                 continue;
             }
+            self.visited[index] = true;
             self.nodes.push(neighbor);
             self.relations.push(relation);
             self.walk(neighbor)?;
             self.relations.pop();
             self.nodes.pop();
-            self.visited.remove(&neighbor);
+            self.visited[index] = false;
         }
         Ok(())
     }
