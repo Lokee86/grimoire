@@ -158,6 +158,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 			run.Timings = executed.Timings
 			run.QueryProfile = executed.QueryProfile
 			run.RetrievalPolicy = executed.RetrievalPolicy
+			evaluation.ScoreQueryProfile(entry, &run)
 			if run.Timings.TotalMS == 0 {
 				run.Timings.TotalMS = durationMS(time.Since(runStart))
 			}

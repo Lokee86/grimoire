@@ -1,0 +1,3800 @@
+{
+  "version": 1,
+  "generated_at": "2026-07-23T13:21:10.2712364-07:00",
+  "repository": "Grimoire",
+  "root": "C:\\!bin\\workspace\\grimoire-query-profile",
+  "cases_file": "evaluation/retrieval/grimoire.json",
+  "state": "C:\\!bin\\workspace\\grimoire-query-profile\\.grimoire",
+  "variant": "standalone",
+  "modes": [
+    "lexical"
+  ],
+  "runs": [
+    {
+      "case_id": "grimoire-dl-01",
+      "category": "direct-location",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 3000,
+      "pass": false,
+      "timings": {
+        "total_ms": 1643.6317,
+        "lexical_search_ms": 89.5561,
+        "candidate_merge_ms": 0.5284,
+        "curation_ms": 8.5196,
+        "package_compilation_ms": 1545.0276,
+        "selection_compilation_ms": 1553.5472,
+        "diagnostic_probe_ms": 90.7407
+      },
+      "query_profile": {
+        "exact_symbol_matches": 0,
+        "exact_path_matches": 0,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "location"
+        ],
+        "matched_subsystems": [
+          "docs/reference",
+          "evaluation",
+          "native/vector-engine",
+          "docs/development",
+          "docs/architecture"
+        ],
+        "top_score_gap": 0.24074074074074073,
+        "candidate_dispersion": 0.21052631578947367,
+        "specificity": "medium",
+        "breadth": "low",
+        "ambiguity": "medium"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "bounded",
+        "budget_mode": "fixed",
+        "target_tokens": 3000,
+        "maximum_tokens": 3000,
+        "expansion_radius": 2,
+        "required_evidence_types": [
+          "implementation",
+          "relationships",
+          "tests-or-contracts",
+          "subsystem-context"
+        ],
+        "diversity_requirement": 2,
+        "stop_conditions": [
+          "primary subsystem covered",
+          "verification evidence represented",
+          "additional candidates add no new evidence type"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "low",
+        "ambiguity": "medium"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "lexical",
+        "adjacent"
+      ],
+      "selected_paths": [
+        "docs/reference/vector-store.md",
+        "evaluation/retrieval/grimoire.json",
+        "native/vector-engine/README.md",
+        "docs/development/testing-and-benchmarks.md",
+        "docs/reference/INDEX.md"
+      ],
+      "selections": [
+        {
+          "path": "docs/reference/vector-store.md",
+          "start_line": 45,
+          "end_line": 83,
+          "retrieval_source": "lexical",
+          "provider_rank": 1,
+          "token_count": 453,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 1,
+          "end_line": 48,
+          "retrieval_source": "lexical",
+          "provider_rank": 2,
+          "token_count": 382,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "native/vector-engine/README.md",
+          "start_line": 1,
+          "end_line": 46,
+          "retrieval_source": "lexical",
+          "provider_rank": 4,
+          "token_count": 367,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/testing-and-benchmarks.md",
+          "start_line": 1,
+          "end_line": 45,
+          "retrieval_source": "lexical",
+          "provider_rank": 5,
+          "token_count": 527,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/reference/INDEX.md",
+          "start_line": 1,
+          "end_line": 17,
+          "retrieval_source": "lexical",
+          "provider_rank": 114,
+          "token_count": 172,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 2964,
+      "candidate_count": 200,
+      "curated_count": 201,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "first_required_rank": 132,
+        "reciprocal_rank": 0.007575757575757576,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0
+      },
+      "omitted_for_budget": 196,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/app/vector_manifest.go",
+            "symbols": [
+              "validateVectorSnapshotManifest",
+              "validateVectorEngineInfo",
+              "validateVectorSnapshotManifestFields"
+            ],
+            "reason": "These functions validate manifest identity, engine metadata, dimensions, and chunk count.",
+            "minimum": "Evidence must locate the freshness and compatibility checks that prevent an old vector snapshot from being used."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 132,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/app/vector_paths.go",
+            "symbols": [
+              "resolveVectorPaths",
+              "vectorSource"
+            ],
+            "reason": "These helpers identify the vector state files and the stable source identity used by the snapshot.",
+            "minimum": "Supporting evidence may connect validation to the paths and source identity it protects."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 0,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 1,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "budget-fitting loss"
+      ]
+    },
+    {
+      "case_id": "grimoire-dl-02",
+      "category": "direct-location",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 3000,
+      "pass": false,
+      "timings": {
+        "total_ms": 1546.75,
+        "lexical_search_ms": 80.4567,
+        "candidate_merge_ms": 1.0064,
+        "curation_ms": 2.5157,
+        "package_compilation_ms": 1462.7712,
+        "selection_compilation_ms": 1465.2868999999998,
+        "diagnostic_probe_ms": 79.8711
+      },
+      "query_profile": {
+        "exact_symbol_matches": 0,
+        "exact_path_matches": 0,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "location"
+        ],
+        "matched_subsystems": [
+          "evaluation",
+          "internal/retrieve",
+          "docs/development",
+          "docs/limits"
+        ],
+        "top_score_gap": 0.03571428571428571,
+        "candidate_dispersion": 0.15789473684210525,
+        "specificity": "medium",
+        "breadth": "low",
+        "ambiguity": "medium"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "bounded",
+        "budget_mode": "fixed",
+        "target_tokens": 3000,
+        "maximum_tokens": 3000,
+        "expansion_radius": 2,
+        "required_evidence_types": [
+          "implementation",
+          "relationships",
+          "tests-or-contracts",
+          "subsystem-context"
+        ],
+        "diversity_requirement": 2,
+        "stop_conditions": [
+          "primary subsystem covered",
+          "verification evidence represented",
+          "additional candidates add no new evidence type"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "low",
+        "ambiguity": "medium"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "lexical",
+        "adjacent"
+      ],
+      "selected_paths": [
+        "evaluation/retrieval/grimoire.json",
+        "internal/retrieve/exact_signals.go",
+        "docs/development/retrieval-quality.md",
+        "internal/retrieve/README.md",
+        "internal/queryshape/analyze.go"
+      ],
+      "selections": [
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 1,
+          "end_line": 48,
+          "retrieval_source": "lexical",
+          "provider_rank": 1,
+          "token_count": 382,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "internal/retrieve/exact_signals.go",
+          "start_line": 72,
+          "end_line": 117,
+          "symbols": [
+            "addTerminalSignal",
+            "classifySignal",
+            "isConfigKey",
+            "isIdentifier",
+            "isPath"
+          ],
+          "retrieval_source": "lexical",
+          "provider_rank": 2,
+          "token_count": 413,
+          "relevant": true,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 1,
+          "end_line": 46,
+          "retrieval_source": "lexical",
+          "provider_rank": 4,
+          "token_count": 342,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "internal/retrieve/README.md",
+          "start_line": 1,
+          "end_line": 45,
+          "retrieval_source": "lexical",
+          "provider_rank": 3,
+          "token_count": 483,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "internal/queryshape/analyze.go",
+          "start_line": 1,
+          "end_line": 29,
+          "retrieval_source": "lexical",
+          "provider_rank": 105,
+          "token_count": 258,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 2942,
+      "candidate_count": 200,
+      "curated_count": 202,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 1,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 1,
+        "first_required_rank": 11,
+        "reciprocal_rank": 0.09090909090909091,
+        "relevant_rate_at_10": 0.1,
+        "relevant_rate_at_20": 0.15
+      },
+      "omitted_for_budget": 197,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/retrieve/exact_signals.go",
+            "symbols": [
+              "exactSignals",
+              "classifySignal",
+              "isPath",
+              "isConfigKey",
+              "isIdentifier",
+              "addTerminalSignal"
+            ],
+            "reason": "This file owns the signal extraction and classification rules used by exact recovery.",
+            "minimum": "Evidence must identify the implementation that turns query text into exact path, config, identifier, and terminal-key signals."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 11,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/retrieve/exact.go",
+            "symbols": [
+              "Exact"
+            ],
+            "reason": "Exact is the retrieval entry point that consumes the extracted signals.",
+            "minimum": "Supporting evidence may connect signal recognition to exact candidate recovery."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 14,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 0.8,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 0,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 1,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "budget-fitting loss"
+      ]
+    },
+    {
+      "case_id": "grimoire-dl-03",
+      "category": "direct-location",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 3000,
+      "pass": false,
+      "timings": {
+        "total_ms": 1527.2558,
+        "lexical_search_ms": 80.1417,
+        "candidate_merge_ms": 1.5221,
+        "curation_ms": 5.2731,
+        "package_compilation_ms": 1440.3189,
+        "selection_compilation_ms": 1445.592,
+        "diagnostic_probe_ms": 82.3168
+      },
+      "query_profile": {
+        "exact_symbol_matches": 0,
+        "exact_path_matches": 0,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "location"
+        ],
+        "matched_subsystems": [
+          "evaluation"
+        ],
+        "top_score_gap": 0.17647058823529413,
+        "candidate_dispersion": 0,
+        "specificity": "medium",
+        "breadth": "low",
+        "ambiguity": "low"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "bounded",
+        "budget_mode": "fixed",
+        "target_tokens": 3000,
+        "maximum_tokens": 3000,
+        "expansion_radius": 2,
+        "required_evidence_types": [
+          "implementation",
+          "relationships",
+          "tests-or-contracts",
+          "subsystem-context"
+        ],
+        "diversity_requirement": 2,
+        "stop_conditions": [
+          "primary subsystem covered",
+          "verification evidence represented",
+          "additional candidates add no new evidence type"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "low",
+        "ambiguity": "low"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "lexical"
+      ],
+      "selected_paths": [
+        "evaluation/results/grimoire-final-lexicon-assisted-v2-2026-07-22.md",
+        "evaluation/retrieval/grimoire.json"
+      ],
+      "selections": [
+        {
+          "path": "evaluation/results/grimoire-final-lexicon-assisted-v2-2026-07-22.md",
+          "start_line": 246,
+          "end_line": 293,
+          "retrieval_source": "lexical",
+          "provider_rank": 2,
+          "token_count": 1287,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 529,
+          "end_line": 576,
+          "retrieval_source": "lexical",
+          "provider_rank": 12,
+          "token_count": 374,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 625,
+          "end_line": 672,
+          "retrieval_source": "lexical",
+          "provider_rank": 142,
+          "token_count": 395,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 2802,
+      "candidate_count": 200,
+      "curated_count": 200,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "reciprocal_rank": 0,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0
+      },
+      "omitted_for_budget": 197,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/app/eval_retrieval.go",
+            "symbols": [
+              "runEval",
+              "parseEvaluationModes",
+              "defaultEvaluationPrefix",
+              "writeEvaluationSummary"
+            ],
+            "reason": "These functions implement evaluation command execution, mode validation, result naming, and terminal reporting.",
+            "minimum": "Evidence must locate the runner and the code that accepts the four modes and emits the concise table."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/app/run.go",
+            "symbols": [
+              "Run"
+            ],
+            "reason": "Run owns top-level command dispatch into the evaluation command.",
+            "minimum": "Supporting evidence may show how the evaluation runner is reached from the CLI."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 1,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 0,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "embedding miss"
+      ]
+    },
+    {
+      "case_id": "grimoire-me-01",
+      "category": "mechanism-explanation",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 6000,
+      "pass": false,
+      "timings": {
+        "total_ms": 3332.3957,
+        "lexical_search_ms": 91.67,
+        "candidate_merge_ms": 1.0096,
+        "curation_ms": 7.0067,
+        "package_compilation_ms": 3232.7094,
+        "selection_compilation_ms": 3239.7161,
+        "diagnostic_probe_ms": 80.2679
+      },
+      "query_profile": {
+        "exact_symbol_matches": 0,
+        "exact_path_matches": 0,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "mechanism"
+        ],
+        "matched_subsystems": [
+          "docs/development",
+          "evaluation",
+          "docs/architecture",
+          "docs/reference",
+          "internal/app",
+          "internal/embedding"
+        ],
+        "top_score_gap": 0.018518518518518517,
+        "candidate_dispersion": 0.2631578947368421,
+        "specificity": "medium",
+        "breadth": "medium",
+        "ambiguity": "medium"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "bounded",
+        "budget_mode": "fixed",
+        "target_tokens": 6000,
+        "maximum_tokens": 6000,
+        "expansion_radius": 2,
+        "required_evidence_types": [
+          "implementation",
+          "relationships",
+          "tests-or-contracts",
+          "subsystem-context"
+        ],
+        "diversity_requirement": 2,
+        "stop_conditions": [
+          "primary subsystem covered",
+          "verification evidence represented",
+          "additional candidates add no new evidence type"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "medium",
+        "ambiguity": "medium"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "lexical",
+        "adjacent"
+      ],
+      "selected_paths": [
+        "docs/development/retrieval-quality.md",
+        "evaluation/retrieval/grimoire.json",
+        "docs/architecture/system-overview.md"
+      ],
+      "selections": [
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 48,
+          "end_line": 92,
+          "retrieval_source": "lexical",
+          "provider_rank": 1,
+          "token_count": 802,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 577,
+          "end_line": 624,
+          "retrieval_source": "lexical",
+          "provider_rank": 2,
+          "token_count": 2378,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/architecture/system-overview.md",
+          "start_line": 131,
+          "end_line": 154,
+          "retrieval_source": "lexical",
+          "provider_rank": 3,
+          "token_count": 391,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 1,
+          "end_line": 46,
+          "retrieval_source": "lexical",
+          "provider_rank": 69,
+          "token_count": 342,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 94,
+          "end_line": 139,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 562,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 5905,
+      "candidate_count": 200,
+      "curated_count": 204,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "first_required_rank": 40,
+        "reciprocal_rank": 0.025,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0.1
+      },
+      "omitted_for_budget": 199,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/embedding/query.go",
+            "symbols": [
+              "ParseQueryMode",
+              "PlanQuery",
+              "queryWindows",
+              "Validate"
+            ],
+            "reason": "These functions validate mode options, tokenize the query, and construct full or split query inputs.",
+            "minimum": "Evidence must explain the differences among fast, full, and quality plans and the validation constraints."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 40,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        },
+        {
+          "evidence": {
+            "path": "internal/embedding/query_batch.go",
+            "symbols": [
+              "EmbedQueryPlan",
+              "queryBatches",
+              "embedQueryBatch"
+            ],
+            "reason": "These functions partition a query plan into provider batches and execute them with bounded concurrency.",
+            "minimum": "Evidence must carry the mechanism from planned windows through batching and ordered vector results."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 135,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/app/context_semantic.go",
+            "symbols": [
+              "semanticCandidatesForEvaluation",
+              "searchQueryVectors",
+              "mergeSemanticHits"
+            ],
+            "reason": "The evaluation semantic path consumes query vectors, searches the snapshot, and merges window hits.",
+            "minimum": "Supporting evidence may connect query batching to candidate retrieval and deterministic hit merging."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "vector ranking miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 0,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 2,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "budget-fitting loss"
+      ]
+    },
+    {
+      "case_id": "grimoire-me-02",
+      "category": "mechanism-explanation",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 6000,
+      "pass": false,
+      "timings": {
+        "total_ms": 2793.4743,
+        "lexical_search_ms": 108.4309,
+        "curation_ms": 7.0328,
+        "package_compilation_ms": 2678.0106,
+        "selection_compilation_ms": 2685.0434,
+        "diagnostic_probe_ms": 113.9126
+      },
+      "query_profile": {
+        "exact_symbol_matches": 0,
+        "exact_path_matches": 0,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "mechanism"
+        ],
+        "matched_subsystems": [
+          "evaluation",
+          "internal/app"
+        ],
+        "top_score_gap": 0,
+        "candidate_dispersion": 0.05263157894736842,
+        "specificity": "medium",
+        "breadth": "medium",
+        "ambiguity": "medium"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "bounded",
+        "budget_mode": "fixed",
+        "target_tokens": 6000,
+        "maximum_tokens": 6000,
+        "expansion_radius": 2,
+        "required_evidence_types": [
+          "implementation",
+          "relationships",
+          "tests-or-contracts",
+          "subsystem-context"
+        ],
+        "diversity_requirement": 2,
+        "stop_conditions": [
+          "primary subsystem covered",
+          "verification evidence represented",
+          "additional candidates add no new evidence type"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "medium",
+        "ambiguity": "medium"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "lexical"
+      ],
+      "selected_paths": [
+        "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+        "evaluation/results/grimoire-final-standalone-v2-2026-07-22.md",
+        "evaluation/results/grimoire-final-lexicon-assisted-v2-2026-07-22.md",
+        "evaluation/results/grimoire-neighbor-promotion-2026-07-22.md"
+      ],
+      "selections": [
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+          "start_line": 294,
+          "end_line": 314,
+          "retrieval_source": "lexical",
+          "provider_rank": 1,
+          "token_count": 510,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-v2-2026-07-22.md",
+          "start_line": 294,
+          "end_line": 314,
+          "retrieval_source": "lexical",
+          "provider_rank": 2,
+          "token_count": 510,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-lexicon-assisted-v2-2026-07-22.md",
+          "start_line": 294,
+          "end_line": 314,
+          "retrieval_source": "lexical",
+          "provider_rank": 3,
+          "token_count": 510,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-neighbor-promotion-2026-07-22.md",
+          "start_line": 294,
+          "end_line": 315,
+          "retrieval_source": "lexical",
+          "provider_rank": 4,
+          "token_count": 528,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+          "start_line": 246,
+          "end_line": 293,
+          "retrieval_source": "lexical",
+          "provider_rank": 23,
+          "token_count": 1287,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-v2-2026-07-22.md",
+          "start_line": 246,
+          "end_line": 293,
+          "retrieval_source": "lexical",
+          "provider_rank": 25,
+          "token_count": 1287,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 5832,
+      "candidate_count": 200,
+      "curated_count": 200,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "reciprocal_rank": 0,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0.05
+      },
+      "omitted_for_budget": 194,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/app/context_evaluation.go",
+            "symbols": [
+              "evaluateContext",
+              "chunksToEvaluation",
+              "candidatesToEvaluation",
+              "selectionsToEvaluation"
+            ],
+            "reason": "The evaluation context path records the retrieval stages from indexed chunks through included selections.",
+            "minimum": "Evidence must explain how the stages needed for usefulness scoring are assembled."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "vector ranking miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context_candidates.go",
+            "symbols": [
+              "mergeContextCandidates",
+              "contextCandidateSources"
+            ],
+            "reason": "These helpers merge exact and semantic candidates while preserving source provenance.",
+            "minimum": "Evidence must explain deduplication, candidate limits, and retrieval-source tracking."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "vector ranking miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/selection/selection.go",
+            "symbols": [
+              "Curate",
+              "uniqueNonOverlapping",
+              "diversify"
+            ],
+            "reason": "Curate removes overlap and diversifies the candidate set before compilation.",
+            "minimum": "Evidence must identify the curation behaviors that can preserve or remove useful evidence."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "exact recovery miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/compiler/compiler.go",
+            "symbols": [
+              "Compile",
+              "stabilizeTokenCount",
+              "Marshal"
+            ],
+            "reason": "The compiler serializes selected chunks and enforces the final package token budget.",
+            "minimum": "Evidence must explain token-count stabilization, omission for budget, and final package serialization."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "exact recovery miss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/retrieve/exact.go",
+            "symbols": [
+              "Exact"
+            ],
+            "reason": "Exact recovery supplies path and symbol evidence before candidate merging.",
+            "minimum": "Supporting evidence may show the exact-recovery input to the combined pipeline."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "exact recovery miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/retrieve/search.go",
+            "symbols": [
+              "Search",
+              "scoreChunk"
+            ],
+            "reason": "Lexical search supplies the fallback or lexical-mode candidate ranking.",
+            "minimum": "Supporting evidence may distinguish lexical candidates from exact and semantic candidates."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 4,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 0,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "exact recovery miss",
+        "vector ranking miss"
+      ]
+    },
+    {
+      "case_id": "grimoire-me-03",
+      "category": "mechanism-explanation",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 6000,
+      "pass": false,
+      "timings": {
+        "total_ms": 3023.6755,
+        "lexical_search_ms": 103.8045,
+        "curation_ms": 3.5145,
+        "package_compilation_ms": 2916.3565,
+        "selection_compilation_ms": 2919.871,
+        "diagnostic_probe_ms": 92.6745
+      },
+      "query_profile": {
+        "exact_symbol_matches": 0,
+        "exact_path_matches": 0,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "mechanism"
+        ],
+        "matched_subsystems": [
+          "evaluation",
+          "docs/reference",
+          "docs/limits"
+        ],
+        "top_score_gap": 0.24074074074074073,
+        "candidate_dispersion": 0.10526315789473684,
+        "specificity": "medium",
+        "breadth": "medium",
+        "ambiguity": "low"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "bounded",
+        "budget_mode": "fixed",
+        "target_tokens": 6000,
+        "maximum_tokens": 6000,
+        "expansion_radius": 2,
+        "required_evidence_types": [
+          "implementation",
+          "relationships",
+          "tests-or-contracts",
+          "subsystem-context"
+        ],
+        "diversity_requirement": 2,
+        "stop_conditions": [
+          "primary subsystem covered",
+          "verification evidence represented",
+          "additional candidates add no new evidence type"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "medium",
+        "ambiguity": "low"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "lexical",
+        "adjacent"
+      ],
+      "selected_paths": [
+        "evaluation/retrieval/grimoire.json",
+        "docs/reference/vector-store.md",
+        "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+        "evaluation/results/grimoire-final-standalone-v2-2026-07-22.md",
+        "internal/app/vector_build_concurrency_test.go"
+      ],
+      "selections": [
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 241,
+          "end_line": 288,
+          "retrieval_source": "lexical",
+          "provider_rank": 1,
+          "token_count": 387,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/reference/vector-store.md",
+          "start_line": 1,
+          "end_line": 43,
+          "retrieval_source": "lexical",
+          "provider_rank": 3,
+          "token_count": 344,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+          "start_line": 150,
+          "end_line": 197,
+          "retrieval_source": "lexical",
+          "provider_rank": 4,
+          "token_count": 1044,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-v2-2026-07-22.md",
+          "start_line": 150,
+          "end_line": 197,
+          "retrieval_source": "lexical",
+          "provider_rank": 5,
+          "token_count": 1044,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 193,
+          "end_line": 240,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 379,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 289,
+          "end_line": 336,
+          "retrieval_source": "lexical",
+          "provider_rank": 135,
+          "token_count": 395,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/reference/vector-store.md",
+          "start_line": 45,
+          "end_line": 83,
+          "retrieval_source": "lexical",
+          "provider_rank": 14,
+          "token_count": 453,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "internal/app/vector_build_concurrency_test.go",
+          "start_line": 37,
+          "end_line": 63,
+          "retrieval_source": "lexical",
+          "provider_rank": 27,
+          "token_count": 249,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 5932,
+      "candidate_count": 200,
+      "curated_count": 201,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "first_required_rank": 36,
+        "reciprocal_rank": 0.027777777777777776,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0
+      },
+      "omitted_for_budget": 193,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/app/vector_build.go",
+            "symbols": [
+              "runVectorBuild",
+              "embedMissing",
+              "writeVectorRecords"
+            ],
+            "reason": "These functions orchestrate reuse checks, missing-document embedding, and the complete snapshot record stream.",
+            "minimum": "Evidence must explain how the build distinguishes embedded from reused chunks and prepares materialization."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 52,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/vector_ingest.go",
+            "symbols": [
+              "ingestVectorBatch"
+            ],
+            "reason": "This function writes vectors for one batch and verifies the vector engine ingested the expected count.",
+            "minimum": "Evidence must include the batch ingestion and count verification step."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 120,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/vector_manifest.go",
+            "symbols": [
+              "writeVectorSnapshotManifest",
+              "readVectorSnapshotManifest"
+            ],
+            "reason": "The manifest writer publishes the snapshot identity and the reader validates the persisted metadata.",
+            "minimum": "Evidence must carry the mechanism through manifest publication and later validation."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 36,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/app/vector_paths.go",
+            "symbols": [
+              "resolveVectorPaths"
+            ],
+            "reason": "Vector state paths determine where ingest records, snapshots, and manifests are staged.",
+            "minimum": "Supporting evidence may clarify the build's on-disk boundaries."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 161,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        },
+        {
+          "evidence": {
+            "path": "internal/vectorstore/library_windows.go",
+            "symbols": [
+              "ObjectExists",
+              "IngestJSONL",
+              "MaterializeJSONL"
+            ],
+            "reason": "The vector-store library provides reuse detection, batch ingestion, and snapshot materialization.",
+            "minimum": "Supporting evidence may identify the native-engine operations called by the Go build flow."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 0,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 3,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "budget-fitting loss"
+      ]
+    },
+    {
+      "case_id": "grimoire-ao-01",
+      "category": "architecture-ownership",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 6000,
+      "pass": false,
+      "timings": {
+        "total_ms": 2936.3936,
+        "lexical_search_ms": 87.3453,
+        "curation_ms": 5.0194,
+        "package_compilation_ms": 2844.0289,
+        "selection_compilation_ms": 2849.0483,
+        "diagnostic_probe_ms": 87.7183
+      },
+      "query_profile": {
+        "exact_symbol_matches": 0,
+        "exact_path_matches": 0,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "architecture"
+        ],
+        "matched_subsystems": [
+          "evaluation",
+          "docs/development"
+        ],
+        "top_score_gap": 0.12962962962962962,
+        "candidate_dispersion": 0.05263157894736842,
+        "specificity": "medium",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "exploratory",
+        "budget_mode": "fixed",
+        "target_tokens": 6000,
+        "maximum_tokens": 6000,
+        "expansion_radius": 3,
+        "required_evidence_types": [
+          "subsystem-entry-points",
+          "architecture-context",
+          "representative-implementations",
+          "cross-region-relationships"
+        ],
+        "diversity_requirement": 3,
+        "stop_conditions": [
+          "major graph regions represented",
+          "cross-region relationships covered",
+          "configured maximum reached"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "medium",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "lexical",
+        "adjacent"
+      ],
+      "selected_paths": [
+        "evaluation/retrieval/grimoire.json",
+        "evaluation/results/grimoire-final-standalone-2026-07-22.json",
+        "evaluation/results/grimoire-neighbor-promotion-2026-07-22.json",
+        "docs/development/retrieval-quality.md"
+      ],
+      "selections": [
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 289,
+          "end_line": 336,
+          "retrieval_source": "lexical",
+          "provider_rank": 1,
+          "token_count": 395,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.json",
+          "start_line": 5041,
+          "end_line": 5088,
+          "retrieval_source": "lexical",
+          "provider_rank": 2,
+          "token_count": 348,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-neighbor-promotion-2026-07-22.json",
+          "start_line": 5617,
+          "end_line": 5664,
+          "retrieval_source": "lexical",
+          "provider_rank": 3,
+          "token_count": 369,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 1,
+          "end_line": 46,
+          "retrieval_source": "lexical",
+          "provider_rank": 9,
+          "token_count": 342,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 241,
+          "end_line": 288,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 387,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 337,
+          "end_line": 384,
+          "retrieval_source": "lexical",
+          "provider_rank": 41,
+          "token_count": 393,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.json",
+          "start_line": 4993,
+          "end_line": 5040,
+          "retrieval_source": "lexical",
+          "provider_rank": 69,
+          "token_count": 335,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.json",
+          "start_line": 5089,
+          "end_line": 5136,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 403,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-neighbor-promotion-2026-07-22.json",
+          "start_line": 5569,
+          "end_line": 5616,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 318,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-neighbor-promotion-2026-07-22.json",
+          "start_line": 5665,
+          "end_line": 5712,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 358,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 5883,
+      "candidate_count": 200,
+      "curated_count": 204,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "first_required_rank": 73,
+        "reciprocal_rank": 0.0136986301369863,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0
+      },
+      "omitted_for_budget": 194,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/app/context.go",
+            "symbols": [
+              "runContext"
+            ],
+            "reason": "The app package owns the context command's flags, state loading, fallback behavior, and output boundary.",
+            "minimum": "Evidence must identify the command-level owner and its handoffs."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 73,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context_semantic.go",
+            "symbols": [
+              "semanticCandidates",
+              "queryVectorCandidates"
+            ],
+            "reason": "The app package owns semantic candidate retrieval and vector-query orchestration.",
+            "minimum": "Evidence must distinguish semantic retrieval ownership from the lower-level embedding client."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "vector ranking miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/selection/selection.go",
+            "symbols": [
+              "Curate"
+            ],
+            "reason": "The selection package owns overlap removal and diversity curation.",
+            "minimum": "Evidence must attribute curation to the selection package rather than the command or compiler."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/compiler/compiler.go",
+            "symbols": [
+              "Compile"
+            ],
+            "reason": "The compiler package owns final context-package assembly and token-budget enforcement.",
+            "minimum": "Evidence must identify the package responsible for the final budgeted artifact."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 154,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/embedding/query.go",
+            "symbols": [
+              "PlanQuery"
+            ],
+            "reason": "The embedding package owns query planning used by semantic retrieval.",
+            "minimum": "Supporting evidence may show the boundary between query planning and app-level retrieval."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 2,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 2,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "budget-fitting loss",
+        "embedding miss",
+        "vector ranking miss"
+      ]
+    },
+    {
+      "case_id": "grimoire-ao-02",
+      "category": "architecture-ownership",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 6000,
+      "pass": false,
+      "timings": {
+        "total_ms": 3213.4828,
+        "lexical_search_ms": 99.9688,
+        "exact_recovery_ms": 1.0073,
+        "curation_ms": 6.5151,
+        "package_compilation_ms": 3105.9916,
+        "selection_compilation_ms": 3112.5067,
+        "diagnostic_probe_ms": 88.8763
+      },
+      "query_profile": {
+        "exact_symbol_matches": 0,
+        "exact_path_matches": 1,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "architecture"
+        ],
+        "matched_subsystems": [
+          "evaluation"
+        ],
+        "top_score_gap": 0.0784313725490196,
+        "candidate_dispersion": 0,
+        "specificity": "high",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "exploratory",
+        "budget_mode": "fixed",
+        "target_tokens": 6000,
+        "maximum_tokens": 6000,
+        "expansion_radius": 3,
+        "required_evidence_types": [
+          "subsystem-entry-points",
+          "architecture-context",
+          "representative-implementations",
+          "cross-region-relationships"
+        ],
+        "diversity_requirement": 3,
+        "stop_conditions": [
+          "major graph regions represented",
+          "cross-region relationships covered",
+          "configured maximum reached"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "high",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "exact",
+        "lexical",
+        "adjacent"
+      ],
+      "selected_paths": [
+        "evaluation/retrieval/grimoire.json",
+        "evaluation/results/grimoire-final-standalone-v2-2026-07-22.json",
+        "evaluation/results/grimoire-final-lexicon-assisted-v2-2026-07-22.json",
+        "evaluation/results/grimoire-baseline-2026-07-22.json"
+      ],
+      "selections": [
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 337,
+          "end_line": 384,
+          "retrieval_source": "exact",
+          "provider_rank": 1,
+          "token_count": 393,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-v2-2026-07-22.json",
+          "start_line": 6001,
+          "end_line": 6048,
+          "retrieval_source": "lexical",
+          "provider_rank": 1,
+          "token_count": 350,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-lexicon-assisted-v2-2026-07-22.json",
+          "start_line": 6049,
+          "end_line": 6096,
+          "retrieval_source": "lexical",
+          "provider_rank": 2,
+          "token_count": 350,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-baseline-2026-07-22.json",
+          "start_line": 6001,
+          "end_line": 6048,
+          "retrieval_source": "lexical",
+          "provider_rank": 6,
+          "token_count": 367,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 289,
+          "end_line": 336,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 395,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 385,
+          "end_line": 432,
+          "retrieval_source": "lexical",
+          "provider_rank": 14,
+          "token_count": 386,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-v2-2026-07-22.json",
+          "start_line": 5953,
+          "end_line": 6000,
+          "retrieval_source": "lexical",
+          "provider_rank": 32,
+          "token_count": 338,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-v2-2026-07-22.json",
+          "start_line": 6049,
+          "end_line": 6096,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 403,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-lexicon-assisted-v2-2026-07-22.json",
+          "start_line": 6001,
+          "end_line": 6048,
+          "retrieval_source": "lexical",
+          "provider_rank": 68,
+          "token_count": 338,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-baseline-2026-07-22.json",
+          "start_line": 5953,
+          "end_line": 6000,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 326,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 5919,
+      "candidate_count": 200,
+      "curated_count": 204,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "first_required_rank": 133,
+        "reciprocal_rank": 0.007518796992481203,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0
+      },
+      "omitted_for_budget": 194,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/app/eval_retrieval.go",
+            "symbols": [
+              "runEval",
+              "validateEvaluationCase"
+            ],
+            "reason": "The app package owns command flags, per-case execution, mode iteration, and repository expectation validation.",
+            "minimum": "Evidence must distinguish evaluation orchestration from reusable evaluation data and scoring."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/corpus.go",
+            "symbols": [
+              "LoadCorpus"
+            ],
+            "reason": "The evaluation package owns decoding and validating the repository-owned corpus format.",
+            "minimum": "Evidence must locate the corpus-loading boundary."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "vector ranking miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/score.go",
+            "symbols": [
+              "ScoreCase",
+              "AggregateRuns"
+            ],
+            "reason": "The evaluation package owns evidence-stage scoring, failure classification, recall, and aggregate calculations.",
+            "minimum": "Evidence must identify the scoring owner and separate it from command orchestration."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/report.go",
+            "symbols": [
+              "BuildAggregates",
+              "Write",
+              "Markdown"
+            ],
+            "reason": "The evaluation package owns aggregate report construction and machine-readable plus concise Markdown output.",
+            "minimum": "Evidence must identify where reporting formats and grouped results are produced."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 133,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/evaluation/model.go",
+            "symbols": [
+              "Case",
+              "CaseRun",
+              "Report"
+            ],
+            "reason": "The model definitions form the shared data contract between the runner, scorer, and reporter.",
+            "minimum": "Supporting evidence may explain the ownership-neutral data flow across evaluation components."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "exact recovery miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 3,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 1,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "budget-fitting loss",
+        "embedding miss",
+        "vector ranking miss"
+      ]
+    },
+    {
+      "case_id": "grimoire-cc-01",
+      "category": "call-chain-investigation",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 8000,
+      "pass": false,
+      "timings": {
+        "total_ms": 3798.5164,
+        "lexical_search_ms": 119.3634,
+        "candidate_merge_ms": 1.0003,
+        "exact_recovery_ms": 3.0965,
+        "curation_ms": 5.0192,
+        "package_compilation_ms": 3670.037,
+        "selection_compilation_ms": 3675.0562,
+        "diagnostic_probe_ms": 121.6542
+      },
+      "query_profile": {
+        "exact_symbol_matches": 1,
+        "exact_path_matches": 0,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "execution-flow"
+        ],
+        "matched_subsystems": [
+          "evaluation",
+          "README.md",
+          "docs/architecture",
+          "docs/development",
+          "docs/planning",
+          "docs/reference",
+          "docs/INDEX.md",
+          "docs/limits"
+        ],
+        "top_score_gap": 0,
+        "candidate_dispersion": 0.3684210526315789,
+        "specificity": "high",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "exploratory",
+        "budget_mode": "fixed",
+        "target_tokens": 8000,
+        "maximum_tokens": 8000,
+        "expansion_radius": 3,
+        "required_evidence_types": [
+          "subsystem-entry-points",
+          "architecture-context",
+          "representative-implementations",
+          "cross-region-relationships"
+        ],
+        "diversity_requirement": 3,
+        "stop_conditions": [
+          "major graph regions represented",
+          "cross-region relationships covered",
+          "configured maximum reached"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "high",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "exact",
+        "lexical",
+        "adjacent"
+      ],
+      "selected_paths": [
+        "evaluation/retrieval/grimoire.json",
+        "README.md",
+        "docs/architecture/prepared-index.md",
+        "docs/development/retrieval-quality.md",
+        "docs/planning/roadmap.md",
+        "docs/reference/context-package.md"
+      ],
+      "selections": [
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 385,
+          "end_line": 432,
+          "retrieval_source": "exact",
+          "provider_rank": 1,
+          "token_count": 386,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "README.md",
+          "start_line": 48,
+          "end_line": 90,
+          "retrieval_source": "exact",
+          "provider_rank": 2,
+          "token_count": 396,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/architecture/prepared-index.md",
+          "start_line": 1,
+          "end_line": 47,
+          "retrieval_source": "exact",
+          "provider_rank": 4,
+          "token_count": 297,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 94,
+          "end_line": 139,
+          "retrieval_source": "exact",
+          "provider_rank": 6,
+          "token_count": 562,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 337,
+          "end_line": 384,
+          "retrieval_source": "lexical",
+          "provider_rank": 142,
+          "token_count": 393,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 433,
+          "end_line": 480,
+          "retrieval_source": "lexical",
+          "provider_rank": 12,
+          "token_count": 350,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "README.md",
+          "start_line": 1,
+          "end_line": 46,
+          "retrieval_source": "lexical",
+          "provider_rank": 99,
+          "token_count": 551,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "README.md",
+          "start_line": 92,
+          "end_line": 134,
+          "retrieval_source": "exact",
+          "provider_rank": 3,
+          "token_count": 410,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/architecture/prepared-index.md",
+          "start_line": 49,
+          "end_line": 94,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 512,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 48,
+          "end_line": 92,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 802,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 141,
+          "end_line": 169,
+          "retrieval_source": "exact",
+          "provider_rank": 16,
+          "token_count": 361,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/planning/roadmap.md",
+          "start_line": 1,
+          "end_line": 46,
+          "retrieval_source": "exact",
+          "provider_rank": 7,
+          "token_count": 418,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/reference/context-package.md",
+          "start_line": 1,
+          "end_line": 9,
+          "retrieval_source": "exact",
+          "provider_rank": 9,
+          "token_count": 53,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "README.md",
+          "start_line": 136,
+          "end_line": 159,
+          "retrieval_source": "exact",
+          "provider_rank": 11,
+          "token_count": 213,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 7966,
+      "candidate_count": 200,
+      "curated_count": 202,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "first_required_rank": 190,
+        "reciprocal_rank": 0.005263157894736842,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0
+      },
+      "omitted_for_budget": 188,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "cmd/grimoire/main.go",
+            "symbols": [
+              "main"
+            ],
+            "reason": "The executable entry point starts the command call chain.",
+            "minimum": "Evidence must begin at the CLI process entry."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/run.go",
+            "symbols": [
+              "Run"
+            ],
+            "reason": "Run dispatches the top-level context command.",
+            "minimum": "Evidence must show the transition from the executable to the app command router."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context.go",
+            "symbols": [
+              "runContext"
+            ],
+            "reason": "runContext parses the context request and coordinates retrieval and compilation.",
+            "minimum": "Evidence must identify the context command's orchestration function."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "vector ranking miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context_semantic.go",
+            "symbols": [
+              "semanticCandidates",
+              "queryVectorCandidates"
+            ],
+            "reason": "These functions take the context query through semantic candidate retrieval.",
+            "minimum": "Evidence must include the semantic-search handoff."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "vector ranking miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context_candidates.go",
+            "symbols": [
+              "curateContextCandidates"
+            ],
+            "reason": "This function adds exact recovery, merges sources, and invokes curation.",
+            "minimum": "Evidence must show where exact and semantic candidates become the curated input."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 190,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "candidate merge loss"
+        },
+        {
+          "evidence": {
+            "path": "internal/compiler/compiler.go",
+            "symbols": [
+              "Compile",
+              "Marshal"
+            ],
+            "reason": "Compile creates the budgeted package and Marshal emits the serialized artifact.",
+            "minimum": "Evidence must complete the chain at package construction and output."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/embedding/query.go",
+            "symbols": [
+              "PlanQuery"
+            ],
+            "reason": "PlanQuery is the query-planning step used within semantic retrieval.",
+            "minimum": "Supporting evidence may show how the original task becomes embedding inputs."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/retrieve/exact.go",
+            "symbols": [
+              "Exact"
+            ],
+            "reason": "Exact is the secondary recovery call used before curation.",
+            "minimum": "Supporting evidence may identify the exact-recovery branch in the chain."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "exact recovery miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 5,
+      "required_lost_during_merge": 1,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 0,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "candidate merge loss",
+        "embedding miss",
+        "vector ranking miss"
+      ]
+    },
+    {
+      "case_id": "grimoire-cc-02",
+      "category": "call-chain-investigation",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 8000,
+      "pass": false,
+      "timings": {
+        "total_ms": 3489.139,
+        "lexical_search_ms": 127.2019,
+        "exact_recovery_ms": 2.0004,
+        "curation_ms": 4.3628,
+        "package_compilation_ms": 3355.5739,
+        "selection_compilation_ms": 3359.9366999999997,
+        "diagnostic_probe_ms": 116.7342
+      },
+      "query_profile": {
+        "exact_symbol_matches": 0,
+        "exact_path_matches": 0,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "execution-flow"
+        ],
+        "matched_subsystems": [
+          "docs/development",
+          "docs/reference",
+          "evaluation"
+        ],
+        "top_score_gap": 0.18292682926829268,
+        "candidate_dispersion": 0.10526315789473684,
+        "specificity": "medium",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "exploratory",
+        "budget_mode": "fixed",
+        "target_tokens": 8000,
+        "maximum_tokens": 8000,
+        "expansion_radius": 3,
+        "required_evidence_types": [
+          "subsystem-entry-points",
+          "architecture-context",
+          "representative-implementations",
+          "cross-region-relationships"
+        ],
+        "diversity_requirement": 3,
+        "stop_conditions": [
+          "major graph regions represented",
+          "cross-region relationships covered",
+          "configured maximum reached"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "medium",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "exact",
+        "lexical",
+        "adjacent"
+      ],
+      "selected_paths": [
+        "docs/development/retrieval-quality.md",
+        "evaluation/retrieval/grimoire.json",
+        "docs/reference/cli.md",
+        "evaluation/results/grimoire-final-standalone-2026-07-22.md"
+      ],
+      "selections": [
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 94,
+          "end_line": 139,
+          "retrieval_source": "exact",
+          "provider_rank": 1,
+          "token_count": 562,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 481,
+          "end_line": 528,
+          "retrieval_source": "exact",
+          "provider_rank": 3,
+          "token_count": 365,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/reference/cli.md",
+          "start_line": 173,
+          "end_line": 208,
+          "retrieval_source": "exact",
+          "provider_rank": 2,
+          "token_count": 809,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+          "start_line": 246,
+          "end_line": 293,
+          "retrieval_source": "lexical",
+          "provider_rank": 2,
+          "token_count": 1287,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 48,
+          "end_line": 92,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 802,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 141,
+          "end_line": 169,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 361,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 433,
+          "end_line": 480,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 350,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 529,
+          "end_line": 576,
+          "retrieval_source": "lexical",
+          "provider_rank": 6,
+          "token_count": 374,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/reference/cli.md",
+          "start_line": 136,
+          "end_line": 171,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 476,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+          "start_line": 294,
+          "end_line": 314,
+          "retrieval_source": "lexical",
+          "provider_rank": 50,
+          "token_count": 510,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 7992,
+      "candidate_count": 200,
+      "curated_count": 205,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "first_required_rank": 98,
+        "reciprocal_rank": 0.01020408163265306,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0
+      },
+      "omitted_for_budget": 195,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/app/run.go",
+            "symbols": [
+              "Run"
+            ],
+            "reason": "Run routes the eval command from the top-level CLI dispatcher.",
+            "minimum": "Evidence must begin at the application command boundary."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/eval_retrieval.go",
+            "symbols": [
+              "runEval",
+              "parseEvaluationModes",
+              "packageSelections"
+            ],
+            "reason": "runEval iterates cases and modes while helpers convert and validate run data.",
+            "minimum": "Evidence must show evaluation orchestration and selection conversion."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 98,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/corpus.go",
+            "symbols": [
+              "LoadCorpus"
+            ],
+            "reason": "LoadCorpus decodes and validates the judged corpus before execution.",
+            "minimum": "Evidence must include corpus loading before per-case runs."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "vector ranking miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context_evaluation.go",
+            "symbols": [
+              "evaluateContext"
+            ],
+            "reason": "evaluateContext executes retrieval, exact recovery, curation, compilation, and stage capture for a case.",
+            "minimum": "Evidence must include the retrieval-to-package execution step."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": true,
+          "retrieved_rank": 139,
+          "exact_recovered": false,
+          "merged": true,
+          "curated": true,
+          "included": false,
+          "failure_stage": "budget-fitting loss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/score.go",
+            "symbols": [
+              "ScoreCase"
+            ],
+            "reason": "ScoreCase compares required and supporting evidence across pipeline stages.",
+            "minimum": "Evidence must show where each run becomes judged evidence and failure classifications."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/report.go",
+            "symbols": [
+              "BuildAggregates",
+              "Write"
+            ],
+            "reason": "These functions group the completed runs and write JSON plus Markdown results.",
+            "minimum": "Evidence must complete the chain at aggregate reporting and file output."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/app/eval_retrieval.go",
+            "symbols": [
+              "validateEvaluationCase",
+              "writeEvaluationSummary"
+            ],
+            "reason": "These helpers guard expectations and print the concise command summary after writing files.",
+            "minimum": "Supporting evidence may clarify validation and terminal reporting side effects."
+          },
+          "indexed": true,
+          "broad_probe": true,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "vector ranking miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 4,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 2,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "budget-fitting loss",
+        "embedding miss",
+        "vector ranking miss"
+      ]
+    },
+    {
+      "case_id": "grimoire-lm-01",
+      "category": "long-mixed-query",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 12000,
+      "pass": false,
+      "timings": {
+        "total_ms": 7698.308599999999,
+        "lexical_search_ms": 1754.8332,
+        "exact_recovery_ms": 45.3679,
+        "curation_ms": 4.6602,
+        "package_compilation_ms": 5892.4292,
+        "selection_compilation_ms": 5897.0894,
+        "diagnostic_probe_ms": 1853.3558
+      },
+      "query_profile": {
+        "exact_symbol_matches": 2,
+        "exact_path_matches": 2,
+        "exact_error_matches": 3,
+        "recognized_task_terms": [
+          "location",
+          "debugging",
+          "execution-flow",
+          "architecture",
+          "mechanism",
+          "modification",
+          "verification"
+        ],
+        "matched_subsystems": [
+          "evaluation",
+          "docs/development",
+          "docs/architecture",
+          "docs/reference",
+          "internal/app",
+          "README.md"
+        ],
+        "top_score_gap": 0.6666666666666666,
+        "candidate_dispersion": 0.2631578947368421,
+        "specificity": "high",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "exploratory",
+        "budget_mode": "fixed",
+        "target_tokens": 12000,
+        "maximum_tokens": 12000,
+        "expansion_radius": 3,
+        "required_evidence_types": [
+          "subsystem-entry-points",
+          "architecture-context",
+          "representative-implementations",
+          "cross-region-relationships"
+        ],
+        "diversity_requirement": 3,
+        "stop_conditions": [
+          "major graph regions represented",
+          "cross-region relationships covered",
+          "configured maximum reached"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "high",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "exact",
+        "lexical",
+        "adjacent"
+      ],
+      "selected_paths": [
+        "evaluation/retrieval/grimoire.json",
+        "docs/development/retrieval-quality.md",
+        "docs/architecture/system-overview.md",
+        "docs/reference/cli.md"
+      ],
+      "selections": [
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 577,
+          "end_line": 624,
+          "retrieval_source": "exact",
+          "provider_rank": 1,
+          "token_count": 2378,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 48,
+          "end_line": 92,
+          "retrieval_source": "exact",
+          "provider_rank": 2,
+          "token_count": 802,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/architecture/system-overview.md",
+          "start_line": 36,
+          "end_line": 82,
+          "retrieval_source": "exact",
+          "provider_rank": 4,
+          "token_count": 498,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/reference/cli.md",
+          "start_line": 173,
+          "end_line": 208,
+          "retrieval_source": "exact",
+          "provider_rank": 5,
+          "token_count": 809,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 529,
+          "end_line": 576,
+          "retrieval_source": "lexical",
+          "provider_rank": 126,
+          "token_count": 374,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 625,
+          "end_line": 672,
+          "retrieval_source": "exact",
+          "provider_rank": 11,
+          "token_count": 395,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/development/retrieval-quality.md",
+          "start_line": 1,
+          "end_line": 46,
+          "retrieval_source": "lexical",
+          "provider_rank": 48,
+          "token_count": 342,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/architecture/system-overview.md",
+          "start_line": 1,
+          "end_line": 34,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 316,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "docs/architecture/system-overview.md",
+          "start_line": 84,
+          "end_line": 129,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 549,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 11868,
+      "candidate_count": 200,
+      "curated_count": 202,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "reciprocal_rank": 0,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0
+      },
+      "omitted_for_budget": 193,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/app/eval_retrieval.go",
+            "symbols": [
+              "runEval",
+              "validateEvaluationCase",
+              "parseEvaluationModes",
+              "packageSelections",
+              "writeEvaluationSummary"
+            ],
+            "reason": "This is the evaluation runner that executes cases in all four modes, records stage data, and prints the summary.",
+            "minimum": "Evidence must identify the new retrieval evaluation runner and its mode, validation, selection, and summary responsibilities."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/model.go",
+            "symbols": [
+              "FormatVersion",
+              "Evidence",
+              "Case",
+              "Corpus",
+              "CaseRun",
+              "Report"
+            ],
+            "reason": "These types define the repository-owned corpus, per-run metrics, evidence statuses, and report contract.",
+            "minimum": "Evidence must show the explicit evaluation data model rather than relying on unit-test fixtures."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "exact recovery miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/corpus.go",
+            "symbols": [
+              "LoadCorpus",
+              "validateEvidence"
+            ],
+            "reason": "Corpus loading enforces the version, categories, positive budgets, explicit required evidence, and safe relative paths.",
+            "minimum": "Evidence must explain how the judged corpus is decoded and validated before a baseline run."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/score.go",
+            "symbols": [
+              "ScoreCase",
+              "classifyEvidenceFailure",
+              "AggregateRuns"
+            ],
+            "reason": "Scoring records required/supporting recall, pass status, irrelevance, stage-specific losses, and latency aggregates.",
+            "minimum": "Evidence must identify separate scoring components and the pipeline-stage failure classification."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/report.go",
+            "symbols": [
+              "BuildAggregates",
+              "Write",
+              "Markdown"
+            ],
+            "reason": "Reporting builds mode/category aggregates and writes machine-readable JSON plus a concise Markdown table.",
+            "minimum": "Evidence must include the reporting implementation and its per-case, aggregate, and failure outputs."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context_evaluation.go",
+            "symbols": [
+              "evaluateContext",
+              "chunksToEvaluation",
+              "candidatesToEvaluation",
+              "selectionsToEvaluation"
+            ],
+            "reason": "The runner depends on this implementation to expose indexed, retrieved, merged, curated, and included stages.",
+            "minimum": "Evidence must connect the scoring contract to the retrieval and package-fitting stages it measures."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/embedding/query.go",
+            "symbols": [
+              "ParseQueryMode",
+              "PlanQuery"
+            ],
+            "reason": "These functions implement the fast/full/quality query-mode behavior whose results must be compared.",
+            "minimum": "Supporting evidence may connect mode comparison to actual query planning."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context_candidates.go",
+            "symbols": [
+              "mergeContextCandidates"
+            ],
+            "reason": "Candidate merging is one of the explicitly measured failure stages.",
+            "minimum": "Supporting evidence may show where merge loss can occur before curation."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/selection/selection.go",
+            "symbols": [
+              "Curate"
+            ],
+            "reason": "Curation is separately measured as a possible source of lost required evidence and irrelevant selections.",
+            "minimum": "Supporting evidence may locate the curation stage used by the runner."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/compiler/compiler.go",
+            "symbols": [
+              "Compile"
+            ],
+            "reason": "Compilation applies the final token budget and can omit selected evidence during package fitting.",
+            "minimum": "Supporting evidence may connect budget survival metrics to final package construction."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 6,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 0,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "embedding miss",
+        "exact recovery miss"
+      ]
+    },
+    {
+      "case_id": "grimoire-lm-02",
+      "category": "long-mixed-query",
+      "mode": "lexical",
+      "variant": "standalone",
+      "budget": 12000,
+      "pass": false,
+      "timings": {
+        "total_ms": 5343.2408,
+        "lexical_search_ms": 203.9131,
+        "candidate_merge_ms": 0.6042,
+        "curation_ms": 6.491,
+        "package_compilation_ms": 5132.2325,
+        "selection_compilation_ms": 5138.7235,
+        "diagnostic_probe_ms": 259.2145
+      },
+      "query_profile": {
+        "exact_symbol_matches": 0,
+        "exact_path_matches": 0,
+        "exact_error_matches": 0,
+        "recognized_task_terms": [
+          "execution-flow"
+        ],
+        "matched_subsystems": [
+          "evaluation"
+        ],
+        "top_score_gap": 0.18064516129032257,
+        "candidate_dispersion": 0,
+        "specificity": "medium",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "retrieval_policy": {
+        "shadow": true,
+        "scope": "exploratory",
+        "budget_mode": "fixed",
+        "target_tokens": 12000,
+        "maximum_tokens": 12000,
+        "expansion_radius": 3,
+        "required_evidence_types": [
+          "subsystem-entry-points",
+          "architecture-context",
+          "representative-implementations",
+          "cross-region-relationships"
+        ],
+        "diversity_requirement": 3,
+        "stop_conditions": [
+          "major graph regions represented",
+          "cross-region relationships covered",
+          "configured maximum reached"
+        ]
+      },
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "medium",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
+      "query_profile_matched": true,
+      "retrieval_sources": [
+        "lexical",
+        "adjacent"
+      ],
+      "selected_paths": [
+        "evaluation/retrieval/grimoire.json",
+        "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+        "evaluation/results/grimoire-final-standalone-v2-2026-07-22.md",
+        "evaluation/results/grimoire-final-lexicon-assisted-v2-2026-07-22.md"
+      ],
+      "selections": [
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 577,
+          "end_line": 624,
+          "retrieval_source": "lexical",
+          "provider_rank": 1,
+          "token_count": 2378,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+          "start_line": 246,
+          "end_line": 293,
+          "retrieval_source": "lexical",
+          "provider_rank": 3,
+          "token_count": 1287,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-v2-2026-07-22.md",
+          "start_line": 246,
+          "end_line": 293,
+          "retrieval_source": "lexical",
+          "provider_rank": 4,
+          "token_count": 1287,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-lexicon-assisted-v2-2026-07-22.md",
+          "start_line": 246,
+          "end_line": 293,
+          "retrieval_source": "lexical",
+          "provider_rank": 5,
+          "token_count": 1287,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 529,
+          "end_line": 576,
+          "retrieval_source": "adjacent",
+          "provider_rank": 0,
+          "token_count": 374,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/retrieval/grimoire.json",
+          "start_line": 625,
+          "end_line": 672,
+          "retrieval_source": "lexical",
+          "provider_rank": 105,
+          "token_count": 395,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+          "start_line": 198,
+          "end_line": 245,
+          "retrieval_source": "lexical",
+          "provider_rank": 30,
+          "token_count": 963,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-2026-07-22.md",
+          "start_line": 294,
+          "end_line": 314,
+          "retrieval_source": "lexical",
+          "provider_rank": 9,
+          "token_count": 510,
+          "relevant": false,
+          "forbidden": false
+        },
+        {
+          "path": "evaluation/results/grimoire-final-standalone-v2-2026-07-22.md",
+          "start_line": 294,
+          "end_line": 314,
+          "retrieval_source": "lexical",
+          "provider_rank": 10,
+          "token_count": 510,
+          "relevant": false,
+          "forbidden": false
+        }
+      ],
+      "final_package_tokens": 11933,
+      "candidate_count": 200,
+      "curated_count": 201,
+      "ranking": {
+        "candidate_count": 200,
+        "required_recall_at_10": 0,
+        "required_recall_at_20": 0,
+        "supporting_recall_at_10": 0,
+        "supporting_recall_at_20": 0,
+        "reciprocal_rank": 0,
+        "relevant_rate_at_10": 0,
+        "relevant_rate_at_20": 0
+      },
+      "omitted_for_budget": 192,
+      "omitted_structural_for_budget": 0,
+      "required": [
+        {
+          "evidence": {
+            "path": "internal/embedding/query.go",
+            "symbols": [
+              "PlanQuery",
+              "queryWindows"
+            ],
+            "reason": "Query planning determines whether the long task is represented by a full query, split windows, or both.",
+            "minimum": "Evidence must include the first stage that protects later requirements from being lost in a long query."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context_semantic.go",
+            "symbols": [
+              "semanticCandidatesForEvaluation",
+              "searchQueryVectors",
+              "mergeSemanticHits"
+            ],
+            "reason": "The semantic evaluation path searches each planned query input and merges its hits.",
+            "minimum": "Evidence must explain semantic retrieval and multi-window hit merging."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/retrieve/exact.go",
+            "symbols": [
+              "Exact"
+            ],
+            "reason": "Exact recovery provides a deterministic path and symbol recovery path for named implementation details.",
+            "minimum": "Evidence must include exact recovery as a distinct source alongside semantic retrieval."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "exact recovery miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context_candidates.go",
+            "symbols": [
+              "mergeContextCandidates",
+              "contextCandidateSources"
+            ],
+            "reason": "The app merges retrieval sources and preserves the provenance needed for evaluation reporting.",
+            "minimum": "Evidence must show source-aware candidate merging before curation."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/selection/selection.go",
+            "symbols": [
+              "Curate",
+              "uniqueNonOverlapping",
+              "diversify"
+            ],
+            "reason": "Curation determines which related chunks survive duplicate, overlap, and diversity constraints.",
+            "minimum": "Evidence must explain the stage where useful or irrelevant candidates are selected."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "exact recovery miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/compiler/compiler.go",
+            "symbols": [
+              "Compile",
+              "stabilizeTokenCount"
+            ],
+            "reason": "The compiler fits the final selections to the serialized token budget and counts omissions.",
+            "minimum": "Evidence must explain final budget survival and package fitting."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/evaluation/report.go",
+            "symbols": [
+              "BuildAggregates",
+              "Markdown"
+            ],
+            "reason": "The report layer groups results by mode and category and presents the baseline comparison.",
+            "minimum": "Evidence must identify how the long-task results become comparable aggregate output."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "supporting": [
+        {
+          "evidence": {
+            "path": "internal/evaluation/score.go",
+            "symbols": [
+              "ScoreCase",
+              "classifyEvidenceFailure"
+            ],
+            "reason": "Scoring distinguishes embedding, ranking, merge, curation, and budget-fitting losses.",
+            "minimum": "Supporting evidence may connect observed package contents to a responsible pipeline stage."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        },
+        {
+          "evidence": {
+            "path": "internal/app/context_evaluation.go",
+            "symbols": [
+              "evaluateContext"
+            ],
+            "reason": "evaluateContext is the integration point that captures every retrieval stage for the report.",
+            "minimum": "Supporting evidence may show how the mixed query is executed as one measured case."
+          },
+          "indexed": true,
+          "broad_probe": false,
+          "retrieved": false,
+          "exact_recovered": false,
+          "merged": false,
+          "curated": false,
+          "included": false,
+          "failure_stage": "embedding miss"
+        }
+      ],
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "required_never_retrieved": 7,
+      "required_lost_during_merge": 0,
+      "required_lost_during_curation": 0,
+      "required_omitted_for_budget": 0,
+      "required_structural_never_produced": 0,
+      "required_structural_lost_during_composition": 0,
+      "required_structural_omitted_for_budget": 0,
+      "failure_classifications": [
+        "embedding miss",
+        "exact recovery miss"
+      ]
+    }
+  ],
+  "by_mode": [
+    {
+      "group": "lexical",
+      "cases": 12,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 0.9893617021276596,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 12,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0.08333333333333333,
+      "mean_reciprocal_rank": 0.01566227440995697,
+      "relevant_rate_at_10": 0.008333333333333333,
+      "relevant_rate_at_20": 0.024999999999999998,
+      "median_latency_ms": 3118.57915,
+      "p95_latency_ms": 6403.021309999998,
+      "profile_cases": 12,
+      "profile_matches": 12,
+      "profile_match_rate": 1
+    }
+  ],
+  "by_category": [
+    {
+      "group": "architecture-ownership",
+      "cases": 2,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 2,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0,
+      "mean_reciprocal_rank": 0.010608713564733752,
+      "relevant_rate_at_10": 0,
+      "relevant_rate_at_20": 0,
+      "median_latency_ms": 3074.9382,
+      "p95_latency_ms": 3199.62834,
+      "profile_cases": 2,
+      "profile_matches": 2,
+      "profile_match_rate": 1
+    },
+    {
+      "group": "call-chain-investigation",
+      "cases": 2,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 2,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0,
+      "mean_reciprocal_rank": 0.007733619763694952,
+      "relevant_rate_at_10": 0,
+      "relevant_rate_at_20": 0,
+      "median_latency_ms": 3643.8277,
+      "p95_latency_ms": 3783.04753,
+      "profile_cases": 2,
+      "profile_matches": 2,
+      "profile_match_rate": 1
+    },
+    {
+      "group": "direct-location",
+      "cases": 3,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 0.9230769230769231,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 3,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0.3333333333333333,
+      "mean_reciprocal_rank": 0.032828282828282825,
+      "relevant_rate_at_10": 0.03333333333333333,
+      "relevant_rate_at_20": 0.049999999999999996,
+      "median_latency_ms": 1546.75,
+      "p95_latency_ms": 1633.94353,
+      "profile_cases": 3,
+      "profile_matches": 3,
+      "profile_match_rate": 1
+    },
+    {
+      "group": "long-mixed-query",
+      "cases": 2,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 2,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0,
+      "mean_reciprocal_rank": 0,
+      "relevant_rate_at_10": 0,
+      "relevant_rate_at_20": 0,
+      "median_latency_ms": 6520.7747,
+      "p95_latency_ms": 7580.5552099999995,
+      "profile_cases": 2,
+      "profile_matches": 2,
+      "profile_match_rate": 1
+    },
+    {
+      "group": "mechanism-explanation",
+      "cases": 3,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 3,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0,
+      "mean_reciprocal_rank": 0.017592592592592594,
+      "relevant_rate_at_10": 0,
+      "relevant_rate_at_20": 0.05000000000000001,
+      "median_latency_ms": 3023.6755,
+      "p95_latency_ms": 3301.5236800000002,
+      "profile_cases": 3,
+      "profile_matches": 3,
+      "profile_match_rate": 1
+    }
+  ],
+  "by_mode_category": [
+    {
+      "group": "lexical/architecture-ownership",
+      "cases": 2,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 2,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0,
+      "mean_reciprocal_rank": 0.010608713564733752,
+      "relevant_rate_at_10": 0,
+      "relevant_rate_at_20": 0,
+      "median_latency_ms": 3074.9382,
+      "p95_latency_ms": 3199.62834,
+      "profile_cases": 2,
+      "profile_matches": 2,
+      "profile_match_rate": 1
+    },
+    {
+      "group": "lexical/call-chain-investigation",
+      "cases": 2,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 2,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0,
+      "mean_reciprocal_rank": 0.007733619763694952,
+      "relevant_rate_at_10": 0,
+      "relevant_rate_at_20": 0,
+      "median_latency_ms": 3643.8277,
+      "p95_latency_ms": 3783.04753,
+      "profile_cases": 2,
+      "profile_matches": 2,
+      "profile_match_rate": 1
+    },
+    {
+      "group": "lexical/direct-location",
+      "cases": 3,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 0.9230769230769231,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 3,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0.3333333333333333,
+      "mean_reciprocal_rank": 0.032828282828282825,
+      "relevant_rate_at_10": 0.03333333333333333,
+      "relevant_rate_at_20": 0.049999999999999996,
+      "median_latency_ms": 1546.75,
+      "p95_latency_ms": 1633.94353,
+      "profile_cases": 3,
+      "profile_matches": 3,
+      "profile_match_rate": 1
+    },
+    {
+      "group": "lexical/long-mixed-query",
+      "cases": 2,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 2,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0,
+      "mean_reciprocal_rank": 0,
+      "relevant_rate_at_10": 0,
+      "relevant_rate_at_20": 0,
+      "median_latency_ms": 6520.7747,
+      "p95_latency_ms": 7580.5552099999995,
+      "profile_cases": 2,
+      "profile_matches": 2,
+      "profile_match_rate": 1
+    },
+    {
+      "group": "lexical/mechanism-explanation",
+      "cases": 3,
+      "passes": 0,
+      "pass_rate": 0,
+      "required_evidence_recall": 0,
+      "supporting_evidence_recall": 0,
+      "required_structural_recall": 0,
+      "supporting_structural_recall": 0,
+      "irrelevant_selection_rate": 1,
+      "irrelevant_structural_rate": 0,
+      "ranking_cases": 3,
+      "required_recall_at_10": 0,
+      "required_recall_at_20": 0,
+      "mean_reciprocal_rank": 0.017592592592592594,
+      "relevant_rate_at_10": 0,
+      "relevant_rate_at_20": 0.05000000000000001,
+      "median_latency_ms": 3023.6755,
+      "p95_latency_ms": 3301.5236800000002,
+      "profile_cases": 3,
+      "profile_matches": 3,
+      "profile_match_rate": 1
+    }
+  ]
+}

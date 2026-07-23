@@ -136,14 +136,28 @@ func Markdown(report Report) string {
 
 	output.WriteString("\n## Query profile shadow output\n\n")
 	output.WriteString("These classifications are observational and do not change retrieval, curation, or package assembly.\n\n")
-	output.WriteString("| Case | Mode | Scope | Specificity | Breadth | Ambiguity | Subsystems | Graph regions | Budget mode |\n")
-	output.WriteString("| --- | --- | --- | --- | --- | --- | ---: | ---: | --- |\n")
+	output.WriteString("| Case | Mode | Expected | Actual | Match | Specificity | Breadth | Ambiguity | Subsystems | Graph regions | Budget mode | Mismatches |\n")
+	output.WriteString("| --- | --- | --- | --- | ---: | --- | --- | --- | ---: | ---: | --- | --- |\n")
 	for _, run := range report.Runs {
-		fmt.Fprintf(&output, "| %s | %s | %s | %s | %s | %s | %d | %d | %s |\n",
-			run.CaseID, run.Mode, run.RetrievalPolicy.Scope, run.QueryProfile.Specificity,
-			run.QueryProfile.Breadth, run.QueryProfile.Ambiguity,
+		expected := "-"
+		matched := "-"
+		if run.ExpectedQueryProfile != nil {
+			expected = string(run.ExpectedQueryProfile.Scope)
+			matched = fmt.Sprintf("%t", run.QueryProfileMatched)
+		}
+		fmt.Fprintf(&output, "| %s | %s | %s | %s | %s | %s | %s | %s | %d | %d | %s | %s |\n",
+			run.CaseID, run.Mode, expected, run.RetrievalPolicy.Scope, matched,
+			run.QueryProfile.Specificity, run.QueryProfile.Breadth, run.QueryProfile.Ambiguity,
 			len(run.QueryProfile.MatchedSubsystems), len(run.QueryProfile.MatchedGraphRegions),
-			run.RetrievalPolicy.BudgetMode)
+			run.RetrievalPolicy.BudgetMode, escapeCell(strings.Join(run.QueryProfileMismatches, "; ")))
+	}
+
+	output.WriteString("\n## Query profile calibration\n\n")
+	output.WriteString("| Mode | Judged profiles | Matches | Match rate |\n")
+	output.WriteString("| --- | ---: | ---: | ---: |\n")
+	for _, aggregate := range report.ByMode {
+		fmt.Fprintf(&output, "| %s | %d | %d | %.1f%% |\n",
+			aggregate.Group, aggregate.ProfileCases, aggregate.ProfileMatches, aggregate.ProfileMatchRate*100)
 	}
 
 	failures := failedRuns(report.Runs)

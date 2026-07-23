@@ -14,6 +14,23 @@ const (
 	LevelHigh   Level = "high"
 )
 
+func ValidLevel(level Level) bool {
+	return level == LevelLow || level == LevelMedium || level == LevelHigh
+}
+
+// Scope is the three-tier retrieval and assembly policy classification.
+type Scope string
+
+const (
+	ScopeFocused     Scope = "focused"
+	ScopeBounded     Scope = "bounded"
+	ScopeExploratory Scope = "exploratory"
+)
+
+func ValidScope(scope Scope) bool {
+	return scope == ScopeFocused || scope == ScopeBounded || scope == ScopeExploratory
+}
+
 // Input contains query and retrieval observations available before curation.
 type Input struct {
 	Query           string
@@ -44,7 +61,7 @@ type Profile struct {
 // a Profile. Shadow remains true until assembly consumes this contract.
 type RetrievalPolicy struct {
 	Shadow               bool     `json:"shadow"`
-	Scope                string   `json:"scope"`
+	Scope                Scope    `json:"scope"`
 	BudgetMode           string   `json:"budget_mode"`
 	TargetTokens         int      `json:"target_tokens"`
 	MaximumTokens        int      `json:"maximum_tokens"`

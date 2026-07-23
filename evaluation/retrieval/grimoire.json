@@ -7,6 +7,12 @@
       "query": "Where is vector snapshot freshness validated against the prepared index and embedding engine metadata?",
       "category": "direct-location",
       "budget": 3000,
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "low",
+        "ambiguity": "medium"
+      },
       "required": [
         {
           "path": "internal/app/vector_manifest.go",
@@ -38,6 +44,12 @@
       "query": "Where does exact retrieval recognize paths, configuration keys, identifiers, and terminal signals?",
       "category": "direct-location",
       "budget": 3000,
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "low",
+        "ambiguity": "medium"
+      },
       "required": [
         {
           "path": "internal/retrieve/exact_signals.go",
@@ -71,6 +83,12 @@
       "query": "Where is the retrieval evaluation command dispatched, its modes parsed, and its concise summary written?",
       "category": "direct-location",
       "budget": 3000,
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "low",
+        "ambiguity": "low"
+      },
       "required": [
         {
           "path": "internal/app/eval_retrieval.go",
@@ -102,6 +120,12 @@
       "query": "How do fast, full, and quality query modes turn a long task into embedding windows and bounded concurrent batches?",
       "category": "mechanism-explanation",
       "budget": 6000,
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "medium",
+        "ambiguity": "medium"
+      },
       "required": [
         {
           "path": "internal/embedding/query.go",
@@ -145,6 +169,12 @@
       "query": "How does a context request combine semantic and exact candidates, curate them, and compile a package within the token budget?",
       "category": "mechanism-explanation",
       "budget": 6000,
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "medium",
+        "ambiguity": "medium"
+      },
       "required": [
         {
           "path": "internal/app/context_evaluation.go",
@@ -214,6 +244,12 @@
       "query": "How does vector build reuse existing embeddings, ingest only missing batches, materialize a complete snapshot, and publish its manifest?",
       "category": "mechanism-explanation",
       "budget": 6000,
+      "expected_query_profile": {
+        "scope": "bounded",
+        "specificity": "medium",
+        "breadth": "medium",
+        "ambiguity": "low"
+      },
       "required": [
         {
           "path": "internal/app/vector_build.go",
@@ -271,6 +307,12 @@
       "query": "Which package owns the public context command, semantic retrieval, candidate curation, and token-budgeted package compilation?",
       "category": "architecture-ownership",
       "budget": 6000,
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "medium",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
       "required": [
         {
           "path": "internal/app/context.go",
@@ -324,6 +366,12 @@
       "query": "Which components own corpus loading, evaluation execution, evidence scoring, aggregate metrics, and JSON/Markdown reporting?",
       "category": "architecture-ownership",
       "budget": 6000,
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "high",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
       "required": [
         {
           "path": "internal/app/eval_retrieval.go",
@@ -382,6 +430,12 @@
       "query": "Trace `grimoire context` from CLI entry through command dispatch, query planning, semantic search, exact recovery, curation, and package serialization.",
       "category": "call-chain-investigation",
       "budget": 8000,
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "high",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
       "required": [
         {
           "path": "cmd/grimoire/main.go",
@@ -460,6 +514,12 @@
       "query": "Trace `grimoire eval retrieval` from top-level dispatch through corpus validation, per-mode context evaluation, stage scoring, aggregate construction, and result-file writing.",
       "category": "call-chain-investigation",
       "budget": 8000,
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "medium",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
       "required": [
         {
           "path": "internal/app/run.go",
@@ -635,13 +695,25 @@
         }
       ],
       "forbidden": [],
-      "notes": "The exact requested long mixed query. It requires the current evaluation runner, model, scoring, reporting, and measured retrieval/package stages."
+      "notes": "The exact requested long mixed query. It requires the current evaluation runner, model, scoring, reporting, and measured retrieval/package stages.",
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "high",
+        "breadth": "high",
+        "ambiguity": "low"
+      }
     },
     {
       "id": "grimoire-lm-02",
       "query": "For a long repository task that names several files and asks for both implementation context and retrieval-quality evidence, follow how Grimoire plans every query window, searches semantic and lexical candidates, recovers exact path or symbol matches, merges and curates candidates, fits the final package budget, and exposes enough stage data for a mode-by-category baseline report.",
       "category": "long-mixed-query",
       "budget": 12000,
+      "expected_query_profile": {
+        "scope": "exploratory",
+        "specificity": "medium",
+        "breadth": "high",
+        "ambiguity": "low"
+      },
       "required": [
         {
           "path": "internal/embedding/query.go",

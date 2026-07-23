@@ -265,6 +265,12 @@ func AggregateRuns(group string, runs []CaseRun) Aggregate {
 	rankingReciprocalRank := 0.0
 	rankingRelevantAt10, rankingRelevantAt20 := 0.0, 0.0
 	for _, run := range runs {
+		if run.ExpectedQueryProfile != nil {
+			aggregate.ProfileCases++
+			if run.QueryProfileMatched {
+				aggregate.ProfileMatches++
+			}
+		}
 		if run.Pass {
 			aggregate.Passes++
 		}
@@ -332,6 +338,9 @@ func AggregateRuns(group string, runs []CaseRun) Aggregate {
 	}
 	if structuralTotal > 0 {
 		aggregate.IrrelevantStructuralRate = float64(structuralIrrelevant) / float64(structuralTotal)
+	}
+	if aggregate.ProfileCases > 0 {
+		aggregate.ProfileMatchRate = float64(aggregate.ProfileMatches) / float64(aggregate.ProfileCases)
 	}
 	if aggregate.RankingCases > 0 {
 		count := float64(aggregate.RankingCases)

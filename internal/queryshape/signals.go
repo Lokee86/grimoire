@@ -13,9 +13,10 @@ type taskSignal struct {
 }
 
 var taskSignals = []taskSignal{
+	{name: "location", phrases: []string{"where is", "where does", "where are", "locate", "find"}},
 	{name: "debugging", phrases: []string{"debug", "broken", "failure", "fails", "error", "panic", "exception", "why"}},
-	{name: "execution-flow", phrases: []string{"trace", "call chain", "caller", "callee", "execution flow", "data flow"}},
-	{name: "architecture", phrases: []string{"architecture", "ownership", "boundary", "subsystem", "across the system"}},
+	{name: "execution-flow", phrases: []string{"trace", "follow", "call chain", "caller", "callee", "execution flow", "data flow"}},
+	{name: "architecture", phrases: []string{"architecture", "ownership", "owns", "which package", "which components", "boundary", "subsystem", "across the system"}},
 	{name: "mechanism", phrases: []string{"explain", "how does", "how do", "mechanism"}},
 	{name: "modification", phrases: []string{"implement", "add", "change", "modify", "refactor", "remove", "fix"}},
 	{name: "verification", phrases: []string{"test", "verify", "regression", "benchmark"}},

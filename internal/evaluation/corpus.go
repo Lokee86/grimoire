@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Lokee86/grimoire/internal/queryshape"
 )
 
 var structuralKinds = map[string]struct{}{
@@ -55,6 +57,9 @@ func LoadCorpus(path string) (Corpus, error) {
 		if entry.Budget <= 0 {
 			return Corpus{}, fmt.Errorf("case %q requires a positive budget", entry.ID)
 		}
+		if err := validateQueryProfileExpectation(entry.ID, entry.ExpectedQueryProfile); err != nil {
+			return Corpus{}, err
+		}
 		if len(entry.Required) == 0 && len(entry.RequiredStructural) == 0 {
 			return Corpus{}, fmt.Errorf("case %q requires explicit source or structural evidence", entry.ID)
 		}
@@ -76,6 +81,25 @@ func LoadCorpus(path string) (Corpus, error) {
 		}
 	}
 	return corpus, nil
+}
+
+func validateQueryProfileExpectation(caseID string, expected *QueryProfileExpectation) error {
+	if expected == nil {
+		return nil
+	}
+	if !queryshape.ValidScope(expected.Scope) {
+		return fmt.Errorf("case %q has invalid expected query scope %q", caseID, expected.Scope)
+	}
+	for label, level := range map[string]queryshape.Level{
+		"specificity": expected.Specificity,
+		"breadth":     expected.Breadth,
+		"ambiguity":   expected.Ambiguity,
+	} {
+		if !queryshape.ValidLevel(level) {
+			return fmt.Errorf("case %q has invalid expected query %s %q", caseID, label, level)
+		}
+	}
+	return nil
 }
 
 func validateEvidence(caseID string, evidence Evidence) error {

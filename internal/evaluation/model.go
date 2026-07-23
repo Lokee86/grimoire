@@ -52,18 +52,26 @@ type StructuralExpectation struct {
 	Reason       string   `json:"reason,omitempty"`
 }
 
+type QueryProfileExpectation struct {
+	Scope       queryshape.Scope `json:"scope"`
+	Specificity queryshape.Level `json:"specificity"`
+	Breadth     queryshape.Level `json:"breadth"`
+	Ambiguity   queryshape.Level `json:"ambiguity"`
+}
+
 type Case struct {
-	ID                   string                  `json:"id"`
-	Query                string                  `json:"query"`
-	Category             Category                `json:"category"`
-	Budget               int                     `json:"budget"`
-	Required             []Evidence              `json:"required,omitempty"`
-	Supporting           []Evidence              `json:"supporting,omitempty"`
-	Forbidden            []Evidence              `json:"forbidden,omitempty"`
-	RequiredStructural   []StructuralExpectation `json:"required_structural,omitempty"`
-	SupportingStructural []StructuralExpectation `json:"supporting_structural,omitempty"`
-	ForbiddenStructural  []StructuralExpectation `json:"forbidden_structural,omitempty"`
-	Notes                string                  `json:"notes,omitempty"`
+	ID                   string                   `json:"id"`
+	Query                string                   `json:"query"`
+	Category             Category                 `json:"category"`
+	Budget               int                      `json:"budget"`
+	ExpectedQueryProfile *QueryProfileExpectation `json:"expected_query_profile,omitempty"`
+	Required             []Evidence               `json:"required,omitempty"`
+	Supporting           []Evidence               `json:"supporting,omitempty"`
+	Forbidden            []Evidence               `json:"forbidden,omitempty"`
+	RequiredStructural   []StructuralExpectation  `json:"required_structural,omitempty"`
+	SupportingStructural []StructuralExpectation  `json:"supporting_structural,omitempty"`
+	ForbiddenStructural  []StructuralExpectation  `json:"forbidden_structural,omitempty"`
+	Notes                string                   `json:"notes,omitempty"`
 }
 
 type Corpus struct {
@@ -167,6 +175,9 @@ type CaseRun struct {
 	Timings                           Timings                    `json:"timings"`
 	QueryProfile                      queryshape.Profile         `json:"query_profile"`
 	RetrievalPolicy                   queryshape.RetrievalPolicy `json:"retrieval_policy"`
+	ExpectedQueryProfile              *QueryProfileExpectation   `json:"expected_query_profile,omitempty"`
+	QueryProfileMatched               bool                       `json:"query_profile_matched"`
+	QueryProfileMismatches            []string                   `json:"query_profile_mismatches,omitempty"`
 	RetrievalSources                  []string                   `json:"retrieval_sources"`
 	StructuralSources                 []string                   `json:"structural_sources,omitempty"`
 	StructuralState                   []structure.ProviderState  `json:"structural_state,omitempty"`
@@ -220,6 +231,9 @@ type Aggregate struct {
 	RelevantRateAt20           float64 `json:"relevant_rate_at_20"`
 	MedianLatencyMS            float64 `json:"median_latency_ms"`
 	P95LatencyMS               float64 `json:"p95_latency_ms"`
+	ProfileCases               int     `json:"profile_cases"`
+	ProfileMatches             int     `json:"profile_matches"`
+	ProfileMatchRate           float64 `json:"profile_match_rate"`
 }
 
 type Report struct {
