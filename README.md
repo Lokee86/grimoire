@@ -18,7 +18,7 @@ It provides one reusable adapter per programming language and a normalized fact 
 
 ## Contract
 
-Adapters are independently executable and emit deterministic Lexicon JSONL. The fact contract is defined in [`spec/facts-v1.md`](spec/facts-v1.md), and the immutable application storage contract is defined in [`spec/snapshots-v1.md`](spec/snapshots-v1.md).
+Adapters are independently executable and emit deterministic Lexicon JSONL. The static fact contract is defined in [`spec/facts-v1.md`](spec/facts-v1.md), the optional run-specific evidence boundary is defined in [`spec/runtime-evidence-v1.md`](spec/runtime-evidence-v1.md), and the immutable application storage contract is defined in [`spec/snapshots-v1.md`](spec/snapshots-v1.md). Runtime observations can be validated and compared with static facts through `tools/reconcile_runtime.py`; they never silently rewrite the static graph.
 
 Every adapter must:
 
