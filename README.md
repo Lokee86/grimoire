@@ -1,98 +1,156 @@
 # Lexicon
 
-Lexicon is the shared language-analysis subsystem for the Warlock toolchain.
+Lexicon is the shared language-analysis engine for the Warlock toolchain. It turns source repositories into deterministic, versioned facts about files, symbols, calls, dataflow, inheritance, dependencies, and unresolved relationships.
 
-It provides one reusable adapter per programming language and a normalized fact contract for repository symbols and relationships. Arcana, Pitlord, Grimoire, Demon Docs, Homunculus, and other tools can consume the same language facts without maintaining duplicate parsers.
+Lexicon is primarily a one-shot CLI application. It can also run an optional filesystem watch mode through `lexicon demon`, but consumers do not depend on a resident Lexicon process.
 
-## Initial adapters
+## Current state
 
-| Language | Implementation | Parser | Status |
+Lexicon currently provides:
+
+- deterministic adapters for Go, GDScript, Python, Ruby, Rust, JavaScript, TypeScript, and Svelte script blocks;
+- a normalized facts-v1 JSONL adapter boundary;
+- immutable content-addressed binary fact objects;
+- atomic repository snapshots and crash-safe publication;
+- source repositories need not use Git; Lexicon maintains its own private change-detection mirror and content identities;
+- dependency-aware scoped analysis with complete-language fallback;
+- concurrent language analysis under one process-wide CPU budget;
+- adaptive parallel semantic resolution inside the Go adapter;
+- deterministic post-publication consumer hooks for tools such as Arcana;
+- repeatable fixture and real-repository validation.
+
+The adapters are functional semantic analyzers, not merely syntax inventories. Precision varies by language and dynamic behavior; unsupported relationships remain unresolved instead of being guessed. See [Current status and limits](docs/STATUS.md).
+
+## Supported adapters
+
+| Language surface | Implementation | Semantic frontend | Scope |
 | --- | --- | --- | --- |
-| Ruby | Ruby | `Ripper` | Runnable slice |
-| Python | Python | Standard-library `ast` | Runnable slice |
-| GDScript | Go | Dedicated lexical/parser seam | Runnable slice |
-| Rust | Rust | `syn` plus Cargo metadata | Runnable slice |
-| TypeScript | TypeScript | TypeScript compiler API | Runnable slice |
-| Go | Go | `go/parser`, `go/types`, SSA, and VTA | Complete semantic adapter |
+| Go | Go | `go/parser`, `go/types`, packages, SSA, and VTA | Multi-module repositories, typed calls, interfaces, dataflow, dependencies |
+| GDScript | Go | Dedicated parser and bounded type-flow model | Godot projects, inheritance, callbacks, autoloads, local dispatch |
+| Python | Python | Standard-library `ast` | Imports, inheritance, protocols, higher-order flow, dataflow |
+| Ruby | Ruby | Standard-library `Ripper` | Reopened types, mixins, blocks, Rails-aware bounded flow |
+| Rust | Rust | `syn` and Cargo metadata | Workspaces, traits, implementations, callbacks, dependencies |
+| JavaScript / TypeScript / Svelte | TypeScript | TypeScript compiler API and offset-preserving Svelte frontend | Typed and untyped JS/TS, JSX, CommonJS, Svelte script blocks |
 
+Adapter-specific behavior and limits are indexed in [adapters/README.md](adapters/README.md).
 
-## Contract
+## Quick start
 
-Adapters are independently executable and emit deterministic Lexicon JSONL. The static fact contract is defined in [`spec/facts-v1.md`](spec/facts-v1.md), the optional run-specific evidence boundary in [`spec/runtime-evidence-v1.md`](spec/runtime-evidence-v1.md), the immutable application storage contract in [`spec/snapshots-v1.md`](spec/snapshots-v1.md), and the binary fact-object encoding in [`spec/objects-v1.md`](spec/objects-v1.md). Runtime observations can be validated and compared with static facts through `tools/reconcile_runtime.py`; they never silently rewrite the static graph.
-
-Every adapter must:
-
-- accept a repository root and output path, plus optional repeated changed-file and removed-file scopes;
-- emit exactly one header record followed by sorted fact records;
-- normalize repository paths to forward-slash relative paths;
-- use SHA-256 stable identities defined by the contract;
-- distinguish definite relationships from unresolved or ambiguous references;
-- exclude `.git/`, worktree metadata, common language build/vendor directories, and every Warlock state directory: `.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, and `.warlock/`;
-- avoid embedding consumer-specific policy or storage assumptions.
-
-## Application
-
-Lexicon includes a standalone application that maintains the most recently observed relevant repository state independently of the source repository's Git state.
+Build the application from the repository root:
 
 ```text
-lexicon init [--languages all|LIST]
-lexicon scan
-lexicon demon
-lexicon rebuild [--languages LIST]
-lexicon languages [list|set]
-lexicon status
-lexicon doctor
-lexicon export --output PATH
-lexicon gc [--dry-run]
-lexicon consumer <list|add|remove|run>
-lexicon version
+go build -o bin/lexicon ./cmd/lexicon
 ```
 
-`init` performs the first complete scan. `scan` updates only impacted facts when safe. `demon` triggers the same transaction from filesystem events. `rebuild` forces complete analysis, adapter fingerprint changes automatically rebuild affected languages, and language selection can disable unused runtimes. The remaining commands inspect health, manage downstream consumers, export verified JSONL libraries, and prune unreachable immutable storage. See [`docs/APPLICATION.md`](docs/APPLICATION.md).
-
-Full scans schedule independent language adapters concurrently under one process-wide CPU budget. The Go adapter additionally partitions typed call and dataflow resolution into repository-size-dependent logical shards, reduces shard-local facts deterministically, and retains SSA/VTA as the final repository-wide resolver. Logical shard count is independent from active worker count, so large repositories may create hundreds of reusable work partitions without launching hundreds of simultaneous processes. Set `LEXICON_MAX_WORKERS` to impose a lower machine-specific concurrency limit.
-
-### Ignore policy
-
-An optional repository-root `.lexiconignore` controls which otherwise relevant files Lexicon mirrors and watches. It uses gitignore-compatible patterns, including comments, globs, `**`, path hierarchy, and `!` negation. The policy is applied consistently to complete mirror scans, path syncs, and demon watch filtering; changing `.lexiconignore` causes the demon to reload the policy and perform a complete scan.
-
-The permanent exclusions are always enforced and cannot be re-included by `.lexiconignore`: Git and worktree metadata, Warlock state directories (`.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, `.warlock/`), dependency directories (`node_modules/`, `vendor/`), and common build or tool state directories (`target/`, `dist/`, `build/`, `.venv/`, `venv/`, `__pycache__/`, `.pytest_cache/`).
-
-After every successful `scan`, Lexicon invokes registered one-shot consumers from `.lexicon/consumers/*.json`. This provides event-driven automation without requiring a consumer demon: Arcana can register `arcana sync`, while the same registration also runs after demon-triggered scans. Consumers receive `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID` in their environment.
-
-### Possible post-0.1.0 product-boundary review
-
-Lexicon and Arcana currently remain separate applications with a versioned snapshot boundary. A future Warlock review may make Lexicon the primary consumer-facing interface and expose Arcana as its optional optimized graph backend. Arcana would remain a separate Rust process and independently usable graph engine; this would consolidate the product surface rather than merge the implementations.
-
-This option is deferred until after the 0.1.0 suite. It does not change the current application, snapshot, consumer-hook, or Arcana synchronization contracts.
-
-## Repository layout
+Initialize a source repository using this checkout's adapters:
 
 ```text
-cmd/lexicon/
-internal/
-adapters/
-    gdscript/
-    go/
-    python/
-    ruby/
-    rust/
-    typescript/
-docs/
-spec/
-tools/
+bin/lexicon init --repo /path/to/repository --adapters ./adapters
+bin/lexicon status --repo /path/to/repository
 ```
 
-Each adapter remains self-contained in its own directory. Shared behavior is specified by contract and fixtures rather than a cross-runtime helper library. See [`docs/RELEASE_PACKAGING.md`](docs/RELEASE_PACKAGING.md) for distribution builds and runtime requirements.
+Subsequent scans reuse unchanged immutable objects and narrow analysis when the previous snapshot makes that safe:
 
-## Status
+```text
+bin/lexicon scan --repo /path/to/repository
+bin/lexicon export --repo /path/to/repository --output /path/to/export
+```
 
-Lexicon now has a version-one fact contract, a complete Go semantic adapter, runnable adapters for Ruby, Python, GDScript, Rust, and TypeScript, and a transactional application layer with a private Git diff mirror, dependency-aware scoped adapter repositories, relationship-topology fallback, direct incremental object replacement, unchanged-object reuse, durable pending-publication recovery, single-writer locking, immutable per-file fact objects, snapshot manifests, and atomic current-snapshot publication. JSONL remains the deterministic adapter, export, and diagnostic format; normal scans parse it once into typed facts and write compact binary objects without materializing or merging complete language JSONL libraries. Arcana reads those binary records directly and retains legacy JSON-object support for migration. Each adapter provides deterministic repository structure, declarations, imports, containment, and language-appropriate inheritance or implementation evidence. Some adapters also provide bounded direct call or reference evidence where the parser can resolve it soundly.
+A packaged release places the executable beside its adapter directory, so `--adapters` is normally unnecessary. Source checkouts can also set `LEXICON_ADAPTERS`.
 
-The non-Go adapters are functional foundations rather than complete semantic analyzers. Go includes type-aware internal and external calls, SSA/VTA possible dispatch, interfaces, closures, captures, conversions, and build-tag variants. Unsupported or ambiguous relationships remain unresolved rather than guessed.
+## Commands
 
-Cross-adapter real-repository acceptance is tracked by the corpus harness in [`evaluation/`](evaluation/README.md). The current non-Go baseline covers 12 calibration, validation, and holdout cases with contract validation, required-relation gates, expected-negative gates, audit samples, and byte-for-byte repeat-run determinism. See [`docs/SEMANTIC_CORPUS_VALIDATION.md`](docs/SEMANTIC_CORPUS_VALIDATION.md).
+| Command | Responsibility |
+| --- | --- |
+| `init` | Create `.lexicon/`, detect enabled languages, perform the first scan, and publish the initial snapshot |
+| `scan` | Reconcile current source content and publish a new snapshot when analysis changes |
+| `demon` | Watch the repository and invoke the same scan transaction after debounced changes |
+| `rebuild` | Force complete analysis for all or selected enabled languages |
+| `languages` | Inspect or change the enabled language set |
+| `status` | Report repository, snapshot, language, and consumer state |
+| `doctor` | Validate configuration, storage, adapters, runtimes, and consumers |
+| `export` | Reconstruct verified deterministic JSONL libraries from an immutable snapshot |
+| `gc` | Remove unreachable snapshots and fact objects while respecting retention and consumer pins |
+| `consumer` | List, register, remove, or invoke deterministic post-publication consumers |
+| `version` | Print the application version |
+
+The complete flag reference and state layout are in [docs/APPLICATION.md](docs/APPLICATION.md).
+
+## Architecture
+
+Lexicon has four explicit ownership layers:
+
+1. **Adapters** discover language-specific facts and emit facts-v1 JSONL.
+2. **Scan orchestration** selects complete or scoped analysis, schedules adapters, and validates their output.
+3. **Object storage** partitions facts by source owner, writes immutable binary objects, and publishes atomic manifests.
+4. **Consumers** resolve `CURRENT` and read only immutable snapshot data.
+
+JSONL is the stable adapter, export, and diagnostic boundary. Normal application scans parse each adapter stream once, then store compact binary fact objects without maintaining complete materialized JSONL libraries.
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for ownership, transaction, incremental, concurrency, and recovery details.
+
+## Contracts
+
+The versioned public contracts are:
+
+- [facts-v1](spec/facts-v1.md): adapter records, stable IDs, ownership, sorting, and incremental semantics;
+- [objects-v1](spec/objects-v1.md): deterministic binary fact-object encoding;
+- [snapshots-v1](spec/snapshots-v1.md): immutable manifests and atomic publication;
+- [runtime-evidence-v1](spec/runtime-evidence-v1.md): optional run-specific observations that never rewrite static facts.
+
+Contract governance and compatibility rules are in [spec/README.md](spec/README.md).
+
+## Concurrency and determinism
+
+Independent language adapters may execute concurrently under a weighted process-wide CPU budget. The Go adapter additionally partitions typed call and dataflow work into logical shards, processes those shards with a bounded worker pool, and merges shard-local facts through a deterministic reduction tree before the repository-wide SSA/VTA pass.
+
+Logical shard count is separate from active worker count. Large repositories may have many logical partitions without launching an equivalent number of processes or goroutines. `LEXICON_MAX_WORKERS` can lower the worker ceiling for a machine or CI environment. Output must remain byte-identical across worker counts and merge shapes.
+
+## Boundaries
+
+Lexicon owns language extraction, normalized fact identities, source ownership, immutable analysis objects, and snapshot publication.
+
+Lexicon does not own:
+
+- graph query algorithms or packed graph traversal; Arcana owns those concerns;
+- retrieval ranking or context-package construction; Grimoire owns those concerns;
+- documentation policy or repository documentation repair; Demon Docs owns those concerns;
+- runtime instrumentation providers; the runtime-evidence contract only defines their exchange boundary;
+- general repository version control; the private Git mirror is an internal change detector, not a user-facing history.
+
+## Documentation
+
+- [Documentation index and rules](docs/README.md)
+- [Application and operations](docs/APPLICATION.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Development and verification](docs/DEVELOPMENT.md)
+- [Current status and limits](docs/STATUS.md)
+- [Semantic acceptance gates](docs/SEMANTIC_ACCEPTANCE.md)
+- [Cross-adapter corpus validation](docs/SEMANTIC_CORPUS_VALIDATION.md)
+- [Release packaging](docs/RELEASE_PACKAGING.md)
+- [Evaluation harness](evaluation/README.md)
+
+## Development
+
+Run the complete application and adapter test matrix:
+
+```text
+python evaluation/run_tests.py
+```
+
+Run the real-repository semantic corpus:
+
+```text
+python evaluation/bootstrap_corpus.py
+python evaluation/run_validation.py --jobs 3
+```
+
+Detailed prerequisites, focused commands, race checks, validation rules, and documentation requirements are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Warlock toolchain
+
+Lexicon is independently usable, but it is designed as the shared semantic-analysis foundation for Warlock tools. Arcana consumes Lexicon snapshots to build queryable graphs; other tools can consume the same facts without maintaining duplicate language adapters.
 
 ## License
 
-Apache License 2.0.
+Apache License 2.0. See [LICENSE](LICENSE).

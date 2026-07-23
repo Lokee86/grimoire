@@ -1,5 +1,7 @@
 # Go adapter real-repository validation
 
+This is a dated validation record, not a current performance benchmark. It captures the Go semantic adapter validation performed on July 22, 2026 before the later multi-module repository and adaptive semantic-parallelism changes were merged into `main`. The semantic categories and limitations remain relevant; counts, file totals, packed sizes, and elapsed behavior may differ on the current implementation.
+
 Validated on July 22, 2026 against two existing Go modules without modifying
 either source repository.
 

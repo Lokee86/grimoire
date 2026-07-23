@@ -2,6 +2,22 @@
 
 Lexicon keeps the most recently observed relevant repository state. It does not follow the source repository's commits, index, staging area, or branches.
 
+## Runtime model
+
+Lexicon is primarily a one-shot CLI. `init`, `scan`, `rebuild`, `languages set`, `export`, `gc`, `consumer`, `status`, and `doctor` perform bounded operations and exit.
+
+`lexicon demon` is an optional watch mode. It remains active only to translate filesystem events and periodic reconciliation into the same locked scan transaction used by `lexicon scan`. Snapshot consumers do not depend on the watch process and can read any published snapshot after Lexicon exits.
+
+When `--repo` is omitted, initialized commands walk upward from the current directory until they find `.lexicon/config.json`. `lexicon init` uses an already initialized ancestor when present; otherwise it initializes the current directory. An explicit `--repo` always selects that directory directly.
+
+## Concurrency
+
+A scan may execute independent language plans concurrently. A weighted scheduler limits their combined reserved work to the process-wide `GOMAXPROCS` CPU budget.
+
+The Go adapter also receives repository-size-dependent logical shard, active worker, and merge fan-in values. Typed call and dataflow work executes in shard-local scanners, merges through a deterministic reduction tree, and is followed by repository-wide SSA/VTA resolution. Logical shard count is independent from active worker count. `LEXICON_MAX_WORKERS` may lower the worker ceiling for constrained machines or CI.
+
+Concurrency must not change output. Identical source, adapter versions, schema, and analysis configuration must produce byte-identical facts regardless of valid worker count or merge shape.
+
 ## Post-publication consumers
 
 Lexicon can invoke deterministic one-shot consumers after a successful scan has published or confirmed the current immutable snapshot. Consumer definitions live under `.lexicon/consumers/*.json`:
