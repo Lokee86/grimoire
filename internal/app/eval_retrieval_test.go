@@ -24,6 +24,58 @@ func TestParseStructuralProviders(t *testing.T) {
 	}
 }
 
+func TestEvalRetrievalAdaptiveUsesAutomaticAssembly(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "internal", "damage"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	content := "package damage\n\nfunc ResolveDamage() int { return 10 }\n"
+	if err := os.WriteFile(filepath.Join(root, "internal", "damage", "resolve.go"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	corpusPath := filepath.Join(root, "cases.json")
+	corpus := evaluation.Corpus{
+		Version: 1, Repository: "fixture",
+		Cases: []evaluation.Case{{
+			ID: "resolve-damage", Query: "Where is ResolveDamage?",
+			Category: evaluation.CategoryDirectLocation, Budget: 500,
+			Required: []evaluation.Evidence{{Path: "internal/damage/resolve.go", Symbols: []string{"ResolveDamage"}}},
+		}},
+	}
+	data, err := json.Marshal(corpus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(corpusPath, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Run([]string{
+		"eval", "retrieval", "--root", root, "--cases", corpusPath,
+		"--modes", "lexical", "--adaptive", "--output-dir", "results", "--output-prefix", "adaptive",
+	}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	resultData, err := os.ReadFile(filepath.Join(root, "results", "adaptive.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var report evaluation.Report
+	if err := json.Unmarshal(resultData, &report); err != nil {
+		t.Fatal(err)
+	}
+	run := report.Runs[0]
+	if run.Budget != 3000 || run.Assembly == nil || run.Assembly.Scope != "focused" {
+		t.Fatalf("unexpected adaptive run: %+v", run)
+	}
+	if run.AssembledCount > run.CuratedCount {
+		t.Fatalf("assembly expanded candidates: curated=%d assembled=%d", run.CuratedCount, run.AssembledCount)
+	}
+}
+
 func TestEvalRetrievalLexicalWritesResults(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "internal", "damage"), 0o755); err != nil {

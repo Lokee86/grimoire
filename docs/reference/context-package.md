@@ -37,6 +37,7 @@ The current package version is `5`.
     "scope": "focused",
     "candidates_considered": 5,
     "candidates_selected": 3,
+    "candidate_tokens": 2460,
     "structural_considered": 2,
     "structural_selected": 2,
     "regions_represented": [

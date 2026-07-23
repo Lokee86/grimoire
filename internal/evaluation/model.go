@@ -3,6 +3,7 @@ package evaluation
 import (
 	"time"
 
+	"github.com/Lokee86/grimoire/internal/assembly"
 	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
@@ -96,6 +97,7 @@ type Timings struct {
 	CandidateMergeMS       float64 `json:"candidate_merge_ms,omitempty"`
 	ExactRecoveryMS        float64 `json:"exact_recovery_ms,omitempty"`
 	CurationMS             float64 `json:"curation_ms,omitempty"`
+	AssemblyMS             float64 `json:"assembly_ms,omitempty"`
 	PackageCompilationMS   float64 `json:"package_compilation_ms,omitempty"`
 	SelectionCompilationMS float64 `json:"selection_compilation_ms,omitempty"`
 	DiagnosticProbeMS      float64 `json:"diagnostic_probe_ms,omitempty"`
@@ -139,6 +141,7 @@ type EvidenceStatus struct {
 	ExactRecovered bool     `json:"exact_recovered"`
 	Merged         bool     `json:"merged"`
 	Curated        bool     `json:"curated"`
+	Assembled      bool     `json:"assembled"`
 	Included       bool     `json:"included"`
 	FailureStage   string   `json:"failure_stage,omitempty"`
 }
@@ -147,6 +150,7 @@ type StructuralEvidenceStatus struct {
 	Evidence     StructuralExpectation `json:"evidence"`
 	Produced     bool                  `json:"produced"`
 	Composed     bool                  `json:"composed"`
+	Assembled    bool                  `json:"assembled"`
 	Included     bool                  `json:"included"`
 	FailureStage string                `json:"failure_stage,omitempty"`
 }
@@ -175,6 +179,7 @@ type CaseRun struct {
 	Timings                           Timings                    `json:"timings"`
 	QueryProfile                      queryshape.Profile         `json:"query_profile"`
 	RetrievalPolicy                   queryshape.RetrievalPolicy `json:"retrieval_policy"`
+	Assembly                          *assembly.Decision         `json:"assembly,omitempty"`
 	ExpectedQueryProfile              *QueryProfileExpectation   `json:"expected_query_profile,omitempty"`
 	QueryProfileMatched               bool                       `json:"query_profile_matched"`
 	QueryProfileMismatches            []string                   `json:"query_profile_mismatches,omitempty"`
@@ -187,6 +192,7 @@ type CaseRun struct {
 	FinalPackageTokens                int                        `json:"final_package_tokens"`
 	CandidateCount                    int                        `json:"candidate_count"`
 	CuratedCount                      int                        `json:"curated_count"`
+	AssembledCount                    int                        `json:"assembled_count"`
 	Ranking                           RankingMetrics             `json:"ranking"`
 	OmittedForBudget                  int                        `json:"omitted_for_budget"`
 	OmittedStructuralForBudget        int                        `json:"omitted_structural_for_budget"`
@@ -205,9 +211,11 @@ type CaseRun struct {
 	RequiredNeverRetrieved            int                        `json:"required_never_retrieved"`
 	RequiredLostDuringMerge           int                        `json:"required_lost_during_merge"`
 	RequiredLostDuringCuration        int                        `json:"required_lost_during_curation"`
+	RequiredLostDuringAssembly        int                        `json:"required_lost_during_assembly"`
 	RequiredOmittedForBudget          int                        `json:"required_omitted_for_budget"`
 	RequiredStructuralNeverProduced   int                        `json:"required_structural_never_produced"`
 	RequiredStructuralLostComposition int                        `json:"required_structural_lost_during_composition"`
+	RequiredStructuralLostAssembly    int                        `json:"required_structural_lost_during_assembly"`
 	RequiredStructuralOmittedBudget   int                        `json:"required_structural_omitted_for_budget"`
 	FailureClassifications            []string                   `json:"failure_classifications,omitempty"`
 }
@@ -231,6 +239,10 @@ type Aggregate struct {
 	RelevantRateAt20           float64 `json:"relevant_rate_at_20"`
 	MedianLatencyMS            float64 `json:"median_latency_ms"`
 	P95LatencyMS               float64 `json:"p95_latency_ms"`
+	MedianPackageTokens        float64 `json:"median_package_tokens"`
+	P95PackageTokens           float64 `json:"p95_package_tokens"`
+	MedianSelectedChunks       float64 `json:"median_selected_chunks"`
+	MedianBudgetUtilization    float64 `json:"median_budget_utilization"`
 	ProfileCases               int     `json:"profile_cases"`
 	ProfileMatches             int     `json:"profile_matches"`
 	ProfileMatchRate           float64 `json:"profile_match_rate"`

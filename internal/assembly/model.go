@@ -11,6 +11,7 @@ type Decision struct {
 	Scope                queryshape.Scope `json:"scope"`
 	CandidatesConsidered int              `json:"candidates_considered"`
 	CandidatesSelected   int              `json:"candidates_selected"`
+	CandidateTokens      int              `json:"candidate_tokens"`
 	StructuralConsidered int              `json:"structural_considered"`
 	StructuralSelected   int              `json:"structural_selected"`
 	RegionsRepresented   []string         `json:"regions_represented,omitempty"`

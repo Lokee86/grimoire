@@ -33,6 +33,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	modesValue := flags.String("modes", strings.Join(evaluationModes, ","), "comma-separated modes: fast, full, quality, lexical")
 	variant := flags.String("variant", "standalone", "evaluation variant label")
 	budgetOverride := flags.Int("budget", 0, "override every case token budget")
+	adaptive := flags.Bool("adaptive", false, "use automatic query-shape budgets and evidence-coverage assembly")
 	limit := flags.Int("candidate-limit", 200, "maximum ranked candidates")
 	probeLimit := flags.Int("probe-limit", 800, "broader diagnostic ranking probe")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
@@ -56,6 +57,9 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	}
 	if strings.TrimSpace(*casesPath) == "" || *limit <= 0 || *probeLimit <= 0 || *timeout <= 0 || *structureTimeout <= 0 {
 		return errors.New("--cases and positive --candidate-limit, --probe-limit, --timeout, and --structure-timeout are required")
+	}
+	if *adaptive && *budgetOverride > 0 {
+		return errors.New("--adaptive cannot be combined with a fixed --budget override")
 	}
 	modes, err := parseEvaluationModes(*modesValue)
 	if err != nil {
@@ -140,6 +144,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 				Mode:       mode,
 				Query:      entry.Query,
 				Budget:     budget,
+				Adaptive:   *adaptive,
 				Limit:      *limit,
 				ProbeLimit: actualProbeLimit,
 				StatePath:  statePath,
@@ -158,9 +163,10 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 			run.Timings = executed.Timings
 			run.QueryProfile = executed.QueryProfile
 			run.RetrievalPolicy = executed.RetrievalPolicy
+			run.Assembly = executed.Package.Assembly
 			evaluation.ScoreQueryProfile(entry, &run)
-			if run.Timings.TotalMS == 0 {
-				run.Timings.TotalMS = durationMS(time.Since(runStart))
+			if run.Timings.TotalMS <= 0 {
+				run.Timings.TotalMS = max(durationMS(time.Since(runStart)), 0.001)
 			}
 			if executeErr != nil {
 				run.Warnings = append([]string(nil), executed.Warnings...)
@@ -171,12 +177,15 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 				continue
 			}
 			run.Warnings = append([]string(nil), executed.Warnings...)
+			run.Budget = executed.Package.Budget
+			run.Assembly = executed.Package.Assembly
 			run.RetrievalSources = append([]string(nil), executed.Package.RetrievalSources...)
 			run.StructuralSources = append([]string(nil), executed.Package.StructuralSources...)
 			run.StructuralState = append([]structure.ProviderState(nil), executed.Package.StructuralState...)
 			run.FinalPackageTokens = executed.Package.TokenCount
 			run.CandidateCount = len(executed.Stages.Merged)
 			run.CuratedCount = len(executed.Stages.Curated)
+			run.AssembledCount = len(executed.Stages.Assembled)
 			run.OmittedForBudget = executed.Package.OmittedForBudget
 			run.OmittedStructuralForBudget = executed.Package.OmittedStructuralForBudget
 			run.Selections = packageSelections(entry, executed.Package.Selections)

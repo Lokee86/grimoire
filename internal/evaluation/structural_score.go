@@ -10,15 +10,18 @@ func scoreStructuralGroup(group []StructuralExpectation, stages Stages) []Struct
 	result := make([]StructuralEvidenceStatus, 0, len(group))
 	for _, expected := range group {
 		status := StructuralEvidenceStatus{
-			Evidence: expected,
-			Produced: structuralEvidencePresent(expected, stages.StructuralProduced),
-			Composed: structuralEvidencePresent(expected, stages.StructuralComposed),
-			Included: structuralEvidencePresent(expected, stages.StructuralIncluded),
+			Evidence:  expected,
+			Produced:  structuralEvidencePresent(expected, stages.StructuralProduced),
+			Composed:  structuralEvidencePresent(expected, stages.StructuralComposed),
+			Assembled: structuralEvidencePresent(expected, stages.StructuralAssembled),
+			Included:  structuralEvidencePresent(expected, stages.StructuralIncluded),
 		}
 		switch {
 		case status.Included:
-		case status.Composed:
+		case status.Assembled:
 			status.FailureStage = FailureStructuralBudgetFittingLoss
+		case status.Composed:
+			status.FailureStage = FailureStructuralAssemblyLoss
 		case status.Produced:
 			status.FailureStage = FailureStructuralCompositionLoss
 		default:

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Lokee86/grimoire/internal/assembly"
 	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/evaluation"
@@ -28,6 +29,7 @@ type evaluatedContextOptions struct {
 	Mode         string
 	Query        string
 	Budget       int
+	Adaptive     bool
 	Limit        int
 	ProbeLimit   int
 	StatePath    string
@@ -88,22 +90,51 @@ func evaluateContext(
 	mergeStart := time.Now()
 	merged := mergeContextProviders(options.Limit, exact, base, structural.Lexicon.Candidates)
 	result.Timings.CandidateMergeMS += durationMS(time.Since(mergeStart))
+	profileBudget := options.Budget
+	if options.Adaptive {
+		profileBudget = 0
+	}
 	result.QueryProfile, result.RetrievalPolicy = queryshape.Analyze(queryshape.Input{
-		Query: options.Query, RequestedBudget: options.Budget,
+		Query: options.Query, RequestedBudget: profileBudget,
 		Exact: exact, Ranked: base, Candidates: merged, Structural: structural.Combined,
 	})
 
 	curationStart := time.Now()
 	curated := selection.Curate(snapshot, merged)
 	result.Timings.CurationMS = durationMS(time.Since(curationStart))
+	assembledCandidates := curated
+	assembledEvidence := structural.Combined
+	effectiveBudget := options.Budget
+	var decision *assembly.Decision
+	if options.Adaptive {
+		result.RetrievalPolicy = queryshape.Activate(result.RetrievalPolicy)
+		effectiveBudget = result.RetrievalPolicy.TargetTokens
+		assemblyStart := time.Now()
+		planned := assembly.Plan(result.RetrievalPolicy, curated, structural.Combined)
+		result.Timings.AssemblyMS = durationMS(time.Since(assemblyStart))
+		assembledCandidates = planned.Candidates
+		assembledEvidence = planned.Structural
+		decision = &planned.Decision
+	}
 
 	compileStart := time.Now()
-	pkg, err := compiler.CompileWithEvidence(
-		options.Query, options.Budget, snapshot.Version, snapshot.Tokenizer,
-		contextCandidateSources(curated), structural.ProviderState, structural.Combined, curated,
-	)
+	var pkg compiler.Package
+	var err error
+	if decision != nil {
+		pkg, err = compiler.CompileAdaptiveWithEvidence(
+			options.Query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
+			contextCandidateSources(assembledCandidates), structural.ProviderState,
+			assembledEvidence, *decision, assembledCandidates,
+		)
+	} else {
+		pkg, err = compiler.CompileWithEvidence(
+			options.Query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
+			contextCandidateSources(assembledCandidates), structural.ProviderState,
+			assembledEvidence, assembledCandidates,
+		)
+	}
 	result.Timings.PackageCompilationMS = durationMS(time.Since(compileStart))
-	result.Timings.SelectionCompilationMS = result.Timings.CurationMS + result.Timings.PackageCompilationMS
+	result.Timings.SelectionCompilationMS = result.Timings.CurationMS + result.Timings.AssemblyMS + result.Timings.PackageCompilationMS
 	result.Timings.TotalMS = durationMS(time.Since(totalStart)) - result.Timings.DiagnosticProbeMS
 	if result.Timings.TotalMS < 0 {
 		result.Timings.TotalMS = 0
@@ -113,16 +144,18 @@ func evaluateContext(
 	}
 	result.Package = pkg
 	result.Stages = evaluation.Stages{
-		Indexed:            chunksToEvaluation(snapshot.AllChunks()),
-		BroadProbe:         candidatesToEvaluation(broad),
-		Retrieved:          candidatesToEvaluation(mergeContextProviders(options.Limit, nil, base, structural.Lexicon.Candidates)),
-		Exact:              candidatesToEvaluation(exact),
-		Merged:             candidatesToEvaluation(merged),
-		Curated:            candidatesToEvaluation(curated),
-		Included:           selectionsToEvaluation(pkg.Selections),
-		StructuralProduced: append(append([]structure.Evidence(nil), structural.Lexicon.Evidence...), structural.Arcana...),
-		StructuralComposed: append([]structure.Evidence(nil), structural.Combined...),
-		StructuralIncluded: append([]structure.Evidence(nil), pkg.StructuralEvidence...),
+		Indexed:             chunksToEvaluation(snapshot.AllChunks()),
+		BroadProbe:          candidatesToEvaluation(broad),
+		Retrieved:           candidatesToEvaluation(mergeContextProviders(options.Limit, nil, base, structural.Lexicon.Candidates)),
+		Exact:               candidatesToEvaluation(exact),
+		Merged:              candidatesToEvaluation(merged),
+		Curated:             candidatesToEvaluation(curated),
+		Assembled:           candidatesToEvaluation(assembledCandidates),
+		Included:            selectionsToEvaluation(pkg.Selections),
+		StructuralProduced:  append(append([]structure.Evidence(nil), structural.Lexicon.Evidence...), structural.Arcana...),
+		StructuralComposed:  append([]structure.Evidence(nil), structural.Combined...),
+		StructuralAssembled: append([]structure.Evidence(nil), assembledEvidence...),
+		StructuralIncluded:  append([]structure.Evidence(nil), pkg.StructuralEvidence...),
 	}
 	return result, nil
 }

@@ -214,7 +214,8 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | `--state <path>` | `<root>/.grimoire` | Prepared and vector state |
 | `--modes <list>` | `fast,full,quality,lexical` | Comma-separated modes to execute |
 | `--variant <name>` | `standalone` | Result label for paired comparisons |
-| `--budget <n>` | case budget | Optional budget override for every case |
+| `--budget <n>` | case budget | Optional fixed budget override for every case |
+| `--adaptive` | `false` | Replace case budgets with query-shape targets and evidence-coverage assembly |
 | `--candidate-limit <n>` | `200` | Normal ranked candidate limit |
 | `--probe-limit <n>` | `800` | Broader diagnostic ranking probe used only for failure attribution |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint |
@@ -237,9 +238,9 @@ Structural expectations require `provider` and `kind`. Optional assertions inclu
 
 `--structural-providers none` runs the source-only baseline. `lexicon` executes immutable Lexicon export and symbol matching. `lexicon,arcana` additionally synchronizes and queries Arcana against the same snapshot. Arcana cannot be enabled without Lexicon because Lexicon-matched symbols are its bounded graph-query seeds.
 
-For each case and mode the runner records source and structural timings, provider warnings, selected source chunks, retained structural facts, immutable provider snapshots, final serialized package tokens, separate source and structural recall, separate irrelevant-evidence rates, and failure attribution. Structural failures are classified as provider miss, composition loss, or budget-fitting loss. The broad source-ranking probe does not contribute to reported context latency.
+For each case and mode the runner records source and structural timings, provider warnings, selected source chunks, retained structural facts, immutable provider snapshots, final serialized package tokens, separate source and structural recall, separate irrelevant-evidence rates, and failure attribution. `--adaptive` also records the selected automatic budget, curated and assembled candidate counts, represented evidence coverage, and the assembly stop reason. Source and structural failures distinguish adaptive assembly loss from later budget-fitting loss. `--adaptive` cannot be combined with a fixed `--budget` override. The broad source-ranking probe does not contribute to reported context latency.
 
-Outputs are a machine-readable JSON report and a concise Markdown comparison grouped by mode and category. A case passes only when every required source and structural expectation survives into the final context package.
+Outputs are a machine-readable JSON report and a concise Markdown comparison grouped by mode and category. Package comparison includes median and p95 tokens, median selected chunks, and median budget utilization. A case passes only when every required source and structural expectation survives into the final context package.
 
 ## `grimoire version`
 

@@ -7,10 +7,11 @@ import (
 )
 
 type scopeConfig struct {
-	minimumCandidates int
-	maximumCandidates int
-	minimumRegions    int
-	structuralLimit   int
+	minimumCandidates   int
+	maximumCandidates   int
+	minimumRegions      int
+	tokenPoolMultiplier int
+	structuralLimit     int
 }
 
 // Plan selects a sufficient deterministic evidence set for an active automatic
@@ -26,6 +27,7 @@ func Plan(
 	regions := newOrderedSet()
 	roles := newOrderedSet()
 	hasExact := false
+	candidateTokens := 0
 	considered := 0
 	stopReason := "candidate set exhausted"
 
@@ -35,6 +37,7 @@ func Plan(
 			continue
 		}
 		selected = append(selected, candidate)
+		candidateTokens += max(candidate.Chunk.TokenCount, 1)
 		regions.Add(queryshape.PathRegion(candidate.Chunk.Path))
 		roles.Add(candidateRole(candidate.Chunk.Path))
 		if candidate.Source == "exact" {
@@ -44,7 +47,7 @@ func Plan(
 			stopReason = string(policy.Scope) + " candidate cap reached"
 			break
 		}
-		if coverageSatisfied(policy.Scope, config, len(selected), regions.Len(), hasExact, candidates) {
+		if coverageSatisfied(policy, config, len(selected), candidateTokens, regions.Len(), hasExact, candidates) {
 			stopReason = string(policy.Scope) + " evidence coverage satisfied"
 			break
 		}
@@ -59,6 +62,7 @@ func Plan(
 			Scope:                policy.Scope,
 			CandidatesConsidered: considered,
 			CandidatesSelected:   len(selected),
+			CandidateTokens:      candidateTokens,
 			StructuralConsidered: len(evidence),
 			StructuralSelected:   len(structural),
 			RegionsRepresented:   regions.Values(),
@@ -71,25 +75,26 @@ func Plan(
 func configFor(scope queryshape.Scope) scopeConfig {
 	switch scope {
 	case queryshape.ScopeFocused:
-		return scopeConfig{minimumCandidates: 3, maximumCandidates: 8, minimumRegions: 1, structuralLimit: 8}
+		return scopeConfig{minimumCandidates: 3, maximumCandidates: 32, minimumRegions: 1, tokenPoolMultiplier: 4, structuralLimit: 24}
 	case queryshape.ScopeExploratory:
-		return scopeConfig{minimumCandidates: 24, maximumCandidates: 64, minimumRegions: 3, structuralLimit: 64}
+		return scopeConfig{minimumCandidates: 24, maximumCandidates: 128, minimumRegions: 3, tokenPoolMultiplier: 4, structuralLimit: 128}
 	default:
-		return scopeConfig{minimumCandidates: 12, maximumCandidates: 32, minimumRegions: 2, structuralLimit: 24}
+		return scopeConfig{minimumCandidates: 12, maximumCandidates: 160, minimumRegions: 2, tokenPoolMultiplier: 12, structuralLimit: 64}
 	}
 }
 
 func coverageSatisfied(
-	scope queryshape.Scope,
+	policy queryshape.RetrievalPolicy,
 	config scopeConfig,
-	selected, regions int,
+	selected, candidateTokens, regions int,
 	hasExact bool,
 	all []retrieve.Candidate,
 ) bool {
-	if selected < config.minimumCandidates || regions < config.minimumRegions {
+	if selected < config.minimumCandidates || regions < config.minimumRegions ||
+		candidateTokens < policy.TargetTokens*config.tokenPoolMultiplier {
 		return false
 	}
-	if scope != queryshape.ScopeFocused {
+	if policy.Scope != queryshape.ScopeFocused {
 		return true
 	}
 	return hasExact || !containsExact(all)
