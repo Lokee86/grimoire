@@ -76,6 +76,30 @@ impl Facts {
         self.edges.entry(key).or_insert(Value::Object(edge));
     }
 
+    pub(crate) fn add_edge_with_attributes(
+        &mut self,
+        source: &str,
+        target: &str,
+        relation: &str,
+        span: Option<Value>,
+        attributes: BTreeMap<String, Value>,
+    ) {
+        let mut edge = JsonMap::new();
+        edge.insert(
+            "attributes".into(),
+            attributes.into_iter().collect::<Map<_, _>>().into(),
+        );
+        edge.insert("record".into(), Value::String("edge".into()));
+        edge.insert("relation".into(), Value::String(relation.into()));
+        edge.insert("source".into(), Value::String(source.into()));
+        if let Some(span) = span.clone() {
+            edge.insert("span".into(), span);
+        }
+        edge.insert("target".into(), Value::String(target.into()));
+        let key = format!("{source}\0{target}\0{relation}\0{}", span_key(&span));
+        self.edges.entry(key).or_insert(Value::Object(edge));
+    }
+
     pub(crate) fn add_unresolved(
         &mut self,
         source: &str,

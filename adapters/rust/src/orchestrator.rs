@@ -52,6 +52,7 @@ pub(crate) fn generate(
     };
     discovery::add_repository_and_files(&mut context);
     discovery::add_crates(&mut context, &metadata);
+    crate::dependencies::add_dependencies(&mut context, &metadata);
     extractor::extract(&mut context);
     emit::render(&context, &repository, changed_files, removed_files)
 }

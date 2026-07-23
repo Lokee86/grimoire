@@ -31,6 +31,7 @@ func processImports(facts *factSet, pf *parsedFile) {
 			if ref.static && ref.path != "" {
 				if target, ok := facts.moduleByPath[ref.path]; ok {
 					facts.addEdge(edge(id, target, "references", ref.span))
+					facts.addEdge(edgeWithAttributes(pf.moduleID, target, "depends-on", ref.span, dependencyAttributes("local", ref.expr, true)))
 				} else {
 					reason := "external-target"
 					if strings.EqualFold(filepath.Ext(ref.path), ".gd") {

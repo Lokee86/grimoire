@@ -5,3 +5,12 @@ edition = "2021"
 
 [dependencies]
 external_fixture = { path = "../external_fixture" }
+
+[dev-dependencies]
+dev_fixture = { path = "../dev_fixture" }
+
+[build-dependencies]
+build_fixture = { path = "../build_fixture" }
+
+[target.'cfg(unix)'.dependencies]
+target_fixture = { path = "../target_fixture", optional = true }

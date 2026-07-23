@@ -1,3 +1,4 @@
+use crate::dependencies::dependency_attributes;
 use crate::model::{Context, PendingImport};
 use crate::paths::{span_start, span_value};
 use crate::resolve;
@@ -141,6 +142,18 @@ fn install(context: &mut Context, item: &PendingImport, binding: &Binding, emit:
                     context
                         .facts
                         .add_edge(&item.owner_id, &id, "imports", item.span.clone());
+                    if let (Some(source_module), Some(target_module)) = (
+                        context.modules.get(&item.module_qn),
+                        context.modules.get(&qn),
+                    ) {
+                        context.facts.add_edge_with_attributes(
+                            source_module,
+                            target_module,
+                            "depends-on",
+                            item.span.clone(),
+                            dependency_attributes("local", &item.expression, "", false, true),
+                        );
+                    }
                 }
             }
         }

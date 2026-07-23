@@ -362,3 +362,22 @@ test("passes the repository JSONL validator", () => {
   const result = spawnSync("python", [path.join(REPO_ROOT, "tools", "validate_jsonl.py"), output], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
 });
+
+test("emits package manifest and sound local module dependencies", () => {
+  const repo = makeFixture();
+  fs.writeFileSync(path.join(repo, "package.json"), JSON.stringify({
+    dependencies: { express: "^5.0.0", local: "file:./local-package" },
+    devDependencies: { vitest: "^2.0.0" },
+    peerDependencies: { react: ">=18" },
+    optionalDependencies: { optional: "~1" },
+  }));
+  fs.mkdirSync(path.join(repo, "local-package"), { recursive: true });
+  fs.writeFileSync(path.join(repo, "local-package", "index.ts"), "export const local = true;\n");
+  const records = runAdapter(repo, path.join(repo, "dependencies.jsonl"));
+  const edges = records.filter((record) => record.record === "edge" && record.relation === "depends-on");
+  assert.ok(edges.some((record) => record.attributes?.category === "runtime" && record.attributes.constraint === "^5.0.0"));
+  assert.ok(edges.some((record) => record.attributes?.category === "development" && record.attributes.dev === true));
+  assert.ok(edges.some((record) => record.attributes?.category === "peer" && record.attributes.peer === true));
+  assert.ok(edges.some((record) => record.attributes?.path === true && record.attributes.source === "package.json:dependencies"));
+  assert.ok(edges.every((record) => record.attributes && typeof record.attributes.source === "string"));
+});

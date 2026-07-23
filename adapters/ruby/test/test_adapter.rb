@@ -85,6 +85,22 @@ class RubyAdapterTest < Minitest::Test
     end
   end
 
+  def test_emits_gemfile_gemspec_and_require_relative_dependencies
+    with_repository(
+      "Gemfile" => "source \"https://rubygems.org\"\ngem \"rails\", \"~> 7.0\"\ngroup :development do\n  gem \"rubocop\", \">= 1\"\nend\n",
+      "demo.gemspec" => "Gem::Specification.new do |spec|\n  spec.add_dependency \"json\", \">= 2\"\n  spec.add_development_dependency \"rspec\", \"~> 3\"\nend\n",
+      "lib/main.rb" => "require_relative \"support\"\n",
+      "lib/support.rb" => "VALUE = 1\n",
+      "dynamic.rb" => "require(name)\n"
+    ) do |records|
+      edges = records.select { |record| record["record"] == "edge" && record["relation"] == "depends-on" }
+      assert edges.any? { |record| record.dig("attributes", "constraint") == "~> 7.0" }
+      assert edges.any? { |record| record.dig("attributes", "category") == "development" && record.dig("attributes", "dev") }
+      assert edges.any? { |record| record.dig("attributes", "category") == "local" && record.dig("attributes", "path") }
+      refute records.any? { |record| record["record"] == "node" && record["qualified_name"] == "dependency:ruby:name" }
+    end
+  end
+
   def test_preserves_callsites_blocks_and_ambiguity
     source = <<~RUBY
       class Local

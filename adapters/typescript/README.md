@@ -92,3 +92,9 @@ npm test
 ```
 
 The suite covers TypeScript semantics, JavaScript ESM, JSX, CommonJS, JSDoc flow, Svelte script extraction and module resolution, path mappings, exclusions, stable IDs, deterministic repeat runs, and the shared JSONL validator.
+
+## Dependency semantics
+
+Literal `package.json` `dependencies`, `devDependencies`, `peerDependencies`, and `optionalDependencies` entries emit repository `depends-on` facts. `file:` and `link:` values are marked with `path: true`; targets use facts-v1 `module` nodes with `dependency:typescript:<normalized-target>` identity and `.lexicon/dependencies/typescript/...` paths. Relative imports and unique exact/single-wildcard `tsconfig.json` or `jsconfig.json` path mappings emit local module `depends-on` edges while preserving `imports`. The same rules apply to JavaScript and Svelte script modules.
+
+Malformed package JSON, computed or runtime-generated dependency entries, unresolved package aliases, and dynamic module expressions are unsupported. The adapter reads package metadata as data and never executes package manifests.

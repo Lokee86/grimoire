@@ -828,6 +828,27 @@ class PythonAdapterTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_dependency_manifests_and_local_imports_are_deterministic(self) -> None:
+        self._write(
+            "pyproject.toml",
+            "[project]\n"
+            "dependencies = [\"requests>=2\", \"broken [\"]\n"
+            "[project.optional-dependencies]\n"
+            "test = [\"pytest~=8\"]\n",
+        )
+        self._write("pkg/local.py", "VALUE = 1\n")
+        self._write("dependency_user.py", "from pkg.local import VALUE\n")
+        first = self._run(self.repo / "dependencies-first.jsonl")
+        second = self._run(self.repo / "dependencies-second.jsonl")
+        self.assertEqual((self.repo / "dependencies-first.jsonl").read_bytes(), (self.repo / "dependencies-second.jsonl").read_bytes())
+        edges = [record for record in first if record["record"] == "edge"]
+        dependency_edges = [record for record in edges if record["relation"] == "depends-on"]
+        self.assertGreaterEqual(len(dependency_edges), 3)
+        self.assertTrue(any(record["attributes"]["category"] == "runtime" and record["attributes"]["constraint"] == ">=2" for record in dependency_edges))
+        self.assertTrue(any(record["attributes"]["category"] == "test" and record["attributes"]["dev"] for record in dependency_edges))
+        self.assertTrue(any(record["attributes"]["category"] == "local" and record["attributes"]["path"] for record in dependency_edges))
+        self.assertFalse(any(record.get("qualified_name") == "dependency:python:broken" for record in first if record["record"] == "node"))
+
 
 if __name__ == "__main__":
     unittest.main()

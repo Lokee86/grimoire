@@ -47,6 +47,12 @@ fn edge_count(records: &[Value], source: &str, target: &str, relation: &str) -> 
 #[test]
 fn indexes_rust_declarations_imports_traits_and_local_macros() {
     let records = records();
+    assert!(records.iter().any(|record| {
+        record["record"] == "edge"
+            && record["relation"] == "depends-on"
+            && record["attributes"]["path"] == true
+            && record["attributes"]["category"] == "runtime"
+    }));
     for (kind, name) in [
         ("type", "Service"),
         ("type", "Worker"),
@@ -72,6 +78,50 @@ fn indexes_rust_declarations_imports_traits_and_local_macros() {
     assert!(records
         .iter()
         .any(|record| record["record"] == "edge" && record["relation"] == "imports"));
+    let root_module = node_id(&records, "lexicon_fixture::lexicon_fixture");
+    let child_module = node_id(&records, "lexicon_fixture::lexicon_fixture::child");
+    assert!(records.iter().any(|record| {
+        record["record"] == "edge"
+            && record["relation"] == "depends-on"
+            && record["source"] == root_module
+            && record["target"] == child_module
+            && record["attributes"]["category"] == "local"
+            && record["attributes"]["path"] == true
+    }));
+    for (category, source_fragment) in [
+        ("runtime", "external_fixture"),
+        ("development", "dev_fixture"),
+        ("build", "build_fixture"),
+        ("runtime", "target_fixture"),
+    ] {
+        assert!(
+            records.iter().any(|record| {
+                record["record"] == "edge"
+                    && record["relation"] == "depends-on"
+                    && record["attributes"]["category"] == category
+                    && record["attributes"]["source"]
+                        .as_str()
+                        .is_some_and(|source| source.contains(source_fragment))
+            }),
+            "missing {category} dependency {source_fragment}"
+        );
+    }
+    assert!(records.iter().any(|record| {
+        record["record"] == "edge"
+            && record["relation"] == "depends-on"
+            && record["attributes"]["target"] == "cfg(unix)"
+    }));
+    for node in records.iter().filter(|record| {
+        record["record"] == "node"
+            && record["qualified_name"]
+                .as_str()
+                .is_some_and(|name| name.starts_with("dependency:rust:"))
+    }) {
+        let path = node["path"].as_str().unwrap();
+        assert!(path.starts_with(".lexicon/dependencies/rust/"));
+        assert!(!path.contains('\\'));
+        assert!(!std::path::Path::new(path).is_absolute());
+    }
 }
 
 #[test]

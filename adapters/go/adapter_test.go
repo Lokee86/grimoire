@@ -72,6 +72,13 @@ func TestCaller(t *testing.T) { helper() }
 	if !hasNode(first, KindImport, "fmt") || !hasNode(first, KindImport, "example.com/demo/internal/sub") {
 		t.Fatal("missing external or internal import node")
 	}
+	dependencyEdges := 0
+	for _, edge := range first.Edges {
+		if edge.Relation == RelDependsOn { dependencyEdges++ }
+	}
+	if dependencyEdges != 1 {
+		t.Fatalf("local depends-on edge count = %d, want 1", dependencyEdges)
+	}
 	if hasNode(first, KindFunction, "Nope") {
 		t.Fatal("ignored vendor or .git source was scanned")
 	}
@@ -92,6 +99,17 @@ func TestCaller(t *testing.T) { helper() }
 	if !strings.Contains(encodeFacts(first), `"record":"lexicon"`) ||
 		!strings.Contains(encodeFacts(first), `"schema_version":1`) {
 		t.Fatal("fact output has no canonical Lexicon header")
+	}
+}
+
+func TestParseGoManifestDependencies(t *testing.T) {
+	root := t.TempDir()
+	filename := filepath.Join(root, "go.mod")
+	writeFixture(t, root, map[string]string{"go.mod": "module example.com/demo\nrequire (\n example.com/external v1.2.3\n)\nreplace example.com/local => ./local\n"})
+	dependencies, err := parseGoDependencies(filename)
+	if err != nil { t.Fatal(err) }
+	if len(dependencies) != 2 || dependencies[0].constraint != "v1.2.3" || dependencies[1].replacement != "./local" {
+		t.Fatalf("parsed dependencies = %#v", dependencies)
 	}
 }
 

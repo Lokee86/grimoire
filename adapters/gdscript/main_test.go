@@ -13,6 +13,17 @@ import (
 
 func TestAnalyzeExtractsGDScriptSlice(t *testing.T) {
 	root := t.TempDir()
+	writeFixture(t, root, "project.godot", `[application]
+config/name="DependencyFixture"
+[editor_plugins]
+enabled=PackedStringArray("res://addons/example/plugin.cfg")
+[autoload]
+State="*res://scripts/base.gd"
+[rendering]
+resource="res://scenes/main.tscn"
+`)
+	writeFixture(t, root, "addons/example/plugin.cfg", "[plugin]\nname=\"Example\"\n")
+	writeFixture(t, root, "scenes/main.tscn", "[gd_scene]\n")
 	writeFixture(t, root, "scripts/base.gd", `class_name Base
 extends Node
 signal changed(value)
@@ -86,12 +97,28 @@ func run(
 	if !contains(unresolvedReasons, "dynamic-target") {
 		t.Errorf("dynamic load/call was not reported unresolved: %v", unresolvedReasons)
 	}
+	if !contains(relations, "depends-on") || !anyDependencyCategory(records, "plugin") || !anyDependencyCategory(records, "autoload") {
+		t.Errorf("missing project dependency facts: relations=%v", relations)
+	}
 	if contains(names, "Ignored") || contains(names, "IgnoredVendor") {
 		t.Fatalf("excluded source was scanned: %v", names)
 	}
 	if contains(names, "IgnoredState") {
 		t.Fatalf("Warlock state source was scanned: %v", names)
 	}
+}
+
+func anyDependencyCategory(records []map[string]any, category string) bool {
+	for _, record := range records {
+		if record["record"] != "edge" || record["relation"] != "depends-on" {
+			continue
+		}
+		attributes, _ := record["attributes"].(map[string]any)
+		if attributes["category"] == category {
+			return true
+		}
+	}
+	return false
 }
 
 func TestParserHandlesIndentationStringsCommentsAndMultilineDeclarations(t *testing.T) {

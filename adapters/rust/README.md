@@ -49,3 +49,9 @@ cargo clippy --all-targets -- -D warnings
 ```
 
 The semantic fixture suite covers declarations, imports, traits, inherent methods, field aliases, constructor-like calls, UFCS, local macros, callbacks, generic trait dispatch, canonical ordering, relative paths, unresolved classifications, and byte-identical repeat runs.
+
+## Dependency semantics
+
+Cargo normal dependencies, `[dev-dependencies]`, `[build-dependencies]`, target-conditioned dependency tables, and literal path dependencies emit deterministic `depends-on` facts. Dependency edges carry category, Cargo constraint, source, optional/dev/build/peer/path flags, and a target condition when present. External targets are facts-v1 `module` nodes with `dependency:rust:<normalized-target>` identity and `.lexicon/dependencies/rust/...` paths; local path dependencies resolve to scanned package modules when available. Resolved local `use` imports additionally emit module-to-module local dependencies while preserving `imports`.
+
+Malformed or dynamically generated Cargo metadata, procedural-macro-generated dependencies, runtime registration, and unresolved package contents are unsupported. The adapter uses Cargo metadata for manifest data but does not execute analyzed application code or build scripts.

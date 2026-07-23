@@ -38,7 +38,7 @@ func encodeFactsScoped(facts RepositoryFacts, changedFiles, removedFiles []strin
 		if edges[i].Relation != edges[j].Relation {
 			return edges[i].Relation < edges[j].Relation
 		}
-		return spanText(edges[i].Span) < spanText(edges[j].Span)
+		return spanLess(edges[i].Span, edges[j].Span)
 	})
 	sort.Slice(unresolved, func(i, j int) bool {
 		left, right := unresolved[i], unresolved[j]
@@ -54,7 +54,7 @@ func encodeFactsScoped(facts RepositoryFacts, changedFiles, removedFiles []strin
 		if left.Reason != right.Reason {
 			return left.Reason < right.Reason
 		}
-		return spanText(left.Span) < spanText(right.Span)
+		return spanLess(left.Span, right.Span)
 	})
 
 	nodeByKey := make(map[NodeKey]NodeFact, len(nodes))
@@ -101,6 +101,9 @@ func encodeFactsScoped(facts RepositoryFacts, changedFiles, removedFiles []strin
 		} else if node.Kind == KindFile {
 			record["owner"] = node.Path
 		}
+		if len(node.Attributes) > 0 {
+			record["attributes"] = node.Attributes
+		}
 		writeJSONRecord(&output, record)
 	}
 	for _, edge := range edges {
@@ -119,6 +122,9 @@ func encodeFactsScoped(facts RepositoryFacts, changedFiles, removedFiles []strin
 		}
 		if owner != "" {
 			record["owner"] = owner
+		}
+		if len(edge.Attributes) > 0 {
+			record["attributes"] = edge.Attributes
 		}
 		writeJSONRecord(&output, record)
 	}
@@ -235,4 +241,26 @@ func spanText(span *SourceSpan) string {
 		return ""
 	}
 	return fmt.Sprintf("%s\x00%d\x00%d\x00%d\x00%d", span.Path, span.StartLine, span.StartColumn, span.EndLine, span.EndColumn)
+}
+
+func spanLess(left, right *SourceSpan) bool {
+	if left == nil {
+		return right != nil
+	}
+	if right == nil {
+		return false
+	}
+	if left.Path != right.Path {
+		return left.Path < right.Path
+	}
+	if left.StartLine != right.StartLine {
+		return left.StartLine < right.StartLine
+	}
+	if left.StartColumn != right.StartColumn {
+		return left.StartColumn < right.StartColumn
+	}
+	if left.EndLine != right.EndLine {
+		return left.EndLine < right.EndLine
+	}
+	return left.EndColumn < right.EndColumn
 }

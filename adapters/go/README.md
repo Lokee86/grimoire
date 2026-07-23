@@ -55,3 +55,9 @@ The SHA-256 payload defined by the shared contract uses these Go identity string
 | captured variable | `variable:<module>:<file>:<line>:<column>:<name>` |
 
 Compiler-generated wrappers and external closures use deterministic `ssa-function:` identities. Synthetic built-in and type-expression nodes use stable language namespaces such as `go:builtins` and `go:types`. Absolute checkout paths are never part of an identity.
+
+## Dependency semantics
+
+The adapter emits repository `depends-on` edges for literal `go.mod` `require` directives, both single-line and parenthesized forms, and for literal `replace` directives. Each target is a facts-v1 `module` node using `dependency:go:<normalized-target>` identity; its synthetic path is `.lexicon/dependencies/go/...`. Edges carry deterministic `category`, `constraint`, `source`, `optional`, `dev`, `build`, `peer`, and `path` attributes. Repository-local Go imports additionally emit module-to-module `depends-on` edges when the imported package is uniquely scanned, while preserving `imports`.
+
+Malformed directives, dynamic module construction, and unresolved external package contents are not inferred. The adapter does not execute `go.mod` or install dependencies.

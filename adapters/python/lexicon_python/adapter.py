@@ -10,6 +10,7 @@ from .contract import content_id
 from .discovery import _name_from_dotted, _posix_relative, discover
 from .emission import emit_records, write_records
 from .extraction import DeclarationVisitor
+from .dependencies import add_dependency_facts
 from .model import Facts
 from .resolution import resolve_facts
 
@@ -81,6 +82,7 @@ def build_facts(
         if context.tree is not None:
             DeclarationVisitor(facts, context).visit(context.tree)
     resolve_facts(facts, snapshot.contexts)
+    add_dependency_facts(facts, snapshot)
     return emit_records(facts, __version__, changed_files, removed_files)
 
 

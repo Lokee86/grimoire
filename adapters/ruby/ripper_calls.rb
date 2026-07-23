@@ -207,6 +207,7 @@ module LexiconRuby
         )
         connect_declaration(parent_id, import_id, span_for(name_token))
         add_edge(parent_id, import_id, "imports", span_for(name_token))
+        record_local_dependency(@current_path, required) if name == "require_relative"
       else
         add_unresolved(
           source: parent_id,

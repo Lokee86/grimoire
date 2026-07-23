@@ -6,6 +6,7 @@ import { emitFacts, writeJsonl } from "./emission";
 import { resolveCalls } from "./call-resolution";
 import { resolveImports, resolveRelationships } from "./resolution";
 import { FactStore, type Fact } from "./model";
+import { addDependencyFacts } from "./dependencies";
 
 export function buildFacts(repositoryPath: string, changedFiles?: string[], removedFiles?: string[]): Fact[] {
   const root = path.resolve(repositoryPath);
@@ -33,6 +34,7 @@ export function buildFacts(repositoryPath: string, changedFiles?: string[], remo
   });
   for (const context of contexts) extractDeclarations(context, facts);
   resolveImports(facts, readPathMappings(root));
+  addDependencyFacts(facts, root);
   resolveCalls(facts, checker);
   resolveRelationships(facts, checker);
   return emitFacts(facts, changedFiles, removedFiles);

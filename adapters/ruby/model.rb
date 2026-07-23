@@ -8,6 +8,7 @@ class LexiconRubyAdapter
 
   include LexiconRuby::Contract
   include LexiconRuby::Relationships
+  include LexiconRuby::DependencySemantics
   include LexiconRuby::RipperSyntax
   include LexiconRuby::RipperClosures
   include LexiconRuby::RipperCalls
@@ -31,6 +32,8 @@ class LexiconRubyAdapter
     @nodes = {}
     @directories = {}
     @files = {}
+    @module_ids = {}
+    @pending_local_dependencies = []
     @edges = {}
     @unresolved = []
     @types = {}

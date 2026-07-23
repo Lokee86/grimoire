@@ -79,6 +79,9 @@ func analyzeRepository(repo string, selections ...[]string) ([]byte, error) {
 	if err := processProjectAutoloads(root, projectRoots, facts); err != nil {
 		return nil, err
 	}
+	if err := processProjectDependencies(root, projectRoots, repositoryName, facts); err != nil {
+		return nil, err
+	}
 	model := buildSemanticModel(facts, parsed)
 	for _, pf := range parsed {
 		processImports(facts, pf)

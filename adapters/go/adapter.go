@@ -48,6 +48,7 @@ type scanner struct {
 	closureKeys   map[string]NodeKey
 	callsiteKeys  map[string]string
 	fileImports   map[string]map[string]string
+	packageByFile map[string]NodeKey
 	summary       Summary
 }
 
@@ -66,7 +67,7 @@ func scanRepository(root string) (RepositoryFacts, Summary, error) {
 		packages: make(map[string]packageInfo), targets: make(map[string]map[string][]NodeKey),
 		semanticCalls: make(map[string]semanticCall),
 		semanticIDs:   make(map[string][]NodeKey), closureKeys: make(map[string]NodeKey),
-		callsiteKeys: make(map[string]string), fileImports: make(map[string]map[string]string),
+		callsiteKeys: make(map[string]string), fileImports: make(map[string]map[string]string), packageByFile: make(map[string]NodeKey),
 	}
 	files, dirs, err := discover(root)
 	if err != nil {
@@ -91,6 +92,9 @@ func scanRepository(root string) (RepositoryFacts, Summary, error) {
 		return RepositoryFacts{}, Summary{}, err
 	}
 	s.addCallEdges()
+	if err := s.addDependencyFacts(); err != nil {
+		return RepositoryFacts{}, Summary{}, err
+	}
 	for _, node := range s.nodes {
 		s.facts.Nodes = append(s.facts.Nodes, node)
 	}
@@ -212,10 +216,14 @@ func (s *scanner) addNode(node NodeFact) {
 	}
 }
 
-func (s *scanner) addEdge(source, target NodeKey, relation RelationKind, span *SourceSpan) {
-	key := fmt.Sprintf("%s/%s/%s", source, target, relation)
+func (s *scanner) addEdge(source, target NodeKey, relation RelationKind, span *SourceSpan, attributes ...map[string]any) {
+	key := fmt.Sprintf("%s/%s/%s/%s", source, target, relation, spanText(span))
 	if _, exists := s.edges[key]; !exists {
-		s.edges[key] = EdgeFact{Source: source, Target: target, Relation: relation, Span: span}
+		var edgeAttributes map[string]any
+		if len(attributes) > 0 {
+			edgeAttributes = attributes[0]
+		}
+		s.edges[key] = EdgeFact{Source: source, Target: target, Relation: relation, Span: span, Attributes: edgeAttributes}
 	}
 }
 
@@ -250,6 +258,7 @@ func (s *scanner) parseGoFile(absolute string) error {
 		s.addEdge(s.parentKey(rel), pkgKey, RelContains, nil)
 		s.summary.Packages++
 	}
+	s.packageByFile[rel] = pkg.key
 	fileKey := hashIdentity("file:" + rel)
 	s.addEdge(pkg.key, fileKey, RelContains, s.span(file.Name.Pos(), file.Name.End(), rel))
 	for _, spec := range file.Imports {

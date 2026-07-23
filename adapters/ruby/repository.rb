@@ -18,6 +18,7 @@ module LexiconRuby
       add_edge(repository_id, root_directory_id, "contains")
 
       ruby_files.each { |relative_path| scan_file(relative_path) }
+      add_dependency_facts
       resolve_superclasses
       write_facts
     end
@@ -62,6 +63,15 @@ module LexiconRuby
         content_id: content_id(source)
       )
       @files[relative_path] = file_id
+      module_id = add_node(
+        kind: "module",
+        name: File.basename(relative_path, ".rb"),
+        path: relative_path,
+        qualified_name: relative_path.delete_suffix(".rb"),
+        canonical: "module:#{relative_path}"
+      )
+      @module_ids[relative_path] = module_id
+      add_edge(file_id, module_id, "contains")
       parent_directory_id = add_directory(File.dirname(relative_path))
       add_edge(parent_directory_id, file_id, "contains")
 

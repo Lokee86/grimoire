@@ -67,3 +67,9 @@ Protocol and other recognized interface contracts are not runtime call targets. 
 - Parse failures still produce file/module facts plus an unresolved parse record, but no declarations from the failed file.
 
 Python files are scanned deterministically while excluding `.git/`, `.worktrees/`, `.workingtrees/`, `.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, `.warlock/`, `.next/`, `__pycache__/`, `.pytest_cache/`, `.bundle/`, `node_modules/`, `target/`, build/dist/virtual-environment directories, and vendor directories.
+
+## Dependency semantics
+
+Literal `[project].dependencies` and `[project.optional-dependencies]` entries in `pyproject.toml` emit repository `depends-on` facts. When project dependencies are absent, literal entries in sorted `requirements*.txt` files are used; `requirements-dev*.txt` and `requirements-test*.txt` receive development/test categories, and editable local requirements receive `path: true`. Repository-local Python imports emit module-to-module local dependencies only when the target module is uniquely resolved. Synthetic targets are facts-v1 `module` nodes with `dependency:python:<normalized-target>` identity and `.lexicon/dependencies/python/...` paths.
+
+Malformed requirement strings, dynamic/VCS/URL entries, dynamic imports, reflection, and package installation are unsupported and are omitted or left to the adapter's existing unresolved classifications. Manifests are parsed as data and never executed.

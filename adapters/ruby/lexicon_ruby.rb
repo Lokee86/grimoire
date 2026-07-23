@@ -4,6 +4,7 @@
 require_relative "contract"
 require_relative "semantic_model"
 require_relative "relationships"
+require_relative "dependencies"
 require_relative "ripper_syntax"
 require_relative "ripper_closures"
 require_relative "ripper_calls"
