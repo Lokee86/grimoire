@@ -16,6 +16,9 @@ type Request struct {
 	Output       string
 	ChangedFiles []string
 	RemovedFiles []string
+	Workers      int
+	Shards       int
+	MergeFanIn   int
 }
 
 type Analyzer interface {
@@ -114,6 +117,17 @@ func adapterArguments(request Request) []string {
 	}
 	for _, path := range request.RemovedFiles {
 		arguments = append(arguments, "--removed-file", filepath.ToSlash(path))
+	}
+	if request.Language == "go" {
+		if request.Workers > 0 {
+			arguments = append(arguments, "--workers", fmt.Sprint(request.Workers))
+		}
+		if request.Shards > 0 {
+			arguments = append(arguments, "--shards", fmt.Sprint(request.Shards))
+		}
+		if request.MergeFanIn > 0 {
+			arguments = append(arguments, "--merge-fan-in", fmt.Sprint(request.MergeFanIn))
+		}
 	}
 	return arguments
 }

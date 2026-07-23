@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/Lokee86/lexicon/internal/state"
@@ -34,6 +35,7 @@ func TestRebuildWithEmptyLanguagesRebuildsAllSourceLanguages(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []string{"python", "ruby"}
+	sort.Strings(analyzer.languages)
 	if !reflect.DeepEqual(report.Languages, want) || !reflect.DeepEqual(analyzer.languages, want) {
 		t.Fatalf("report = %#v, analyzer languages = %v", report, analyzer.languages)
 	}

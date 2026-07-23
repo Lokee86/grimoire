@@ -184,7 +184,7 @@ func (s *scanner) ensureDataSymbol(object types.Object, set *token.FileSet) Node
 	}
 	identity := string(kind) + ":" + object.Pkg().Path() + ":" + rel + ":" + fmt.Sprintf("%d:%d", position.Line, position.Column) + ":" + object.Name()
 	key := hashIdentity(identity)
-	if _, exists := s.nodes[key]; !exists {
+	if !s.hasNode(key) {
 		span := &SourceSpan{
 			Path: rel, StartLine: uint32(position.Line), StartColumn: uint32(position.Column),
 			EndLine: uint32(position.Line), EndColumn: uint32(position.Column + len(object.Name())),

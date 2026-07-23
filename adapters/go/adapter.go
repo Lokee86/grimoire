@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Summary struct {
@@ -18,6 +19,7 @@ type Summary struct {
 	Directories, Files, Packages, Imports                                            int
 	BuiltinCalls, ConversionCalls, ExternalCalls, DynamicCalls, InterfaceCalls       int
 	Closures, Captures, SemanticErrors                                               int
+	PackageLoad, SemanticIndex, TypedResolution, SSAResolution                       time.Duration
 }
 
 type packageInfo struct {
@@ -35,24 +37,30 @@ type callable struct {
 }
 
 type scanner struct {
-	root, module  string
-	set           *token.FileSet
-	facts         RepositoryFacts
-	nodes         map[NodeKey]NodeFact
-	edges         map[string]EdgeFact
-	packages      map[string]packageInfo
-	callables     []callable
-	targets       map[string]map[string][]NodeKey
-	semanticCalls map[string]semanticCall
-	semanticIDs   map[string][]NodeKey
-	closureKeys   map[string]NodeKey
-	callsiteKeys  map[string]string
-	fileImports   map[string]map[string]string
-	packageByFile map[string]NodeKey
-	summary       Summary
+	root, module    string
+	set             *token.FileSet
+	facts           RepositoryFacts
+	nodes           map[NodeKey]NodeFact
+	edges           map[string]EdgeFact
+	packages        map[string]packageInfo
+	callables       []callable
+	targets         map[string]map[string][]NodeKey
+	semanticCalls   map[string]semanticCall
+	semanticIDs     map[string][]NodeKey
+	closureKeys     map[string]NodeKey
+	callsiteKeys    map[string]string
+	fileImports     map[string]map[string]string
+	packageByFile   map[string]NodeKey
+	baseNodes       map[NodeKey]NodeFact
+	baseSemanticIDs map[string][]NodeKey
+	summary         Summary
 }
 
 func scanRepository(root string) (RepositoryFacts, Summary, error) {
+	return scanRepositoryWithOptions(root, ScanOptions{})
+}
+
+func scanRepositoryWithOptions(root string, options ScanOptions) (RepositoryFacts, Summary, error) {
 	root, err := filepath.Abs(root)
 	if err != nil {
 		return RepositoryFacts{}, Summary{}, err
@@ -88,7 +96,8 @@ func scanRepository(root string) (RepositoryFacts, Summary, error) {
 			}
 		}
 	}
-	if err := s.loadSemanticCalls(); err != nil {
+	options = options.normalized(len(files))
+	if err := s.loadSemanticCalls(options); err != nil {
 		return RepositoryFacts{}, Summary{}, err
 	}
 	s.addCallEdges()
@@ -210,8 +219,19 @@ func (s *scanner) parentKey(rel string) NodeKey {
 	return hashIdentity("directory:" + dir)
 }
 
+func (s *scanner) hasNode(key NodeKey) bool {
+	if _, exists := s.nodes[key]; exists {
+		return true
+	}
+	if s.baseNodes != nil {
+		_, exists := s.baseNodes[key]
+		return exists
+	}
+	return false
+}
+
 func (s *scanner) addNode(node NodeFact) {
-	if _, exists := s.nodes[node.Key]; !exists {
+	if !s.hasNode(node.Key) {
 		s.nodes[node.Key] = node
 	}
 }

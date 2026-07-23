@@ -50,6 +50,8 @@ lexicon version
 
 `init` performs the first complete scan. `scan` updates only impacted facts when safe. `demon` triggers the same transaction from filesystem events. `rebuild` forces complete analysis, adapter fingerprint changes automatically rebuild affected languages, and language selection can disable unused runtimes. The remaining commands inspect health, manage downstream consumers, export verified JSONL libraries, and prune unreachable immutable storage. See [`docs/APPLICATION.md`](docs/APPLICATION.md).
 
+Full scans schedule independent language adapters concurrently under one process-wide CPU budget. The Go adapter additionally partitions typed call and dataflow resolution into repository-size-dependent logical shards, reduces shard-local facts deterministically, and retains SSA/VTA as the final repository-wide resolver. Logical shard count is independent from active worker count, so large repositories may create hundreds of reusable work partitions without launching hundreds of simultaneous processes. Set `LEXICON_MAX_WORKERS` to impose a lower machine-specific concurrency limit.
+
 ### Ignore policy
 
 An optional repository-root `.lexiconignore` controls which otherwise relevant files Lexicon mirrors and watches. It uses gitignore-compatible patterns, including comments, globs, `**`, path hierarchy, and `!` negation. The policy is applied consistently to complete mirror scans, path syncs, and demon watch filtering; changing `.lexiconignore` causes the demon to reload the policy and perform a complete scan.

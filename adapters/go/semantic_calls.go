@@ -8,28 +8,22 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func (s *scanner) collectSemanticCalls(pkg *packages.Package, targets semanticTargets) {
+func (s *scanner) collectSemanticFile(pkg *packages.Package, file *ast.File, rel string, targets semanticTargets) {
 	if pkg.TypesInfo == nil || pkg.Fset == nil {
 		return
 	}
-	for _, file := range pkg.Syntax {
-		rel, ok := s.semanticFilePath(pkg.Fset, file)
-		if !ok {
+	importPath := s.importPathFor(rel)
+	for _, declaration := range file.Decls {
+		function, ok := declaration.(*ast.FuncDecl)
+		if !ok || function.Body == nil {
 			continue
 		}
-		importPath := s.importPathFor(rel)
-		for _, declaration := range file.Decls {
-			function, ok := declaration.(*ast.FuncDecl)
-			if !ok || function.Body == nil {
-				continue
-			}
-			source := declarationKey(importPath, rel, function)
-			if _, exists := s.nodes[source]; !exists {
-				continue
-			}
-			s.collectCallableSemanticCalls(pkg, rel, source, function.Body, targets)
-			s.collectSemanticDataflow(pkg, rel, source, function.Body)
+		source := declarationKey(importPath, rel, function)
+		if !s.hasNode(source) {
+			continue
 		}
+		s.collectCallableSemanticCalls(pkg, rel, source, function.Body, targets)
+		s.collectSemanticDataflow(pkg, rel, source, function.Body)
 	}
 }
 

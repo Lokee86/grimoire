@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/Lokee86/lexicon/internal/adapters"
@@ -14,13 +15,16 @@ import (
 )
 
 type fakeAnalyzer struct {
+	mu        sync.Mutex
 	languages []string
 	requests  []adapters.Request
 }
 
 func (f *fakeAnalyzer) Run(_ context.Context, request adapters.Request) error {
+	f.mu.Lock()
 	f.languages = append(f.languages, request.Language)
 	f.requests = append(f.requests, request)
+	f.mu.Unlock()
 	header := map[string]any{
 		"adapter_version": "test", "language": request.Language, "record": "lexicon",
 		"repository": "test", "schema_version": 1,
