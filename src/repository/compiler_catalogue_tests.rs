@@ -57,6 +57,34 @@ fn compiler_assigns_dense_ids_and_stable_relation_codes() {
 }
 
 #[test]
+fn compiler_collapses_repeated_call_sites_to_one_graph_edge() {
+    let caller = NodeKey::from_identity("caller");
+    let callee = NodeKey::from_identity("callee");
+    let facts = RepositoryFacts {
+        nodes: vec![node(caller, "caller.rs"), node(callee, "callee.rs")],
+        edges: vec![
+            EdgeFact {
+                source: caller,
+                target: callee,
+                relation: RelationKind::Calls,
+                span: Some(SourceSpan::new("caller.rs", 10, 5, 10, 12).unwrap()),
+            },
+            EdgeFact {
+                source: caller,
+                target: callee,
+                relation: RelationKind::Calls,
+                span: Some(SourceSpan::new("caller.rs", 20, 5, 20, 12).unwrap()),
+            },
+        ],
+        unresolved: Vec::new(),
+    };
+
+    let compiled = compile_repository_facts(&facts).unwrap();
+    assert_eq!(compiled.dataset.edges.len(), 1);
+    assert_eq!(compiled.dataset.edges[0].kind, EdgeKind(5));
+}
+
+#[test]
 fn compiler_preserves_recursive_self_edges() {
     let key = NodeKey::from_identity("recursive");
     let facts = RepositoryFacts {

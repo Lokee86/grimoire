@@ -9,6 +9,7 @@ pub enum UnresolvedReason {
     DynamicTarget,
     ExternalTarget,
     BuiltinTarget,
+    GeneratedTarget,
     TypeConversion,
     SelfTarget,
 }
@@ -22,6 +23,7 @@ impl UnresolvedReason {
             Self::DynamicTarget => "dynamic-target",
             Self::ExternalTarget => "external-target",
             Self::BuiltinTarget => "builtin-target",
+            Self::GeneratedTarget => "generated-target",
             Self::TypeConversion => "type-conversion",
             Self::SelfTarget => "self-target",
         }
@@ -35,6 +37,7 @@ impl UnresolvedReason {
             "dynamic-target" => Self::DynamicTarget,
             "external-target" => Self::ExternalTarget,
             "builtin-target" => Self::BuiltinTarget,
+            "generated-target" => Self::GeneratedTarget,
             "type-conversion" => Self::TypeConversion,
             "self-target" => Self::SelfTarget,
             _ => return None,
@@ -52,4 +55,16 @@ pub struct UnresolvedReferenceFact {
     pub candidate_name: Option<String>,
     pub reason: UnresolvedReason,
     pub span: Option<SourceSpan>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UnresolvedReason;
+
+    #[test]
+    fn parses_and_formats_generated_target() {
+        let reason = UnresolvedReason::parse("generated-target").unwrap();
+        assert_eq!(reason, UnresolvedReason::GeneratedTarget);
+        assert_eq!(reason.as_str(), "generated-target");
+    }
 }

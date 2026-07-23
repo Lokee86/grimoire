@@ -102,6 +102,7 @@ fn language(language: &str, object_id: &str) -> Value {
     json!({
         "language": language,
         "adapter_version": "1",
+        "adapter_fingerprint": sha_id("adapter"),
         "schema_version": 1,
         "repository": "repo",
         "analysis_config_id": sha_id("config"),

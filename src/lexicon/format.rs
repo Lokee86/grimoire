@@ -14,6 +14,8 @@ pub(super) struct Manifest {
 pub(super) struct LanguageEntry {
     pub(super) language: String,
     pub(super) adapter_version: String,
+    #[serde(default)]
+    pub(super) adapter_fingerprint: Option<String>,
     pub(super) schema_version: u64,
     pub(super) repository: String,
     pub(super) analysis_config_id: String,

@@ -172,6 +172,9 @@ fn validate_language(language: &LanguageEntry) -> Result<(), LexiconSnapshotErro
             language.schema_version,
         ));
     }
+    if let Some(fingerprint) = &language.adapter_fingerprint {
+        validate_id(fingerprint)?;
+    }
     validate_id(&language.analysis_config_id)
 }
 

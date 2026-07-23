@@ -12,7 +12,7 @@ fn parses_lexicon_jsonl_into_repository_facts() {
     let stream = format!(
         concat!(
             "{{\"adapter_version\":\"0.1.0\",\"language\":\"go\",\"mode\":\"full\",\"record\":\"lexicon\",\"repository\":\"example.com/demo\",\"schema_version\":1}}\n",
-            "{{\"id\":\"{repository}\",\"kind\":\"repository\",\"name\":\"example.com/demo\",\"path\":\".lexicon-repository\",\"qualified_name\":\"example.com/demo\",\"record\":\"node\"}}\n",
+            "{{\"id\":\"{repository}\",\"kind\":\"repository\",\"name\":\"example.com/demo\",\"path\":\".\",\"qualified_name\":\"example.com/demo\",\"record\":\"node\"}}\n",
             "{{\"id\":\"{caller}\",\"kind\":\"function\",\"name\":\"caller\",\"owner\":\"src/lib.go\",\"path\":\"src/lib.go\",\"qualified_name\":\"example.com/demo.caller\",\"record\":\"node\",\"span\":{{\"end_column\":2,\"end_line\":2,\"path\":\"src/lib.go\",\"start_column\":1,\"start_line\":1}}}}\n",
             "{{\"id\":\"{callee}\",\"kind\":\"function\",\"name\":\"callee\",\"owner\":\"src/lib.go\",\"path\":\"src/lib.go\",\"qualified_name\":\"example.com/demo.callee\",\"record\":\"node\"}}\n",
             "{{\"owner\":\"src/lib.go\",\"record\":\"edge\",\"relation\":\"possible-calls\",\"source\":\"{caller}\",\"target\":\"{callee}\"}}\n",

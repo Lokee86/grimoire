@@ -50,7 +50,7 @@ pub fn normalize_repository_path(path: &str) -> Result<String, RepositoryPathErr
     }
 
     if components.is_empty() {
-        return Err(RepositoryPathError::Empty);
+        return Ok(".".to_owned());
     }
     Ok(components.join("/"))
 }
@@ -58,4 +58,15 @@ pub fn normalize_repository_path(path: &str) -> Result<String, RepositoryPathErr
 fn has_drive_prefix(path: &str) -> bool {
     let bytes = path.as_bytes();
     bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':'
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_repository_path;
+
+    #[test]
+    fn preserves_repository_root_as_dot() {
+        assert_eq!(normalize_repository_path(".").unwrap(), ".");
+        assert_eq!(normalize_repository_path("./").unwrap(), ".");
+    }
 }

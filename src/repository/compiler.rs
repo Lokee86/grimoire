@@ -106,17 +106,9 @@ pub fn compile_repository_facts(
         });
     }
     graph_edges.sort_unstable();
-    if graph_edges.windows(2).any(|pair| pair[0] == pair[1]) {
-        let duplicate = graph_edges
-            .windows(2)
-            .find(|pair| pair[0] == pair[1])
-            .expect("duplicate edge was found")[0];
-        return Err(RepositoryCompileError::DuplicateEdge {
-            source: node_key_for_id(&node_ids, duplicate.source),
-            target: node_key_for_id(&node_ids, duplicate.target),
-            relation: edge_kind_to_relation(duplicate.kind).expect("compiler emitted known kind"),
-        });
-    }
+    // Lexicon records one relationship fact per source occurrence. Arcana's dense
+    // graph stores reachability, so repeated call sites collapse to one edge.
+    graph_edges.dedup();
 
     let mut unresolved = facts.unresolved.clone();
     unresolved.sort_unstable();
@@ -217,11 +209,4 @@ fn unique_nodes(nodes: &[NodeFact]) -> Result<BTreeMap<NodeKey, NodeFact>, Repos
         unique.entry(node.key).or_insert_with(|| node.clone());
     }
     Ok(unique)
-}
-
-fn node_key_for_id(node_ids: &BTreeMap<NodeKey, NodeId>, node_id: NodeId) -> NodeKey {
-    node_ids
-        .iter()
-        .find_map(|(key, value)| (*value == node_id).then_some(*key))
-        .expect("edge endpoint was assigned by compiler")
 }
