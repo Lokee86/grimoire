@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -54,7 +55,7 @@ func TestVectorSnapshotManifestRequiresExactPreparedIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded != manifest {
+	if !reflect.DeepEqual(loaded, manifest) {
 		t.Fatalf("manifest changed during round trip: %+v != %+v", loaded, manifest)
 	}
 }

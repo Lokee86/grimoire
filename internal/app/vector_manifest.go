@@ -13,12 +13,13 @@ import (
 const vectorSnapshotManifestVersion = 1
 
 type vectorSnapshotManifest struct {
-	Version          int    `json:"version"`
-	PreparedIdentity string `json:"prepared_identity"`
-	SnapshotIdentity string `json:"snapshot_identity"`
-	Model            string `json:"model"`
-	Dimensions       int    `json:"dimensions"`
-	Count            int    `json:"count"`
+	Version          int      `json:"version"`
+	PreparedIdentity string   `json:"prepared_identity"`
+	SnapshotIdentity string   `json:"snapshot_identity"`
+	Model            string   `json:"model"`
+	Dimensions       int      `json:"dimensions"`
+	Count            int      `json:"count"`
+	Sources          []string `json:"sources,omitempty"`
 }
 
 func writeVectorSnapshotManifest(path string, manifest vectorSnapshotManifest) error {
