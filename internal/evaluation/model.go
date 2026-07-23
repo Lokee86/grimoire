@@ -3,6 +3,7 @@ package evaluation
 import (
 	"time"
 
+	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
@@ -164,6 +165,8 @@ type CaseRun struct {
 	Error                             string                     `json:"error,omitempty"`
 	Warnings                          []string                   `json:"warnings,omitempty"`
 	Timings                           Timings                    `json:"timings"`
+	QueryProfile                      queryshape.Profile         `json:"query_profile"`
+	RetrievalPolicy                   queryshape.RetrievalPolicy `json:"retrieval_policy"`
 	RetrievalSources                  []string                   `json:"retrieval_sources"`
 	StructuralSources                 []string                   `json:"structural_sources,omitempty"`
 	StructuralState                   []structure.ProviderState  `json:"structural_state,omitempty"`

@@ -156,6 +156,8 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 			})
 			cancel()
 			run.Timings = executed.Timings
+			run.QueryProfile = executed.QueryProfile
+			run.RetrievalPolicy = executed.RetrievalPolicy
 			if run.Timings.TotalMS == 0 {
 				run.Timings.TotalMS = durationMS(time.Since(runStart))
 			}

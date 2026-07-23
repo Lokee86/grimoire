@@ -9,16 +9,19 @@ import (
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/index"
+	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/selection"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
 type evaluatedContext struct {
-	Package  compiler.Package
-	Stages   evaluation.Stages
-	Timings  evaluation.Timings
-	Warnings []string
+	Package         compiler.Package
+	Stages          evaluation.Stages
+	Timings         evaluation.Timings
+	QueryProfile    queryshape.Profile
+	RetrievalPolicy queryshape.RetrievalPolicy
+	Warnings        []string
 }
 
 type evaluatedContextOptions struct {
@@ -85,6 +88,10 @@ func evaluateContext(
 	mergeStart := time.Now()
 	merged := mergeContextProviders(options.Limit, exact, base, structural.Lexicon.Candidates)
 	result.Timings.CandidateMergeMS += durationMS(time.Since(mergeStart))
+	result.QueryProfile, result.RetrievalPolicy = queryshape.Analyze(queryshape.Input{
+		Query: options.Query, RequestedBudget: options.Budget,
+		Exact: exact, Ranked: base, Candidates: merged, Structural: structural.Combined,
+	})
 
 	curationStart := time.Now()
 	curated := selection.Curate(snapshot, merged)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/evaluation"
@@ -74,7 +75,14 @@ func TestEvalRetrievalLexicalWritesResults(t *testing.T) {
 	if report.Runs[0].Timings.TotalMS <= 0 {
 		t.Fatalf("total timing was not recorded: %+v", report.Runs[0].Timings)
 	}
-	if _, err := os.Stat(filepath.Join(root, "results", "fixture.md")); err != nil {
+	if report.Runs[0].QueryProfile.Specificity != "high" || report.Runs[0].RetrievalPolicy.Scope != "focused" || !report.Runs[0].RetrievalPolicy.Shadow {
+		t.Fatalf("query profile was not emitted: profile=%+v policy=%+v", report.Runs[0].QueryProfile, report.Runs[0].RetrievalPolicy)
+	}
+	markdown, err := os.ReadFile(filepath.Join(root, "results", "fixture.md"))
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !strings.Contains(string(markdown), "## Query profile shadow output") {
+		t.Fatalf("query profile section missing from Markdown: %s", markdown)
 	}
 }

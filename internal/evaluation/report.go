@@ -134,6 +134,18 @@ func Markdown(report Report) string {
 			run.IrrelevantStructuralRate*100, run.FinalPackageTokens, run.Timings.TotalMS, escapeCell(failure))
 	}
 
+	output.WriteString("\n## Query profile shadow output\n\n")
+	output.WriteString("These classifications are observational and do not change retrieval, curation, or package assembly.\n\n")
+	output.WriteString("| Case | Mode | Scope | Specificity | Breadth | Ambiguity | Subsystems | Graph regions | Budget mode |\n")
+	output.WriteString("| --- | --- | --- | --- | --- | --- | ---: | ---: | --- |\n")
+	for _, run := range report.Runs {
+		fmt.Fprintf(&output, "| %s | %s | %s | %s | %s | %s | %d | %d | %s |\n",
+			run.CaseID, run.Mode, run.RetrievalPolicy.Scope, run.QueryProfile.Specificity,
+			run.QueryProfile.Breadth, run.QueryProfile.Ambiguity,
+			len(run.QueryProfile.MatchedSubsystems), len(run.QueryProfile.MatchedGraphRegions),
+			run.RetrievalPolicy.BudgetMode)
+	}
+
 	failures := failedRuns(report.Runs)
 	if len(failures) > 0 {
 		output.WriteString("\n## Concrete failures\n\n")
