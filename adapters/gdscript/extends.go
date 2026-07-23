@@ -13,6 +13,7 @@ func processExtends(facts *factSet, pf *parsedFile) {
 			source = pf.scriptOwnerID
 		}
 		if path, ok := normalizeImportPath(decl.extends); ok {
+			path = projectResourcePath(pf.projectRoot, path)
 			target := facts.scriptOwnerByPath[path]
 			if target == "" {
 				target = facts.moduleByPath[path]
@@ -26,7 +27,20 @@ func processExtends(facts *factSet, pf *parsedFile) {
 			continue
 		}
 		name := strings.TrimSpace(decl.extends)
-		if ids := facts.classByFileAndName[normalizeSourcePath(pf.path)][name]; len(ids) == 1 && ids[0] != source {
+		if owners, known := preloadTypeOwners(facts, pf.path, name); known {
+			if len(owners) == 1 && owners[0] != source {
+				facts.addEdge(edge(source, owners[0], "extends", decl.span))
+				facts.indexParent(source, owners[0])
+			} else {
+				reason := "missing-target"
+				if len(owners) > 1 {
+					reason = "ambiguous-target"
+				}
+				record := unresolved(source, "extends", decl.extends, reason, decl.span)
+				record["candidate_name"] = name
+				facts.addUnresolved(record)
+			}
+		} else if ids := facts.classByFileAndName[normalizeSourcePath(pf.path)][name]; len(ids) == 1 && ids[0] != source {
 			facts.addEdge(edge(source, ids[0], "extends", decl.span))
 			facts.indexParent(source, ids[0])
 		} else if ids := facts.classByName[name]; len(ids) == 1 {
@@ -50,4 +64,33 @@ func processExtends(facts *factSet, pf *parsedFile) {
 			facts.addUnresolved(record)
 		}
 	}
+}
+
+func preloadTypeOwners(facts *factSet, sourcePath, name string) ([]string, bool) {
+	parts := strings.Split(name, ".")
+	if len(parts) == 0 {
+		return nil, false
+	}
+	paths, known := facts.preloadAliasByFileAndName[normalizeSourcePath(sourcePath)][parts[0]]
+	if !known {
+		return nil, false
+	}
+	var owners []string
+	for _, path := range paths {
+		if owner := facts.scriptOwnerByPath[normalizeSourcePath(path)]; owner != "" {
+			owners = append(owners, owner)
+		}
+	}
+	owners = uniqueSorted(owners)
+	for _, nested := range parts[1:] {
+		var next []string
+		for _, owner := range owners {
+			next = append(next, facts.typeByOwnerID[owner][nested]...)
+		}
+		owners = uniqueSorted(next)
+		if len(owners) == 0 {
+			break
+		}
+	}
+	return owners, true
 }

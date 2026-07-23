@@ -29,6 +29,25 @@ func (m *semanticModel) typeOwners(path, name string) ownerSet {
 	return nil
 }
 
+func (m *semanticModel) addTypeAlias(path, name string, values ownerSet) bool {
+	path = normalizeSourcePath(path)
+	if path == "" || name == "" || len(values) == 0 {
+		return false
+	}
+	if m.typeAliases[path] == nil {
+		m.typeAliases[path] = make(map[string]ownerSet)
+	}
+	return mergeOwners(m.typeAliases[path], name, values)
+}
+
+func (m *semanticModel) typeAliasOwners(path, name string) ownerSet {
+	return cloneOwners(m.typeAliases[normalizeSourcePath(path)][name])
+}
+
+func (m *semanticModel) bindingDeclared(context analysisContext, name string) bool {
+	return context.functionID != "" && m.localDeclared(context.functionID, name) || m.memberDeclared(context.ownerID, name)
+}
+
 func (m *semanticModel) addMember(owner, name string, values ownerSet) bool {
 	if owner == "" || name == "" || len(values) == 0 {
 		return false

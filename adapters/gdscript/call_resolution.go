@@ -38,13 +38,19 @@ func (m *semanticModel) resolveCall(context analysisContext, call callReference)
 		return m.resolveMethods(m.facts.parentByOwnerID[context.ownerID], call.name, false, true)
 	}
 	if receiverName != "" {
-		if owner := m.facts.autoloadOwnerByName[receiverName]; owner != "" {
-			return m.resolveMethods([]string{owner}, call.name, false, true)
-		}
 		if owners, known := m.preloadAliasOwners(context.file.path, receiverName); known {
 			if len(owners) == 0 {
 				return callResolution{reason: m.preloadAliasUnresolvedReason(context.file.path, receiverName), knownReceiver: true}
 			}
+			if len(owners) != 1 {
+				return callResolution{reason: "ambiguous-target", knownReceiver: true}
+			}
+			if call.name == "new" {
+				return callResolution{constructorOwners: ownerSlice(owners), knownReceiver: true}
+			}
+			return m.resolveMethods(ownerSlice(owners), call.name, true, true)
+		}
+		if owners := m.typeAliasOwners(context.file.path, receiverName); len(owners) > 0 {
 			if len(owners) != 1 {
 				return callResolution{reason: "ambiguous-target", knownReceiver: true}
 			}
@@ -59,6 +65,9 @@ func (m *semanticModel) resolveCall(context analysisContext, call callReference)
 		if owners := m.bindingOwners(context, receiverName); len(owners) > 0 {
 			return m.resolveMethods(ownerSlice(owners), call.name, false, true)
 		}
+		if m.bindingDeclared(context, receiverName) {
+			return callResolution{reason: "dynamic-target", knownReceiver: true}
+		}
 		if owners, ambiguous := m.classOwners(context.file.path, receiverName); len(owners) > 0 || ambiguous {
 			if ambiguous {
 				return callResolution{reason: "ambiguous-target", knownReceiver: true}
@@ -67,6 +76,9 @@ func (m *semanticModel) resolveCall(context analysisContext, call callReference)
 				return callResolution{constructorOwners: ownerSlice(owners), knownReceiver: true}
 			}
 			return m.resolveMethods(ownerSlice(owners), call.name, true, true)
+		}
+		if owner := m.autoloadOwner(context.file.path, receiverName); owner != "" {
+			return m.resolveMethods([]string{owner}, call.name, false, true)
 		}
 		if isBuiltin(receiverName) {
 			return callResolution{reason: "builtin-target", knownReceiver: true}
@@ -83,6 +95,11 @@ func (m *semanticModel) resolveCall(context analysisContext, call callReference)
 		return m.resolveMethods(ownerSlice(owners), call.name, false, true)
 	}
 	return callResolution{reason: "dynamic-target"}
+}
+
+func (m *semanticModel) autoloadOwner(sourcePath, name string) string {
+	projectRoot := m.facts.projectRootByFilePath[normalizeSourcePath(sourcePath)]
+	return m.facts.autoloadOwnerByProjectName[projectRoot][name]
 }
 
 func (m *semanticModel) resolveSuperConstructor(context analysisContext) callResolution {

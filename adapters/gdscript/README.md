@@ -35,14 +35,15 @@ Version 0.3 resolves statically defensible repository-local calls through:
 - `self` and `super` dispatch;
 - local inheritance and method overriding;
 - class constructors and static methods;
-- literal `preload()` and `load()` aliases, including nested types and direct construction;
+- literal `preload()` and `load()` aliases, including nested types, type-alias constants, inheritance through preload aliases, and direct construction;
+- `res://` paths scoped to the nearest enclosing `project.godot`, including repositories containing multiple Godot projects;
 - explicitly typed parameters, locals, members, and return values;
 - constructor assignment flow such as `service = Service.new()`;
 - untyped assignment flow through resolved parameters;
 - argument propagation between resolved callers and callees;
 - factory return propagation and chained calls;
 - member/property flow when the receiver type is known;
-- local autoload singletons declared in `project.godot`;
+- project-scoped autoload singletons declared in each `project.godot`, with file-local preload aliases taking lexical precedence;
 - `Callable(receiver, "method")`, callable assignments, parameters, properties, and returns;
 - literal callback dictionaries and `Dictionary.get()` callback lookup;
 - common callback arguments such as `signal.connect(handler)` and `values.map(handler)`;
@@ -101,4 +102,4 @@ Only directories on the path to a `.gd` file become directory facts.
 go test ./...
 ```
 
-The suite covers declarations, imports, exclusions, stable IDs, class/static calls, typed receivers, literal load/preload aliases, inheritance, `self`/`super`, inner classes, anonymous functions, constructor and parameter flow, factory returns, autoloads, callable and callback-map propagation, contract ordering, and repeat-run determinism.
+The suite covers declarations, imports, exclusions, stable IDs, class/static calls, typed receivers, literal load/preload aliases, nested type aliases and preload-based inheritance, nested Godot project roots, scoped autoloads and lexical shadowing, inheritance, `self`/`super`, expression-boundary receiver parsing, inner classes, anonymous functions, constructor and parameter flow, factory returns, callable and callback-map propagation, contract ordering, and repeat-run determinism.

@@ -111,7 +111,7 @@ func receiverStart(tokens []token, dot int) int {
 
 func isExpressionBoundary(text string) bool {
 	switch text {
-	case "=", ":=", "+=", "-=", "*=", "/=", ",", ":", "return", "if", "elif", "while", "for", "in", "and", "or", "not", "await":
+	case "=", ":=", "+=", "-=", "*=", "/=", ",", ":", ";", "+", "-", "*", "/", "%", "==", "!=", "<", ">", "<=", ">=", "&&", "||", "!", "?", "return", "if", "elif", "while", "for", "in", "and", "or", "not", "await":
 		return true
 	default:
 		return false

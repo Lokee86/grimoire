@@ -18,7 +18,7 @@ func processImports(facts *factSet, pf *parsedFile) {
 	ordinal := 0
 	for _, stmt := range pf.statements {
 		owner := ownerForStatement(pf, stmt)
-		for _, ref := range findImports(stmt, pf.path) {
+		for _, ref := range findImports(stmt, pf.path, pf.projectRoot) {
 			ordinal++
 			key := pf.path + "::import::" + fmt.Sprintf("%d", ordinal) + "::" + ref.expr
 			id := nodeID("import", key)
@@ -68,7 +68,7 @@ func declarationForStatement(pf *parsedFile, stmt statement) *declaration {
 	return nil
 }
 
-func findImports(stmt statement, path string) []importReference {
+func findImports(stmt statement, path, projectRoot string) []importReference {
 	var refs []importReference
 	for i := 0; i+2 < len(stmt.tokens); i++ {
 		current := stmt.tokens[i]
@@ -83,7 +83,9 @@ func findImports(stmt statement, path string) []importReference {
 		ref := importReference{loader: current.text, expr: joinTokens(args), span: spanFromTokens(path, current, stmt.tokens[close])}
 		if len(args) == 1 && args[0].kind == tokenString {
 			ref.static = true
-			ref.path, _ = normalizeImportPath(args[0].text)
+			if resourcePath, ok := normalizeImportPath(args[0].text); ok {
+				ref.path = projectResourcePath(projectRoot, resourcePath)
+			}
 		}
 		refs = append(refs, ref)
 	}

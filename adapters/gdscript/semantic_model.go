@@ -8,6 +8,7 @@ type semanticModel struct {
 	members            map[string]map[string]ownerSet
 	locals             map[string]map[string]ownerSet
 	returns            map[string]ownerSet
+	typeAliases        map[string]map[string]ownerSet
 	memberCallables    map[string]map[string]ownerSet
 	localCallables     map[string]map[string]ownerSet
 	returnCallables    map[string]ownerSet
@@ -28,6 +29,7 @@ func buildSemanticModel(facts *factSet, files []*parsedFile) *semanticModel {
 		members:            make(map[string]map[string]ownerSet),
 		locals:             make(map[string]map[string]ownerSet),
 		returns:            make(map[string]ownerSet),
+		typeAliases:        make(map[string]map[string]ownerSet),
 		memberCallables:    make(map[string]map[string]ownerSet),
 		localCallables:     make(map[string]map[string]ownerSet),
 		returnCallables:    make(map[string]ownerSet),
@@ -94,6 +96,9 @@ func (m *semanticModel) inferDeclarations(file *parsedFile) bool {
 			context.ownerID = file.scriptOwnerID
 		}
 		owners := m.inferExpressionOwners(context, decl.initializer)
+		if decl.kind == "constant" && decl.ownerFunction == "" {
+			changed = m.addTypeAlias(file.path, decl.name, m.inferTypeReferenceOwners(context, decl.initializer)) || changed
+		}
 		callables := m.inferExpressionCallables(context, decl.initializer)
 		callableMap := m.inferExpressionCallableMap(context, decl.initializer)
 		if decl.ownerFunction != "" {

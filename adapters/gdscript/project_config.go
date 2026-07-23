@@ -8,18 +8,26 @@ import (
 	"strings"
 )
 
-func processProjectAutoloads(root string, facts *factSet) error {
-	path := filepath.Join(root, "project.godot")
+func processProjectAutoloads(root string, projectRoots []string, facts *factSet) error {
+	for _, projectRoot := range projectRoots {
+		if err := processProjectAutoloadFile(root, projectRoot, facts); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func processProjectAutoloadFile(root, projectRoot string, facts *factSet) error {
+	path := filepath.Join(root, filepath.FromSlash(projectRoot), "project.godot")
 	file, err := os.Open(path)
 	if os.IsNotExist(err) {
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("open project.godot: %w", err)
+		return fmt.Errorf("open %s: %w", filepath.ToSlash(filepath.Join(projectRoot, "project.godot")), err)
 	}
 	defer file.Close()
 
-	facts.autoloadOwnerByName = make(map[string]string)
 	section := ""
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -45,8 +53,12 @@ func processProjectAutoloads(root string, facts *factSet) error {
 		if !ok {
 			continue
 		}
+		sourcePath = projectResourcePath(projectRoot, sourcePath)
 		if owner := facts.scriptOwnerByPath[sourcePath]; owner != "" {
-			facts.autoloadOwnerByName[name] = owner
+			if facts.autoloadOwnerByProjectName[projectRoot] == nil {
+				facts.autoloadOwnerByProjectName[projectRoot] = make(map[string]string)
+			}
+			facts.autoloadOwnerByProjectName[projectRoot][name] = owner
 		}
 	}
 	if err := scanner.Err(); err != nil {

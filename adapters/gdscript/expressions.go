@@ -16,7 +16,7 @@ func (m *semanticModel) inferExpressionOwners(context analysisContext, expressio
 			)
 		}
 	}
-	if owners, ok := m.staticLoadOwners(expression); ok {
+	if owners, ok := m.staticLoadOwners(context, expression); ok {
 		return owners
 	}
 	if call := terminalCall(expression); call != nil {
@@ -38,9 +38,23 @@ func (m *semanticModel) inferExpressionOwners(context analysisContext, expressio
 		}
 		return nil
 	}
+	if base, property, ok := terminalPropertyAccess(expression); ok {
+		owners := m.inferExpressionOwners(context, base)
+		var result ownerSet
+		for owner := range owners {
+			result = unionOwners(result, m.memberOwners(owner, property, make(map[string]bool)))
+			for _, nested := range m.facts.typeByOwnerID[owner][property] {
+				result = unionOwners(result, ownerSet{nested: {}})
+			}
+		}
+		return result
+	}
 	if name := simpleIdentifier(expression); name != "" {
-		if owner := m.facts.autoloadOwnerByName[name]; owner != "" {
-			return ownerSet{owner: {}}
+		if values, known := m.preloadAliasOwners(context.file.path, name); known {
+			return values
+		}
+		if values := m.typeAliasOwners(context.file.path, name); len(values) > 0 {
+			return values
 		}
 		if name == "self" {
 			return ownerSet{context.ownerID: {}}
@@ -51,8 +65,11 @@ func (m *semanticModel) inferExpressionOwners(context analysisContext, expressio
 		if values, ambiguous := m.classOwners(context.file.path, name); len(values) > 0 && !ambiguous {
 			return values
 		}
-		if values, known := m.preloadAliasOwners(context.file.path, name); known {
-			return values
+		if m.bindingDeclared(context, name) {
+			return nil
+		}
+		if owner := m.autoloadOwner(context.file.path, name); owner != "" {
+			return ownerSet{owner: {}}
 		}
 		return nil
 	}
@@ -83,14 +100,17 @@ func (m *semanticModel) inferExpressionOwners(context analysisContext, expressio
 
 func (m *semanticModel) inferTypeReferenceOwners(context analysisContext, tokens []token) ownerSet {
 	tokens = trimExpression(tokens)
-	if owners, ok := m.staticLoadOwners(tokens); ok {
+	if owners, ok := m.staticLoadOwners(context, tokens); ok {
 		return owners
 	}
 	if name := simpleIdentifier(tokens); name != "" {
-		if owners, ambiguous := m.classOwners(context.file.path, name); !ambiguous && len(owners) > 0 {
+		if owners, known := m.preloadAliasOwners(context.file.path, name); known {
 			return owners
 		}
-		if owners, known := m.preloadAliasOwners(context.file.path, name); known {
+		if owners := m.typeAliasOwners(context.file.path, name); len(owners) > 0 {
+			return owners
+		}
+		if owners, ambiguous := m.classOwners(context.file.path, name); !ambiguous && len(owners) > 0 {
 			return owners
 		}
 		return nil
@@ -105,6 +125,9 @@ func (m *semanticModel) inferTypeReferenceOwners(context analysisContext, tokens
 	}
 	if len(owners) == 0 {
 		owners, _ = m.preloadAliasOwners(context.file.path, parts[0])
+	}
+	if len(owners) == 0 {
+		owners = m.typeAliasOwners(context.file.path, parts[0])
 	}
 	for _, nestedName := range parts[1:] {
 		var nestedOwners ownerSet
@@ -121,7 +144,7 @@ func (m *semanticModel) inferTypeReferenceOwners(context analysisContext, tokens
 	return owners
 }
 
-func (m *semanticModel) staticLoadOwners(tokens []token) (ownerSet, bool) {
+func (m *semanticModel) staticLoadOwners(context analysisContext, tokens []token) (ownerSet, bool) {
 	tokens = trimExpression(tokens)
 	if len(tokens) != 4 || (tokens[0].text != "preload" && tokens[0].text != "load") || tokens[1].text != "(" || tokens[2].kind != tokenString || tokens[3].text != ")" {
 		return nil, false
@@ -130,11 +153,24 @@ func (m *semanticModel) staticLoadOwners(tokens []token) (ownerSet, bool) {
 	if !ok {
 		return nil, true
 	}
+	path = projectResourcePath(context.file.projectRoot, path)
 	owner := m.facts.scriptOwnerByPath[path]
 	if owner == "" {
 		return nil, true
 	}
 	return ownerSet{owner: {}}, true
+}
+
+func terminalPropertyAccess(tokens []token) ([]token, string, bool) {
+	tokens = trimExpression(tokens)
+	if len(tokens) < 3 || tokens[len(tokens)-2].text != "." || tokens[len(tokens)-1].kind != tokenIdentifier {
+		return nil, "", false
+	}
+	base := trimExpression(tokens[:len(tokens)-2])
+	if len(base) == 0 {
+		return nil, "", false
+	}
+	return base, tokens[len(tokens)-1].text, true
 }
 
 func propertyChain(tokens []token) ([]string, bool) {

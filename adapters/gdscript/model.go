@@ -39,7 +39,8 @@ type factSet struct {
 	externalParentByOwnerID     map[string]bool
 	scriptOwnerByPath           map[string]string
 	scriptOwnerCandidatesByPath map[string][]string
-	autoloadOwnerByName         map[string]string
+	projectRootByFilePath       map[string]string
+	autoloadOwnerByProjectName  map[string]map[string]string
 	preloadAliasByFileAndName   map[string]map[string][]string
 	staticMethodByModulePath    map[string]map[string][]string
 	fileByPath                  map[string]string

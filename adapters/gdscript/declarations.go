@@ -30,6 +30,7 @@ type declaration struct {
 
 type parsedFile struct {
 	path          string
+	projectRoot   string
 	content       []byte
 	statements    []statement
 	declarations  []declaration

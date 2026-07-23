@@ -30,19 +30,21 @@ func analyzeRepository(repo string, selections ...[]string) ([]byte, error) {
 		return nil, errors.New("repository path is not a directory")
 	}
 
-	files, dirs, err := collectSources(root)
+	files, dirs, projectRoots, err := collectSources(root)
 	if err != nil {
 		return nil, err
 	}
 	repositoryName := filepath.Base(filepath.Clean(root))
 	facts := &factSet{
-		nodeByID:          make(map[string]map[string]any),
-		edgeKeys:          make(map[string]struct{}),
-		unresolvedKeys:    make(map[string]struct{}),
-		moduleByPath:      make(map[string]string),
-		classByName:       make(map[string][]string),
-		methodByClassName: make(map[string]map[string][]string),
-		fileByPath:        make(map[string]string),
+		nodeByID:                   make(map[string]map[string]any),
+		edgeKeys:                   make(map[string]struct{}),
+		unresolvedKeys:             make(map[string]struct{}),
+		moduleByPath:               make(map[string]string),
+		classByName:                make(map[string][]string),
+		methodByClassName:          make(map[string]map[string][]string),
+		fileByPath:                 make(map[string]string),
+		projectRootByFilePath:      make(map[string]string),
+		autoloadOwnerByProjectName: make(map[string]map[string]string),
 	}
 	addRepositoryFacts(facts, repositoryName, dirs)
 
@@ -56,6 +58,13 @@ func analyzeRepository(repo string, selections ...[]string) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parse %s: %w", path, err)
 		}
+		pf.projectRoot = nearestProjectRoot(path, projectRoots)
+		facts.projectRootByFilePath[normalizeSourcePath(path)] = pf.projectRoot
+		for index := range pf.declarations {
+			if pf.declarations[index].preloadPath != "" {
+				pf.declarations[index].preloadPath = projectResourcePath(pf.projectRoot, pf.declarations[index].preloadPath)
+			}
+		}
 		addFileFacts(facts, pf, content, dirs)
 		parsed = append(parsed, pf)
 	}
@@ -66,7 +75,7 @@ func analyzeRepository(repo string, selections ...[]string) ([]byte, error) {
 	for _, pf := range parsed {
 		processExtends(facts, pf)
 	}
-	if err := processProjectAutoloads(root, facts); err != nil {
+	if err := processProjectAutoloads(root, projectRoots, facts); err != nil {
 		return nil, err
 	}
 	model := buildSemanticModel(facts, parsed)
@@ -122,8 +131,9 @@ func addFileFacts(facts *factSet, pf *parsedFile, content []byte, dirs []string)
 	facts.addEdge(edge(fileID, moduleID, "contains", nil))
 }
 
-func collectSources(root string) ([]string, []string, error) {
+func collectSources(root string) ([]string, []string, []string, error) {
 	var files []string
+	var projectRoots []string
 	dirs := map[string]bool{".": true}
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -144,19 +154,31 @@ func collectSources(root string) ([]string, []string, error) {
 			dirs[filepath.ToSlash(rel)] = true
 			return nil
 		}
-		if strings.EqualFold(filepath.Ext(entry.Name()), ".gd") {
-			rel, err := filepath.Rel(root, path)
-			if err != nil {
-				return err
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+		if strings.EqualFold(entry.Name(), "project.godot") {
+			projectRoot := filepath.ToSlash(filepath.Dir(filepath.FromSlash(rel)))
+			if projectRoot == "" {
+				projectRoot = "."
 			}
-			files = append(files, filepath.ToSlash(rel))
+			projectRoots = append(projectRoots, projectRoot)
+		}
+		if strings.EqualFold(filepath.Ext(entry.Name()), ".gd") {
+			files = append(files, rel)
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("scan repository: %w", err)
+		return nil, nil, nil, fmt.Errorf("scan repository: %w", err)
+	}
+	if len(projectRoots) == 0 {
+		projectRoots = append(projectRoots, ".")
 	}
 	sort.Strings(files)
+	projectRoots = uniqueSorted(projectRoots)
 	needed := map[string]bool{".": true}
 	for _, file := range files {
 		dir := filepath.ToSlash(filepath.Dir(filepath.FromSlash(file)))
@@ -180,7 +202,30 @@ func collectSources(root string) ([]string, []string, error) {
 		}
 		return filteredDirs[i] < filteredDirs[j]
 	})
-	return files, filteredDirs, nil
+	return files, filteredDirs, projectRoots, nil
+}
+
+func nearestProjectRoot(sourcePath string, projectRoots []string) string {
+	sourcePath = normalizeSourcePath(sourcePath)
+	best := "."
+	for _, projectRoot := range projectRoots {
+		projectRoot = normalizeSourcePath(projectRoot)
+		if projectRoot == "." || sourcePath == projectRoot || strings.HasPrefix(sourcePath, projectRoot+"/") {
+			if projectRoot != "." && (best == "." || len(projectRoot) > len(best)) {
+				best = projectRoot
+			}
+		}
+	}
+	return best
+}
+
+func projectResourcePath(projectRoot, resourcePath string) string {
+	resourcePath = normalizeSourcePath(resourcePath)
+	projectRoot = normalizeSourcePath(projectRoot)
+	if projectRoot == "." || projectRoot == "" {
+		return resourcePath
+	}
+	return normalizeSourcePath(projectRoot + "/" + resourcePath)
 }
 
 func excludedDirectory(name string) bool {
