@@ -257,6 +257,7 @@ Current value: `0.1.0-dev`.
 
 | Variable | Meaning |
 | --- | --- |
+| `GRIMOIRE_LLAMA_BACKEND` | Managed setup backend: `auto`, `cuda`, `vulkan`, or `cpu` |
 | `GRIMOIRE_LLAMA_SERVER` | Explicit `llama.cpp` runtime executable |
 | `GRIMOIRE_EMBEDDING_MODEL` | Explicit local GGUF model file |
 | `GRIMOIRE_VECTOR_ENGINE` | Explicit Rust vector-engine DLL |

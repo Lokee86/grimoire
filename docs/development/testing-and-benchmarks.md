@@ -1,16 +1,16 @@
-# Testing and Benchmarks
+# Testing and benchmarks
+
+Grimoire uses unit and integration tests for deterministic contracts and repository-owned judged corpora for retrieval behavior.
 
 ## Required checks
 
-Run from the Grimoire repository root:
+Run from the repository root:
 
 ```bash
-cd native/vector-engine
-cargo fmt --all --check
-cargo test --workspace
-cargo clippy --workspace --all-targets -- -D warnings
-cargo build -p grimoire-vector-ffi --release
-cd ../..
+cargo fmt --manifest-path native/vector-engine/Cargo.toml --all --check
+cargo test --manifest-path native/vector-engine/Cargo.toml
+cargo clippy --manifest-path native/vector-engine/Cargo.toml --workspace --all-targets -- -D warnings
+cargo build --manifest-path native/vector-engine/Cargo.toml -p grimoire-vector-ffi --release
 gofmt -w ./cmd ./internal
 go test ./...
 go vet ./...
@@ -20,43 +20,54 @@ Formatting should produce no diff after the final run.
 
 ## Test ownership
 
-| Area | Primary tests |
+| Area | Primary coverage |
 | --- | --- |
-| CLI integration and flag wiring | `internal/app/run_test.go`, `internal/app/model_test.go` |
-| Embedding client, query planning/batching, and runtime contract | `internal/embedding/client_test.go`, `internal/embedding/query_test.go`, `internal/embedding/query_batch_test.go`, `internal/embedding/runtime_test.go` |
-| Rust object, snapshot, search, and handle lifecycle | `native/vector-engine/crates/*` unit tests |
-| Go-to-Rust ABI integration | `internal/vectorstore/integration_windows_test.go` |
-| Index/embed/reuse/semantic-search application path | `internal/app/vector_test.go` |
-| Incremental traversal, ignore behavior, and exclusions | `internal/index/build_test.go` |
-| Binary shard and file codecs | `internal/index/codec_test.go` |
-| Manifest tokenizer identity and incompatible-version detection | `internal/index/objects_test.go` |
-| Prepared repository persistence, validation, reuse, and conflicts | `internal/index/store_test.go` |
-| `o200k_base` initialization and known token count | `internal/tokenizer/tokenizer_test.go` |
-| Lexical scoring and deterministic tie-breaking | `internal/retrieve/search_test.go` |
-| Targeted exact recovery and signal extraction | `internal/retrieve/exact_test.go` |
-| Candidate deduplication, overlap handling, diversity, and neighbours | `internal/selection/selection_test.go` |
-| End-to-end deterministic retrieval-quality fixtures | `internal/app/retrieval_quality_test.go` |
-| Whole-chunk fitting and exact serialized-package accounting | `internal/compiler/compiler_test.go` |
+| CLI dispatch and flags | `internal/app/run_test.go`, `model_test.go`, evaluation tests |
+| Prepared traversal and state | `internal/index/*_test.go`, app exclusion tests |
+| Embedding contract and query batching | `internal/embedding/*_test.go` |
+| Runtime backend selection | `internal/embedding/setup_backend_test.go`, app model tests |
+| Native object, snapshot, and search behavior | `native/vector-engine/crates/*` tests |
+| Go-to-Rust ABI | `internal/vectorstore/integration_windows_test.go` |
+| Vector build, reuse, and concurrency | `internal/app/vector*_test.go` |
+| Exact, lexical, and merged retrieval | `internal/retrieve/*_test.go`, app context tests |
+| Curation and neighbour expansion | `internal/selection/*_test.go` |
+| Query profiling and assembly | `internal/queryshape/*_test.go`, `internal/assembly/*_test.go` |
+| Structural providers | `internal/lexiconfacts`, `internal/arcanagraph`, and app structure tests |
+| Package fitting and exact tokens | `internal/compiler/*_test.go` |
+| Corpus scoring and reports | `internal/evaluation/*_test.go` |
 
-Tests use temporary directories, local HTTP test servers, synthetic vectors, and locally constructed snapshots. They do not require an installed model or external service. Native integration tests require a built Rust DLL and skip when it is unavailable.
+Most tests use temporary repositories, local HTTP servers, and synthetic vectors. Native integration requires a built DLL and skips when unavailable.
 
-Embedding coverage verifies query instruction formatting, OpenAI-compatible response handling, response-index ordering, 1024-to-512 reduction, normalization, and malformed-vector rejection.
+## Runtime verification
 
-A real installed provider can be smoke-tested separately:
+After managed setup:
 
 ```bash
+grimoire model info
 grimoire model serve
-# in another shell
-grimoire model probe
 ```
 
-## Native vector verification
+In another terminal:
 
-The Rust suite validates immutable-object reuse/conflict rejection, deterministic snapshot construction, malformed layout rejection, exact ranking, and handle-close behavior. The Go integration test crosses the real DLL ABI and verifies caller-owned buffers, metadata, search ordering, close, and search-after-close failure.
+```bash
+grimoire model probe
+grimoire vector info --root .
+```
 
-Before release, also run race-enabled Go tests and sanitizer-enabled Rust builds on supported toolchains. The C boundary is deliberately narrow enough for repeated open/search/close stress and malformed-input fuzzing.
+`model info` verifies discovery only. `model probe` sends a real query/document pair to the running endpoint.
 
-## Retrieval and selection benchmarks
+## Prepared and vector smoke test
+
+```bash
+grimoire index --root .
+grimoire vector build --root .
+grimoire vector search --root . --query "where is context compilation implemented"
+grimoire context --root . --query "explain context compilation"
+```
+
+The last command exercises automatic policy. Add a positive `--budget` to exercise fixed fitting.
+
+## Warm algorithm benchmarks
 
 ```bash
 go test ./internal/retrieve ./internal/selection \
@@ -64,11 +75,11 @@ go test ./internal/retrieve ./internal/selection \
   -benchmem
 ```
 
-The retrieval benchmarks construct prepared in-memory snapshots containing 10,000 chunks. They measure the lexical failure path and conditional exact recovery separately. The selection benchmark measures deterministic curation of 200 ranked candidates with prepared neighbours.
+These isolate lexical fallback, conditional exact recovery, and bounded candidate curation. They exclude repository loading, embedding inference, native vector scanning, and package serialization unless the benchmark explicitly includes them.
 
-The benchmarks include query parsing, relevant chunk scans, reason construction, candidate sorting or reordering, deduplication, overlap checks, and neighbour lookup as appropriate. They exclude filesystem traversal, source-file reads, hashing, chunk construction, go-git loading, model inference, native vector scanning, and complete context-package serialization.
+## Live query-embedding benchmarks
 
-These are warm algorithm baselines, not complete command latency. To compare live query-embedding plans without prompt-cache bias, run the local model and execute:
+With the local model service running:
 
 ```bash
 GRIMOIRE_EMBEDDING_BENCHMARK_ENDPOINT=http://127.0.0.1:9876/v1 \
@@ -77,28 +88,59 @@ GRIMOIRE_EMBEDDING_BENCHMARK_ENDPOINT=http://127.0.0.1:9876/v1 \
   -benchtime=3x -count=3
 ```
 
-Repository-scale semantic measurements, query-mode results, and the checked-in quality corpus are documented in [Retrieval quality and latency baselines](retrieval-quality.md).
+Compare modes within the same run. Hardware backend, prompt cache, system load, and runtime version materially affect absolute latency.
 
-## Interpreting performance
+## Judged retrieval evaluation
 
-The lexical fallback and initial targeted exact recovery are linear in prepared chunk text. They are useful regression baselines, but they should not be treated as proof that full scans scale to every repository. Exact recovery is conditional and skipped for ordinary natural-language queries.
+Run the repository-owned corpus:
 
-Any future compact exact index or postings structure should add side-by-side benchmarks rather than replacing the existing baselines immediately. That preserves evidence of the algorithmic change.
+```bash
+grimoire eval retrieval \
+  --root . \
+  --cases evaluation/retrieval/grimoire.json \
+  --modes lexical,fast,full,quality
+```
 
-## Documentation verification
+Provider comparisons:
 
-When behavior changes:
+```bash
+grimoire eval retrieval --root . --cases evaluation/retrieval/grimoire.json \
+  --modes lexical --structural-providers none --variant standalone
 
-1. Update the owning package README.
-2. Update current architecture or reference documentation.
-3. Update current limitations when the change removes or introduces one.
-4. Move unresolved follow-on work into the roadmap rather than describing it as implemented.
-5. Keep command examples aligned with `internal/app/run.go`.
+grimoire eval retrieval --root . --cases evaluation/retrieval/grimoire.json \
+  --modes lexical --structural-providers lexicon --variant lexicon
 
-## Related documentation
+grimoire eval retrieval --root . --cases evaluation/retrieval/grimoire.json \
+  --modes lexical --structural-providers lexicon,arcana --variant lexicon-arcana
+```
 
-- [System overview](../architecture/system-overview.md)
-- [Prepared index](../architecture/prepared-index.md)
-- [Embedding model](../reference/embedding-model.md)
-- [Vector store](../reference/vector-store.md)
-- [Current limitations](../limits/current-limitations.md)
+Automatic policy and assembly:
+
+```bash
+grimoire eval retrieval \
+  --root . \
+  --cases evaluation/retrieval/grimoire.json \
+  --modes lexical \
+  --adaptive \
+  --variant adaptive
+```
+
+`--adaptive` cannot be combined with a fixed `--budget` override.
+
+## Report outputs
+
+The evaluator writes JSON and Markdown under `evaluation/results/`. Reports include source and structural recall, irrelevant-selection rates, ranking recall and MRR, query-profile agreement, latency, package size, budget utilization, provider warnings, and loss attribution through retrieval, merge, curation, adaptive assembly, and final fitting.
+
+Important report families include ranking calibration baselines/current runs, query-profile reports, fixed/adaptive query-shape comparisons, and standalone/Lexicon/Lexicon-plus-Arcana comparisons.
+
+Do not compare reports from different repository contents, prepared snapshots, corpora, modes, provider sets, or hardware as though they were paired experiments.
+
+## Calibration discipline
+
+1. Rebuild prepared and vector state after implementation changes that affect indexed content or embedding identity.
+2. Run compared variants against the same immutable state.
+3. Preserve corpus, command parameters, and provider set with the report.
+4. Inspect per-case failure stages before acting on aggregate recall.
+5. Correct invalid expectations instead of treating them as implementation failures.
+6. Add a deterministic regression fixture for confirmed defects.
+7. Commit only reports that document a meaningful baseline, comparison, or gate.

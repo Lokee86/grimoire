@@ -1,9 +1,5 @@
 # Planning
 
-Future, unresolved, proposed, or dependency-blocked Grimoire work.
+- [Roadmap](roadmap.md) — unimplemented work and current priority order.
 
-## Documents
-
-- [Roadmap](roadmap.md)
-
-Current behavior is documented outside this folder. A roadmap item should move into architecture and reference documentation when it becomes implemented.
+Planning pages are not implementation contracts. Completed behavior must move into architecture or reference documentation.

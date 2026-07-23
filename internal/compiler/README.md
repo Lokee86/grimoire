@@ -1,39 +1,35 @@
-# Context Compiler
+# Compiler package
 
-`internal/compiler` owns final whole-item selection and the versioned JSON context-package model.
+`internal/compiler` converts ranked source selections and structural evidence into the versioned Grimoire context package.
 
-## Owns
+## Entry points
 
-- package versioning;
-- package, structural-provider-state, structural-evidence, and source-selection fields;
-- deterministic budget fitting across complete structural facts and complete source chunks;
-- exact serialized-package token accounting;
-- final package-byte verification;
-- separate structural and source budget-omission counts; and
-- provider-source metadata supplied by the composition path.
+- `Compile` — source-only fixed-budget package.
+- `CompileWithEvidence` — fixed-budget package with provider state and structural evidence.
+- `CompileAdaptiveWithEvidence` — automatic-budget package with an explicit assembly decision.
 
-## Does not own
+## Current schema
 
-- candidate or structural-evidence discovery;
-- relevance scoring;
-- repository or prepared-state access;
-- chunk construction;
-- tokenizer selection or vocabulary ownership; or
-- provider execution and deadlines.
+The current package version is 5. The package records:
 
-## Main files
+- query and selected budget;
+- prepared and embedding identities;
+- retrieval and structural sources;
+- immutable provider state;
+- query profile and retrieval policy;
+- adaptive assembly metadata when applicable;
+- selected source chunks and structural evidence;
+- exact token count; and
+- source and structural omission counts.
 
-- `compiler.go` - package model and whole-item fitting algorithm.
-- `compiler_test.go` - budget, structural evidence, and package behavior coverage.
+## Invariants
 
-## Selection rule
+- Token accounting uses `o200k_base` over the serialized package representation.
+- The compiler never exceeds the supplied positive budget.
+- Source and structural evidence retain deterministic input order subject to fitting.
+- Unsupported package versions must be rejected by consumers.
+- Explicit-budget packages do not fabricate adaptive assembly metadata.
 
-The compiler first considers the highest-ranked structural fact, then the highest-ranked source selection. It next considers the remaining structural facts and finally the remaining source candidates. This gives first-class structural data an early reserved opportunity without allowing it to consume every token before implementation source is considered.
+## Boundary
 
-For every item, the compiler serializes and counts the complete tentative JSON package. An item is retained only when that package fits the budget. A rejected item is counted, but later smaller items may still be selected. Individual facts and chunks are never truncated. The final emitted bytes are counted again and must match the package-level `token_count`.
-
-## Related documentation
-
-- [Context package](../../docs/reference/context-package.md)
-- [System overview](../../docs/architecture/system-overview.md)
-- [Current limitations](../../docs/limits/current-limitations.md)
+The compiler owns fitting, accounting, omission reporting, and serialization. It does not classify queries, rank candidates, decide evidence coverage, call providers, or persist retrieval state.

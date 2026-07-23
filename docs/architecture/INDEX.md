@@ -1,15 +1,15 @@
 # Architecture
 
-Implemented Grimoire architecture and ownership boundaries.
+Architecture documentation describes implemented ownership, data flow, state transitions, and degradation behavior.
 
-## Documents
+- [System overview](system-overview.md) — indexing, retrieval, query policy, assembly, and provider boundaries.
+- [Prepared index](prepared-index.md) — immutable source identities, incremental rebuilds, and publication.
 
-- [System overview](system-overview.md) - End-to-end indexing and context-compilation flow, package ownership, and deterministic behavior.
-- [Prepared index](prepared-index.md) - Current go-git object storage, binary records, sharding, publication, and validation.
+Related contracts:
 
-## Related documentation
+- [Indexing](../reference/indexing.md)
+- [Vector store](../reference/vector-store.md)
+- [Query shape and assembly](../reference/query-shape-and-assembly.md)
+- [Context package](../reference/context-package.md)
 
-- [CLI reference](../reference/cli.md)
-- [Context package format](../reference/context-package.md)
-- [Current limitations](../limits/current-limitations.md)
-- [Roadmap](../planning/roadmap.md)
+Planned architecture changes belong under [Planning](../planning/INDEX.md), not here.

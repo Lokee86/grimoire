@@ -1,31 +1,21 @@
-# Embedding Model
+# Embedding model
 
-## Fixed model contract
+Grimoire uses one fixed local embedding contract for indexing and querying.
 
-Grimoire's first semantic provider is:
+## Identity
 
-| Field | Value |
-| --- | --- |
-| Model | `Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0` |
-| Runtime | Local `llama.cpp` embeddings server |
-| Native dimensions | 1024 |
-| Stored dimensions | 512 |
-| Similarity | Inner product over L2-normalized vectors |
-| Default endpoint | `http://127.0.0.1:9876/v1` |
-| Grimoire identity | `qwen3-embedding-0.6b-q8_0-512d` |
+- Model: `Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0`
+- Grimoire identity: `qwen3-embedding-0.6b-q8_0-512d`
+- Runtime: pinned `llama.cpp`
+- Default endpoint: `http://127.0.0.1:9876/v1`
+- Native dimensions: 1,024
+- Stored dimensions: first 512 Matryoshka dimensions
+- Normalization: L2 inside Grimoire
+- Similarity: inner product over normalized vectors
+- Document input: raw chunk text
+- Query input: repository source-code and documentation retrieval instruction
 
-Grimoire keeps the first 512 Matryoshka dimensions from the model's native vector and normalizes that reduced vector itself. This identity must be part of future vector-record compatibility checks.
-
-## Query and document inputs
-
-Queries are formatted as:
-
-```text
-Instruct: Given a software development query, retrieve relevant source code and documentation from a repository
-Query:<query text>
-```
-
-Repository chunks are embedded as their raw prepared text. The query instruction is not added to documents.
+Prepared vector manifests include the embedding identity and dimensions. Grimoire rejects incompatible state rather than mixing vectors from different contracts.
 
 ## Managed setup
 
@@ -35,50 +25,83 @@ On Windows x64:
 grimoire model setup
 ```
 
-The command installs a pinned CPU build of `llama.cpp` and the official Q8 GGUF model beneath the user's cache directory. Both downloads are checked against fixed SHA-256 digests before publication.
+The command downloads the pinned runtime and `Qwen3-Embedding-0.6B-Q8_0.gguf`, verifies fixed SHA-256 digests, and publishes complete artifacts atomically into the user cache. Repeated setup reuses verified files. Use `--cache <path>` to replace the default cache root.
 
-The default cache is returned by the command and can be overridden:
+Select a backend explicitly when required:
 
 ```bash
-grimoire model setup --cache D:/models/grimoire
+grimoire model setup --backend cuda
+grimoire model setup --backend vulkan
+grimoire model setup --backend cpu
 ```
 
-Automatic runtime setup currently targets Windows x64. On another platform, install `llama.cpp` separately and expose `llama-server` or `llama` on `PATH`, or set `GRIMOIRE_LLAMA_SERVER`.
+`--backend auto` is the default. It selects:
 
-## Runtime lookup
+1. CUDA when an NVIDIA driver meeting the managed CUDA 12 runtime requirement is detected.
+2. Vulkan when a Vulkan runtime is available.
+3. CPU otherwise.
 
-Grimoire checks runtime locations in this order:
+An explicit unsupported or unavailable setup path fails; it is not silently changed to another explicitly unrequested backend. Set `GRIMOIRE_LLAMA_BACKEND` to choose the setup backend without a flag.
 
-1. `--runtime` supplied to `model serve` or `model info`;
+Automatic managed setup is currently Windows x64 only. Other platforms must provide a compatible `llama.cpp` executable and set `GRIMOIRE_LLAMA_SERVER` or place it on `PATH`.
+
+## Discovery
+
+Runtime discovery checks, in order:
+
+1. explicit `--runtime` path;
 2. `GRIMOIRE_LLAMA_SERVER`;
-3. Grimoire's managed runtime;
-4. `llama-server` on `PATH`;
-5. the modern `llama` multicall binary on `PATH`.
+3. the managed runtime cache; and
+4. `llama-server` or `llama` on `PATH`.
 
-Model lookup checks:
+Model discovery checks:
 
-1. `--model-file` supplied to `model serve`;
-2. `GRIMOIRE_EMBEDDING_MODEL`;
-3. Grimoire's managed model.
+1. explicit model path where supported;
+2. `GRIMOIRE_EMBEDDING_MODEL`; and
+3. the managed model cache.
 
-When no local model is found, `model serve` allows `llama.cpp` to resolve the fixed Hugging Face model reference.
+Inspect discovery without starting the service:
 
-## Running and probing
+```bash
+grimoire model info
+```
 
-Start the blocking local service:
+## Serving
+
+Start the blocking local endpoint:
 
 ```bash
 grimoire model serve
 ```
 
-In another shell, verify a real query/document embedding pair:
+Default service settings:
+
+| Setting | Default |
+| --- | ---: |
+| Host | `127.0.0.1` |
+| Port | `9876` |
+| Context size | 8,192 |
+| Physical batch size | 2,048 |
+| Parallel server slots | 4 |
+
+The server runs in embedding mode with last-token pooling. Grimoire performs 512-dimensional truncation and normalization after the response.
+
+Verify the live OpenAI-compatible endpoint:
 
 ```bash
 grimoire model probe
 ```
 
-`model probe` reports the model identity, endpoint, final dimension count, and similarity. It does not write vectors into prepared repository state.
+The probe embeds one instructed query and one raw document, validates the dimensions, and reports their similarity.
 
-## Current boundary
+## Query plans
 
-The provider, managed setup, server launcher, query formatting, vector reduction, normalization, incremental chunk embedding, persistent vector storage, exact nearest-neighbour retrieval, and vector-backed `grimoire context` integration are implemented. Source indexing and vector refresh remain separate explicit operations, and context selection still uses whole ranked chunks.
+- `fast`: split the complete query into non-overlapping 16-token windows, group at most 64 query tokens per request, and run up to two requests concurrently.
+- `full`: embed the complete query once.
+- `quality`: embed the complete query and all split windows.
+
+`--query-max-tokens 0` retains the complete query. A positive value is an explicit safety limit.
+
+## Operational boundaries
+
+The embedding package owns model identity, runtime setup and discovery, request shaping, truncation, and normalization. It does not own chunking, vector persistence, ranking, context assembly, or package fitting.

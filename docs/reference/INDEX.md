@@ -1,17 +1,12 @@
 # Reference
 
-Exact user-visible contracts for the current Grimoire implementation.
+Reference pages describe the current public commands, data contracts, defaults, and operating behavior.
 
-## Documents
+- [CLI](cli.md) — commands, flags, environment variables, and fallback behavior.
+- [Embedding model](embedding-model.md) — fixed model identity, managed runtime, backend selection, and service verification.
+- [Indexing](indexing.md) — prepared source snapshots and vector-build workflow.
+- [Vector store](vector-store.md) — object storage, packed snapshots, ABI behavior, and exact search.
+- [Query shape and assembly](query-shape-and-assembly.md) — automatic budgets and evidence-coverage stopping.
+- [Context package](context-package.md) — version 5 JSON schema and token accounting.
 
-- [CLI](cli.md) - Commands, flags, path resolution, validation, and JSON output.
-- [Indexing](indexing.md) - Traversal, ignore behavior, supported files, limits, and incremental statistics.
-- [Context package](context-package.md) - Version 3 exact-token package with retrieval provenance.
-- [Embedding model](embedding-model.md) - Fixed local model, runtime, vector, setup, and probe contracts.
-- [Vector store](vector-store.md) - Persistent vector objects, packed snapshots, exact search, and ABI contracts.
-
-## Related documentation
-
-- [System overview](../architecture/system-overview.md)
-- [Prepared index](../architecture/prepared-index.md)
-- [Current limitations](../limits/current-limitations.md)
+Architecture rationale belongs under [Architecture](../architecture/INDEX.md). Evaluation procedure belongs under [Development](../development/INDEX.md).

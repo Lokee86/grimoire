@@ -1,154 +1,90 @@
-# System Overview
+# System overview
 
-## Purpose
+Grimoire has two principal pipelines: repository preparation and query-time context construction. Both are deterministic at their storage and assembly boundaries.
 
-Grimoire is a standalone repository RAG and context-compilation tool. It owns prepared retrieval state, exact semantic retrieval, targeted literal recovery, lexical failure fallback, candidate curation, exact budgeted compilation, and context-package output.
-
-The implemented foundation includes source preparation, targeted exact and lexical retrieval, exact output budgeting, an operational local embedding provider, persistent content-addressed vectors, packed memory-mapped snapshots, exact semantic search, deterministic context curation, immutable Lexicon symbol enrichment, and bounded Arcana graph evidence.
-
-## Current flow
+## Repository preparation
 
 ```text
-index command
-    │
-    ├── traverse eligible repository files
-    ├── reuse unchanged file records
-    ├── fallback-chunk changed text files
-    ├── count chunks with o200k_base
-    └── atomically publish prepared source state
-
-model setup / serve
-    │
-    ├── install verified llama.cpp runtime and Q8 GGUF model
-    ├── expose a local OpenAI-compatible embeddings endpoint
-    ├── instruct repository queries
-    ├── embed raw document chunks
-    └── reduce native 1024 dimensions to normalized 512 dimensions
-
-vector build / search
-    │
-    ├── reuse vectors by embedding identity and source-content hash
-    ├── batch-embed only missing chunks
-    ├── publish a sorted aligned float32 snapshot
-    ├── memory-map and validate the snapshot in Rust
-    └── run serial or concurrent exact dot-product search
-
-context command
-    │
-    ├── load prepared source state and the packed vector snapshot
-    ├── validate the exact prepared-index identity, model, dimensions, and chunk count
-    ├── plan fast, full, or quality query embeddings
-    ├── batch query inputs and search returned vectors concurrently
-    ├── fall back to deterministic lexical ranking on semantic failure
-    ├── recover concrete identifiers, paths, phrases, keys, codes, and versions
-    ├── resolve and cache the current immutable Lexicon export when available
-    ├── retain matched symbols, spans, and immediate relationships
-    ├── synchronize Arcana to the same Lexicon snapshot when necessary
-    ├── query bounded roles, impact, unresolved references, and call chains
-    ├── merge provider candidates without duplicate chunks
-    ├── remove overlap, diversify evidence, and add bounded neighbours
-    ├── fit whole structural facts and source chunks under one package budget
-    └── emit verified JSON with source and structural provenance
+Repository files
+  -> ignore and eligibility rules
+  -> normalized source chunks
+  -> immutable prepared snapshot
+  -> missing-text embedding batches
+  -> content-addressed vector objects
+  -> packed vector snapshot
 ```
 
-The embedding path is independently probeable and used by `vector build`, `vector search`, and `context`. It remains separate from source indexing so explicit one-shot preparation and vector refresh stay independently controllable.
+`grimoire index` owns the prepared source snapshot. `grimoire vector build` owns embedding and vector materialization. Vector state is valid only when its manifest matches the prepared-index identity, model identity, dimensions, and vector count.
 
-## Retrieval flow
+## Query-time construction
 
 ```text
-prepared chunks ──► incremental model vectors
-                              │
-query ──► full query or complete 16-token window stream ──► bounded embedding requests ──┐
-                                                                    │
-                                           concurrent exact scans ──┤
-query ──► conditional exact-signal recovery ────────────────────────┤
-Lexicon CURRENT ──► cached export ──► symbols and relationships ────┤
-                                         │                           │
-                                         └──► Arcana matching graph ─┤
-                                               roles / impact / paths │
-                                                                 ▼
-                                                   provider candidate merge
-                                                                 │
-semantic failure ──► deterministic lexical fallback ──────────────┤
-                                                                 ▼
-                                           deduplication and overlap removal
-                                                                 │
-                                           diversity and neighbour expansion
-                                                                 │
-                                                                 ▼
-                                      exact source + structural package budget
+Query
+  -> query embedding plan
+  -> vector search or lexical fallback
+  -> concrete exact recovery
+  -> optional Lexicon and Arcana evidence
+  -> candidate merge and ranking
+  -> query-shape analysis
+  -> selection and neighbour expansion
+  -> automatic evidence assembly or explicit fixed budget
+  -> package compilation
 ```
 
-Exact recovery activates only for concrete literal signals rather than adding a mandatory general lexical pass. Lexicon and Arcana enrichment activate automatically when their repository state and executables are available, but neither is required for the standalone retrieval path.
+The query profile and retrieval policy are computed after provider candidates are available, allowing prompt semantics to be refined by ranking confidence and graph dispersion without hiding those signals inside the rank score.
 
-## Package ownership
+When the caller omits a positive budget, Grimoire activates the policy and applies scope-specific evidence assembly. When the caller supplies a positive budget, Grimoire emits the profile in shadow form but retains fixed fit-to-budget assembly.
 
-| Package | Owns |
-| --- | --- |
-| `internal/app` | CLI parsing and operation orchestration |
-| `internal/ignore` | Git-ignore pattern loading and matching |
-| `internal/index` | Traversal, fallback chunking, source records, storage, and atomic publication |
-| `internal/retrieve` | Shared candidate provenance, targeted exact recovery, and lexical fallback ranking |
-| `internal/lexiconfacts` | Immutable Lexicon export resolution, symbol matching, source candidates, and structural symbol evidence |
-| `internal/arcanagraph` | Arcana snapshot catch-up, JSONL protocol execution, and graph evidence normalization |
-| `internal/structure` | Provider-neutral structural evidence schema |
-| `internal/embedding` | Fixed model identity, verified setup, runtime launch, query planning/batching, formatting, HTTP client, reduction, normalization, and probing |
-| `internal/vectorstore` | Native-library discovery, ABI validation, caller-owned buffers, and snapshot-handle lifecycle |
-| `native/vector-engine` | Immutable vector objects, packed snapshot format, mmap validation, and exact concurrent search |
-| `internal/tokenizer` | Fixed `o200k_base` counting |
-| `internal/selection` | Candidate deduplication, overlap handling, diversity, and bounded neighbour expansion |
-| `internal/compiler` | Whole-item source and structural budget fitting plus exact serialized-package accounting |
+## Ownership boundaries
 
-Vector storage has its own Rust engine and Go bridge. Retrieval, curation, and package fitting remain separate concrete seams so model access does not absorb selection policy.
+### Application orchestration
 
-## Code map
+`internal/app` parses commands, resolves state, schedules independent providers, applies timeout and fallback rules, and passes typed results between packages. It does not own ranking formulas, graph semantics, vector persistence, or token accounting.
 
-```text
-cmd/grimoire/main.go
-    └── app.Run
-        ├── index.Build / index.Save
-        ├── context command
-        │   ├── embedding.Client
-        │   ├── vectorstore.Library / vectorstore.Engine
-        │   ├── retrieve.Exact / retrieve.Search fallback
-        │   ├── lexiconfacts.ResolveExport / SearchDetailed
-        │   ├── arcanagraph.ResolveSnapshot / Client.Search
-        │   ├── selection.Curate
-        │   └── compiler.CompileWithEvidence / compiler.Marshal
-        ├── vector commands
-        │   ├── embedding.Client
-        │   └── vectorstore.Library / vectorstore.Engine
-        └── model commands
-            ├── embedding.Setup
-            ├── embedding.Serve
-            └── embedding.Client.Probe
-```
+### Source state
 
-## Embedding contract
+`internal/index` owns repository traversal, chunking, exact token counts, immutable object reuse, and prepared snapshot publication. `.git/`, `.grimoire/`, and nested state/output paths are excluded from traversal.
 
-The fixed provider is `Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0`, served locally through `llama.cpp`.
+### Embeddings
 
-Queries receive the fixed repository retrieval instruction. Fast mode retains the complete query, divides it into non-overlapping 16-token windows, groups windows into requests containing at most 64 query tokens, and runs at most two requests concurrently. Full mode sends the complete query once; quality mode sends the full query plus the bounded split-window requests. An optional nonzero query-token limit can be configured explicitly, but the default is unlimited. Documents remain raw. Native 1024-dimensional output is truncated to the first 512 Matryoshka dimensions and L2-normalized inside Grimoire. Inner product is therefore cosine similarity.
+`internal/embedding` owns the fixed Qwen3 model identity, managed `llama.cpp` runtime, query instructions, request batching, Matryoshka truncation to 512 dimensions, and normalization. It does not persist or rank vectors.
 
-Model identity, dimensions, preprocessing, runtime compatibility, and future vector schema must collectively determine whether persisted vectors can be reused.
+### Vector storage
 
-## Determinism
+`internal/vectorstore` is the Go boundary to `native/vector-engine`. The Rust engine owns immutable vector objects, deterministic snapshot materialization, memory-mapped reads, and exact inner-product search.
 
-Source preparation, vector-object addressing, packed snapshot materialization, exact semantic result ordering, literal recovery, lexical fallback ranking, immutable structural snapshot selection, provider result normalization, candidate curation, and package compilation are deterministic for the same inputs.
+### Retrieval and ranking
 
-Embedding inference is locally controlled and uses a fixed model artifact, prompt format, dimension reduction, and normalization. Exact floating-point values may still vary with runtime build and hardware backend; future vector compatibility must record enough identity to prevent silent mixing.
+`internal/retrieve` owns deterministic lexical fallback, concrete exact recovery, and the shared candidate provenance shape. `internal/app` orchestrates vector search and merges vector, exact, lexical, and structural-provider candidates. Concrete exact signals supplement ranked search rather than replacing it. Missing or incompatible semantic state degrades to lexical retrieval with a warning.
 
-## Product boundaries
+### Structural providers
 
-Grimoire does not own language parsing, repository relationship graphs, documentation maintenance, agent orchestration, or generative inference. Those may supply optional evidence, but they are not prerequisites for baseline semantic RAG.
+`internal/structure` defines common evidence and provider-state contracts. `internal/lexiconfacts` matches immutable Lexicon exports. `internal/arcanagraph` synchronizes and queries Arcana using Lexicon matches as bounded graph seeds. Structural failures are non-fatal to source retrieval.
 
-Grimoire does own its local embedding provider contract and vector retrieval state. It does not require hosted embedding APIs or hosted vector infrastructure.
+### Selection and policy
 
-## Related documentation
+`internal/selection` deduplicates, diversifies, and expands prepared neighbours. `internal/queryshape` classifies intent, specificity, breadth, ambiguity, cross-system scope, and evidence needs. `internal/assembly` preserves a scope-appropriate candidate pool and stops on deterministic evidence coverage.
 
-- [Embedding model](../reference/embedding-model.md)
-- [Vector store](../reference/vector-store.md)
-- [Prepared index](prepared-index.md)
-- [Context package](../reference/context-package.md)
-- [Current limitations](../limits/current-limitations.md)
-- [Roadmap](../planning/roadmap.md)
+### Compilation
+
+`internal/compiler` owns exact `o200k_base` accounting, package versioning, omission counts, and final JSON serialization. It receives already ranked and, for automatic requests, already assembled evidence.
+
+### Evaluation
+
+`internal/evaluation` owns corpus validation, source and structural scoring, pipeline-loss attribution, aggregate metrics, and Markdown/JSON reporting. `internal/app` runs the production pipeline for each case.
+
+## Failure and fallback boundaries
+
+- A stale or missing vector snapshot prevents semantic search but not lexical context construction.
+- A failed Lexicon or Arcana provider emits warnings and does not discard source evidence.
+- Explicit backend or runtime errors fail setup or service startup rather than silently changing the requested backend.
+- Automatic assembly losses and final budget-fitting losses are recorded as separate evaluation stages.
+- Package compilation remains deterministic for identical prepared state, provider evidence, query, and options.
+
+## State directories
+
+- `.grimoire/` — prepared and vector state.
+- `.lexicon/` — optional Lexicon immutable analysis state.
+- `.arcana/` — optional Arcana graph state.
+
+These systems remain independently owned. Grimoire consumes immutable provider outputs; it does not take ownership of Lexicon or Arcana state.

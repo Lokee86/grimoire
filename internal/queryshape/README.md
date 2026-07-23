@@ -1,23 +1,32 @@
-# Query shape
+# Query-shape package
 
-`internal/queryshape` deterministically observes prompt specificity, breadth,
-ambiguity, candidate dispersion, and graph-region spread before context assembly.
+`internal/queryshape` deterministically classifies a prompt and emits the retrieval policy used by automatic context construction.
 
-`Analyze` returns two contracts:
+## Inputs
 
-- `Profile` records the measured query and retrieval shape.
-- `RetrievalPolicy` recommends focused, bounded, or exploratory assembly.
+Analysis receives:
 
-Retrieval evaluation retains the policy in shadow mode. The normal `context`
-command activates automatic budget and assembly recommendations only when
-`--budget` is omitted or zero. Explicit positive budgets retain fixed assembly.
-Automatic requests use the policy scope to select bounded evidence coverage and
-emit the resulting assembly decision in the context package.
+- the raw query;
+- any caller-supplied budget;
+- exact, ranked, merged, and structural candidates; and
+- ranking confidence and path/graph dispersion derived from those candidates.
 
-Automatic target and maximum recommendations are:
+Prompt semantics remain separate from candidate ranking. Retrieval evidence may refine breadth or ambiguity, but it does not silently rewrite candidate scores.
 
-| Scope | Target | Maximum |
-| --- | ---: | ---: |
-| focused | 3,000 | 4,000 |
-| bounded | 6,000 | 8,000 |
-| exploratory | 12,000 | 16,000 |
+## Profile
+
+The emitted profile records intent, specificity, breadth, ambiguity, cross-system scope, evidence needs, and reasons.
+
+## Current policy tiers
+
+| Scope | Minimum | Target | Maximum |
+| --- | ---: | ---: | ---: |
+| Focused | 2,000 | 3,000 | 6,000 |
+| Bounded | 3,000 | 6,000 | 10,000 |
+| Exploratory | 6,000 | 12,000 | 18,000 |
+
+When the requested budget is zero, `app` activates the policy and uses the target for adaptive compilation. When a caller supplies a positive budget, the policy is emitted in shadow form and fixed-budget behavior remains authoritative.
+
+## Boundary
+
+This package owns classification and policy selection. It does not retrieve, rank, curate, assemble, or compile evidence. `internal/assembly` decides when scope-specific evidence coverage is sufficient, and `internal/compiler` enforces the final token boundary.

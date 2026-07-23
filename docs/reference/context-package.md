@@ -237,6 +237,7 @@ The schema remains pre-release.
 ## Related documentation
 
 - [CLI](cli.md)
+- [Query shape and assembly](query-shape-and-assembly.md)
 - [System overview](../architecture/system-overview.md)
 - [Prepared index](../architecture/prepared-index.md)
 - [Current limitations](../limits/current-limitations.md)

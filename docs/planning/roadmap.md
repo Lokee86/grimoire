@@ -1,130 +1,76 @@
-# Grimoire Roadmap
+# Roadmap
 
-This roadmap describes implementation order, not release commitments.
+This page contains work that is not yet complete. Implemented behavior is documented elsewhere.
 
-## Current foundation
+## Completed foundation
 
-Implemented:
+- Content-addressed prepared source index with exact token counts.
+- Managed local Qwen3 embedding setup and service commands.
+- Content-addressed vector objects and packed exact-search snapshots.
+- Incremental vector reuse and concurrent embedding requests with serialized deterministic ingestion.
+- Semantic, lexical, and concrete exact retrieval.
+- Deterministic ranking, curation, and prepared-neighbour expansion.
+- Optional Lexicon facts and Arcana graph evidence.
+- Source and structural judged evaluation with pipeline-loss attribution.
+- Deterministic query-shape profiling and automatic budgets.
+- Evidence-coverage assembly and fixed-versus-adaptive evaluation.
+- Version 5 exact-budget context packages.
 
-- incremental file records with unchanged-file reuse;
-- Git-ignore traversal and protected tool-state exclusions;
-- content-addressed prepared storage with atomic publication;
-- deterministic fallback chunks;
-- exact `o200k_base` chunk and package accounting;
-- the fixed Qwen3 embedding-model contract;
-- verified managed model/runtime setup on Windows x64;
-- an OpenAI-compatible local embedding client;
-- query instruction formatting, 512-dimensional reduction, and L2 normalization;
-- content-addressed immutable chunk-vector objects;
-- unchanged-vector reuse by embedding and source-content identity;
-- versioned aligned float32 snapshot materialization;
-- memory-mapped validation;
-- a narrow caller-owned-buffer C ABI;
-- exact serial/concurrent semantic search;
-- vector-backed `grimoire context` retrieval;
-- a persistent vector-snapshot manifest bound to the exact prepared-index identity;
-- conditional exact recovery for concrete repository literals;
-- deterministic candidate deduplication, overlap removal, diversity, and neighbour expansion;
-- deterministic lexical fallback when semantic retrieval is unavailable;
-- automatic immutable Lexicon snapshot export and first-class symbol evidence;
-- Arcana synchronization to the matching Lexicon snapshot;
-- bounded Arcana operational-role, impact, unresolved-reference, and call-chain evidence; and
-- exact package budgeting across structural facts and source chunks.
+## Near-term priorities
 
-The normal context path now performs exact full-vector retrieval. BM25 or another general lexical engine is not a prerequisite and should only be added if measured retrieval failures justify its cost.
+1. Re-run ranking and adaptive-package calibration after all merged retrieval changes and tune targets against representative recall.
+2. Expand frozen judged corpora across additional repositories, languages, sizes, and task categories.
+3. Improve task-oriented evidence roles and stopping conditions without hiding decisions in opaque scoring.
+4. Add stronger diagnostics for runtime selection, provider failures, state compatibility, and native-engine errors.
+5. Measure embedding request concurrency and serialized ingestion costs across CPU, Vulkan, CUDA, and remote endpoints.
+6. Add explicit prepared/vector state status and maintenance commands suitable for Warlock supervision.
 
-## 1. Selection-quality follow-on work
+## Retrieval and package quality
 
-Implemented selection now removes duplicates and overlapping ranges, applies soft file/subsystem diversity, and adds bounded prepared neighbours before exact-budget compilation. Checked-in quality fixtures cover the initial behavior.
+- Add clean controls beyond the current self and Gum corpora.
+- Preserve provider-attribution, ranking, curation, assembly, and fitting metrics as separate gates.
+- Add caller-selectable automatic minimum/maximum policy bounds.
+- Add stronger evidence-class allocation only when judged failures justify it.
+- Add package fingerprints and more explicit omission reasons.
+- Measure downstream agent discovery calls, latency, and usage in addition to evidence recall.
 
-Remaining work:
+## Prepared-state maintenance
 
-- evidence-class reservations when real failures justify them;
-- stable package fingerprints;
-- explicit omission reasons beyond budget pressure;
-- larger source-code and documentation quality corpora; and
-- global or budget-aware optimization only when fixtures show the deterministic greedy boundary is inadequate.
+- Use Git-aware changed-file detection as a fast path while preserving non-Git fallback.
+- Add optional repository watching or Warlock-fed change events without making one-shot commands dependent on a daemon.
+- Add lazy or bounded prepared-state reads for very large repositories.
+- Make file eligibility and generated-content policy configurable without weakening permanent state exclusions.
+- Evaluate optional Lexicon-aligned source chunk preparation while retaining language-agnostic fallback.
 
-Exact `o200k_base` package enforcement remains the final boundary.
+## Vector-engine work
 
-## 2. Exact-recovery follow-on work
+- Add safe reachability-based immutable-object cleanup.
+- Add non-Windows Go dynamic-library loaders and release packaging.
+- Benchmark float32 against float16 and int8 encodings.
+- Optimize exact-scan kernels only when measurements show material benefit.
+- Consider approximate indexing only when exact search is no longer acceptable and exact fallback remains available.
+- Evaluate a more efficient ingestion boundary after measuring serialized JSONL persistence cost.
 
-The initial conditional path recovers paths, filenames, raw identifiers, quoted phrases, configuration keys, error codes, and version strings with source/rank/reason provenance.
+## Structural and provider work
 
-Remaining work:
+- Improve Lexicon seed matching through judged task-shaped cases.
+- Expand Arcana operations only when specific graph-evidence failures justify them.
+- Add conflict and provenance diagnostics across source, Lexicon, and Arcana evidence.
+- Evaluate Demon Docs, Git-change, and other Warlock evidence providers behind concrete interfaces.
+- Define a stable external provider contract only after the current integrations settle.
 
-- reduce new real-world misses into deterministic fixtures;
-- benchmark compact persistent indexes against the initial conditional scan;
-- add an index only when repository-scale measurements justify its maintenance cost; and
-- avoid turning exact recovery into a mandatory general full-text pass.
+## Operational and compatibility work
 
-## 3. Incremental maintenance runtime
+- Add stable machine-readable diagnostics and documented exit classes.
+- Define prepared-index, vector-index, embedding-runtime, and context-package migration policy.
+- Add managed runtime artifacts for additional platforms.
+- Add Warlock lifecycle integration for model service, provider discovery, and state maintenance while keeping Grimoire independently usable.
+- Establish release gates for latency, memory, retrieval quality, determinism, and ABI stress.
 
-Keep prepared and vector state current without requiring separate manual commands.
+## Longer-term investigation
 
-Standalone Grimoire should own its own behavior. When hosted by Warlock, it should consume shared repository change events and supervision rather than duplicate the umbrella runtime.
+- Learned or model-assisted policy components only where deterministic rules are insufficient and decisions remain inspectable.
+- Repository-scale prioritization and packetized context delivery for very large codebases.
+- Global package optimization only when deterministic whole-item fitting shows measured, reproducible failures.
 
-One-shot `index` and `vector build` commands must remain supported.
-
-## 4. Optional structural enrichment
-
-Implemented:
-
-- resolve `.lexicon/CURRENT` and cache a verified standalone export;
-- preserve matched symbols, durable identities, source spans, and immediate relationships as first-class context evidence;
-- retain Lexicon-derived source candidates without making Lexicon a prerequisite; and
-- keep the language-agnostic fallback path fully operational.
-
-Remaining work:
-
-- use Lexicon ranges for optional structural source-chunk preparation;
-- improve symbol matching through measured task-shaped query planning; and
-- add judged structural-evidence evaluation rather than measuring only selected source files and symbols.
-
-## 5. Optional evidence providers
-
-Implemented for Arcana:
-
-- resolve or synchronize the graph snapshot matching the Lexicon snapshot used by the package;
-- query Arcana through its standalone JSONL process protocol; and
-- retain bounded operational roles, transitive impact, unresolved references, and shortest call chains with provider provenance.
-
-Remaining work:
-
-- reduce real graph-evidence misses into deterministic provider fixtures;
-- decide when reachability, dead-symbol, general path, or snapshot-diff operations belong in task-shaped context;
-- add Demon Docs documentation evidence, Git-change evidence, and other measured Warlock providers; and
-- define a stable external provider contract after the concrete integrations settle.
-
-Grimoire remains responsible for retrieval, context selection, budgeting, provenance, and the final package.
-
-## 6. Vector-engine follow-on work
-
-Measure before increasing storage or search complexity:
-
-- benchmark float32 against float16 and int8 encodings;
-- add immutable-object garbage collection;
-- add non-Windows Go dynamic-library loaders;
-- optimize exact-scan kernels when measurements justify it; and
-- consider approximate indexing only if exact-scan latency becomes material.
-
-## 7. Stable external contracts
-
-Before a stable release, define:
-
-- CLI compatibility and exit behavior;
-- machine-readable diagnostics;
-- prepared-index and vector-index migration policy;
-- context-package compatibility policy;
-- model/runtime compatibility policy; and
-- benchmark gates for latency, memory, and retrieval quality.
-
-## Graduation rule
-
-When a roadmap item becomes implemented:
-
-1. Update the owning package README.
-2. Update current architecture documentation.
-3. Add or update exact reference documentation.
-4. Remove or narrow the corresponding limitation.
-5. Replace roadmap detail with links and unresolved follow-on work.
+Each roadmap item requires an owning seam, verification plan, and documentation update before it becomes current behavior.

@@ -1,23 +1,9 @@
 # Development
 
-Contributor-facing documentation for the current Grimoire codebase.
+Development documentation defines how Grimoire is verified and how retrieval claims are measured.
 
-## Documents
+- [Testing and benchmarks](testing-and-benchmarks.md) — test suites, evaluation commands, and report artifacts.
+- [Retrieval quality](retrieval-quality.md) — corpus schema, pipeline-loss attribution, and metric interpretation.
+- [Ranking calibration corpus](ranking-calibration-corpus.md) — judged case design and expansion rules.
 
-- [Testing and benchmarks](testing-and-benchmarks.md) - Required checks and warm algorithm benchmarks.
-- [Retrieval quality and latency baselines](retrieval-quality.md) - Checked-in quality corpus and repository-scale measurements.
-- [Ranking calibration corpus](ranking-calibration-corpus.md) - Clean controls, judgement policy, and the staged tuning process.
-
-## Package ownership
-
-- [`internal/app`](../../internal/app/README.md)
-- [`internal/index`](../../internal/index/README.md)
-- [`internal/ignore`](../../internal/ignore/README.md)
-- [`internal/retrieve`](../../internal/retrieve/README.md)
-- [`internal/selection`](../../internal/selection/README.md)
-- [`internal/compiler`](../../internal/compiler/README.md)
-
-## Related documentation
-
-- [System overview](../architecture/system-overview.md)
-- [Roadmap](../planning/roadmap.md)
+Checked-in evaluation reports are evidence for the exact repository and state recorded by the report. They are not permanent product guarantees and must not be summarized without their mode, corpus, provider set, and date.

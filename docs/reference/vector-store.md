@@ -1,8 +1,6 @@
-# Vector Store
+# Vector store
 
-## Purpose
-
-Grimoire persists normalized chunk embeddings in a custom Rust storage engine rather than a hosted or general-purpose vector database.
+Grimoire stores normalized embeddings through a Rust native engine exposed to Go by `internal/vectorstore`.
 
 ## State location
 
@@ -12,72 +10,57 @@ For the fixed embedding identity, vector state is stored below:
 <state>/vectors/qwen3-embedding-0.6b-q8_0-512d/
 ```
 
-The directory contains an immutable object store, the current packed snapshot, and a persistent snapshot manifest. Embedding batches are ingested into immutable objects as they complete, allowing interrupted builds to reuse completed work. Temporary JSONL ingest and record-list files are removed after use.
+The directory contains immutable objects, the current packed snapshot, and `snapshot.manifest.json`. Temporary JSONL ingestion and record-list files are removed after use.
 
-## Object identity and reuse
+## Layout and identities
 
-Go computes SHA-256 over the exact chunk text. Rust addresses the vector object using BLAKE3 over the vector format identity, embedding identity, and that source-content hash.
+The engine maintains:
 
-Consequences:
+- immutable content-addressed vector objects;
+- a manifest binding prepared chunks to vector source identities; and
+- a sorted packed snapshot used for memory-mapped exact search.
 
-- unchanged text reuses its existing embedding even if its path or line range changes;
-- identical text can share one vector object;
-- changing the model identity or vector contract produces a different object address;
-- an existing address cannot be overwritten with different vector bytes; and
-- deleted chunks disappear from the next snapshot without deleting reusable immutable objects.
+An object address includes the storage format identity, embedding identity, and source-content hash. Reusing the same model/source address with different vector bytes is rejected. Identical chunk text can therefore reuse one stored vector across multiple chunks.
 
-## Snapshot format
+## Build and publication
 
-Snapshot format version 1 stores:
+`grimoire vector build` sends missing embeddings to the native `IngestJSONL` boundary in serialized batches. Each batch writes immutable objects. After all required vectors exist, Grimoire writes the complete chunk manifest and asks the engine to materialize the packed snapshot.
 
-- fixed magic and version fields;
-- embedding identity;
-- dimensions and vector count;
-- sorted chunk IDs and source-object hashes; and
-- a 64-byte-aligned contiguous `float32` vector matrix.
+The current manifest is published only after successful materialization. A failed build does not make an incomplete manifest current, while immutable vector objects completed before the failure remain reusable.
 
-The engine validates section bounds, integer overflow, UTF-8 IDs, duplicate IDs, alignment, exact matrix length, and finite vector values before exposing a snapshot.
+## Snapshot reads
 
-## Snapshot manifest and freshness
+A snapshot contains a versioned header, embedding identity, dimensions and vector count, sorted chunk entries and object hashes, a compact UTF-8 chunk-ID table, and one 64-byte-aligned `float32` matrix. Before use, the engine validates section bounds, integer overflow, UTF-8 IDs, duplicate IDs, alignment, exact matrix length, and finite vector values, then memory-maps the snapshot.
 
-`snapshot.manifest.json` binds the packed vector snapshot to:
-
-- the exact content-addressed prepared-index root;
-- the packed snapshot identity;
-- the embedding identity;
-- dimensions; and
-- vector count.
-
-Both `vector search` and `context` validate the prepared identity before embedding the query. Any repository reindex that changes prepared content produces a different identity, even when the total chunk count is unchanged. `vector search` rejects the stale snapshot; `context` warns and uses its lexical failure fallback until `vector build` publishes a matching snapshot and manifest.
+Snapshot handles are opaque native values. Search clones native shared ownership before scanning, so closing a handle cannot invalidate an active search. The Go bridge protects handle lifetime with a read/write lock and keeps borrowed Go buffers alive for every ABI call.
 
 ## Search
 
-Vectors and query embeddings are L2-normalized by Grimoire. The engine therefore uses exact dot product as cosine similarity.
-
-Small snapshots scan serially. Larger snapshots are divided into coarse contiguous partitions. Each worker keeps a bounded local top-K heap, followed by a deterministic merge ordered by descending score and ascending snapshot index.
-
-No approximate-nearest-neighbour index is used. That remains deferred until repository-scale benchmarks show an exact scan is inadequate.
-
-## C ABI memory contract
-
-- All strings are UTF-8 pointer-and-length pairs.
-- Go owns query, result, ID, and metadata buffers.
-- Rust does not retain foreign pointers after a call.
-- Rust allocations are never returned for Go to free.
-- Snapshot handles are numeric registry keys rather than raw pointers.
-- Active searches hold an internal reference even if another caller closes the handle.
-- Panics are converted to ABI errors.
-
-## Commands
-
 ```bash
-grimoire vector build --root /path/to/repository
-grimoire vector search --root /path/to/repository --query "where is damage resolved"
-grimoire vector info --root /path/to/repository
+grimoire vector search --query "where is damage resolved"
 ```
 
-`vector build` requires a prepared source index, a running embedding endpoint, and the Rust library. Repeated builds embed only missing source-content identities. Grimoire first checks for the DLL beside its executable, then searches `native/vector-engine/target/{release,debug}` below ancestors of both the executable and current working directory.
+The engine performs exact inner-product search over normalized 512-dimensional vectors. Small snapshots scan serially; larger snapshots partition work through Rayon. Query plans may produce multiple vectors; Grimoire searches them concurrently, keeps the best score per chunk, and returns deterministic score/path ordering.
 
-## Platform coverage
+The packed format is an exact-search representation, not an approximate nearest-neighbour index.
 
-The Rust core is portable. The current Go dynamic-library loader is implemented for Windows. `GRIMOIRE_VECTOR_ENGINE` can point to an explicit DLL; source builds also discover debug and release DLLs under `native/vector-engine/target`.
+## ABI contract
+
+- Strings cross as UTF-8 pointer-and-length pairs.
+- Go owns all query, result, ID, and metadata buffers.
+- Rust borrows foreign buffers only for one call and never retains Go pointers.
+- Rust allocations are not returned for Go to free.
+- Snapshot handles are numeric registry keys rather than raw pointers.
+- Panics are converted to ABI errors.
+
+## Compatibility and discovery
+
+A snapshot is accepted only when its manifest agrees with the prepared source identity, embedding identity, dimensions, and vector count. `grimoire vector info` reports native-library and snapshot availability.
+
+On Windows, Grimoire checks `GRIMOIRE_VECTOR_ENGINE`, the executable directory, and `native/vector-engine/target/{release,debug}` beneath workspace ancestors. The Rust core is portable, but equivalent non-Windows Go loaders are not yet implemented.
+
+`grimoire context` degrades to lexical retrieval when semantic state cannot be used. Direct vector commands fail because they have no lexical substitute.
+
+## Ownership boundary
+
+`native/vector-engine` owns immutable objects, packed snapshots, validation, and exact vector search. `internal/vectorstore` owns library discovery, ABI validation, Go handle lifetimes, caller-owned buffers, and conversion to Grimoire types. Embedding, ranking, and package assembly remain outside this boundary.

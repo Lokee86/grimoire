@@ -1,102 +1,65 @@
-# Ranking Calibration Corpus
+# Ranking calibration corpus
 
-Grimoire's ranking calibration corpus must include clean controls as well as the existing heterogeneous and pathological repositories. A ranker tuned only against tangled or under-documented code can learn compensating heuristics that damage ordinary repositories; a ranker tuned only against clean code can collapse when ownership and terminology are ambiguous.
+`evaluation/retrieval/grimoire.json` is the repository-owned judged corpus used to calibrate ranking, query profiles, structural evidence, and package assembly. External controls are required because self-retrieval alone can reward repository-specific vocabulary and layout.
 
-## Clean control candidates
+## Current status
 
-Repositories are admitted only after an exact commit is pinned and the first judged cases are reviewed. The repository names below are candidates, not floating dependencies.
+The Grimoire corpus contains direct-location, mechanism-explanation, architecture-ownership, call-chain, and long mixed-query cases. It also carries judged query-profile expectations used by fixed-versus-adaptive evaluation.
 
-| Repository | Language | Calibration role | Initial scope |
-| --- | --- | --- | --- |
-| `charmbracelet/gum` | Go | Small-to-medium clean control with visible command ownership and clear user-facing behavior | Whole repository |
-| `httpie/cli` | Python | Mature application with separate implementation, tests, and documentation | Whole repository |
-| `actualbudget/actual` | TypeScript | Real business logic, persistence, and calculation flows without requiring the entire monorepo | `packages/loot-core` |
-| `sharkdp/fd` | Rust | Compact mature CLI with clear source, test, and documentation boundaries | Whole repository |
-| `rubocop/rubocop` | Ruby | Documentation-heavy control with many similarly named implementations and tests | Whole repository, added after the initial wave |
-| `gdquest-demos/godot-2d-space-game` | GDScript | Clean, lightly documented gameplay control for scenes, autoloads, signals, and ownership | Whole repository, added after the initial wave |
+The pinned Gum control at commit `716d8b5d0221558f944b5a078dbbcca8572534fb` supplies five manually judged cases covering command dispatch, filtering, timeout/exit ownership, a process call chain, and file-picker behavior. It exposed both weak lexical term normalization and the distinction between initial ranking quality and final package survival.
 
-Secondary candidates are `jendrikseipp/vulture` for a smaller Python control, `puma/puma` for a harder Ruby concurrency boundary, and `BurntSushi/ripgrep` for a larger multi-crate Rust tier.
+Additional clean controls remain useful across Go, Python, TypeScript, Rust, Ruby, and GDScript. Candidate repositories must be pinned before expectations are authored; floating repository heads are not valid calibration dependencies.
 
-## Initial wave
+## Case design
 
-Begin with Gum, HTTPie CLI, Actual's `loot-core`, and fd. Each repository contributes five judged cases:
+A useful case should:
 
-1. direct implementation location;
-2. mechanism explanation across multiple symbols;
-3. architecture or responsibility ownership;
-4. call-chain or data-flow investigation; and
-5. one realistic mixed task involving implementation plus tests, configuration, or persistence.
+- represent a task an agent or developer would actually ask;
+- identify the minimum source or structural evidence required to answer it;
+- distinguish required evidence from merely helpful evidence;
+- identify forbidden evidence only when its presence is materially misleading;
+- record why each expectation matters; and
+- classify expected query shape when the classification is clear.
 
-This produces twenty clean-control queries before adding the docs-heavy Ruby and lightly documented GDScript controls.
+Do not judge a file as required merely because it contains query words. Required evidence needs a defensible role in the answer. Reject cases whose ownership is too ambiguous to establish reliable ground truth.
 
-## Judgement policy
+## Coverage categories
 
-Judgements are written before ranking changes and stored in the existing `evaluation/retrieval` corpus format.
+- Direct location: exact symbol, path, or definition discovery.
+- Mechanism explanation: a bounded implementation flow.
+- Architecture ownership: responsibility across packages or subsystems.
+- Call-chain investigation: ordered operational relationships.
+- Long mixed query: multiple constraints and evidence types in one prompt.
 
-- **Required evidence** is necessary to answer the task correctly.
-- **Supporting evidence** materially improves the answer but is not required for a pass.
-- **Forbidden evidence** is used only for known, plausible distractors; it is not a catalogue of every irrelevant file.
-- Paths and symbols must be confirmed by inspecting the pinned repository revision.
-- A case is rejected when ownership is too ambiguous to establish defensible ground truth.
+New cases should cover a distinct failure mode, repository shape, language, or task category rather than repeat an existing lexical pattern.
 
-Each repository revision, scope, and judgement authoring date must be recorded beside its corpus. Do not update a pinned revision and silently preserve old judgements.
+## Query-profile expectations
 
-## Calibration sequence
+Profile expectations may constrain intent, specificity, breadth, ambiguity, cross-system scope, evidence needs, and selected scope. They should be semantic and stable under harmless ranking changes.
 
-1. Pin and import one repository revision.
-2. Write five judged cases without changing retrieval behavior.
-3. Record the standalone baseline in all supported query modes.
-4. Inspect pre-curation rank metrics and final-package survival separately.
-5. Reduce confirmed ranking failures into deterministic fixtures.
-6. Change one ranking feature or weight family at a time.
-7. Rerun every frozen corpus and reject changes that improve one tier by materially regressing another.
+A mismatch is not automatically a classifier bug. First check whether the prompt is genuinely ambiguous or the expectation overstates its scope.
 
-The first algorithm-tuning boundary is measurement, not a new weight guess. Grimoire reports required-evidence recall at rank 10 and 20, first-required reciprocal rank, and judged-path relevance at rank 10 and 20 before merge, curation, and package fitting. These metrics expose whether the retrieval order itself improved; final-package recall continues to measure downstream usefulness.
+## Calibration workflow
 
-## Initial measurements
+1. Pin and record the repository revision and evaluated scope.
+2. Write expectations before changing retrieval behavior.
+3. Validate paths and symbols against that revision.
+4. Prepare one immutable source and vector state.
+5. Run the baseline and candidate variant against the same state.
+6. Compare ranking, final recall, package composition, and failure stages.
+7. Inspect every regression at the case level.
+8. Reduce confirmed defects into deterministic fixtures.
+9. Change one responsible seam or weight family at a time.
+10. Rerun all frozen corpora and reject material cross-corpus regressions.
 
-Lexical-only runs on July 23, 2026 established the first pre-curation baselines:
+## Measured defects and sequencing
 
-| Corpus | Cases | Required R@10 | Required R@20 | MRR | Relevant @10 | Relevant @20 | Final required recall |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Grimoire | 12 | 8.3% | 8.3% | 0.017 | 1.7% | 2.1% | 0.0% |
-| Gum `716d8b5d0221558f944b5a078dbbcca8572534fb` | 5 | 26.7% | 31.7% | 0.476 | 34.0% | 24.0% | 28.6% |
+The first lexical attribution pass found that common words and substring matches could dominate scores; for example, a query token such as `and` could receive a filename boost against `command.go`. This established the need for stopword suppression and boundary-aware matching as measured corrections rather than subjective tuning.
 
-The Gum corpus is the first pinned clean control. It contains five manually judged cases covering command dispatch, filter behavior, timeout and exit ownership, the spin process call chain, and file-picker behavior. All five cases failed complete-package recall despite materially better initial ranking than the Grimoire self-corpus; the final packages recovered only 28.6% of required evidence and selected 74.1% unjudged paths. This separates two problems that must be tuned independently: weak initial ordering and loss during package fitting.
+Provider-attribution runs then showed that vector results were not equivalent to lexical results: vector ranking often improved required-evidence retrieval, while final package recall sometimes remained unchanged. Package fitting and candidate survival therefore require separate calibration from provider ranking.
 
-These measurements describe the current lexical path, not a tuning target by themselves. The remaining clean-control cases must be frozen before changing ranking weights.
+The July 2026 query-shape reports added a further gate: adaptive assembly must introduce zero required source or structural losses before automatic target tuning is considered successful.
 
-## Score-attribution pass
+## Report discipline
 
-The pinned Gum checkout now lives at `C:\!bin\workspace\grimoire-corpora\gum`; its prepared index is repository-local under `.grimoire`. Grimoire evaluation reports now retain numeric lexical, exact, and semantic scoring signals for each candidate and show its retrieved, exact, merged, curated, and included positions. Adjacency is reported as a curation insertion rather than misrepresented as an additive score.
-
-The first C-drive attribution run found that the current lexical scorer is dominated by weak terms:
-
-| Gum case | Top-20 score from common stopwords |
-| --- | ---: |
-| `gum-dl-01` | 74.6% |
-| `gum-me-01` | 49.6% |
-| `gum-ao-01` | 49.0% |
-| `gum-cc-01` | 35.9% |
-| `gum-lm-01` | 34.0% |
-
-Substring matching compounds the problem: the query term `and` receives a filename boost against `command.go`. Common words such as `the`, `to`, `and`, and `are` frequently contribute the maximum capped content score, outranking ownership-bearing identifiers and paths. This is now a measured ranking defect rather than a subjective package review.
-
-No ranking behavior changed during the lexical attribution pass. Stopword suppression and boundary-aware matching remain required lexical corrections, but the provider comparison changed the tuning order.
-
-## Provider-attribution result
-
-The frozen Gum and Grimoire corpora were rerun in lexical-only, vector-only, and neutral rank-interleaved hybrid modes. Vector retrieval was measurably different from lexical retrieval and usually stronger before final package fitting.
-
-| Corpus | Mode | Required R@10 | Required R@20 | MRR | Final required recall |
-| --- | --- | ---: | ---: | ---: | ---: |
-| Gum | lexical | 26.7% | 31.7% | 0.476 | 28.6% |
-| Gum | vector | 45.0% | 60.0% | 0.477 | 50.0% |
-| Gum | hybrid | 50.0% | 55.0% | 0.557 | 42.9% |
-| Grimoire | lexical | 10.4% | 25.0% | 0.058 | 2.2% |
-| Grimoire | vector | 16.5% | 29.0% | 0.080 | 2.2% |
-| Grimoire | hybrid | 12.5% | 20.6% | 0.059 | 2.2% |
-
-On Grimoire, lexical, vector, and hybrid all finished at the same 2.2% required-evidence recall even though vector ranking improved. Of 45 required evidence items, lexical retrieved 34 and curated 33, vector retrieved 35 and curated 34, and hybrid retrieved and curated 33. Every mode included only one required item in the final package. Hybrid additionally carried 46 required vector candidate chunks through curation but included only four of those chunks.
-
-The earlier apparent lack of vector benefit was therefore a final-package measurement artifact, not evidence that vector retrieval returned the same candidates or added no value. Package fitting and final selection are now the next controlled tuning target. Lexical normalization follows as a separate provider correction. The complete analysis is recorded in `evaluation/results/provider-attribution-analysis-2026-07-23.md`.
+Checked-in reports establish reproducible baselines and regression evidence. They do not prove that retrieval quality or automatic budgets are solved across arbitrary repositories. Future reports must preserve revision, corpus, provider, mode, state, and date rather than copying aggregate percentages into context-free documentation.

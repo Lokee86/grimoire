@@ -1,12 +1,18 @@
-# Indexing Reference
+# Indexing
 
-## Scope
+Grimoire separates source preparation from vector construction. This keeps repository scanning, embedding availability, and vector publication independently diagnosable.
 
-`grimoire index` traverses the selected repository root, applies structural and ignore exclusions, accepts supported regular text files, reuses unchanged records, chunks changed files, and publishes a prepared snapshot.
+## Prepared source index
+
+```bash
+grimoire index --root <repository>
+```
+
+The indexer resolves the repository and state roots, applies traversal rules, normalizes eligible text into chunks, computes immutable identities and exact token counts, reuses unchanged objects, and atomically publishes a prepared snapshot. That snapshot remains usable for lexical and exact retrieval without an embedding service.
 
 ## Permanent exclusions
 
-These directory names are always excluded at any traversal depth:
+These directory names are excluded at every traversal depth:
 
 ```text
 .git
@@ -19,102 +25,76 @@ These directory names are always excluded at any traversal depth:
 .workingtrees
 ```
 
-The resolved `--state` path is also excluded, including custom paths outside the default `.grimoire` name.
-
-Permanent exclusions cannot be re-included with an ignore negation because they protect repository metadata, generated tool state, and nested worktree containers.
+The resolved `--state` path is also excluded, including a custom path with another name. These exclusions protect repository metadata, generated tool state, and nested worktree containers and cannot be re-included with ignore negation.
 
 ## Git-ignore behavior
 
-Without `--ignore-file`, Grimoire loads:
+Without `--ignore-file`, Grimoire loads the root `.gitignore` and nested `.gitignore` files as their directories are entered. Patterns use go-git's Git-ignore implementation and preserve normal scope and `!` negation behavior.
 
-1. the root `.gitignore`; and
-2. nested `.gitignore` files as their directories are entered.
+`--ignore-file` replaces the root and nested hierarchy with one explicit Git-ignore-syntax file. The control file itself is excluded. A missing explicit ignore file is an error.
 
-Patterns use go-git's Git-ignore implementation and support standard pattern scope and `!` negation.
-
-With `--ignore-file`, Grimoire uses only the selected Git-ignore-syntax file. It replaces the root and nested `.gitignore` hierarchy rather than layering a Grimoire-specific second ignore language. The configured control file itself is not indexed.
-
-A missing explicitly configured ignore file is an error.
-
-Grimoire does not automatically exclude dependency, generated, coverage, or build directories beyond the permanent tool-state list. Add those paths to repository ignore rules when they should not be indexed.
+Grimoire does not automatically exclude arbitrary dependency, coverage, generated, or build directories beyond the permanent list. Put those paths in repository ignore rules when they should not be indexed.
 
 ## Supported files
 
-Files are selected by lowercase extension or recognized extensionless name.
-
-### Source and script extensions
+Source and script extensions:
 
 ```text
 .go .rs .py .rb .js .jsx .ts .tsx .java
 .c .h .cc .cpp .hpp .cs .gd .sh .ps1
 ```
 
-### Documentation, configuration, and data extensions
+Documentation, configuration, and data extensions:
 
 ```text
 .md .txt .toml .yaml .yml .json .xml
 .html .css .scss .sql
 ```
 
-### Recognized extensionless names
+Recognized extensionless names, matched case-insensitively:
 
 ```text
 README LICENSE Makefile Dockerfile Gemfile Rakefile
 ```
 
-Name matching is case-insensitive.
+An eligible entry must be a regular supported file, no larger than the configured maximum, and text-like. The current text check rejects files containing a NUL byte. Symlinks and other non-regular entries are not indexed. The default maximum is 2 MiB; a positive `--max-file-bytes` replaces it.
 
-## File eligibility
+## Incremental identity and reuse
 
-An eligible file must be:
+Grimoire computes SHA-256 over each eligible file. A prior file record is reused only when content hash and byte size match. Reused records retain their existing chunks, IDs, and token counts. New or changed files are fully re-chunked.
 
-- a regular file;
-- supported by name or extension;
-- no larger than the configured maximum; and
-- text-like, defined currently as containing no NUL byte.
+A prior record is removed when its path is deleted, ignored, unsupported, oversized, binary, or otherwise absent from the eligible traversal result. Renames naturally reuse immutable content where the storage identity permits it while publishing the new path record.
 
-The default maximum is 2 MiB. `--max-file-bytes` replaces it when positive.
-
-Symlinks and other non-regular directory entries are not indexed.
-
-## Content identity and reuse
-
-Grimoire computes a SHA-256 hash of each eligible file. A previous file record is reused only when both its content hash and byte size match.
-
-Reused records retain their existing chunks and chunk IDs. Changed records are fully re-chunked by the current fallback chunker.
-
-A prior record is removed when its path is deleted, becomes ignored, becomes unsupported, exceeds the size limit, becomes binary, or otherwise no longer appears in the eligible traversal result.
+Changing traversal, chunking, tokenizer, or schema behavior invalidates the relevant identity and forces affected work to be rebuilt.
 
 ## Fallback chunking
 
-The current chunker:
+The current language-agnostic chunker:
 
-- normalizes CRLF line endings to LF;
+- normalizes CRLF to LF;
 - removes one final newline;
 - skips empty or whitespace-only files;
-- targets approximately 48 lines per chunk;
+- targets roughly 48 lines per chunk;
 - prefers a recent blank-line boundary after at least eight useful lines;
 - trims blank lines at chunk edges; and
 - derives chunk identity from path, source range, and exact text.
 
-It does not understand language syntax. Lexicon-provided structural chunking is planned.
+Lexicon facts may enrich retrieval, but they do not currently replace fallback source chunk boundaries.
 
-## Token counting
+## Token accounting
 
-Each changed chunk is counted with the fixed `o200k_base` tokenizer and stores that exact count in its prepared file record. The tokenizer vocabulary is embedded in the Grimoire binary; indexing does not download model data.
+Changed chunks are counted with the embedded `o200k_base` tokenizer and store the exact count in prepared state. The manifest records tokenizer identity so counts cannot be reused under a different tokenizer.
 
-Unchanged file records reuse their existing chunks and token counts. New or changed files are fully re-chunked and recounted. The prepared-index manifest records the tokenizer identity so counts cannot be reused under a different tokenizer.
+Chunk counts cover chunk text only. Context compilation separately counts the complete serialized package, including paths, reasons, metadata, escaping, and formatting.
 
-Chunk counts describe the chunk text itself. Context compilation separately counts the complete serialized package because paths, reasons, metadata, JSON escaping, and formatting also consume budget.
+## Index statistics
 
-## Statistics
-
-The index command reports:
+The command reports:
 
 - `scanned`: eligible files evaluated after filtering;
-- `reused`: scanned files with reused prior records;
-- `updated`: scanned files rebuilt as new or changed; and
-- `removed`: prior records absent from the resulting snapshot.
+- `reused`: scanned files using prior records;
+- `updated`: new or changed scanned files rebuilt; and
+- `removed`: prior records absent from the new snapshot.
 
 For a successful run:
 
@@ -122,8 +102,24 @@ For a successful run:
 scanned = reused + updated
 ```
 
-## Related documentation
+## Vector construction
 
-- [CLI](cli.md)
-- [Prepared index](../architecture/prepared-index.md)
-- [Current limitations](../limits/current-limitations.md)
+Start the local model service, then run:
+
+```bash
+grimoire vector build --root <repository>
+```
+
+The builder validates prepared state, returns immediately when the current vector manifest already matches, deduplicates identical chunk text, reuses source identities recorded by the previous manifest, checks only newly introduced source hashes, embeds genuinely missing text in bounded concurrent request batches, ingests completed batches serially into the immutable native object store, writes the complete chunk-to-source manifest, and materializes a sorted packed snapshot.
+
+The defaults are four documents per embedding request and one active request. Increase `--batch-concurrency` for a provider that benefits from independent requests. Object ingestion remains serialized, while content addresses and sorted materialization make publication deterministic regardless of embedding completion order.
+
+The first embedding or ingestion error cancels outstanding request work and prevents publication of a new manifest. Immutable objects already written remain reusable by later builds.
+
+## State compatibility
+
+Query commands verify prepared snapshot identity, embedding identity, dimensions, and vector count. Missing, stale, or incompatible vector state causes `context` to warn and use lexical fallback. `vector search` requires valid semantic state and returns an error instead.
+
+Run `grimoire index` after relevant source or indexing-rule changes and `grimoire vector build` after the prepared identity or embedding contract changes. Use `grimoire vector info` to inspect snapshot availability.
+
+The `.grimoire/` directory is generated state and must not be treated as authored repository content.

@@ -1,105 +1,91 @@
-# Current Limitations
+# Current limitations
 
-## Status
+These constraints apply to the merged system. They are not descriptions of future work.
 
-Grimoire has incremental prepared state, exact package budgeting, an operational local embedding provider, persistent vector state, exact semantic search, vector-backed context compilation, deterministic lexical fallback, immutable Lexicon symbol evidence, and bounded Arcana graph evidence. It is not yet a complete context-selection and evidence-enrichment system.
+## Retrieval quality remains corpus-bound
 
-## Manual vector refresh
+Grimoire has judged source and structural evaluation, but the primary corpora remain small relative to the variety of languages, repository layouts, and development tasks the product may encounter. A passing Grimoire or Gum corpus does not establish equivalent recall elsewhere.
 
-Vector state is refreshed explicitly with `grimoire vector build`; source indexing does not automatically invoke model inference. Repeated builds reuse unchanged vector objects.
+Semantic, lexical, exact, structural, ranking, curation, assembly, and fitting stages can fail independently. Use per-case attribution rather than treating low final recall as one undifferentiated search problem.
 
-Planned removal condition: add automatic maintenance while retaining explicit one-shot commands.
+## Automatic policy is deterministic heuristic policy
 
-## Windows-only Go native loader
+Query-shape analysis does not use an LLM or learned classifier. It uses prompt features plus retrieval confidence and dispersion. Focused, bounded, and exploratory tiers are concrete calibration choices, not proof of evidence sufficiency.
 
-The Rust engine is portable, but the current Go dynamic-library bridge loads a DLL only on Windows. Other platform builds return an unavailable error and `context` uses the lexical fallback.
+The public CLI supports automatic selection or one exact positive budget. It does not expose caller-supplied minimum/maximum ranges.
 
-Planned removal condition: add equivalent loaders and release packaging for supported non-Windows targets.
+## Evidence coverage is not semantic proof
 
-## Float32 exact scan only
+Automatic assembly measures represented regions, roles, candidate reserves, exact anchors, and provider evidence. It cannot prove that retained evidence answers the question. Poor ranking or an unsuitable target can still omit useful evidence during final fitting.
 
-Snapshot format version 1 stores aligned `float32` vectors and performs exact dot-product scanning. It does not yet use float16, int8, narrower quantization, specialized SIMD kernels, or approximate-nearest-neighbour indexes.
+## Managed model setup is Windows x64 only
 
-Planned removal condition: benchmark alternative encodings and kernels, adding complexity only when speed and retrieval-quality evidence justify it.
+`grimoire model setup` installs pinned CPU, Vulkan, or CUDA `llama.cpp` artifacts only on Windows x64. Other platforms require a compatible runtime through `GRIMOIRE_LLAMA_SERVER` or `PATH`, plus a local model through `GRIMOIRE_EMBEDDING_MODEL` when managed state is unavailable.
+
+Backend detection is capability-based and cannot guarantee that a detected GPU backend is fastest or most stable for every driver and device.
+
+## The model service is external process state
+
+`grimoire model serve` is blocking. Grimoire does not supervise it as a persistent daemon or automatically restart it. Source indexing remains available without the service, but vector builds and semantic queries require a live compatible endpoint.
+
+## The Go native loader is Windows-only
+
+The Rust vector engine is portable, but the production Go dynamic-library loader currently targets a Windows DLL. Non-Windows Go builds return `ErrUnavailable`; `context` can fall back to lexical retrieval, while direct vector commands cannot.
+
+## Vector search is exact float32 scanning
+
+Snapshot format version 1 stores aligned `float32` vectors and performs exact inner-product scanning. It does not use float16, int8, specialized quantized kernels, or approximate-nearest-neighbour indexes. Exact search is deterministic but may become material for very large corpora.
 
 ## Immutable vector objects are not garbage-collected
 
-Deleted or replaced chunks disappear from the current snapshot, but reusable immutable objects remain in the object store.
+Deleted or replaced chunks disappear from the current manifest and snapshot, but immutable vector objects remain in the object store for possible reuse. There is no reachability-based cleanup across retained snapshots.
 
-Planned removal condition: add safe reachability-based cleanup across retained snapshots.
+## Object ingestion is serialized
+
+Embedding requests may execute concurrently, but completed batches enter the native object store through a serialized JSONL ingestion boundary. Increasing request concurrency cannot remove that persistence cost and can instead increase endpoint and memory pressure.
 
 ## Lexical fallback is linear
 
-When semantic retrieval is unavailable, the fallback scans all prepared chunks and applies fixed substring boosts. It does not use postings, corpus statistics, or BM25.
+When semantic retrieval is unavailable, the fallback scans all prepared chunks and applies deterministic lexical scoring. It is a resilience path, not a full BM25 or postings-based search engine.
 
-This is intentionally a failure path rather than the normal retrieval path. A larger lexical engine should only be added if measured fallback use or retrieval failures justify its runtime and maintenance cost.
+## Exact recovery scans prepared chunks
 
-## Targeted exact recovery still scans prepared chunks
+Concrete path, identifier, phrase, key, code, and version recovery is conditional, but an activated exact query still scans prepared paths and text. There is no persistent compact literal index.
 
-Exact recovery is conditional and skipped for ordinary natural-language queries, but an activated query currently scans prepared chunk paths and text. It does not yet use a persistent compact identifier/path index.
+## Source chunks are language-agnostic
 
-Planned removal condition: add a compact index only when repository-scale benchmarks show the conditional scan is material.
+All source files currently use the line-based fallback chunker. Lexicon symbols and spans enrich retrieval and package evidence but do not replace source chunk boundaries.
 
-## Language-agnostic source chunks
+## Prepared snapshots are fully materialized
 
-All supported files still use the line-based fallback chunker. Lexicon symbols and source spans are now emitted as separate structural evidence and can steer source retrieval, but Grimoire does not yet use those ranges to replace fallback chunk boundaries.
+`index.Load` decodes the prepared snapshot into memory. There is no lazy shard reader or resident retrieval process for very large repositories.
 
-Planned removal condition: optionally prepare Lexicon-aligned source chunks while retaining fallback operation without Lexicon.
+## File eligibility is fixed
 
-## Structural evidence depends on local tool executables
+Supported extensions and extensionless names are compiled into Grimoire. There is no repository configuration for additional file classes or generated-content classification beyond ignore rules and explicit exclusions.
 
-Automatic enrichment discovers repository state through `.lexicon/CURRENT` and `.arcana/CURRENT`, but creating a missing cached export requires the `lexicon` executable and catching up a missing or stale graph requires the `arcana` executable. Explicit executable and state paths are supported. Provider failure emits a warning and preserves standalone source retrieval.
+## State maintenance is explicit
 
-Planned removal condition: add Warlock-supervised discovery or a stable shared invocation registry without coupling Grimoire to either implementation.
+Grimoire does not continuously watch repositories or automatically rebuild prepared and vector state. Callers must run `grimoire index` and `grimoire vector build` after relevant changes. Compatibility checks prevent silently using mismatched vector state.
 
-## Structural retrieval policy is intentionally bounded
+## Structural providers are optional external dependencies
 
-Lexicon matching currently selects direct query-matched symbols and immediate relationships. Arcana queries operational roles, bounded impact, unresolved references, and shortest call chains among a small seed set. Grimoire does not yet infer every graph operation that may be useful for arbitrary tasks, and the judged retrieval evaluator does not yet score structural evidence.
+Lexicon and Arcana state and executables are independently owned. Missing, stale, timed-out, or incompatible providers produce warnings and preserve source retrieval, but structural evidence is incomplete.
 
-Planned removal condition: add task-shaped structural query planning and judged structural-evidence cases before expanding query breadth.
+Arcana queries use Lexicon matches as bounded graph seeds. A Lexicon miss can prevent otherwise relevant Arcana evidence from being requested. Current provider breadth is deliberately bounded rather than exhaustive.
 
-## Managed setup platform coverage
+## Selection and fitting remain whole-item heuristics
 
-`grimoire model setup` currently installs the pinned `llama.cpp` runtime automatically only on Windows x64. Other platforms can use a manually installed runtime through `PATH` or `GRIMOIRE_LLAMA_SERVER`.
+Curation removes duplicates and overlaps, promotes diversity, and adds bounded neighbours. Assembly preserves scope-specific reserves. The compiler fits complete structural facts and complete source chunks in deterministic order; it does not trim items or solve a global optimization problem.
 
-Planned removal condition: add verified pinned runtime assets for additional supported platforms.
+## One output tokenizer
 
-## Selection remains heuristic and whole-item based
+Context packages are measured with `o200k_base`. Consumers using another tokenizer may count the same JSON differently. Chat framing, tool schemas, and wrapper overhead remain the consumer's responsibility.
 
-Candidate curation removes duplicates and overlapping ranges, promotes file/subsystem diversity, and adds bounded prepared neighbours. The compiler fits one leading structural fact and one leading source selection before the remaining structural and source evidence, but it still uses deterministic greedy fitting rather than global optimization and never trims an individual fact or chunk.
+## Diagnostics are not a stable API
 
-Planned removal condition: add stronger evidence-class allocation only when deterministic quality fixtures demonstrate a concrete failure.
+Errors are human-readable, but diagnostic codes, JSON error envelopes, and exit-code classes are not stable. Stderr wording is not a compatibility contract.
 
-## Single output tokenizer
+## Package compatibility is pre-release
 
-Context packages are measured only with `o200k_base`. A consumer using another tokenizer may count the same package differently. Grimoire also cannot count chat framing or tool schemas added later.
-
-Planned removal condition: add another tokenizer only for a concrete consumer. External wrapper overhead remains the consumer's responsibility.
-
-## Narrow file eligibility
-
-The built-in extension and extensionless-name allowlist is fixed. There is no configuration for additional file types or generated-content classification beyond ignore rules.
-
-## Full snapshot materialization
-
-`index.Load` decodes all source records and chunks into memory. There is no lazy shard access or resident retrieval process.
-
-## Manual index refresh
-
-There is no watcher or Grimoire daemon. Callers must run `grimoire index` after repository changes.
-
-## Pre-release compatibility
-
-CLI behavior, prepared binary formats, model identity, ranking reasons, and context-package schemas are versioned where needed but are not stable public promises.
-
-## No stable diagnostic protocol
-
-Errors are human-readable Go errors. Stable diagnostic codes, JSON error envelopes, and documented exit-code classes do not yet exist.
-
-## Related documentation
-
-- [Embedding model](../reference/embedding-model.md)
-- [Vector store](../reference/vector-store.md)
-- [Roadmap](../planning/roadmap.md)
-- [System overview](../architecture/system-overview.md)
-- [CLI](../reference/cli.md)
+The current context package version is 5. Consumers must reject unsupported versions rather than infer compatibility from field presence. CLI, prepared-state, vector-state, and package migration policy are not yet stable release promises.
