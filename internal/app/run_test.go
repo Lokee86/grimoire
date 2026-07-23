@@ -37,6 +37,41 @@ func TestIndexUsesConfiguredIgnoreFile(t *testing.T) {
 	}
 }
 
+func TestIndexIncludeGeneratedFlag(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "vendor"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "vendor", "dependency.go"), []byte("package dependency\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "visible.go"), []byte("package visible\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := index.Load(filepath.Join(root, ".grimoire"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Files) != 1 || snapshot.Files[0].Path != "visible.go" {
+		t.Fatalf("unexpected default files: %+v", snapshot.Files)
+	}
+
+	if err := Run([]string{"index", "--root", root, "--include-generated"}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err = index.Load(filepath.Join(root, ".grimoire"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Files) != 2 || snapshot.Files[0].Path != "vendor/dependency.go" || snapshot.Files[1].Path != "visible.go" {
+		t.Fatalf("unexpected included files: %+v", snapshot.Files)
+	}
+}
+
 func TestIndexThenCompileContext(t *testing.T) {
 	root := t.TempDir()
 	content := "package damage\n\nfunc ResolveDamage() int { return 10 }\n"

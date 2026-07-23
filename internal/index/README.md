@@ -6,9 +6,11 @@
 
 - supported-file filtering and size limits;
 - permanent metadata and tool-state exclusions;
+- default generated, vendored, lockfile, bundle, and minified-content filtering;
 - application of `internal/ignore` policy;
 - SHA-256 content identity and unchanged-record reuse;
 - deterministic fallback chunks and chunk IDs;
+- exact 1,536-token post-chunk safety enforcement with line-first and token-slice fallback splitting;
 - exact `o200k_base` counts stored with changed chunks;
 - prepared-index tokenizer identity and incompatible-index rebuild bases;
 - deterministic published snapshot identity from the content-addressed root;
@@ -29,7 +31,8 @@
 
 - `build.go` - traversal, filtering, reuse, update, and removal detection.
 - `exclusions.go` - permanent directory and explicit state-path exclusions.
-- `chunk.go` - fallback chunking, chunk identity, and exact chunk token counting.
+- `generated.go` - default generated/dependency path, filename, header, and minification policy.
+- `chunk.go` - fallback chunking, chunk identity, exact token counting, and hard token-ceiling splitting.
 - `model.go` - snapshot models.
 - `store.go` - load, validate, save, and publish.
 - `repository.go` - private repository lifecycle and state-reference helpers.

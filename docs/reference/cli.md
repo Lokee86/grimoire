@@ -87,6 +87,7 @@ grimoire index [flags]
 | `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
 | `--ignore-file <path>` | root and nested `.gitignore` files | Replacement Git-ignore file |
 | `--max-file-bytes <n>` | 2 MiB | Maximum eligible source file size |
+| `--include-generated` | `false` | Include generated, vendored, lock, bundled, and minified content |
 | `--exclude <path>` | none | Root-relative or absolute path to exclude; repeatable |
 
 The command prepares source chunks and exact token counts. Persistent embeddings are built separately by `grimoire vector build`.
@@ -101,7 +102,8 @@ Output:
     "scanned": 21,
     "reused": 20,
     "updated": 1,
-    "removed": 0
+    "removed": 0,
+    "generated_skipped": 4
   }
 }
 ```
