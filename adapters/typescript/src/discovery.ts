@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as ts from "typescript";
+import { createSvelteCompilerHost } from "./svelte";
 
 export const EXCLUDED_DIRECTORIES = new Set([
   ".git", ".worktrees", ".workingtrees", ".ddocs", ".lexicon", ".arcana", ".grimoire",
@@ -15,7 +16,7 @@ export function normalizeRelative(root: string, absolutePath: string): string {
 }
 
 export function moduleKeyFor(relativePath: string): string {
-  return relativePath.replace(/(?:\.d)?\.(?:[cm]?[jt]sx?)$/i, "");
+  return relativePath.replace(/(?:\.svelte|(?:\.d)?\.(?:[cm]?[jt]sx?))$/i, "");
 }
 
 export type RepositoryFiles = { directories: string[]; files: string[] };
@@ -36,7 +37,9 @@ export function createTypeScriptProgram(root: string, files: string[]): TypeScri
     .map((name) => path.join(root, name))
     .find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
   let options: ts.CompilerOptions = {
+    allowArbitraryExtensions: true,
     allowJs: true,
+    allowNonTsExtensions: true,
     checkJs: true,
     jsx: ts.JsxEmit.Preserve,
     module: ts.ModuleKind.ESNext,
@@ -51,7 +54,9 @@ export function createTypeScriptProgram(root: string, files: string[]): TypeScri
       const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, path.dirname(configPath), { noEmit: true, skipLibCheck: true }, configPath);
       options = {
         ...parsed.options,
+        allowArbitraryExtensions: true,
         allowJs: true,
+        allowNonTsExtensions: true,
         checkJs: true,
         jsx: parsed.options.jsx ?? ts.JsxEmit.Preserve,
         noEmit: true,
@@ -60,7 +65,8 @@ export function createTypeScriptProgram(root: string, files: string[]): TypeScri
     }
   }
   const rootNames = files.map((relativePath) => path.join(root, relativePath.split("/").join(path.sep)));
-  const program = ts.createProgram({ rootNames, options });
+  const host = createSvelteCompilerHost(root, options);
+  const program = ts.createProgram({ rootNames, options, host });
   return { checker: program.getTypeChecker(), program };
 }
 
@@ -97,7 +103,7 @@ export function scanRepository(root: string): RepositoryFiles {
         const absolute = path.join(directory, entry.name);
         directories.push(normalizeRelative(root, absolute));
         walk(absolute);
-      } else if (entry.isFile() && /\.(?:[cm]?[jt]sx?)$/i.test(entry.name)) {
+      } else if (entry.isFile() && /\.(?:[cm]?[jt]sx?|svelte)$/i.test(entry.name)) {
         files.push(normalizeRelative(root, path.join(directory, entry.name)));
       }
     }

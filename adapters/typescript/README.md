@@ -1,6 +1,6 @@
-# Lexicon JavaScript and TypeScript adapter
+# Lexicon JavaScript, TypeScript, and Svelte adapter
 
-This adapter uses the TypeScript compiler API to emit deterministic Lexicon facts v1 JSONL for mixed JavaScript and TypeScript repositories.
+This adapter uses the TypeScript compiler API plus an offset-preserving Svelte script frontend to emit deterministic Lexicon facts v1 JSONL for mixed JavaScript, TypeScript, and Svelte repositories.
 
 ## Supported source files
 
@@ -8,10 +8,11 @@ The scanner includes:
 
 - `.ts`, `.tsx`, `.mts`, and `.cts`
 - `.js`, `.jsx`, `.mjs`, and `.cjs`
+- `.svelte` component files with JavaScript or TypeScript `<script>` blocks
 
 It excludes `.git/`, `.worktrees/`, `.workingtrees/`, `.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, `.warlock/`, `node_modules/`, generated output directories, dependency/vendor trees, and common caches.
 
-The stream language remains `typescript` because JavaScript and TypeScript share one compiler-backed semantic frontend and one stable node-ID namespace.
+The stream language remains `typescript` because JavaScript, TypeScript, and Svelte scripts share one compiler-backed semantic frontend and one stable node-ID namespace.
 
 ## Setup and usage
 
@@ -39,7 +40,7 @@ python tools/validate_jsonl.py /path/to/facts.jsonl
 
 ## Analysis model
 
-The adapter creates one TypeScript `Program` for all discovered JS/TS files with `allowJs` and `checkJs` enabled. Repository `tsconfig.json` or `jsconfig.json` options are preserved while analysis-required options remain enabled.
+The adapter creates one TypeScript `Program` for all discovered JS, TS, and Svelte files with `allowJs` and `checkJs` enabled. Svelte markup and styles are replaced with same-length whitespace before parsing, so declarations and relationships emitted from `<script>` blocks retain their original component line and column spans. Repository `tsconfig.json` or `jsconfig.json` options are preserved while analysis-required options remain enabled.
 
 It emits declarations, imports, exports, inheritance, implementation, definite calls, possible calls, source spans, and explicit unresolved classifications.
 
@@ -51,12 +52,13 @@ Call resolution covers:
 - arrow functions and function-valued declarations;
 - higher-order parameters and callback arguments;
 - JSX components and tagged templates;
+- Svelte module and instance script content;
 - default exports and common transparent wrappers;
 - JavaScript ESM imports and exports;
 - CommonJS `require()`, `module.exports`, and `exports.name`;
 - JSDoc-provided callable and structural types.
 
-Relative imports may be extensionless or explicitly name any supported JS/TS extension. Exact and single-wildcard `baseUrl`/`paths` mappings from `tsconfig.json` or `jsconfig.json` resolve only unique scanned local targets.
+Relative imports may be extensionless or explicitly name any supported JS/TS extension or `.svelte`. Exact and single-wildcard `baseUrl`/`paths` mappings from `tsconfig.json` or `jsconfig.json` resolve only unique scanned local targets.
 
 ## Canonical identities
 
@@ -65,7 +67,7 @@ All IDs use the contract `sha256:` form with language `typescript`.
 - `repository`: repository root basename
 - `directory`: normalized repository-relative directory path
 - `file`: normalized repository-relative source path
-- `module`: source path with its JS/TS extension removed
+- `module`: source path with its JS/TS or `.svelte` extension removed
 - declaration nodes: module key plus lexical declaration path
 - import/export nodes: module key plus source position and names
 
@@ -74,6 +76,8 @@ Absolute checkout paths are never used in node identities or fact paths.
 ## Conservative boundaries
 
 The adapter does not execute code or infer runtime mutation. Dynamic property installation, monkey-patching, computed exports, runtime-generated modules, and untyped polymorphic values remain dynamic or unresolved rather than guessed.
+
+Svelte markup is not yet converted into component-use, event-handler, binding, slot, or template-expression relationships. Module and instance script blocks are analyzed together as one virtual TypeScript module, so duplicate names across those two Svelte scopes remain a conservative limitation.
 
 External packages are represented as `external-target` records unless their source is part of the scanned repository. JavaScript without types or JSDoc naturally provides less dispatch precision than typed TypeScript.
 
@@ -85,4 +89,4 @@ External packages are represented as `external-target` records unless their sour
 npm test
 ```
 
-The suite covers TypeScript semantics, JavaScript ESM, JSX, CommonJS, JSDoc flow, path mappings, exclusions, stable IDs, deterministic repeat runs, and the shared JSONL validator.
+The suite covers TypeScript semantics, JavaScript ESM, JSX, CommonJS, JSDoc flow, Svelte script extraction and module resolution, path mappings, exclusions, stable IDs, deterministic repeat runs, and the shared JSONL validator.
