@@ -13,6 +13,8 @@ type Definition struct {
 	ConfigFiles []string
 }
 
+const genericLanguagePrefix = "generic-"
+
 var definitions = []Definition{
 	{Language: "gdscript", Directory: "gdscript", Extensions: []string{".gd"}, ConfigFiles: []string{"project.godot"}},
 	{Language: "go", Directory: "go", Extensions: []string{".go"}, ConfigFiles: []string{"go.mod", "go.sum"}},
@@ -20,6 +22,19 @@ var definitions = []Definition{
 	{Language: "ruby", Directory: "ruby", Extensions: []string{".rb", ".gemspec"}, ConfigFiles: []string{"Gemfile", "Gemfile.lock"}},
 	{Language: "rust", Directory: "rust", Extensions: []string{".rs"}, ConfigFiles: []string{"Cargo.toml", "Cargo.lock"}},
 	{Language: "typescript", Directory: "typescript", Extensions: []string{".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".svelte"}, ConfigFiles: []string{"package.json", "package-lock.json", "tsconfig.json", "jsconfig.json"}},
+	{Language: "generic", Directory: "generic"},
+}
+
+var genericSourceExtensions = map[string]struct{}{
+	".asm": {}, ".bash": {}, ".bat": {}, ".c": {}, ".cc": {}, ".clj": {}, ".cljs": {},
+	".cmd": {}, ".cpp": {}, ".cr": {}, ".cs": {}, ".dart": {}, ".elm": {}, ".erl": {},
+	".ex": {}, ".exs": {}, ".f03": {}, ".f90": {}, ".f95": {}, ".fish": {}, ".fs": {},
+	".fsx": {}, ".groovy": {}, ".h": {}, ".hh": {}, ".hpp": {}, ".hs": {}, ".java": {},
+	".jl": {}, ".kt": {}, ".kts": {}, ".lhs": {}, ".lua": {}, ".m": {}, ".ml": {},
+	".mli": {}, ".mm": {}, ".nim": {}, ".nims": {}, ".pas": {}, ".php": {}, ".pl": {},
+	".pm": {}, ".proto": {}, ".ps1": {}, ".r": {}, ".scala": {}, ".sc": {}, ".s": {},
+	".sh": {}, ".sol": {}, ".sql": {}, ".swift": {}, ".sv": {}, ".v": {}, ".vb": {},
+	".vbs": {}, ".vim": {}, ".zig": {},
 }
 
 func Definitions() []Definition {
@@ -35,6 +50,9 @@ func Lookup(language string) (Definition, bool) {
 		if definition.Language == language {
 			return clone(definition), true
 		}
+	}
+	if IsGeneric(language) {
+		return Definition{Language: language, Directory: "generic", Extensions: []string{GenericExtension(language)}}, true
 	}
 	return Definition{}, false
 }
@@ -53,15 +71,21 @@ func ForPath(path string) []string {
 	extension := strings.ToLower(filepath.Ext(name))
 	result := make([]string, 0, 1)
 	for _, definition := range definitions {
+		if definition.Language == "generic" {
+			continue
+		}
 		if contains(definition.ConfigFiles, name) || contains(definition.Extensions, extension) {
 			result = append(result, definition.Language)
 		}
 	}
-	if len(result) == 0 {
-		return nil
+	if len(result) > 0 {
+		sort.Strings(result)
+		return result
 	}
-	sort.Strings(result)
-	return result
+	if _, ok := genericSourceExtensions[extension]; ok {
+		return []string{genericLanguagePrefix + strings.TrimPrefix(extension, ".")}
+	}
+	return nil
 }
 
 func OwnsSource(language, path string) bool {
@@ -69,8 +93,28 @@ func OwnsSource(language, path string) bool {
 }
 
 func SourceExtension(language, extension string) bool {
+	extension = strings.ToLower(extension)
+	if IsGeneric(language) {
+		return GenericExtension(language) == extension
+	}
 	definition, ok := Lookup(language)
-	return ok && contains(definition.Extensions, strings.ToLower(extension))
+	return ok && contains(definition.Extensions, extension)
+}
+
+func IsGeneric(language string) bool {
+	if !strings.HasPrefix(language, genericLanguagePrefix) {
+		return false
+	}
+	extension := "." + strings.TrimPrefix(strings.ToLower(language), genericLanguagePrefix)
+	_, ok := genericSourceExtensions[extension]
+	return ok
+}
+
+func GenericExtension(language string) string {
+	if !IsGeneric(language) {
+		return ""
+	}
+	return "." + strings.TrimPrefix(strings.ToLower(language), genericLanguagePrefix)
 }
 
 func clone(definition Definition) Definition {

@@ -33,6 +33,7 @@ Those boundaries keep one language implementation reusable by every Warlock cons
 | --- | --- | --- | --- |
 | [go/](go/README.md) | Go | Go | `go/parser`, `go/types`, packages, SSA, and VTA |
 | [gdscript/](gdscript/README.md) | GDScript | Go | Dedicated parser and bounded type-flow model |
+| [generic/](generic/README.md) | Curated unsupported source extensions | Go | Conservative line-oriented fallback |
 | [python/](python/README.md) | Python | Python | Standard-library `ast` |
 | [ruby/](ruby/README.md) | Ruby | Ruby | Standard-library `Ripper` |
 | [rust/](rust/README.md) | Rust | Rust | `syn` and Cargo metadata |

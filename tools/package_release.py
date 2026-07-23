@@ -96,7 +96,7 @@ def build_distribution(repo: Path, output: Path, version: str | None = None) -> 
 
     lexicon = output / executable_name("lexicon")
     run(go_build_command(lexicon, "./cmd/lexicon", version), repo)
-    for language in ("go", "gdscript"):
+    for language in ("go", "gdscript", "generic"):
         build_go_adapter(repo, adapters / language / executable_name("lexicon-" + language), language)
 
     rust_output = adapters / "rust" / executable_name("lexicon-rust")

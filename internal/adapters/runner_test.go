@@ -43,6 +43,35 @@ func TestCommandPrefersPackagedExecutables(t *testing.T) {
 	}
 }
 
+func TestCommandUsesGenericAdapterForExtensionLanguage(t *testing.T) {
+	root := t.TempDir()
+	executable := filepath.Join(root, "generic", "lexicon-generic")
+	if runtime.GOOS == "windows" {
+		executable += ".exe"
+	}
+	if err := os.MkdirAll(filepath.Dir(executable), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(executable, []byte("packaged"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	request := Request{Language: "generic-c", Repository: "repo", Output: "facts.jsonl", ChangedFiles: []string{"src/main.c"}}
+	command, err := (Runner{Root: root}).command(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if command.Path != executable {
+		t.Fatalf("command path = %q, want %q", command.Path, executable)
+	}
+	want := []string{"--repo", "repo", "--output", "facts.jsonl", "--language", "generic-c", "--changed-file", "src/main.c"}
+	if got := command.Args[1:]; !reflect.DeepEqual(got, want) {
+		t.Fatalf("generic arguments = %#v, want %#v", got, want)
+	}
+	if _, err := (Runner{Root: root}).command(context.Background(), Request{Language: "generic"}); err == nil {
+		t.Fatal("bare generic language was accepted")
+	}
+}
+
 func TestCommandPrefersPackagedTypeScriptEntrypoint(t *testing.T) {
 	root := t.TempDir()
 	entrypoint := filepath.Join(root, "typescript", "dist", "cli.js")

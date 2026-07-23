@@ -94,7 +94,7 @@ func (value Config) LanguageEnabled(language string) bool {
 		return true
 	}
 	for _, enabled := range value.EnabledLanguages {
-		if enabled == language {
+		if enabled == language || (enabled == "generic" && languageRegistry.IsGeneric(language)) {
 			return true
 		}
 	}

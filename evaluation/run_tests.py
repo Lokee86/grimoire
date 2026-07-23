@@ -38,6 +38,7 @@ def main() -> int:
         ("application-go", [go, "test", "./..."], root, None),
         ("adapter-go", [go, "test", "./..."], root / "adapters" / "go", None),
         ("adapter-gdscript", [go, "test", "./..."], root / "adapters" / "gdscript", None),
+        ("adapter-generic", [go, "test", "./..."], root / "adapters" / "generic", None),
         ("adapter-python", [sys.executable, "-m", "pytest"], root / "adapters" / "python", None),
         ("adapter-ruby", [ruby, "test/test_adapter.rb"], root / "adapters" / "ruby", None),
         ("adapter-typescript", npm_command("test"), root / "adapters" / "typescript", None),

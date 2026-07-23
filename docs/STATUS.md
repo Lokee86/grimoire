@@ -37,6 +37,7 @@ The primary execution model remains one-shot CLI operations. Watch mode invokes 
 | Ruby | 0.3.0 | Reopened owners, inheritance, mixins, blocks, callbacks, bounded Rails-aware flow, dataflow, dependencies | Open runtime mutation, `send`/`eval`, refinements, dynamic constants, framework-generated behavior without declarations |
 | Rust | 0.3.0 | Cargo workspaces, modules, traits, implementations, UFCS, callbacks, dataflow, dependencies | Procedural macro expansion, build-script-generated behavior, unsafe aliasing, unconstrained runtime registration |
 | JavaScript / TypeScript / Svelte | 0.4.0 | Compiler-backed imports, inheritance, interfaces, calls, callbacks, CommonJS, JSDoc, Svelte script blocks, dataflow, dependencies | Svelte template semantics, Astro, prototype/runtime mutation, computed exports and properties, untyped external behavior |
+| Generic fallback | 0.1.0 | Curated source extensions, file/module facts, high-confidence type and function declarations, static import evidence | No resolved calls, inheritance, dataflow, dispatch, or language-specific project semantics |
 
 All adapters emit the same facts-v1 contract and preserve definite, possible, and unresolved relationships as distinct evidence.
 

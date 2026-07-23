@@ -9,6 +9,7 @@ Lexicon is primarily a one-shot CLI application. It can also run an optional fil
 Lexicon currently provides:
 
 - deterministic adapters for Go, GDScript, Python, Ruby, Rust, JavaScript, TypeScript, and Svelte script blocks;
+- conservative generic fallback coverage for curated source-code extensions without a dedicated adapter;
 - a normalized facts-v1 JSONL adapter boundary;
 - immutable content-addressed binary fact objects;
 - atomic repository snapshots and crash-safe publication;
@@ -31,6 +32,7 @@ The adapters are functional semantic analyzers, not merely syntax inventories. P
 | Ruby | Ruby | Standard-library `Ripper` | Reopened types, mixins, blocks, Rails-aware bounded flow |
 | Rust | Rust | `syn` and Cargo metadata | Workspaces, traits, implementations, callbacks, dependencies |
 | JavaScript / TypeScript / Svelte | TypeScript | TypeScript compiler API and offset-preserving Svelte frontend | Typed and untyped JS/TS, JSX, CommonJS, Svelte script blocks |
+| Other curated source extensions | Go | Conservative generic fallback | File/module facts, high-confidence declarations, static import evidence |
 
 Adapter-specific behavior and limits are indexed in [adapters/README.md](adapters/README.md).
 

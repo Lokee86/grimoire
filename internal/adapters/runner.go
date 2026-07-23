@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	languageRegistry "github.com/Lokee86/lexicon/internal/languages"
 )
 
 type Request struct {
@@ -50,6 +52,8 @@ func (r Runner) Run(ctx context.Context, request Request) error {
 func (r Runner) command(ctx context.Context, request Request) (*exec.Cmd, error) {
 	arguments := adapterArguments(request)
 	switch request.Language {
+	case "generic":
+		return nil, fmt.Errorf("generic adapter requires an extension-qualified language")
 	case "go", "gdscript":
 		if executable, ok := packagedExecutable(r.Root, request.Language); ok {
 			return exec.CommandContext(ctx, executable, arguments...), nil
@@ -106,12 +110,28 @@ func (r Runner) command(ctx context.Context, request Request) (*exec.Cmd, error)
 		}
 		return exec.CommandContext(ctx, executable, append([]string{filepath.Join(r.Root, "typescript", "dist", "cli.js")}, arguments...)...), nil
 	default:
+		if languageRegistry.IsGeneric(request.Language) {
+			if executable, ok := packagedExecutable(r.Root, "generic"); ok {
+				return exec.CommandContext(ctx, executable, arguments...), nil
+			}
+			executable, err := findExecutable("go")
+			if err != nil {
+				return nil, err
+			}
+			directory := filepath.Join(r.Root, "generic")
+			command := exec.CommandContext(ctx, executable, append([]string{"run", "."}, arguments...)...)
+			command.Dir = directory
+			return command, nil
+		}
 		return nil, fmt.Errorf("unsupported language %q", request.Language)
 	}
 }
 
 func adapterArguments(request Request) []string {
 	arguments := []string{"--repo", request.Repository, "--output", request.Output}
+	if languageRegistry.IsGeneric(request.Language) {
+		arguments = append(arguments, "--language", request.Language)
+	}
 	for _, path := range request.ChangedFiles {
 		arguments = append(arguments, "--changed-file", filepath.ToSlash(path))
 	}

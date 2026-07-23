@@ -27,6 +27,7 @@ The release directory contains:
 - the `lexicon` application executable;
 - `adapters/go/lexicon-go`;
 - `adapters/gdscript/lexicon-gdscript`;
+- `adapters/generic/lexicon-generic`;
 - `adapters/rust/lexicon-rust`;
 - the compiled TypeScript `dist/cli.js`;
 - TypeScript production package metadata and runtime dependencies;
@@ -41,7 +42,7 @@ The packaged executable discovers the adjacent `adapters/` directory automatical
 
 Creating a complete distribution requires:
 
-- Go for the application, Go adapter, and GDScript adapter;
+- Go for the application, Go adapter, GDScript adapter, and generic adapter;
 - Rust and Cargo for the Rust adapter;
 - Node.js and npm for TypeScript compilation and production dependency installation;
 - Python to run the packaging script.

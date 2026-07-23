@@ -84,6 +84,15 @@ func TestEnabledLanguagesRejectUnknownValues(t *testing.T) {
 	}
 }
 
+func TestGenericSelectionEnablesExtensionVariants(t *testing.T) {
+	if !(Config{EnabledLanguages: []string{"generic"}}).LanguageEnabled("generic-c") {
+		t.Fatal("generic selection did not enable generic-c")
+	}
+	if (Config{EnabledLanguages: []string{"python"}}).LanguageEnabled("generic-c") {
+		t.Fatal("generic-c enabled without generic selection")
+	}
+}
+
 func TestLoadRejectsUnknownEnabledLanguage(t *testing.T) {
 	repository := t.TempDir()
 	if err := os.MkdirAll(filepath.Dir(Path(repository)), 0o755); err != nil {
