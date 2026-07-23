@@ -3,7 +3,7 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use crate::repository::{
     ContentId, EdgeFact, NodeFact, NodeKey, NodeKind, PublishRepositorySnapshot, RelationKind,
@@ -193,6 +193,91 @@ fn serves_bounded_graph_analysis_queries() {
     assert_eq!(role["result"]["shortest_entry_chain"]["depth"], 2);
 }
 
+#[test]
+fn serves_dense_traversal_edge_cases() {
+    let directory = TestDirectory::new();
+    let snapshot_path = directory.path.join("dense-traversal");
+    write_snapshot(&snapshot_path, dense_traversal_facts());
+    let snapshot = ProtocolSnapshot::open(snapshot_path).unwrap();
+
+    let paths = request(
+        &snapshot,
+        r#"{"op":"paths","from_node_id":1,"to_node_id":4,"relations":["possible-calls","calls"],"max_depth":4,"limit":1}"#,
+    );
+    assert_eq!(paths["result"]["count"], 1);
+    assert_eq!(paths["result"]["truncated"], true);
+    assert_eq!(paths["result"]["paths"][0]["nodes"][0]["name"], "entry");
+    assert_eq!(paths["result"]["paths"][0]["nodes"][1]["name"], "alpha");
+    assert_eq!(paths["result"]["paths"][0]["nodes"][2]["name"], "target");
+
+    let blocked_paths = request(
+        &snapshot,
+        r#"{"op":"paths","from_node_id":1,"to_node_id":4,"relations":["calls","possible-calls"],"max_depth":1}"#,
+    );
+    assert_eq!(blocked_paths["result"]["count"], 0);
+    assert_eq!(blocked_paths["result"]["truncated"], false);
+
+    let chain = request(
+        &snapshot,
+        r#"{"op":"shortest_call_chain","from_node_id":1,"to_node_id":4,"include_possible":true,"max_depth":4}"#,
+    );
+    assert_eq!(chain["result"]["found"], true);
+    assert_eq!(chain["result"]["chain"]["nodes"][0]["name"], "entry");
+    assert_eq!(chain["result"]["chain"]["nodes"][1]["name"], "alpha");
+    assert_eq!(chain["result"]["chain"]["nodes"][2]["name"], "target");
+
+    let blocked_chain = request(
+        &snapshot,
+        r#"{"op":"shortest_call_chain","from_node_id":1,"to_node_id":4,"include_possible":true,"max_depth":1}"#,
+    );
+    assert_eq!(blocked_chain["result"]["found"], false);
+    assert!(blocked_chain["result"]["chain"].is_null());
+
+    let reachability = request(
+        &snapshot,
+        r#"{"op":"reachability","entry_node_ids":[1],"include_possible":true,"max_depth":1}"#,
+    );
+    assert_eq!(reachability["result"]["count"], 3);
+    assert_eq!(
+        reachability["result"]["reachable"][0]["node"]["name"],
+        "entry"
+    );
+    assert_eq!(
+        reachability["result"]["reachable"][1]["node"]["name"],
+        "alpha"
+    );
+    assert_eq!(
+        reachability["result"]["reachable"][2]["node"]["name"],
+        "beta"
+    );
+
+    let impact = request(
+        &snapshot,
+        r#"{"op":"impact","node_id":4,"relations":["calls","references"],"max_depth":2}"#,
+    );
+    assert_eq!(
+        impact["result"]["relations"],
+        json!(["references", "calls"])
+    );
+    assert_eq!(impact["result"]["count"], 4);
+    assert_eq!(impact["result"]["dependents"][0]["node"]["name"], "alpha");
+    assert_eq!(impact["result"]["dependents"][1]["node"]["name"], "beta");
+    assert_eq!(
+        impact["result"]["dependents"][2]["node"]["name"],
+        "referrer"
+    );
+    assert_eq!(impact["result"]["dependents"][3]["node"]["name"], "entry");
+
+    let dead = request(
+        &snapshot,
+        r#"{"op":"dead_symbols","entry_node_ids":[1],"include_possible":false}"#,
+    );
+    assert_eq!(dead["result"]["count"], 3);
+    assert_eq!(dead["result"]["dead_symbols"][0]["name"], "beta");
+    assert_eq!(dead["result"]["dead_symbols"][1]["name"], "referrer");
+    assert_eq!(dead["result"]["dead_symbols"][2]["name"], "unused");
+}
+
 fn analysis_facts() -> RepositoryFacts {
     RepositoryFacts::new(
         vec![
@@ -213,6 +298,76 @@ fn analysis_facts() -> RepositoryFacts {
                 source: NodeKey::from_u64(30),
                 target: NodeKey::from_u64(40),
                 relation: RelationKind::Calls,
+                span: None,
+            },
+        ],
+    )
+}
+
+fn dense_traversal_facts() -> RepositoryFacts {
+    RepositoryFacts::new(
+        vec![
+            node(10, NodeKind::File, "src/traversal.go", "traversal.go", None),
+            node(20, NodeKind::Function, "src/traversal.go", "entry", Some(1)),
+            node(30, NodeKind::Function, "src/traversal.go", "alpha", Some(2)),
+            node(40, NodeKind::Function, "src/traversal.go", "beta", Some(3)),
+            node(
+                50,
+                NodeKind::Function,
+                "src/traversal.go",
+                "target",
+                Some(4),
+            ),
+            node(
+                60,
+                NodeKind::Function,
+                "src/traversal.go",
+                "referrer",
+                Some(5),
+            ),
+            node(
+                70,
+                NodeKind::Function,
+                "src/traversal.go",
+                "unused",
+                Some(6),
+            ),
+        ],
+        vec![
+            EdgeFact {
+                source: NodeKey::from_u64(20),
+                target: NodeKey::from_u64(30),
+                relation: RelationKind::Calls,
+                span: None,
+            },
+            EdgeFact {
+                source: NodeKey::from_u64(20),
+                target: NodeKey::from_u64(40),
+                relation: RelationKind::PossibleCalls,
+                span: None,
+            },
+            EdgeFact {
+                source: NodeKey::from_u64(30),
+                target: NodeKey::from_u64(50),
+                relation: RelationKind::Calls,
+                span: None,
+            },
+            EdgeFact {
+                source: NodeKey::from_u64(40),
+                target: NodeKey::from_u64(50),
+                relation: RelationKind::Calls,
+                span: None,
+            },
+            EdgeFact {
+                source: NodeKey::from_u64(30),
+                target: NodeKey::from_u64(20),
+                relation: RelationKind::Calls,
+                span: None,
+            },
+            EdgeFact {
+                source: NodeKey::from_u64(60),
+                target: NodeKey::from_u64(50),
+                relation: RelationKind::References,
                 span: None,
             },
         ],

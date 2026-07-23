@@ -30,10 +30,14 @@ impl ProtocolSnapshot {
             self,
             &entries,
             QueryDirection::Outgoing,
-            Some(&allowed),
+            Some(allowed),
             max_depth,
         )?;
-        let mut reachable = distances.into_iter().collect::<Vec<_>>();
+        let mut reachable = distances
+            .into_iter()
+            .enumerate()
+            .filter_map(|(node, depth)| depth.map(|depth| (NodeId(node as u32), depth)))
+            .collect::<Vec<_>>();
         reachable.sort_unstable_by_key(|(node, depth)| (*depth, *node));
         let total = reachable.len();
         let nodes = reachable
@@ -72,7 +76,7 @@ impl ProtocolSnapshot {
         let limit = bounded_result_limit(limit);
         let parsed = parse_relations(relations)?;
         let defaults = impact_relations();
-        let allowed = parsed.as_ref().unwrap_or(&defaults);
+        let allowed = parsed.unwrap_or(defaults);
         let distances = bfs_distances(
             self,
             &[source],
@@ -82,7 +86,11 @@ impl ProtocolSnapshot {
         )?;
         let mut impacted = distances
             .into_iter()
-            .filter(|(node, _)| *node != source)
+            .enumerate()
+            .filter_map(|(node, depth)| {
+                let node = NodeId(node as u32);
+                depth.filter(|_| node != source).map(|depth| (node, depth))
+            })
             .collect::<Vec<_>>();
         impacted.sort_unstable_by_key(|(node, depth)| (*depth, *node));
         let total = impacted.len();
@@ -102,7 +110,7 @@ impl ProtocolSnapshot {
         Ok(json!({
             "node_id": node_id,
             "max_depth": max_depth,
-            "relations": allowed.iter().map(RelationKind::as_str).collect::<Vec<_>>(),
+            "relations": allowed.relation_names(),
             "count": total,
             "returned": nodes.len(),
             "truncated": total > nodes.len(),
@@ -126,7 +134,7 @@ impl ProtocolSnapshot {
             self,
             &entries,
             QueryDirection::Outgoing,
-            Some(&allowed),
+            Some(allowed),
             max_depth,
         )?;
         let kinds = parse_kinds(kinds)?;
@@ -135,7 +143,11 @@ impl ProtocolSnapshot {
             .entries()
             .iter()
             .filter(|entry| kinds.contains(&entry.fact.kind))
-            .filter(|entry| !reachable.contains_key(&entry.node_id))
+            .filter(|entry| {
+                reachable
+                    .get(entry.node_id.0 as usize)
+                    .is_none_or(|depth| depth.is_none())
+            })
             .collect::<Vec<_>>();
         let total = dead.len();
         let nodes = dead
@@ -185,7 +197,7 @@ impl ProtocolSnapshot {
             let max_depth = bounded_depth(max_depth);
             for start in entries {
                 if let Some((nodes, relations)) =
-                    shortest_path(self, start, node, Some(&allowed), max_depth)?
+                    shortest_path(self, start, node, Some(allowed), max_depth)?
                 {
                     let replace = best_chain
                         .as_ref()

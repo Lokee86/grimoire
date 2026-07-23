@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::VecDeque;
 
 use serde_json::{Value, json};
 
@@ -17,6 +17,53 @@ pub(crate) const DEFAULT_PATH_LIMIT: usize = 100;
 pub(crate) const MAX_PATH_LIMIT: usize = 1_000;
 
 pub(crate) type GraphPath = (Vec<NodeId>, Vec<RelationKind>);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct RelationMask(u32);
+
+impl RelationMask {
+    const fn empty() -> Self {
+        Self(0)
+    }
+
+    fn insert(&mut self, relation: &RelationKind) {
+        self.0 |= relation_bit(relation);
+    }
+
+    fn contains(self, relation: &RelationKind) -> bool {
+        self.0 & relation_bit(relation) != 0
+    }
+
+    pub(crate) fn relation_names(self) -> Vec<&'static str> {
+        RELATION_ORDER
+            .iter()
+            .filter(|relation| self.contains(*relation))
+            .map(RelationKind::as_str)
+            .collect()
+    }
+}
+
+const RELATION_ORDER: [RelationKind; 19] = [
+    RelationKind::Contains,
+    RelationKind::Defines,
+    RelationKind::References,
+    RelationKind::Imports,
+    RelationKind::Calls,
+    RelationKind::PossibleCalls,
+    RelationKind::ConvertsTo,
+    RelationKind::Implements,
+    RelationKind::Extends,
+    RelationKind::UsesTrait,
+    RelationKind::Overrides,
+    RelationKind::Reads,
+    RelationKind::Writes,
+    RelationKind::Annotates,
+    RelationKind::Includes,
+    RelationKind::DependsOn,
+    RelationKind::Tests,
+    RelationKind::Documents,
+    RelationKind::Generates,
+];
 
 pub(crate) fn bounded_depth(depth: Option<usize>) -> usize {
     depth.unwrap_or(DEFAULT_DEPTH).min(MAX_DEPTH)
@@ -62,41 +109,42 @@ pub(crate) fn require_entries(
 
 pub(crate) fn parse_relations(
     values: Option<&[String]>,
-) -> Result<Option<BTreeSet<RelationKind>>, RequestFailure> {
+) -> Result<Option<RelationMask>, RequestFailure> {
     let Some(values) = values else {
         return Ok(None);
     };
-    let mut relations = BTreeSet::new();
+    let mut relations = RelationMask::empty();
     for value in values {
         let relation = RelationKind::parse(value).ok_or_else(|| {
             RequestFailure::new("invalid_relation", format!("unknown relation '{value}'"))
         })?;
-        relations.insert(relation);
+        relations.insert(&relation);
     }
     Ok(Some(relations))
 }
 
-pub(crate) fn call_relations(include_possible: bool) -> BTreeSet<RelationKind> {
-    let mut relations = BTreeSet::from([RelationKind::Calls]);
+pub(crate) fn call_relations(include_possible: bool) -> RelationMask {
+    let mut relations = RelationMask::empty();
+    relations.insert(&RelationKind::Calls);
     if include_possible {
-        relations.insert(RelationKind::PossibleCalls);
+        relations.insert(&RelationKind::PossibleCalls);
     }
     relations
 }
 
-pub(crate) fn impact_relations() -> BTreeSet<RelationKind> {
-    BTreeSet::from([
-        RelationKind::Calls,
-        RelationKind::PossibleCalls,
-        RelationKind::References,
-    ])
+pub(crate) fn impact_relations() -> RelationMask {
+    let mut relations = RelationMask::empty();
+    relations.insert(&RelationKind::Calls);
+    relations.insert(&RelationKind::PossibleCalls);
+    relations.insert(&RelationKind::References);
+    relations
 }
 
 pub(crate) fn graph_neighbors(
     snapshot: &ProtocolSnapshot,
     node: NodeId,
     direction: QueryDirection,
-    allowed: Option<&BTreeSet<RelationKind>>,
+    allowed: Option<RelationMask>,
 ) -> Result<Vec<(NodeId, RelationKind)>, RequestFailure> {
     let raw = match direction {
         QueryDirection::Outgoing => snapshot.graph.forward_neighbors(node),
@@ -124,23 +172,24 @@ pub(crate) fn bfs_distances(
     snapshot: &ProtocolSnapshot,
     starts: &[NodeId],
     direction: QueryDirection,
-    allowed: Option<&BTreeSet<RelationKind>>,
+    allowed: Option<RelationMask>,
     max_depth: usize,
-) -> Result<BTreeMap<NodeId, usize>, RequestFailure> {
-    let mut distances = BTreeMap::new();
+) -> Result<Vec<Option<usize>>, RequestFailure> {
+    let mut distances = vec![None; snapshot.graph.node_count() as usize];
     let mut queue = VecDeque::new();
     for start in starts {
-        distances.insert(*start, 0);
+        distances[start.0 as usize] = Some(0);
         queue.push_back(*start);
     }
     while let Some(node) = queue.pop_front() {
-        let depth = distances[&node];
+        let depth = distances[node.0 as usize].expect("queued nodes always have a distance");
         if depth >= max_depth {
             continue;
         }
         for (neighbor, _) in graph_neighbors(snapshot, node, direction, allowed)? {
-            if let std::collections::btree_map::Entry::Vacant(entry) = distances.entry(neighbor) {
-                entry.insert(depth + 1);
+            let index = neighbor.0 as usize;
+            if distances[index].is_none() {
+                distances[index] = Some(depth + 1);
                 queue.push_back(neighbor);
             }
         }
@@ -152,28 +201,30 @@ pub(crate) fn shortest_path(
     snapshot: &ProtocolSnapshot,
     start: NodeId,
     target: NodeId,
-    allowed: Option<&BTreeSet<RelationKind>>,
+    allowed: Option<RelationMask>,
     max_depth: usize,
 ) -> Result<Option<GraphPath>, RequestFailure> {
     if start == target {
         return Ok(Some((vec![start], Vec::new())));
     }
-    let mut depth = BTreeMap::from([(start, 0_usize)]);
-    let mut parent = BTreeMap::<NodeId, (NodeId, RelationKind)>::new();
+    let mut depth = vec![None; snapshot.graph.node_count() as usize];
+    let mut parent = vec![None; snapshot.graph.node_count() as usize];
+    depth[start.0 as usize] = Some(0);
     let mut queue = VecDeque::from([start]);
     while let Some(node) = queue.pop_front() {
-        let current_depth = depth[&node];
+        let current_depth = depth[node.0 as usize].expect("queued nodes always have a distance");
         if current_depth >= max_depth {
             continue;
         }
         for (neighbor, relation) in
             graph_neighbors(snapshot, node, QueryDirection::Outgoing, allowed)?
         {
-            if depth.contains_key(&neighbor) {
+            let index = neighbor.0 as usize;
+            if depth[index].is_some() {
                 continue;
             }
-            depth.insert(neighbor, current_depth + 1);
-            parent.insert(neighbor, (node, relation));
+            depth[index] = Some(current_depth + 1);
+            parent[index] = Some((node, relation));
             if neighbor == target {
                 return Ok(Some(reconstruct_path(start, target, &parent)));
             }
@@ -186,13 +237,15 @@ pub(crate) fn shortest_path(
 fn reconstruct_path(
     start: NodeId,
     target: NodeId,
-    parent: &BTreeMap<NodeId, (NodeId, RelationKind)>,
+    parent: &[Option<(NodeId, RelationKind)>],
 ) -> (Vec<NodeId>, Vec<RelationKind>) {
     let mut nodes = vec![target];
     let mut relations = Vec::new();
     let mut current = target;
     while current != start {
-        let (previous, relation) = parent[&current].clone();
+        let (previous, relation) = parent[current.0 as usize]
+            .clone()
+            .expect("target must have a reconstructed parent chain");
         nodes.push(previous);
         relations.push(relation);
         current = previous;
@@ -241,4 +294,29 @@ pub(crate) fn related_values(
             Ok(json!({"relation": relation.as_str(), "node": node_value(entry)}))
         })
         .collect()
+}
+
+#[inline]
+fn relation_bit(relation: &RelationKind) -> u32 {
+    match relation {
+        RelationKind::Contains => 1 << 0,
+        RelationKind::Defines => 1 << 1,
+        RelationKind::References => 1 << 2,
+        RelationKind::Imports => 1 << 3,
+        RelationKind::Calls => 1 << 4,
+        RelationKind::PossibleCalls => 1 << 5,
+        RelationKind::ConvertsTo => 1 << 6,
+        RelationKind::Implements => 1 << 7,
+        RelationKind::Extends => 1 << 8,
+        RelationKind::UsesTrait => 1 << 9,
+        RelationKind::Overrides => 1 << 10,
+        RelationKind::Reads => 1 << 11,
+        RelationKind::Writes => 1 << 12,
+        RelationKind::Annotates => 1 << 13,
+        RelationKind::Includes => 1 << 14,
+        RelationKind::DependsOn => 1 << 15,
+        RelationKind::Tests => 1 << 16,
+        RelationKind::Documents => 1 << 17,
+        RelationKind::Generates => 1 << 18,
+    }
 }
