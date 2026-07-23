@@ -72,10 +72,11 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 	defer library.Close()
 
 	all := make([]vectorChunk, 0, len(chunks))
-	missing := make([]vectorChunk, 0)
 	for _, chunk := range chunks {
-		entry := vectorChunk{Chunk: chunk, Source: vectorSource(chunk.Text)}
-		all = append(all, entry)
+		all = append(all, vectorChunk{Chunk: chunk, Source: vectorSource(chunk.Text)})
+	}
+	missing := make([]vectorChunk, 0)
+	for _, entry := range uniqueVectorSources(all) {
 		exists, existsErr := library.ObjectExists(paths.Store, embedding.Identity(), entry.Source)
 		if existsErr != nil {
 			return existsErr
@@ -137,6 +138,19 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 		Reused: len(all) - len(missing), DurationMS: durationMS(time.Since(started)),
 		SnapshotBytes: snapshotInfo.Size(), PeakMemoryBytes: peakMemory,
 	})
+}
+
+func uniqueVectorSources(entries []vectorChunk) []vectorChunk {
+	seen := make(map[string]struct{}, len(entries))
+	result := make([]vectorChunk, 0, len(entries))
+	for _, entry := range entries {
+		if _, exists := seen[entry.Source]; exists {
+			continue
+		}
+		seen[entry.Source] = struct{}{}
+		result = append(result, entry)
+	}
+	return result
 }
 
 type documentEmbedder interface {

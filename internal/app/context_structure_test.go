@@ -6,6 +6,22 @@ import (
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
+func TestParseContextStructuralProvidersAllowsArcanaWithoutEmittingLexicon(t *testing.T) {
+	emitLexicon, arcanaEnabled, err := parseContextStructuralProviders("arcana")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if emitLexicon || !arcanaEnabled {
+		t.Fatalf("emitLexicon=%v arcanaEnabled=%v", emitLexicon, arcanaEnabled)
+	}
+}
+
+func TestParseContextStructuralProvidersRejectsUnknownProvider(t *testing.T) {
+	if _, _, err := parseContextStructuralProviders("lexicon,unknown"); err == nil {
+		t.Fatal("expected unsupported provider error")
+	}
+}
+
 func TestInterleaveStructuralEvidencePreservesProviderRanks(t *testing.T) {
 	lexicon := []structure.Evidence{
 		{Provider: "lexicon", Rank: 1},

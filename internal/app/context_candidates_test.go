@@ -28,6 +28,30 @@ func TestMergeContextCandidatesPrefersExactAndKeepsProviderEvidence(t *testing.T
 	}
 }
 
+func TestMergeRankedProvidersInterleavesProviderRanks(t *testing.T) {
+	candidate := func(id, source string, rank int) retrieve.Candidate {
+		return retrieve.Candidate{Chunk: index.Chunk{ID: id}, Source: source, Rank: rank}
+	}
+	lexical := []retrieve.Candidate{
+		candidate("lexical-1", "lexical", 1),
+		candidate("lexical-2", "lexical", 2),
+	}
+	vector := []retrieve.Candidate{
+		candidate("vector-1", "vector", 1),
+		candidate("vector-2", "vector", 2),
+	}
+
+	merged := mergeRankedProviders(4, lexical, vector)
+	got := []string{
+		merged[0].Chunk.ID, merged[1].Chunk.ID,
+		merged[2].Chunk.ID, merged[3].Chunk.ID,
+	}
+	want := []string{"lexical-1", "vector-1", "lexical-2", "vector-2"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("interleaved IDs = %v, want %v", got, want)
+	}
+}
+
 func TestMergeContextProvidersBoundsLexiconWithoutReplacingBaseFront(t *testing.T) {
 	candidate := func(id, source string, rank int) retrieve.Candidate {
 		return retrieve.Candidate{Chunk: index.Chunk{ID: id}, Source: source, Rank: rank}

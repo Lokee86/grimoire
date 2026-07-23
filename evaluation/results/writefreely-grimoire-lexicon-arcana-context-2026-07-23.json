@@ -1,0 +1,1075 @@
+{
+  "version": 4,
+  "query": "Trace how a WriteFreely post is created and persisted.",
+  "budget": 12000,
+  "tokenizer": "o200k_base",
+  "token_count": 11962,
+  "index_version": 2,
+  "retrieval_sources": [
+    "exact",
+    "vector",
+    "adjacent",
+    "lexicon"
+  ],
+  "structural_sources": [
+    "lexicon",
+    "arcana"
+  ],
+  "structural_state": [
+    {
+      "provider": "lexicon",
+      "snapshot": "sha256:7f5b20e40e6c4e02a01243055b8d65a4c2cda5c35a9679840aaa3c074eb542bc"
+    },
+    {
+      "provider": "arcana",
+      "snapshot": "sha256:7f5b20e40e6c4e02a01243055b8d65a4c2cda5c35a9679840aaa3c074eb542bc"
+    }
+  ],
+  "structural_evidence": [
+    {
+      "provider": "lexicon",
+      "kind": "symbol",
+      "rank": 1,
+      "score": 96,
+      "reasons": [
+        "query names Lexicon qualified symbol",
+        "query names Lexicon source path"
+      ],
+      "node": {
+        "identity": "sha256:c8f19363c7b81c8824989705c75f46b476cdd1d7bb36ce5aef2bbb31f0b2ca9a",
+        "kind": "directory",
+        "name": "source",
+        "qualified_name": ".",
+        "path": "."
+      },
+      "relationships": [
+        {
+          "direction": "incoming",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:a163bb0896d2b8b96f366b3a25c9c82e2fd032eac0a4ea1c6daa83e0203890bd",
+            "kind": "repository",
+            "name": "source",
+            "qualified_name": "source",
+            "path": "."
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:b39362873f63daa17d92384312e5f178bf801351415302410497bdf37339def2",
+            "kind": "directory",
+            "name": "appstats",
+            "qualified_name": "appstats",
+            "path": "appstats"
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:70a1959aff78f40ff1dbe7dfd157e43bd918ad496c12ab0d9c174172f330c6bd",
+            "kind": "directory",
+            "name": "author",
+            "qualified_name": "author",
+            "path": "author"
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:68d22445a40290bc4c47f4c764df17ce0ae5b2fbf808eb87ba7bca5ab60fa64e",
+            "kind": "directory",
+            "name": "cmd",
+            "qualified_name": "cmd",
+            "path": "cmd"
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:eba95738392f6cc00858f16ad012005faadb75dccb88424526a69378d9faec8c",
+            "kind": "directory",
+            "name": "config",
+            "qualified_name": "config",
+            "path": "config"
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:77063a2325d2a9de77f7cad13fb6aaebb6f5ba9f02ba363457728e43dd6c9053",
+            "kind": "directory",
+            "name": "db",
+            "qualified_name": "db",
+            "path": "db"
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:0c0997d00d5bbdc00e8ca7b7737f85e89e5b1613802a6eea6bbc6c1b58ec2a02",
+            "kind": "directory",
+            "name": "key",
+            "qualified_name": "key",
+            "path": "key"
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:a0a1a30244bbd08f416f7f251704d700c342c379a41131f592805f2ebffd4121",
+            "kind": "directory",
+            "name": "mailer",
+            "qualified_name": "mailer",
+            "path": "mailer"
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:5a3a95857ba80d7c4a76c27950bcaff3ec44d19ffd7a8f42cab35a2bb9064ae7",
+            "kind": "directory",
+            "name": "migrations",
+            "qualified_name": "migrations",
+            "path": "migrations"
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:98a01b75baadde8d3a4756f66a20173db08a3539291d93f1efcfdde782da8c08",
+            "kind": "directory",
+            "name": "oauth",
+            "qualified_name": "oauth",
+            "path": "oauth"
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:f45f6583449ee6899ead94e735c3c1375b8b3610f00a55c5abb500104a953301",
+            "kind": "directory",
+            "name": "page",
+            "qualified_name": "page",
+            "path": "page"
+          }
+        },
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:bb14df5c0b411e89fd7d0866b25109c255c6c1cb73f768996d6fe6801c80ebde",
+            "kind": "directory",
+            "name": "parse",
+            "qualified_name": "parse",
+            "path": "parse"
+          }
+        }
+      ]
+    },
+    {
+      "provider": "arcana",
+      "kind": "operational_role",
+      "rank": 1,
+      "reasons": [
+        "Arcana graph role for Lexicon-matched symbol source"
+      ],
+      "node": {
+        "identity": "sha256:a163bb0896d2b8b96f366b3a25c9c82e2fd032eac0a4ea1c6daa83e0203890bd",
+        "node_id": 5069,
+        "kind": "repository",
+        "name": "source",
+        "path": "."
+      },
+      "summary": "source has 0 definite caller(s), 0 possible caller(s), 0 definite callee(s), 0 possible target(s), and 0 incoming reference(s)."
+    },
+    {
+      "provider": "lexicon",
+      "kind": "symbol",
+      "rank": 2,
+      "score": 48,
+      "reasons": [
+        "query names Lexicon source path"
+      ],
+      "node": {
+        "identity": "sha256:a163bb0896d2b8b96f366b3a25c9c82e2fd032eac0a4ea1c6daa83e0203890bd",
+        "kind": "repository",
+        "name": "source",
+        "qualified_name": "source",
+        "path": "."
+      },
+      "relationships": [
+        {
+          "direction": "outgoing",
+          "relation": "contains",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:c8f19363c7b81c8824989705c75f46b476cdd1d7bb36ce5aef2bbb31f0b2ca9a",
+            "kind": "directory",
+            "name": "source",
+            "qualified_name": ".",
+            "path": "."
+          }
+        }
+      ]
+    },
+    {
+      "provider": "arcana",
+      "kind": "operational_role",
+      "rank": 2,
+      "reasons": [
+        "Arcana graph role for Lexicon-matched symbol Created"
+      ],
+      "node": {
+        "identity": "sha256:4b7408e5e6aca46915e6db10b34e7c2d842477c35f9de51c09cfaede177b8408",
+        "node_id": 4386,
+        "kind": "field",
+        "name": "Created",
+        "path": "posts.go",
+        "span": {
+          "path": "posts.go",
+          "start_line": 113,
+          "start_column": 3,
+          "end_line": 113,
+          "end_column": 10
+        }
+      },
+      "summary": "Created has 0 definite caller(s), 0 possible caller(s), 0 definite callee(s), 0 possible target(s), and 0 incoming reference(s)."
+    },
+    {
+      "provider": "lexicon",
+      "kind": "symbol",
+      "rank": 3,
+      "score": 44,
+      "reasons": [
+        "query names Lexicon symbol Created",
+        "qualified symbol matches post",
+        "symbol name matches created"
+      ],
+      "node": {
+        "identity": "sha256:40380b2462945cb590178e96d30c8444ed5a865471de2c8dc1f2bb392b65d023",
+        "kind": "field",
+        "name": "Created",
+        "qualified_name": "posts.go::Created",
+        "path": "posts.go",
+        "span": {
+          "path": "posts.go",
+          "start_line": 171,
+          "end_line": 171
+        }
+      },
+      "relationships": [
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:53c28e8021eb25bef642c7c916c869e8ebca639b902b92c2efc6faefd5741716",
+            "kind": "method",
+            "name": "Created8601",
+            "qualified_name": "posts.go::Created8601",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1731,
+              "end_line": 1733
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:7e41abe61b279575280e3da84461d5ac12e6f640d6052a30deb5210f6a67e116",
+            "kind": "method",
+            "name": "UserFacingCreated",
+            "qualified_name": "posts.go::UserFacingCreated",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1727,
+              "end_line": 1729
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:077451144e24ad3a84f291aa20015d9f7b87c15780f2230c669744158afdc50f",
+            "kind": "function",
+            "name": "getRawCollectionPost",
+            "qualified_name": "posts.go::getRawCollectionPost",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1414,
+              "end_line": 1451
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:865d7a16fc7e4cfa65ec251ad48c782a98813eabb42ea9ec23b1baf2b0e8f372",
+            "kind": "function",
+            "name": "getRawPost",
+            "qualified_name": "posts.go::getRawPost",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1382,
+              "end_line": 1411
+            }
+          }
+        }
+      ]
+    },
+    {
+      "provider": "arcana",
+      "kind": "operational_role",
+      "rank": 3,
+      "reasons": [
+        "Arcana graph role for Lexicon-matched symbol created"
+      ],
+      "node": {
+        "identity": "sha256:b3394cf6610638f24fda1e36253480bec6ffc270bf810a52f533bbd4f0678790",
+        "node_id": 1149,
+        "kind": "variable",
+        "name": "created",
+        "path": "posts.go",
+        "span": {
+          "path": "posts.go",
+          "start_line": 1418,
+          "start_column": 6,
+          "end_line": 1418,
+          "end_column": 13
+        }
+      },
+      "summary": "created has 0 definite caller(s), 0 possible caller(s), 0 definite callee(s), 0 possible target(s), and 0 incoming reference(s)."
+    },
+    {
+      "provider": "lexicon",
+      "kind": "symbol",
+      "rank": 4,
+      "score": 44,
+      "reasons": [
+        "query names Lexicon symbol Created",
+        "qualified symbol matches post",
+        "symbol name matches created"
+      ],
+      "node": {
+        "identity": "sha256:4b7408e5e6aca46915e6db10b34e7c2d842477c35f9de51c09cfaede177b8408",
+        "kind": "field",
+        "name": "Created",
+        "qualified_name": "posts.go::Created",
+        "path": "posts.go",
+        "span": {
+          "path": "posts.go",
+          "start_line": 113,
+          "end_line": 113
+        }
+      },
+      "relationships": [
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:37a0bc69a2d31e9f6b7cf4591a83ca1a423d4a32c3074d2c96dbb41093dbc57b",
+            "kind": "method",
+            "name": "CreatePost",
+            "qualified_name": "database.go::CreatePost",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 676,
+              "end_line": 773
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:b306b5841bb15f4c46589a9f7278e472a92005adeafd0f005047c8c78f281eac",
+            "kind": "method",
+            "name": "GetAnonymousPosts",
+            "qualified_name": "database.go::GetAnonymousPosts",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 2133,
+              "end_line": 2170
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:ad2d7c2fdcfc46b2fb67febe57344f5521dcc70f76f47c1e117e2588288e7f5f",
+            "kind": "method",
+            "name": "GetEditablePost",
+            "qualified_name": "database.go::GetEditablePost",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 1127,
+              "end_line": 1153
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:b0fbdf8de2400195197d0af819a2255516e05dd7e3567ed40c5fc003ea0215fc",
+            "kind": "method",
+            "name": "GetLangPosts",
+            "qualified_name": "database.go::GetLangPosts",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 1500,
+              "end_line": 1556
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:0019a4784175191d33b0ab6544186379c875b5e054189aaf046cdcd9558c14c7",
+            "kind": "method",
+            "name": "GetOwnedPost",
+            "qualified_name": "database.go::GetOwnedPost",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 1212,
+              "end_line": 1235
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:acae6196b212eb0e7955fe9cd830beaf5bd1cad7d8e1c2dc289aaebd32299aa4",
+            "kind": "method",
+            "name": "GetPost",
+            "qualified_name": "database.go::GetPost",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 1167,
+              "end_line": 1209
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:94db423cf639c88bce7158a68fe8b0ae3d4e1ea47a281640cbc63aa5fec0d9bc",
+            "kind": "method",
+            "name": "GetPosts",
+            "qualified_name": "database.go::GetPosts",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 1304,
+              "end_line": 1370
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:94db423cf639c88bce7158a68fe8b0ae3d4e1ea47a281640cbc63aa5fec0d9bc",
+            "kind": "method",
+            "name": "GetPosts",
+            "qualified_name": "database.go::GetPosts",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 1304,
+              "end_line": 1370
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:ae8161cd0b5b44d177340646532e368d3f16c0ffe8c2de4e8e00ecdc670d242d",
+            "kind": "method",
+            "name": "GetPostsTagged",
+            "qualified_name": "database.go::GetPostsTagged",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 1421,
+              "end_line": 1488
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:1b9eac6599764567fece529275c4c9b9b570ff62b1f1677480a40c1d066720b6",
+            "kind": "method",
+            "name": "GetUserPosts",
+            "qualified_name": "database.go::GetUserPosts",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 2172,
+              "end_line": 2217
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:b356721ba2ada9a3b768195112d7ed7eb275993d32dad20f9c7e684446cfcb8b",
+            "kind": "function",
+            "name": "exportPostsZip",
+            "qualified_name": "export.go::exportPostsZip",
+            "path": "export.go",
+            "span": {
+              "path": "export.go",
+              "start_line": 54,
+              "end_line": 101
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:a445914f9da0666ab1884f042bc8fd49b9f8a9a058190cd9300fc9e3df7dd27e",
+            "kind": "function",
+            "name": "ViewFeed",
+            "qualified_name": "feed.go::ViewFeed",
+            "path": "feed.go",
+            "span": {
+              "path": "feed.go",
+              "start_line": 24,
+              "end_line": 125
+            }
+          }
+        }
+      ]
+    },
+    {
+      "provider": "arcana",
+      "kind": "operational_role",
+      "rank": 4,
+      "reasons": [
+        "Arcana graph role for Lexicon-matched symbol writefreely"
+      ],
+      "node": {
+        "identity": "sha256:d37314b585c8f53f2ff604b8a3ccd1627b70c7a417fdbbee5fb0434d66c939c0",
+        "node_id": 4582,
+        "kind": "variable",
+        "name": "writefreely",
+        "path": "posts_test.go",
+        "span": {
+          "path": "posts_test.go",
+          "start_line": 18,
+          "start_column": 2,
+          "end_line": 18,
+          "end_column": 13
+        }
+      },
+      "summary": "writefreely has 0 definite caller(s), 0 possible caller(s), 0 definite callee(s), 0 possible target(s), and 0 incoming reference(s)."
+    },
+    {
+      "provider": "lexicon",
+      "kind": "symbol",
+      "rank": 5,
+      "score": 44,
+      "reasons": [
+        "query names Lexicon symbol Created",
+        "qualified symbol matches post",
+        "symbol name matches created"
+      ],
+      "node": {
+        "identity": "sha256:8008ea23379e6b06590bd55d2f02a495d8cf85307f7571d778c73d5437b50169",
+        "kind": "field",
+        "name": "Created",
+        "qualified_name": "posts.go::Created",
+        "path": "posts.go",
+        "span": {
+          "path": "posts.go",
+          "start_line": 99,
+          "end_line": 99
+        }
+      },
+      "relationships": [
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:8f5e725cb4136d7e71e497c7928dc481538105e75eaec2570403e24c5a0206cc",
+            "kind": "function",
+            "name": "handleImport",
+            "qualified_name": "account_import.go::handleImport",
+            "path": "account_import.go",
+            "span": {
+              "path": "account_import.go",
+              "start_line": 57,
+              "end_line": 194
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:37a0bc69a2d31e9f6b7cf4591a83ca1a423d4a32c3074d2c96dbb41093dbc57b",
+            "kind": "method",
+            "name": "CreatePost",
+            "qualified_name": "database.go::CreatePost",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 676,
+              "end_line": 773
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:37a0bc69a2d31e9f6b7cf4591a83ca1a423d4a32c3074d2c96dbb41093dbc57b",
+            "kind": "method",
+            "name": "CreatePost",
+            "qualified_name": "database.go::CreatePost",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 676,
+              "end_line": 773
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:37a0bc69a2d31e9f6b7cf4591a83ca1a423d4a32c3074d2c96dbb41093dbc57b",
+            "kind": "method",
+            "name": "CreatePost",
+            "qualified_name": "database.go::CreatePost",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 676,
+              "end_line": 773
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:37a0bc69a2d31e9f6b7cf4591a83ca1a423d4a32c3074d2c96dbb41093dbc57b",
+            "kind": "method",
+            "name": "CreatePost",
+            "qualified_name": "database.go::CreatePost",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 676,
+              "end_line": 773
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:59e86d854a0eb848310f90dbd9c4eff2771e9db567bd9a10711fed2e9f2d66dc",
+            "kind": "method",
+            "name": "UpdateOwnedPost",
+            "qualified_name": "database.go::UpdateOwnedPost",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 777,
+              "end_line": 855
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:59e86d854a0eb848310f90dbd9c4eff2771e9db567bd9a10711fed2e9f2d66dc",
+            "kind": "method",
+            "name": "UpdateOwnedPost",
+            "qualified_name": "database.go::UpdateOwnedPost",
+            "path": "database.go",
+            "span": {
+              "path": "database.go",
+              "start_line": 777,
+              "end_line": 855
+            }
+          }
+        }
+      ]
+    },
+    {
+      "provider": "lexicon",
+      "kind": "symbol",
+      "rank": 6,
+      "score": 44,
+      "reasons": [
+        "query names Lexicon symbol created",
+        "qualified symbol matches post",
+        "symbol name matches created"
+      ],
+      "node": {
+        "identity": "sha256:f9c1a5a9aa15b5cff6e830d7c1353297df5255392118c9cdcf53d8ba5fdd2ea0",
+        "kind": "variable",
+        "name": "created",
+        "qualified_name": "posts.go::created",
+        "path": "posts.go",
+        "span": {
+          "path": "posts.go",
+          "start_line": 1387,
+          "end_line": 1387
+        }
+      },
+      "relationships": [
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:865d7a16fc7e4cfa65ec251ad48c782a98813eabb42ea9ec23b1baf2b0e8f372",
+            "kind": "function",
+            "name": "getRawPost",
+            "qualified_name": "posts.go::getRawPost",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1382,
+              "end_line": 1411
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:865d7a16fc7e4cfa65ec251ad48c782a98813eabb42ea9ec23b1baf2b0e8f372",
+            "kind": "function",
+            "name": "getRawPost",
+            "qualified_name": "posts.go::getRawPost",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1382,
+              "end_line": 1411
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "writes",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:865d7a16fc7e4cfa65ec251ad48c782a98813eabb42ea9ec23b1baf2b0e8f372",
+            "kind": "function",
+            "name": "getRawPost",
+            "qualified_name": "posts.go::getRawPost",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1382,
+              "end_line": 1411
+            }
+          }
+        }
+      ]
+    },
+    {
+      "provider": "lexicon",
+      "kind": "symbol",
+      "rank": 7,
+      "score": 44,
+      "reasons": [
+        "query names Lexicon symbol created",
+        "qualified symbol matches post",
+        "symbol name matches created"
+      ],
+      "node": {
+        "identity": "sha256:b3394cf6610638f24fda1e36253480bec6ffc270bf810a52f533bbd4f0678790",
+        "kind": "variable",
+        "name": "created",
+        "qualified_name": "posts.go::created",
+        "path": "posts.go",
+        "span": {
+          "path": "posts.go",
+          "start_line": 1418,
+          "end_line": 1418
+        }
+      },
+      "relationships": [
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:077451144e24ad3a84f291aa20015d9f7b87c15780f2230c669744158afdc50f",
+            "kind": "function",
+            "name": "getRawCollectionPost",
+            "qualified_name": "posts.go::getRawCollectionPost",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1414,
+              "end_line": 1451
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:077451144e24ad3a84f291aa20015d9f7b87c15780f2230c669744158afdc50f",
+            "kind": "function",
+            "name": "getRawCollectionPost",
+            "qualified_name": "posts.go::getRawCollectionPost",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1414,
+              "end_line": 1451
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:077451144e24ad3a84f291aa20015d9f7b87c15780f2230c669744158afdc50f",
+            "kind": "function",
+            "name": "getRawCollectionPost",
+            "qualified_name": "posts.go::getRawCollectionPost",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1414,
+              "end_line": 1451
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "writes",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:077451144e24ad3a84f291aa20015d9f7b87c15780f2230c669744158afdc50f",
+            "kind": "function",
+            "name": "getRawCollectionPost",
+            "qualified_name": "posts.go::getRawCollectionPost",
+            "path": "posts.go",
+            "span": {
+              "path": "posts.go",
+              "start_line": 1414,
+              "end_line": 1451
+            }
+          }
+        }
+      ]
+    },
+    {
+      "provider": "lexicon",
+      "kind": "symbol",
+      "rank": 8,
+      "score": 44,
+      "reasons": [
+        "query names Lexicon symbol writefreely",
+        "symbol name matches writefreely",
+        "qualified symbol matches post"
+      ],
+      "node": {
+        "identity": "sha256:d37314b585c8f53f2ff604b8a3ccd1627b70c7a417fdbbee5fb0434d66c939c0",
+        "kind": "variable",
+        "name": "writefreely",
+        "qualified_name": "posts_test.go::writefreely",
+        "path": "posts_test.go",
+        "span": {
+          "path": "posts_test.go",
+          "start_line": 18,
+          "end_line": 18
+        }
+      },
+      "relationships": [
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:6f43f389c1eecc633e17bb14796bf00eb671ef0f755f8589416f4d82be833391",
+            "kind": "test",
+            "name": "TestPostSummary",
+            "qualified_name": "posts_test.go::TestPostSummary",
+            "path": "posts_test.go",
+            "span": {
+              "path": "posts_test.go",
+              "start_line": 21,
+              "end_line": 41
+            }
+          }
+        },
+        {
+          "direction": "incoming",
+          "relation": "reads",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:85454b127fe8cce6bc8cc5081eb532c8d65033c3d2c2b737c0f70b31127cd3eb",
+            "kind": "function",
+            "name": "givenPost",
+            "qualified_name": "posts_test.go::givenPost",
+            "path": "posts_test.go",
+            "span": {
+              "path": "posts_test.go",
+              "start_line": 43,
+              "end_line": 45
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "selections": [
+    {
+      "path": "AUTHORS.md",
+      "start_line": 1,
+      "end_line": 11,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 1,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 6"
+      ],
+      "token_count": 137,
+      "content": "# WriteFreely Contributors\n\nWriteFreely is built by [Matt Baer](https://github.com/thebaer), with contributions from:\n\n* [Jean-Francois Arseneau](https://github.com/TheJF)\n* [Ben Overmyer](https://github.com/BenOvermyer)\n* [Marcel van der Boom](https://github.com/mrvdb)\n* [Brad Koehn](https://github.com/koehn)\n* [kaiyou](https://github.com/kaiyou)\n* [Aaron Ogle](https://github.com/geekgonecrazy)\n* [Norman](https://github.com/nkoehring)"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "start_line": 1,
+      "end_line": 47,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 2,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 19"
+      ],
+      "token_count": 661,
+      "content": "# Contributing to WriteFreely\n\nWelcome! We're glad you're interested in contributing to WriteFreely.\n\nFor **questions**, **help**, **feature requests**, and **general discussion**, please use [our forum](https://discuss.write.as).\n\nFor **bug reports**, please [open a GitHub issue](https://github.com/writefreely/writefreely/issues/new). See our guide on [submitting bug reports](https://writefreely.org/contribute#bugs).\n\n## Getting Started\n\nThere are many ways to contribute to WriteFreely, from code to documentation, to translations, to help in the community!\n\nSee our [Contributing Guide](https://writefreely.org/contribute) on WriteFreely.org for ways to contribute without writing code. Otherwise, please read on.\n\n## Working on WriteFreely\n\nFirst, you'll want to clone the WriteFreely repo, install development dependencies, and build the application from source. Learn how to do this in our [Development Setup](https://writefreely.org/docs/latest/developer/setup) guide.\n\n### Starting development\n\nNext, [join our forum](https://discuss.write.as) so you can discuss development with the team. Then take a look at [our roadmap on Phabricator](https://todo.musing.studio/tag/writefreely/) to see where the project is today and where it's headed.\n\nWhen you find something you want to work on, start a new topic on the forum or jump into an existing discussion, if there is one. The team will respond and continue the conversation there.\n\nLastly, **before submitting any code**, please sign our [contributor's agreement](https://todo.musing.studio/L1) so we can accept your contributions. It is substantially similar to the _Apache Individual Contributor License Agreement_. If you'd like to know about the rationale behind this requirement, you can [read more about that here](https://todo.musing.studio/w/writefreely/cla/).\n\n### Branching\n\nAll stable work lives on the `master` branch. We merge into it only when creating a release. Releases are tagged using semantic versioning.\n\nWhile developing, we primarily work from the `develop` branch, creating _feature branches_ off of it for new features and fixes. When starting a new feature or fix, you should also create a new branch off of `develop`.\n\n#### Branch naming\n\nFor fixes and modifications to existing behavior, branch names should follow a similar pattern to commit messages (see below), such as `fix-post-rendering` or `update-documentation`. You can optionally append a task number, e.g. `fix-post-rendering-T000`.\n\nFor new features, branches can be named after the new feature, e.g. `activitypub-mentions` or `import-zip`.\n\n#### Pull request scope\n\nThe scope of work on each branch should be as small as possible -- one complete feature, one complete change, or one complete fix. This makes it easier for us to review and accept.\n\n### Writing code\n\nWe value reliable, readable, and maintainable code over all else in our work. To help you write that kind of code, we offer a few guiding principles, as well as a few concrete guidelines.\n\n#### Guiding principles"
+    },
+    {
+      "path": "Dockerfile",
+      "start_line": 1,
+      "end_line": 45,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 3,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 60"
+      ],
+      "token_count": 362,
+      "content": "# Build image\nFROM golang:1.25-alpine3.22 AS build\n\nLABEL org.opencontainers.image.source=\"https://github.com/writefreely/writefreely\"\nLABEL org.opencontainers.image.description=\"WriteFreely is a clean, minimalist publishing platform made for writers. Start a blog, share knowledge within your organization, or build a community around the shared act of writing.\"\n\nRUN apk -U upgrade \\\n    \u0026\u0026 apk add --no-cache nodejs npm make g++ git \\\n    \u0026\u0026 npm install -g less less-plugin-clean-css \\\n    \u0026\u0026 mkdir -p /go/src/github.com/writefreely/writefreely\n\nWORKDIR /go/src/github.com/writefreely/writefreely\n\nCOPY . .\n\nRUN cat ossl_legacy.cnf \u003e /etc/ssl/openssl.cnf\n\nENV GO111MODULE=on\nENV NODE_OPTIONS=--openssl-legacy-provider\n\nRUN make build \\\n    \u0026\u0026 make ui \\\n    \u0026\u0026 mkdir /stage \\\n    \u0026\u0026 cp -R /go/bin \\\n      /go/src/github.com/writefreely/writefreely/templates \\\n      /go/src/github.com/writefreely/writefreely/static \\\n      /go/src/github.com/writefreely/writefreely/pages \\\n      /go/src/github.com/writefreely/writefreely/keys \\\n      /go/src/github.com/writefreely/writefreely/cmd \\\n      /stage\n\n# Final image\nFROM alpine:3.18.4\n\nRUN apk -U upgrade \\\n    \u0026\u0026 apk add --no-cache openssl ca-certificates\n\nCOPY --from=build --chown=daemon:daemon /stage /go\n\nWORKDIR /go\nVOLUME /go/keys\nEXPOSE 8080\nUSER daemon\n\nENTRYPOINT [\"cmd/writefreely/writefreely\"]"
+    },
+    {
+      "path": "README.md",
+      "start_line": 1,
+      "end_line": 47,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 4,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 4"
+      ],
+      "token_count": 597,
+      "content": "\u0026nbsp;\n\u003cp align=\"center\"\u003e\n\t\u003ca href=\"https://writefreely.org\"\u003e\u003cimg src=\"https://writefreely.org/img/writefreely.svg\" width=\"350px\" alt=\"WriteFreely\" /\u003e\u003c/a\u003e\n\u003c/p\u003e\n\u003chr /\u003e\n\u003cp align=\"center\"\u003e\n\t\u003ca href=\"https://github.com/writefreely/writefreely/releases/\"\u003e\n\t\t\u003cimg src=\"https://img.shields.io/github/release/writefreely/writefreely.svg\" alt=\"Latest release\" /\u003e\n\t\u003c/a\u003e\n\t\u003ca href=\"https://github.com/writefreely/writefreely/releases/latest\"\u003e\n\t\t\u003cimg src=\"https://img.shields.io/github/downloads/writefreely/writefreely/total.svg\" /\u003e\n\t\u003c/a\u003e\n\t\u003ca href=\"https://goreportcard.com/report/github.com/writefreely/writefreely\"\u003e\n\t\t\u003cimg src=\"https://goreportcard.com/badge/github.com/writefreely/writefreely\" alt=\"Go Report Card\" /\u003e\n\t\u003c/a\u003e\n\t\u003ca href=\"https://ghcr.io/writefreely/writefreely\"\u003e\n\t\t\u003cimg src=\"https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker\u0026logoColor=white\" /\u003e\n\t\u003c/a\u003e\n\t\u003ca href=\"https://github.com/writefreely/writefreely/actions/workflows/docker-publish.yml\"\u003e\n\t\t\u003cimg src=\"https://github.com/writefreely/writefreely/actions/workflows/docker-publish.yml/badge.svg\" alt=\"Build container image, publish as GitHub-package\" /\u003e\n\t\u003c/a\u003e\n\u003c/p\u003e\n\u0026nbsp;\n\nWriteFreely is a clean, minimalist publishing platform made for writers. Start a blog, share knowledge within your organization, or build a community around the shared act of writing.\n\n![Screenshot of the Reader view of a WriteFreely instance, pen.writefree.ly.](https://files.writefreely.org/img/screens/pen-reader.png)\n\n[Try the writing experience](https://write.as/new)\n\n[Find an instance](https://writefreely.org/instances)\n\n## Features\n\n### Made for writing\n\nBuilt on a plain, auto-saving editor, WriteFreely gives you a distraction-free writing environment. Once published, your words are front and center, and easy to read.\n\n### A connected community\n\nStart writing together, publicly or privately. Connect with other communities, whether running WriteFreely, [Plume](https://joinplu.me/), or other ActivityPub-powered software. And bring members on board from your existing platforms, thanks to our OAuth 2.0 support.\n\n### Intuitive organization\n\nCategorize articles [with hashtags](https://writefreely.org/docs/latest/writer/hashtags), and create static pages from normal posts by [_pinning_ them](https://writefreely.org/docs/latest/writer/static) to your blog. Create draft posts and publish to multiple blogs from one account.\n\n### International"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "start_line": 49,
+      "end_line": 93,
+      "score": 0.4366869330406189,
+      "retrieval_source": "vector",
+      "retrieval_rank": 78,
+      "reasons": [
+        "semantic vector similarity from split window 1/1"
+      ],
+      "token_count": 665,
+      "content": "* Write code for other humans, not computers.\n* The less complexity, the better. The more someone can understand code just by looking at it, the better.\n* Functionality, readability, and maintainability over senseless elegance.\n* Only abstract when necessary.\n* Keep an eye to the future, but don't pre-optimize at the expense of today's simplicity.\n\n#### Code guidelines\n\n* Format all Go code with `go fmt` before committing (**important!**)\n* Follow whitespace conventions established within the project (tabs vs. spaces)\n* Add comments to exported Go functions and variables\n* Follow Go naming conventions, like using [`mixedCaps`](https://golang.org/doc/effective_go.html#mixed-caps)\n* Avoid new dependencies unless absolutely necessary\n\n### Commit messages\n\nWe highly value commit messages that follow established form within the project. Generally speaking, we follow the practices [outlined](https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project#_commit_guidelines) in the Pro Git Book. A good commit message will look like the following:\n\n* **Line 1**: A short summary written in the present imperative tense. For example:\n  * ✔️ **Good**: \"Fix post rendering bug\"\n  * ❌ No: ~~\"Fixes post rendering bug\"~~\n  * ❌ No: ~~\"Fixing post rendering bug\"~~\n  * ❌ No: ~~\"Fixed post rendering bug\"~~\n  * ❌ No: ~~\"Post rendering bug is fixed now\"~~\n* **Line 2**: _[left blank]_\n* **Line 3**: An added description of what changed, any rationale, etc. -- if necessary\n* **Last line**: A mention of any applicable task or issue\n  * For Phabricator tasks: `Ref T000` or `Closes T000`\n  * For GitHub issues: `Ref #000` or `Fixes #000`\n\n#### Good examples\n\nWhen in doubt, look to our existing git history for examples of good commit messages. Here are a few:\n\n* [Rename Suspend status to Silence](https://github.com/writefreely/writefreely/commit/7e014ca65958750ab703e317b1ce8cfc4aad2d6e)\n* [Show 404 when remote user not found](https://github.com/writefreely/writefreely/commit/867eb53b3596bd7b3f2be3c53a3faf857f4cd36d)\n* [Fix post deletion on Pleroma](https://github.com/writefreely/writefreely/commit/fe82cbb96e3d5c57cfde0db76c28c4ea6dabfe50)\n\n### Submitting pull requests\n\nLike our GitHub issues, we aim to keep our number of open pull requests to a minimum. You can follow a few guidelines to ensure changes are merged quickly.\n\nFirst, make sure your changes follow the established practices and good form outlined in this guide. This is crucial to our project, and ignoring our practices can delay otherwise important fixes.\n\nBeyond that, we prioritize pull requests in this order:"
+    }
+  ],
+  "omitted_structural_for_budget": 0,
+  "omitted_for_budget": 196
+}

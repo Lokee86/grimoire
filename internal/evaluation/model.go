@@ -92,6 +92,11 @@ type Timings struct {
 	DiagnosticProbeMS      float64 `json:"diagnostic_probe_ms,omitempty"`
 }
 
+type ScoreDetail struct {
+	Name  string  `json:"name"`
+	Value float64 `json:"value"`
+}
+
 type Candidate struct {
 	Path            string
 	StartLine       int
@@ -100,7 +105,34 @@ type Candidate struct {
 	Symbols         []string
 	RetrievalSource string
 	ProviderRank    int
+	Score           float64
+	ScoreDetails    []ScoreDetail
+	Reasons         []string
 	TokenCount      int
+}
+
+type CandidateStageDiagnostic struct {
+	Rank            int           `json:"rank"`
+	RetrievalSource string        `json:"retrieval_source,omitempty"`
+	ProviderRank    int           `json:"provider_rank,omitempty"`
+	Score           float64       `json:"score"`
+	ScoreDetails    []ScoreDetail `json:"score_details,omitempty"`
+	Reasons         []string      `json:"reasons,omitempty"`
+}
+
+type CandidateDiagnostic struct {
+	Path       string                    `json:"path"`
+	StartLine  int                       `json:"start_line"`
+	EndLine    int                       `json:"end_line"`
+	TokenCount int                       `json:"token_count"`
+	Required   bool                      `json:"required"`
+	Supporting bool                      `json:"supporting"`
+	Forbidden  bool                      `json:"forbidden"`
+	Retrieved  *CandidateStageDiagnostic `json:"retrieved,omitempty"`
+	Exact      *CandidateStageDiagnostic `json:"exact,omitempty"`
+	Merged     *CandidateStageDiagnostic `json:"merged,omitempty"`
+	Curated    *CandidateStageDiagnostic `json:"curated,omitempty"`
+	Included   *CandidateStageDiagnostic `json:"included,omitempty"`
 }
 
 type Selection struct {
@@ -156,6 +188,7 @@ type RankingMetrics struct {
 
 type CaseRun struct {
 	CaseID                            string                     `json:"case_id"`
+	Query                             string                     `json:"query"`
 	Category                          Category                   `json:"category"`
 	Mode                              string                     `json:"mode"`
 	Variant                           string                     `json:"variant"`
@@ -174,6 +207,7 @@ type CaseRun struct {
 	CandidateCount                    int                        `json:"candidate_count"`
 	CuratedCount                      int                        `json:"curated_count"`
 	Ranking                           RankingMetrics             `json:"ranking"`
+	CandidateDiagnostics              []CandidateDiagnostic      `json:"candidate_diagnostics,omitempty"`
 	OmittedForBudget                  int                        `json:"omitted_for_budget"`
 	OmittedStructuralForBudget        int                        `json:"omitted_structural_for_budget"`
 	Required                          []EvidenceStatus           `json:"required,omitempty"`

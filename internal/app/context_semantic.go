@@ -189,12 +189,13 @@ func searchQueryVectors(
 }
 
 type mergedSemanticHit struct {
-	id        string
-	score     float32
-	bestInput int
-	bestRank  int
-	matches   int
-	reasons   []string
+	id           string
+	score        float32
+	bestInput    int
+	bestRank     int
+	matches      int
+	reasons      []string
+	scoreDetails []retrieve.ScoreDetail
 }
 
 func mergeSemanticHits(
@@ -207,16 +208,19 @@ func mergeSemanticHits(
 	for inputIndex, inputHits := range hits {
 		for rank, hit := range inputHits {
 			reason := fmt.Sprintf("semantic vector similarity from %s", plan[inputIndex].Label)
+			detail := retrieve.ScoreDetail{Name: reason, Value: float64(hit.Score)}
 			current, exists := merged[hit.ID]
 			if !exists {
 				merged[hit.ID] = &mergedSemanticHit{
 					id: hit.ID, score: hit.Score, bestInput: inputIndex,
 					bestRank: rank + 1, matches: 1, reasons: []string{reason},
+					scoreDetails: []retrieve.ScoreDetail{detail},
 				}
 				continue
 			}
 			current.matches++
 			current.reasons = append(current.reasons, reason)
+			current.scoreDetails = append(current.scoreDetails, detail)
 			if hit.Score > current.score || hit.Score == current.score && rank+1 < current.bestRank {
 				current.score = hit.Score
 				current.bestInput = inputIndex
@@ -261,7 +265,7 @@ func mergeSemanticHits(
 		}
 		candidates = append(candidates, retrieve.Candidate{
 			Chunk: chunk, Score: float64(hit.score), Source: "vector",
-			Rank: rank + 1, Reasons: hit.reasons,
+			Rank: rank + 1, Reasons: hit.reasons, ScoreDetails: hit.scoreDetails,
 		})
 	}
 	return candidates, nil

@@ -134,6 +134,33 @@ func Markdown(report Report) string {
 			run.IrrelevantStructuralRate*100, run.FinalPackageTokens, run.Timings.TotalMS, escapeCell(failure))
 	}
 
+	if hasCandidateDiagnostics(report.Runs) {
+		output.WriteString("\n## Candidate score attribution\n\n")
+		output.WriteString("Retrieved attribution shows the provider score and its numeric signals. Exact, merged, curated, and included columns expose later movement or loss; adjacency is a curation insertion rather than an additive score.\n\n")
+		for _, run := range report.Runs {
+			diagnostics := candidateDiagnosticsForMarkdown(run.CandidateDiagnostics)
+			if len(diagnostics) == 0 {
+				continue
+			}
+			fmt.Fprintf(&output, "### `%s` / `%s`\n\n", run.CaseID, run.Mode)
+			if run.Query != "" {
+				fmt.Fprintf(&output, "Query: %s\n\n", run.Query)
+			}
+			output.WriteString("| Evidence | Candidate | Retrieved attribution | Exact attribution | Merged | Curated | Included |\n")
+			output.WriteString("| --- | --- | --- | --- | ---: | --- | ---: |\n")
+			for _, diagnostic := range diagnostics {
+				fmt.Fprintf(&output, "| %s | `%s` | %s | %s | %s | %s | %s |\n",
+					diagnosticEvidenceLabel(diagnostic), diagnosticLocation(diagnostic),
+					escapeCell(candidateStageSummary(diagnostic.Retrieved)),
+					escapeCell(candidateStageSummary(diagnostic.Exact)),
+					candidateStageRank(diagnostic.Merged),
+					escapeCell(candidateStageSummary(diagnostic.Curated)),
+					candidateStageRank(diagnostic.Included))
+			}
+			output.WriteByte('\n')
+		}
+	}
+
 	failures := failedRuns(report.Runs)
 	if len(failures) > 0 {
 		output.WriteString("\n## Concrete failures\n\n")
@@ -187,6 +214,83 @@ func uniqueCaseCount(runs []CaseRun) int {
 		ids[run.CaseID] = struct{}{}
 	}
 	return len(ids)
+}
+
+func hasCandidateDiagnostics(runs []CaseRun) bool {
+	for _, run := range runs {
+		if len(run.CandidateDiagnostics) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func candidateDiagnosticsForMarkdown(candidates []CandidateDiagnostic) []CandidateDiagnostic {
+	result := make([]CandidateDiagnostic, 0, len(candidates))
+	for _, candidate := range candidates {
+		if candidate.Required || candidate.Supporting || candidate.Forbidden ||
+			candidate.Retrieved != nil && candidate.Retrieved.Rank <= 20 ||
+			candidate.Exact != nil && candidate.Exact.Rank <= 10 ||
+			candidate.Curated != nil && candidate.Curated.Rank <= 20 {
+			result = append(result, candidate)
+		}
+	}
+	return result
+}
+
+func diagnosticEvidenceLabel(candidate CandidateDiagnostic) string {
+	labels := make([]string, 0, 3)
+	if candidate.Required {
+		labels = append(labels, "required")
+	}
+	if candidate.Supporting {
+		labels = append(labels, "supporting")
+	}
+	if candidate.Forbidden {
+		labels = append(labels, "forbidden")
+	}
+	if len(labels) == 0 {
+		return "—"
+	}
+	return strings.Join(labels, ", ")
+}
+
+func diagnosticLocation(candidate CandidateDiagnostic) string {
+	if candidate.StartLine <= 0 {
+		return candidate.Path
+	}
+	if candidate.EndLine <= candidate.StartLine {
+		return fmt.Sprintf("%s:%d", candidate.Path, candidate.StartLine)
+	}
+	return fmt.Sprintf("%s:%d-%d", candidate.Path, candidate.StartLine, candidate.EndLine)
+}
+
+func candidateStageSummary(stage *CandidateStageDiagnostic) string {
+	if stage == nil {
+		return "—"
+	}
+	parts := []string{fmt.Sprintf("#%d", stage.Rank)}
+	if stage.RetrievalSource != "" {
+		parts = append(parts, stage.RetrievalSource)
+	}
+	if stage.ProviderRank > 0 && stage.ProviderRank != stage.Rank {
+		parts = append(parts, fmt.Sprintf("provider #%d", stage.ProviderRank))
+	}
+	parts = append(parts, fmt.Sprintf("score %.3f", stage.Score))
+	for _, detail := range stage.ScoreDetails {
+		parts = append(parts, fmt.Sprintf("%s=%.3f", detail.Name, detail.Value))
+	}
+	if len(stage.ScoreDetails) == 0 {
+		parts = append(parts, stage.Reasons...)
+	}
+	return strings.Join(parts, "; ")
+}
+
+func candidateStageRank(stage *CandidateStageDiagnostic) string {
+	if stage == nil {
+		return "—"
+	}
+	return fmt.Sprintf("#%d", stage.Rank)
 }
 
 func escapeCell(value string) string {

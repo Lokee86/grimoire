@@ -1,0 +1,456 @@
+{
+  "version": 4,
+  "query": "Trace how a WriteFreely post is created and persisted.",
+  "budget": 12000,
+  "tokenizer": "o200k_base",
+  "token_count": 11929,
+  "index_version": 2,
+  "retrieval_sources": [
+    "exact",
+    "vector",
+    "adjacent"
+  ],
+  "structural_sources": [
+    "arcana"
+  ],
+  "structural_state": [
+    {
+      "provider": "arcana",
+      "snapshot": "sha256:7f5b20e40e6c4e02a01243055b8d65a4c2cda5c35a9679840aaa3c074eb542bc"
+    }
+  ],
+  "structural_evidence": [
+    {
+      "provider": "arcana",
+      "kind": "operational_role",
+      "rank": 1,
+      "reasons": [
+        "Arcana graph role for Lexicon-matched symbol source"
+      ],
+      "node": {
+        "identity": "sha256:a163bb0896d2b8b96f366b3a25c9c82e2fd032eac0a4ea1c6daa83e0203890bd",
+        "node_id": 5069,
+        "kind": "repository",
+        "name": "source",
+        "path": "."
+      },
+      "summary": "source has 0 definite caller(s), 0 possible caller(s), 0 definite callee(s), 0 possible target(s), and 0 incoming reference(s)."
+    },
+    {
+      "provider": "arcana",
+      "kind": "operational_role",
+      "rank": 2,
+      "reasons": [
+        "Arcana graph role for Lexicon-matched symbol Created"
+      ],
+      "node": {
+        "identity": "sha256:4b7408e5e6aca46915e6db10b34e7c2d842477c35f9de51c09cfaede177b8408",
+        "node_id": 4386,
+        "kind": "field",
+        "name": "Created",
+        "path": "posts.go",
+        "span": {
+          "path": "posts.go",
+          "start_line": 113,
+          "start_column": 3,
+          "end_line": 113,
+          "end_column": 10
+        }
+      },
+      "summary": "Created has 0 definite caller(s), 0 possible caller(s), 0 definite callee(s), 0 possible target(s), and 0 incoming reference(s)."
+    },
+    {
+      "provider": "arcana",
+      "kind": "operational_role",
+      "rank": 3,
+      "reasons": [
+        "Arcana graph role for Lexicon-matched symbol created"
+      ],
+      "node": {
+        "identity": "sha256:b3394cf6610638f24fda1e36253480bec6ffc270bf810a52f533bbd4f0678790",
+        "node_id": 1149,
+        "kind": "variable",
+        "name": "created",
+        "path": "posts.go",
+        "span": {
+          "path": "posts.go",
+          "start_line": 1418,
+          "start_column": 6,
+          "end_line": 1418,
+          "end_column": 13
+        }
+      },
+      "summary": "created has 0 definite caller(s), 0 possible caller(s), 0 definite callee(s), 0 possible target(s), and 0 incoming reference(s)."
+    },
+    {
+      "provider": "arcana",
+      "kind": "operational_role",
+      "rank": 4,
+      "reasons": [
+        "Arcana graph role for Lexicon-matched symbol writefreely"
+      ],
+      "node": {
+        "identity": "sha256:d37314b585c8f53f2ff604b8a3ccd1627b70c7a417fdbbee5fb0434d66c939c0",
+        "node_id": 4582,
+        "kind": "variable",
+        "name": "writefreely",
+        "path": "posts_test.go",
+        "span": {
+          "path": "posts_test.go",
+          "start_line": 18,
+          "start_column": 2,
+          "end_line": 18,
+          "end_column": 13
+        }
+      },
+      "summary": "writefreely has 0 definite caller(s), 0 possible caller(s), 0 definite callee(s), 0 possible target(s), and 0 incoming reference(s)."
+    }
+  ],
+  "selections": [
+    {
+      "path": "AUTHORS.md",
+      "start_line": 1,
+      "end_line": 11,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 1,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 6"
+      ],
+      "token_count": 137,
+      "content": "# WriteFreely Contributors\n\nWriteFreely is built by [Matt Baer](https://github.com/thebaer), with contributions from:\n\n* [Jean-Francois Arseneau](https://github.com/TheJF)\n* [Ben Overmyer](https://github.com/BenOvermyer)\n* [Marcel van der Boom](https://github.com/mrvdb)\n* [Brad Koehn](https://github.com/koehn)\n* [kaiyou](https://github.com/kaiyou)\n* [Aaron Ogle](https://github.com/geekgonecrazy)\n* [Norman](https://github.com/nkoehring)"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "start_line": 1,
+      "end_line": 47,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 2,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 19"
+      ],
+      "token_count": 661,
+      "content": "# Contributing to WriteFreely\n\nWelcome! We're glad you're interested in contributing to WriteFreely.\n\nFor **questions**, **help**, **feature requests**, and **general discussion**, please use [our forum](https://discuss.write.as).\n\nFor **bug reports**, please [open a GitHub issue](https://github.com/writefreely/writefreely/issues/new). See our guide on [submitting bug reports](https://writefreely.org/contribute#bugs).\n\n## Getting Started\n\nThere are many ways to contribute to WriteFreely, from code to documentation, to translations, to help in the community!\n\nSee our [Contributing Guide](https://writefreely.org/contribute) on WriteFreely.org for ways to contribute without writing code. Otherwise, please read on.\n\n## Working on WriteFreely\n\nFirst, you'll want to clone the WriteFreely repo, install development dependencies, and build the application from source. Learn how to do this in our [Development Setup](https://writefreely.org/docs/latest/developer/setup) guide.\n\n### Starting development\n\nNext, [join our forum](https://discuss.write.as) so you can discuss development with the team. Then take a look at [our roadmap on Phabricator](https://todo.musing.studio/tag/writefreely/) to see where the project is today and where it's headed.\n\nWhen you find something you want to work on, start a new topic on the forum or jump into an existing discussion, if there is one. The team will respond and continue the conversation there.\n\nLastly, **before submitting any code**, please sign our [contributor's agreement](https://todo.musing.studio/L1) so we can accept your contributions. It is substantially similar to the _Apache Individual Contributor License Agreement_. If you'd like to know about the rationale behind this requirement, you can [read more about that here](https://todo.musing.studio/w/writefreely/cla/).\n\n### Branching\n\nAll stable work lives on the `master` branch. We merge into it only when creating a release. Releases are tagged using semantic versioning.\n\nWhile developing, we primarily work from the `develop` branch, creating _feature branches_ off of it for new features and fixes. When starting a new feature or fix, you should also create a new branch off of `develop`.\n\n#### Branch naming\n\nFor fixes and modifications to existing behavior, branch names should follow a similar pattern to commit messages (see below), such as `fix-post-rendering` or `update-documentation`. You can optionally append a task number, e.g. `fix-post-rendering-T000`.\n\nFor new features, branches can be named after the new feature, e.g. `activitypub-mentions` or `import-zip`.\n\n#### Pull request scope\n\nThe scope of work on each branch should be as small as possible -- one complete feature, one complete change, or one complete fix. This makes it easier for us to review and accept.\n\n### Writing code\n\nWe value reliable, readable, and maintainable code over all else in our work. To help you write that kind of code, we offer a few guiding principles, as well as a few concrete guidelines.\n\n#### Guiding principles"
+    },
+    {
+      "path": "Dockerfile",
+      "start_line": 1,
+      "end_line": 45,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 3,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 60"
+      ],
+      "token_count": 362,
+      "content": "# Build image\nFROM golang:1.25-alpine3.22 AS build\n\nLABEL org.opencontainers.image.source=\"https://github.com/writefreely/writefreely\"\nLABEL org.opencontainers.image.description=\"WriteFreely is a clean, minimalist publishing platform made for writers. Start a blog, share knowledge within your organization, or build a community around the shared act of writing.\"\n\nRUN apk -U upgrade \\\n    \u0026\u0026 apk add --no-cache nodejs npm make g++ git \\\n    \u0026\u0026 npm install -g less less-plugin-clean-css \\\n    \u0026\u0026 mkdir -p /go/src/github.com/writefreely/writefreely\n\nWORKDIR /go/src/github.com/writefreely/writefreely\n\nCOPY . .\n\nRUN cat ossl_legacy.cnf \u003e /etc/ssl/openssl.cnf\n\nENV GO111MODULE=on\nENV NODE_OPTIONS=--openssl-legacy-provider\n\nRUN make build \\\n    \u0026\u0026 make ui \\\n    \u0026\u0026 mkdir /stage \\\n    \u0026\u0026 cp -R /go/bin \\\n      /go/src/github.com/writefreely/writefreely/templates \\\n      /go/src/github.com/writefreely/writefreely/static \\\n      /go/src/github.com/writefreely/writefreely/pages \\\n      /go/src/github.com/writefreely/writefreely/keys \\\n      /go/src/github.com/writefreely/writefreely/cmd \\\n      /stage\n\n# Final image\nFROM alpine:3.18.4\n\nRUN apk -U upgrade \\\n    \u0026\u0026 apk add --no-cache openssl ca-certificates\n\nCOPY --from=build --chown=daemon:daemon /stage /go\n\nWORKDIR /go\nVOLUME /go/keys\nEXPOSE 8080\nUSER daemon\n\nENTRYPOINT [\"cmd/writefreely/writefreely\"]"
+    },
+    {
+      "path": "README.md",
+      "start_line": 1,
+      "end_line": 47,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 4,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 4"
+      ],
+      "token_count": 597,
+      "content": "\u0026nbsp;\n\u003cp align=\"center\"\u003e\n\t\u003ca href=\"https://writefreely.org\"\u003e\u003cimg src=\"https://writefreely.org/img/writefreely.svg\" width=\"350px\" alt=\"WriteFreely\" /\u003e\u003c/a\u003e\n\u003c/p\u003e\n\u003chr /\u003e\n\u003cp align=\"center\"\u003e\n\t\u003ca href=\"https://github.com/writefreely/writefreely/releases/\"\u003e\n\t\t\u003cimg src=\"https://img.shields.io/github/release/writefreely/writefreely.svg\" alt=\"Latest release\" /\u003e\n\t\u003c/a\u003e\n\t\u003ca href=\"https://github.com/writefreely/writefreely/releases/latest\"\u003e\n\t\t\u003cimg src=\"https://img.shields.io/github/downloads/writefreely/writefreely/total.svg\" /\u003e\n\t\u003c/a\u003e\n\t\u003ca href=\"https://goreportcard.com/report/github.com/writefreely/writefreely\"\u003e\n\t\t\u003cimg src=\"https://goreportcard.com/badge/github.com/writefreely/writefreely\" alt=\"Go Report Card\" /\u003e\n\t\u003c/a\u003e\n\t\u003ca href=\"https://ghcr.io/writefreely/writefreely\"\u003e\n\t\t\u003cimg src=\"https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker\u0026logoColor=white\" /\u003e\n\t\u003c/a\u003e\n\t\u003ca href=\"https://github.com/writefreely/writefreely/actions/workflows/docker-publish.yml\"\u003e\n\t\t\u003cimg src=\"https://github.com/writefreely/writefreely/actions/workflows/docker-publish.yml/badge.svg\" alt=\"Build container image, publish as GitHub-package\" /\u003e\n\t\u003c/a\u003e\n\u003c/p\u003e\n\u0026nbsp;\n\nWriteFreely is a clean, minimalist publishing platform made for writers. Start a blog, share knowledge within your organization, or build a community around the shared act of writing.\n\n![Screenshot of the Reader view of a WriteFreely instance, pen.writefree.ly.](https://files.writefreely.org/img/screens/pen-reader.png)\n\n[Try the writing experience](https://write.as/new)\n\n[Find an instance](https://writefreely.org/instances)\n\n## Features\n\n### Made for writing\n\nBuilt on a plain, auto-saving editor, WriteFreely gives you a distraction-free writing environment. Once published, your words are front and center, and easy to read.\n\n### A connected community\n\nStart writing together, publicly or privately. Connect with other communities, whether running WriteFreely, [Plume](https://joinplu.me/), or other ActivityPub-powered software. And bring members on board from your existing platforms, thanks to our OAuth 2.0 support.\n\n### Intuitive organization\n\nCategorize articles [with hashtags](https://writefreely.org/docs/latest/writer/hashtags), and create static pages from normal posts by [_pinning_ them](https://writefreely.org/docs/latest/writer/static) to your blog. Create draft posts and publish to multiple blogs from one account.\n\n### International"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "start_line": 49,
+      "end_line": 93,
+      "score": 0.4366869330406189,
+      "retrieval_source": "vector",
+      "retrieval_rank": 78,
+      "reasons": [
+        "semantic vector similarity from split window 1/1"
+      ],
+      "token_count": 665,
+      "content": "* Write code for other humans, not computers.\n* The less complexity, the better. The more someone can understand code just by looking at it, the better.\n* Functionality, readability, and maintainability over senseless elegance.\n* Only abstract when necessary.\n* Keep an eye to the future, but don't pre-optimize at the expense of today's simplicity.\n\n#### Code guidelines\n\n* Format all Go code with `go fmt` before committing (**important!**)\n* Follow whitespace conventions established within the project (tabs vs. spaces)\n* Add comments to exported Go functions and variables\n* Follow Go naming conventions, like using [`mixedCaps`](https://golang.org/doc/effective_go.html#mixed-caps)\n* Avoid new dependencies unless absolutely necessary\n\n### Commit messages\n\nWe highly value commit messages that follow established form within the project. Generally speaking, we follow the practices [outlined](https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project#_commit_guidelines) in the Pro Git Book. A good commit message will look like the following:\n\n* **Line 1**: A short summary written in the present imperative tense. For example:\n  * ✔️ **Good**: \"Fix post rendering bug\"\n  * ❌ No: ~~\"Fixes post rendering bug\"~~\n  * ❌ No: ~~\"Fixing post rendering bug\"~~\n  * ❌ No: ~~\"Fixed post rendering bug\"~~\n  * ❌ No: ~~\"Post rendering bug is fixed now\"~~\n* **Line 2**: _[left blank]_\n* **Line 3**: An added description of what changed, any rationale, etc. -- if necessary\n* **Last line**: A mention of any applicable task or issue\n  * For Phabricator tasks: `Ref T000` or `Closes T000`\n  * For GitHub issues: `Ref #000` or `Fixes #000`\n\n#### Good examples\n\nWhen in doubt, look to our existing git history for examples of good commit messages. Here are a few:\n\n* [Rename Suspend status to Silence](https://github.com/writefreely/writefreely/commit/7e014ca65958750ab703e317b1ce8cfc4aad2d6e)\n* [Show 404 when remote user not found](https://github.com/writefreely/writefreely/commit/867eb53b3596bd7b3f2be3c53a3faf857f4cd36d)\n* [Fix post deletion on Pleroma](https://github.com/writefreely/writefreely/commit/fe82cbb96e3d5c57cfde0db76c28c4ea6dabfe50)\n\n### Submitting pull requests\n\nLike our GitHub issues, we aim to keep our number of open pull requests to a minimum. You can follow a few guidelines to ensure changes are merged quickly.\n\nFirst, make sure your changes follow the established practices and good form outlined in this guide. This is crucial to our project, and ignoring our practices can delay otherwise important fixes.\n\nBeyond that, we prioritize pull requests in this order:"
+    },
+    {
+      "path": "Dockerfile",
+      "start_line": 47,
+      "end_line": 48,
+      "score": 0,
+      "retrieval_source": "adjacent",
+      "retrieval_rank": 0,
+      "reasons": [
+        "immediate next prepared chunk adjacent to ranked candidate"
+      ],
+      "token_count": 45,
+      "content": "HEALTHCHECK --start-period=5s --interval=15s --timeout=5s \\\n    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1"
+    },
+    {
+      "path": "README.md",
+      "start_line": 49,
+      "end_line": 90,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 5,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 3"
+      ],
+      "token_count": 674,
+      "content": "Blog elements are localized in 20+ languages, and WriteFreely includes first-class support for non-Latin and right-to-left (RTL) script languages.\n\n### Private by default\n\nWriteFreely collects minimal data, and never publicizes more than a writer consents to. Writers can seamlessly create multiple blogs from a single account for different pen names or purposes without publicly revealing their association.\n\n\u003ch2\u003e\u003ca href=\"https://write.as/writefreely\"\u003e\u003cimg src=\"https://writefreely.org/img/writeas-readme.png\" height=\"32px\" alt=\"Write.as\" /\u003e\u003c/a\u003e\u003c/h2\u003e\n\nThe quickest way to deploy WriteFreely is with [Write.as](https://write.as/writefreely), a hosted service from the team behind WriteFreely. You'll get fully-managed installation, backup, upgrades, and maintenance — and directly fund our free software work ❤️\n\n[**Learn more on Write.as**](https://write.as/writefreely).\n\n## Quick start\n\nWriteFreely deploys as a static binary on any platform and architecture that Go supports. Just use our built-in SQLite support, or add a MySQL or MariaDB database, and you'll be up and running!\n\nFor common platforms, start with our [pre-built binaries](https://github.com/writefreely/writefreely/releases/) and head over to our [installation guide](https://writefreely.org/start) to get started.\n\n### Packages\n\nYou can also find WriteFreely in these package repositories, thanks to our wonderful community!\n\n* [Arch User Repository](https://aur.archlinux.org/packages/writefreely/)\n* [Nanos Repository](https://repo.ops.city/v2/packages/eyberg/writefreely/show)\n\n## Documentation\n\nRead our full [documentation on WriteFreely.org](https://writefreely.org/docs) \u0026mdash;️ and help us improve by contributing to the [writefreely/documentation](https://github.com/writefreely/documentation) repo.\n\n## Development\n\nStart hacking on WriteFreely with our [developer setup guide](https://writefreely.org/docs/latest/developer/setup). For Docker support, see our [Docker guide](https://writefreely.org/docs/latest/admin/docker).\n\n## Contributing\n\nWe gladly welcome contributions to WriteFreely, whether in the form of [code](https://github.com/writefreely/writefreely/blob/master/CONTRIBUTING.md#contributing-to-writefreely), [bug reports](https://github.com/writefreely/writefreely/issues/new?template=bug_report.md), [feature requests](https://discuss.write.as/c/feedback/feature-requests), [translations](https://poeditor.com/join/project/TIZ6HFRFdE), or [documentation](https://github.com/writefreely/documentation) improvements.\n\nBefore contributing anything, please read our [Contributing Guide](https://github.com/writefreely/writefreely/blob/master/CONTRIBUTING.md#contributing-to-writefreely). It describes the correct channels for submitting contributions and any potential requirements.\n\n## License\n\nCopyright © 2018-2026 [Musing Studio LLC](https://musing.studio) and contributing authors. Licensed under the [AGPL](https://github.com/writefreely/writefreely/blob/develop/LICENSE)."
+    },
+    {
+      "path": "account.go",
+      "start_line": 1,
+      "end_line": 46,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 6,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 27"
+      ],
+      "token_count": 324,
+      "content": "/*\n * Copyright © 2018-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage writefreely\n\nimport (\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"html/template\"\n\t\"net/http\"\n\t\"regexp\"\n\t\"strconv\"\n\t\"strings\"\n\t\"sync\"\n\t\"time\"\n\n\t\"github.com/gorilla/csrf\"\n\t\"github.com/gorilla/mux\"\n\t\"github.com/gorilla/sessions\"\n\t\"github.com/guregu/null/zero\"\n\t\"github.com/writeas/impart\"\n\t\"github.com/writeas/web-core/auth\"\n\t\"github.com/writeas/web-core/data\"\n\t\"github.com/writeas/web-core/log\"\n\t\"github.com/writefreely/writefreely/author\"\n\t\"github.com/writefreely/writefreely/config\"\n\t\"github.com/writefreely/writefreely/mailer\"\n\t\"github.com/writefreely/writefreely/page\"\n\t\"github.com/writefreely/writefreely/spam\"\n)\n\ntype (\n\tuserSettings struct {\n\t\tUsername string `schema:\"username\" json:\"username\"`\n\t\tEmail    string `schema:\"email\" json:\"email\"`\n\t\tNewPass  string `schema:\"new-pass\" json:\"new_pass\"`\n\t\tOldPass  string `schema:\"current-pass\" json:\"current_pass\"`\n\t\tIsLogOut bool   `schema:\"logout\" json:\"logout\"`\n\t}"
+    },
+    {
+      "path": "activitypub.go",
+      "start_line": 1,
+      "end_line": 47,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 7,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 7"
+      ],
+      "token_count": 263,
+      "content": "/*\n * Copyright © 2018-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage writefreely\n\nimport (\n\t\"bytes\"\n\t\"crypto/sha256\"\n\t\"database/sql\"\n\t\"encoding/base64\"\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"io\"\n\t\"net/http\"\n\t\"net/http/httputil\"\n\t\"net/url\"\n\t\"path/filepath\"\n\t\"regexp\"\n\t\"strconv\"\n\t\"strings\"\n\t\"time\"\n\n\t\"github.com/gorilla/mux\"\n\t\"github.com/writeas/activity/streams\"\n\t\"github.com/writeas/activityserve\"\n\t\"github.com/writeas/httpsig\"\n\t\"github.com/writeas/impart\"\n\t\"github.com/writeas/web-core/activitypub\"\n\t\"github.com/writeas/web-core/activitystreams\"\n\t\"github.com/writeas/web-core/id\"\n\t\"github.com/writeas/web-core/log\"\n\t\"github.com/writeas/web-core/silobridge\"\n)\n\nconst (\n\t// TODO: delete. don't use this!\n\tapCustomHandleDefault = \"blog\"\n\n\tapCacheTime = time.Minute\n)"
+    },
+    {
+      "path": "admin.go",
+      "start_line": 1,
+      "end_line": 41,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 8,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 94"
+      ],
+      "token_count": 217,
+      "content": "/*\n * Copyright © 2018-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage writefreely\n\nimport (\n\t\"database/sql\"\n\t\"fmt\"\n\t\"html/template\"\n\t\"net/http\"\n\t\"runtime\"\n\t\"strconv\"\n\t\"strings\"\n\t\"time\"\n\n\t\"github.com/gorilla/mux\"\n\t\"github.com/writeas/impart\"\n\t\"github.com/writeas/web-core/auth\"\n\t\"github.com/writeas/web-core/log\"\n\t\"github.com/writeas/web-core/passgen\"\n\t\"github.com/writefreely/writefreely/appstats\"\n\t\"github.com/writefreely/writefreely/config\"\n)\n\nvar (\n\tappStartTime = time.Now()\n\tsysStatus    systemStatus\n)\n\nconst adminUsersPerPage = 30\n\ntype systemStatus struct {\n\tUptime       string\n\tNumGoroutine int"
+    },
+    {
+      "path": "app.go",
+      "start_line": 1,
+      "end_line": 47,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 9,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 13"
+      ],
+      "token_count": 304,
+      "content": "/*\n * Copyright © 2018-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage writefreely\n\nimport (\n\t\"crypto/tls\"\n\t\"database/sql\"\n\t_ \"embed\"\n\t\"fmt\"\n\t\"html/template\"\n\t\"net\"\n\t\"net/http\"\n\t\"net/url\"\n\t\"os\"\n\t\"os/signal\"\n\t\"path/filepath\"\n\t\"regexp\"\n\t\"strings\"\n\t\"syscall\"\n\t\"text/tabwriter\"\n\t\"time\"\n\n\t\"github.com/gorilla/mux\"\n\t\"github.com/gorilla/schema\"\n\t\"github.com/gorilla/sessions\"\n\t\"github.com/manifoldco/promptui\"\n\tstripmd \"github.com/writeas/go-strip-markdown/v2\"\n\t\"github.com/writeas/impart\"\n\t\"github.com/writeas/web-core/auth\"\n\t\"github.com/writeas/web-core/converter\"\n\t\"github.com/writeas/web-core/log\"\n\t\"golang.org/x/crypto/acme/autocert\"\n\n\t\"github.com/writefreely/writefreely/author\"\n\t\"github.com/writefreely/writefreely/config\"\n\t\"github.com/writefreely/writefreely/key\"\n\t\"github.com/writefreely/writefreely/migrations\"\n\t\"github.com/writefreely/writefreely/page\"\n)"
+    },
+    {
+      "path": "auth.go",
+      "start_line": 1,
+      "end_line": 28,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 12,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content"
+      ],
+      "token_count": 200,
+      "content": "/*\n * Copyright © 2018 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage writefreely\n\n// AuthenticateUser ensures a user with the given accessToken is valid. Call\n// it before any operations that require authentication or optionally associate\n// data with a user account.\n// Returns an error if the given accessToken is invalid. Otherwise the\n// associated user ID is returned.\nfunc AuthenticateUser(db writestore, accessToken string) (int64, error) {\n\tif accessToken == \"\" {\n\t\treturn 0, ErrNoAccessToken\n\t}\n\tuserID := db.GetUserID(accessToken)\n\tif userID == -1 {\n\t\treturn 0, ErrBadAccessToken\n\t}\n\n\treturn userID, nil\n}"
+    },
+    {
+      "path": "author/author.go",
+      "start_line": 1,
+      "end_line": 23,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 13,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content"
+      ],
+      "token_count": 143,
+      "content": "/*\n * Copyright © 2018-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage author\n\nimport (\n\t\"os\"\n\t\"path/filepath\"\n\t\"regexp\"\n\n\t\"github.com/writeas/web-core/log\"\n\t\"github.com/writefreely/writefreely/config\"\n)\n\n// Regex pattern for valid usernames\nvar validUsernameReg = regexp.MustCompile(\"^[a-zA-Z0-9][a-zA-Z0-9-]*$\")"
+    },
+    {
+      "path": "cache.go",
+      "start_line": 1,
+      "end_line": 44,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 14,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 45"
+      ],
+      "token_count": 201,
+      "content": "/*\n * Copyright © 2018 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage writefreely\n\nimport (\n\t\"sync\"\n\t\"time\"\n)\n\nconst (\n\tpostsCacheTime = 4 * time.Second\n)\n\ntype (\n\tpostsCacheItem struct {\n\t\tExpire time.Time\n\t\tPosts  *[]PublicPost\n\t\tready  chan struct{}\n\t}\n\n\tAuthCache struct {\n\t\tAlias, Pass, Token string\n\t\tBadPasses          map[string]bool\n\n\t\texpire time.Time\n\t}\n)\n\nvar (\n\tuserPostsCache = struct {\n\t\tsync.RWMutex\n\t\tusers map[int64]postsCacheItem\n\t}{\n\t\tusers: map[int64]postsCacheItem{},\n\t}\n)"
+    },
+    {
+      "path": "cmd/writefreely/config.go",
+      "start_line": 1,
+      "end_line": 33,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 15,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 50"
+      ],
+      "token_count": 197,
+      "content": "/*\n * Copyright © 2020-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage main\n\nimport (\n\t\"github.com/urfave/cli/v2\"\n\t\"github.com/writefreely/writefreely\"\n)\n\nvar (\n\tcmdConfig cli.Command = cli.Command{\n\t\tName:  \"config\",\n\t\tUsage: \"config management tools\",\n\t\tSubcommands: []*cli.Command{\n\t\t\t\u0026cmdConfigGenerate,\n\t\t\t\u0026cmdConfigInteractive,\n\t\t},\n\t}\n\n\tcmdConfigGenerate cli.Command = cli.Command{\n\t\tName:    \"generate\",\n\t\tAliases: []string{\"gen\"},\n\t\tUsage:   \"Generate a basic configuration\",\n\t\tAction:  genConfigAction,\n\t}"
+    },
+    {
+      "path": "cmd/writefreely/db.go",
+      "start_line": 1,
+      "end_line": 44,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 16,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 41"
+      ],
+      "token_count": 256,
+      "content": "/*\n * Copyright © 2020-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage main\n\nimport (\n\t\"github.com/urfave/cli/v2\"\n\t\"github.com/writefreely/writefreely\"\n)\n\nvar (\n\tcmdDB cli.Command = cli.Command{\n\t\tName:  \"db\",\n\t\tUsage: \"db management tools\",\n\t\tSubcommands: []*cli.Command{\n\t\t\t\u0026cmdDBInit,\n\t\t\t\u0026cmdDBMigrate,\n\t\t},\n\t}\n\n\tcmdDBInit cli.Command = cli.Command{\n\t\tName:   \"init\",\n\t\tUsage:  \"Initialize Database\",\n\t\tAction: initDBAction,\n\t}\n\n\tcmdDBMigrate cli.Command = cli.Command{\n\t\tName:   \"migrate\",\n\t\tUsage:  \"Migrate Database\",\n\t\tAction: migrateDBAction,\n\t}\n)\n\nfunc initDBAction(c *cli.Context) error {\n\tapp := writefreely.NewApp(c.String(\"c\"))\n\treturn writefreely.CreateSchema(app)\n}"
+    },
+    {
+      "path": "app.go",
+      "start_line": 49,
+      "end_line": 92,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 10,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 81"
+      ],
+      "token_count": 235,
+      "content": "const (\n\tstaticDir        = \"static\"\n\tassumedTitleLen  = 80\n\tpostsPerPage     = 10\n\tpostsPerArchPage = 40\n\n\tserverSoftware = \"WriteFreely\"\n\tsoftwareURL    = \"https://writefreely.org\"\n)\n\nvar (\n\tdebugging bool\n\n\t// Software version can be set from git env using -ldflags\n\tsoftwareVer = \"0.17.1\"\n\n\t// DEPRECATED VARS\n\tisSingleUser bool\n)\n\n// App holds data and configuration for an individual WriteFreely instance.\ntype App struct {\n\trouter       *mux.Router\n\tshttp        *http.ServeMux\n\tdb           *datastore\n\tcfg          *config.Config\n\tcfgFile      string\n\tkeys         *key.Keychain\n\tsessionStore sessions.Store\n\tformDecoder  *schema.Decoder\n\tupdates      *updatesCache\n\n\ttimeline *localTimeline\n}\n\n// DB returns the App's datastore\nfunc (app *App) DB() *datastore {\n\treturn app.db\n}\n\n// Router returns the App's router\nfunc (app *App) Router() *mux.Router {\n\treturn app.router\n}"
+    },
+    {
+      "path": "cmd/writefreely/keys.go",
+      "start_line": 1,
+      "end_line": 38,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 17,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 65"
+      ],
+      "token_count": 225,
+      "content": "/*\n * Copyright © 2020-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage main\n\nimport (\n\t\"github.com/urfave/cli/v2\"\n\t\"github.com/writefreely/writefreely\"\n)\n\nvar (\n\tcmdKeys cli.Command = cli.Command{\n\t\tName:  \"keys\",\n\t\tUsage: \"key management tools\",\n\t\tSubcommands: []*cli.Command{\n\t\t\t\u0026cmdGenerateKeys,\n\t\t},\n\t}\n\n\tcmdGenerateKeys cli.Command = cli.Command{\n\t\tName:    \"generate\",\n\t\tAliases: []string{\"gen\"},\n\t\tUsage:   \"Generate encryption and authentication keys\",\n\t\tAction:  genKeysAction,\n\t}\n)\n\nfunc genKeysAction(c *cli.Context) error {\n\tapp := writefreely.NewApp(c.String(\"c\"))\n\treturn writefreely.GenerateKeyFiles(app)\n}"
+    },
+    {
+      "path": "collections.go",
+      "start_line": 1,
+      "end_line": 47,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 23,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 5"
+      ],
+      "token_count": 301,
+      "content": "/*\n * Copyright © 2018-2022 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage writefreely\n\nimport (\n\t\"database/sql\"\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"html/template\"\n\t\"math\"\n\t\"net/http\"\n\t\"net/url\"\n\t\"regexp\"\n\t\"strconv\"\n\t\"strings\"\n\t\"unicode\"\n\n\t\"github.com/gorilla/mux\"\n\tstripmd \"github.com/writeas/go-strip-markdown/v2\"\n\t\"github.com/writeas/impart\"\n\t\"github.com/writeas/web-core/activitystreams\"\n\t\"github.com/writeas/web-core/auth\"\n\t\"github.com/writeas/web-core/bots\"\n\t\"github.com/writeas/web-core/i18n\"\n\t\"github.com/writeas/web-core/log\"\n\t\"github.com/writeas/web-core/posts\"\n\t\"github.com/writefreely/writefreely/author\"\n\t\"github.com/writefreely/writefreely/config\"\n\t\"github.com/writefreely/writefreely/page\"\n\t\"github.com/writefreely/writefreely/spam\"\n\t\"golang.org/x/net/idna\"\n)\n\nconst (\n\tcollAttrLetterReplyTo = \"letter_reply_to\"\n\n\tcollMaxLengthTitle       = 255\n\tcollMaxLengthDescription = 160\n)"
+    },
+    {
+      "path": "config/config.go",
+      "start_line": 1,
+      "end_line": 43,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 24,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content"
+      ],
+      "token_count": 263,
+      "content": "/*\n * Copyright © 2018-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\n// Package config holds and assists in the configuration of a writefreely instance.\npackage config\n\nimport (\n\t\"net/url\"\n\t\"os\"\n\t\"strings\"\n\n\t\"github.com/go-ini/ini\"\n\t\"github.com/writeas/web-core/log\"\n\t\"golang.org/x/net/idna\"\n)\n\nconst (\n\t// FileName is the default configuration file name\n\tFileName = \"config.ini\"\n\n\tUserNormal UserType = \"user\"\n\tUserAdmin           = \"admin\"\n)\n\ntype (\n\tUserType string\n\n\t// ServerCfg holds values that affect how the HTTP server runs\n\tServerCfg struct {\n\t\tHiddenHost string `ini:\"hidden_host\"`\n\t\tPort       int    `ini:\"port\"`\n\t\tBind       string `ini:\"bind\"`\n\n\t\tTLSCertPath string `ini:\"tls_cert_path\"`\n\t\tTLSKeyPath  string `ini:\"tls_key_path\"`\n\t\tAutocert    bool   `ini:\"autocert\"`"
+    },
+    {
+      "path": "cmd/writefreely/main.go",
+      "start_line": 1,
+      "end_line": 22,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 18,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 36"
+      ],
+      "token_count": 124,
+      "content": "/*\n * Copyright © 2018-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage main\n\nimport (\n\t\"fmt\"\n\t\"os\"\n\t\"strings\"\n\n\t\"github.com/gorilla/mux\"\n\t\"github.com/urfave/cli/v2\"\n\t\"github.com/writeas/web-core/log\"\n\t\"github.com/writefreely/writefreely\"\n)"
+    },
+    {
+      "path": "config/data.go",
+      "start_line": 1,
+      "end_line": 16,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 25,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 117"
+      ],
+      "token_count": 88,
+      "content": "/*\n * Copyright © 2018 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage config\n\ntype UserCreation struct {\n\tUsername   string\n\tHashedPass []byte\n}"
+    },
+    {
+      "path": "config/funcs.go",
+      "start_line": 1,
+      "end_line": 43,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 26,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content"
+      ],
+      "token_count": 264,
+      "content": "/*\n * Copyright © 2018, 2020-2021 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage config\n\nimport (\n\t\"net/http\"\n\t\"net/url\"\n\t\"strings\"\n\t\"time\"\n\n\t\"github.com/writeas/web-core/log\"\n\t\"golang.org/x/net/idna\"\n)\n\n// FriendlyHost returns the app's Host sans any schema\nfunc (ac AppCfg) FriendlyHost() string {\n\trawHost := ac.Host[strings.Index(ac.Host, \"://\")+len(\"://\"):]\n\n\tu, err := url.Parse(ac.Host)\n\tif err != nil {\n\t\tlog.Error(\"url.Parse failed on %s: %s\", ac.Host, err)\n\t\treturn rawHost\n\t}\n\td, err := idna.ToUnicode(u.Hostname())\n\tif err != nil {\n\t\tlog.Error(\"idna.ToUnicode failed on %s: %s\", ac.Host, err)\n\t\treturn rawHost\n\t}\n\n\tres := d\n\tif u.Port() != \"\" {\n\t\tres += \":\" + u.Port()\n\t}\n\treturn res\n}"
+    },
+    {
+      "path": "database-lib.go",
+      "start_line": 1,
+      "end_line": 29,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 30,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content",
+        "also retrieved by vector rank 54"
+      ],
+      "token_count": 169,
+      "content": "//go:build wflib\n// +build wflib\n\n/*\n * Copyright © 2019-2020 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\n// This file contains dummy database funcs for when writefreely is used as a\n// library.\n\npackage writefreely\n\nfunc (db *datastore) isDuplicateKeyErr(err error) bool {\n\treturn false\n}\n\nfunc (db *datastore) isIgnorableError(err error) bool {\n\treturn false\n}\n\nfunc (db *datastore) isHighLoadError(err error) bool {\n\treturn false\n}"
+    },
+    {
+      "path": "database-no-sqlite.go",
+      "start_line": 1,
+      "end_line": 43,
+      "score": 70,
+      "retrieval_source": "exact",
+      "retrieval_rank": 31,
+      "reasons": [
+        "identifier \"WriteFreely\" matches content"
+      ],
+      "token_count": 297,
+      "content": "//go:build !sqlite \u0026\u0026 !wflib\n// +build !sqlite,!wflib\n\n/*\n * Copyright © 2019-2020 Musing Studio LLC.\n *\n * This file is part of WriteFreely.\n *\n * WriteFreely is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License, included\n * in the LICENSE file in this source code package.\n */\n\npackage writefreely\n\nimport (\n\t\"github.com/go-sql-driver/mysql\"\n\t\"github.com/writeas/web-core/log\"\n)\n\nfunc (db *datastore) isDuplicateKeyErr(err error) bool {\n\tif db.driverName == driverMySQL {\n\t\tif mysqlErr, ok := err.(*mysql.MySQLError); ok {\n\t\t\treturn mysqlErr.Number == mySQLErrDuplicateKey\n\t\t}\n\t} else {\n\t\tlog.Error(\"isDuplicateKeyErr: failed check for unrecognized driver '%s'\", db.driverName)\n\t}\n\n\treturn false\n}\n\nfunc (db *datastore) isIgnorableError(err error) bool {\n\tif db.driverName == driverMySQL {\n\t\tif mysqlErr, ok := err.(*mysql.MySQLError); ok {\n\t\t\treturn mysqlErr.Number == mySQLErrCollationMix\n\t\t}\n\t} else {\n\t\tlog.Error(\"isIgnorableError: failed check for unrecognized driver '%s'\", db.driverName)\n\t}\n\n\treturn false\n}"
+    }
+  ],
+  "omitted_structural_for_budget": 0,
+  "omitted_for_budget": 176
+}

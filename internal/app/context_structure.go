@@ -14,6 +14,7 @@ import (
 type structuralContextOptions struct {
 	Enabled        bool
 	ArcanaEnabled  bool
+	EmitLexicon    bool
 	Root           string
 	GrimoireState  string
 	LexiconFacts   string
@@ -99,7 +100,11 @@ func collectStructuralContext(
 		}
 		result.ArcanaTime = time.Since(arcanaStarted)
 	}
-	result.Combined = interleaveStructuralEvidence(result.Lexicon.Evidence, result.Arcana)
+	if options.EmitLexicon {
+		result.Combined = interleaveStructuralEvidence(result.Lexicon.Evidence, result.Arcana)
+	} else {
+		result.Combined = append([]structure.Evidence(nil), result.Arcana...)
+	}
 	result.TotalTime = time.Since(started)
 	return result
 }

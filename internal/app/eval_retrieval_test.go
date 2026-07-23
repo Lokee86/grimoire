@@ -10,6 +10,16 @@ import (
 	"github.com/Lokee86/grimoire/internal/evaluation"
 )
 
+func TestParseEvaluationModesAcceptsVectorAndHybrid(t *testing.T) {
+	modes, err := parseEvaluationModes("lexical,vector,hybrid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(modes) != 3 || modes[0] != "lexical" || modes[1] != "vector" || modes[2] != "hybrid" {
+		t.Fatalf("unexpected modes: %v", modes)
+	}
+}
+
 func TestParseStructuralProviders(t *testing.T) {
 	providers, enabled, arcana, err := parseStructuralProviders("lexicon,arcana")
 	if err != nil {

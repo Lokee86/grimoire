@@ -20,6 +20,7 @@ import (
 )
 
 var evaluationModes = []string{"fast", "full", "quality", "lexical"}
+var allowedEvaluationModes = []string{"fast", "full", "quality", "lexical", "vector", "hybrid"}
 
 func runEval(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 || args[0] != "retrieval" {
@@ -30,7 +31,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	casesPath := flags.String("cases", "", "judged retrieval corpus JSON")
 	root := flags.String("root", ".", "repository root")
 	state := flags.String("state", "", "prepared index repository path")
-	modesValue := flags.String("modes", strings.Join(evaluationModes, ","), "comma-separated modes: fast, full, quality, lexical")
+	modesValue := flags.String("modes", strings.Join(evaluationModes, ","), "comma-separated modes: fast, full, quality, lexical, vector, hybrid")
 	variant := flags.String("variant", "standalone", "evaluation variant label")
 	budgetOverride := flags.Int("budget", 0, "override every case token budget")
 	limit := flags.Int("candidate-limit", 200, "maximum ranked candidates")
@@ -110,6 +111,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 		for _, mode := range modes {
 			run := evaluation.CaseRun{
 				CaseID:   entry.ID,
+				Query:    entry.Query,
 				Category: entry.Category,
 				Mode:     mode,
 				Variant:  *variant,
@@ -128,7 +130,11 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 			queryOptions.BatchConcurrency = *batchConcurrency
 			queryOptions.MaxTokens = *maxTokens
 			if mode != "lexical" {
-				queryMode, parseErr := embedding.ParseQueryMode(mode)
+				embeddingMode := mode
+				if mode == "vector" || mode == "hybrid" {
+					embeddingMode = string(embedding.QueryModeFast)
+				}
+				queryMode, parseErr := embedding.ParseQueryMode(embeddingMode)
 				if parseErr != nil {
 					return parseErr
 				}
@@ -266,8 +272,8 @@ func applyExpectationError(run *evaluation.CaseRun) {
 }
 
 func parseEvaluationModes(value string) ([]string, error) {
-	allowed := make(map[string]struct{}, len(evaluationModes))
-	for _, mode := range evaluationModes {
+	allowed := make(map[string]struct{}, len(allowedEvaluationModes))
+	for _, mode := range allowedEvaluationModes {
 		allowed[mode] = struct{}{}
 	}
 	seen := make(map[string]struct{})

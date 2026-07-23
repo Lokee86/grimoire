@@ -34,6 +34,18 @@ func (stub *concurrentEmbeddingStub) EmbedDocuments(ctx context.Context, documen
 	return vectors, nil
 }
 
+func TestUniqueVectorSourcesKeepsOneEntryPerSource(t *testing.T) {
+	entries := []vectorChunk{
+		{Source: "same"},
+		{Source: "other"},
+		{Source: "same"},
+	}
+	got := uniqueVectorSources(entries)
+	if len(got) != 2 || got[0].Source != "same" || got[1].Source != "other" {
+		t.Fatalf("unique sources = %+v", got)
+	}
+}
+
 func TestEmbedVectorBatchesUsesBoundedConcurrency(t *testing.T) {
 	missing := make([]vectorChunk, 8)
 	for index := range missing {

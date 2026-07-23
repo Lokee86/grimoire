@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/Lokee86/grimoire/internal/compiler"
@@ -25,7 +26,8 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	limit := flags.Int("candidate-limit", 200, "maximum ranked candidates")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
-	structureEnabled := flags.Bool("structure", true, "include available Lexicon and Arcana structural evidence")
+	structureEnabled := flags.Bool("structure", true, "include available structural evidence")
+	structuralProviders := flags.String("structural-providers", "lexicon,arcana", "structural evidence providers: none, lexicon, arcana, or lexicon,arcana")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
 	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
 	lexiconCommand := flags.String("lexicon-command", "lexicon", "Lexicon executable used to export the current snapshot")
@@ -43,6 +45,14 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	}
 	if *query == "" || *budget <= 0 || *limit <= 0 || *timeout <= 0 || *structureTimeout <= 0 {
 		return errors.New("--query and positive --budget, --candidate-limit, --timeout, and --structure-timeout are required")
+	}
+	emitLexicon, arcanaEnabled, err := parseContextStructuralProviders(*structuralProviders)
+	if err != nil {
+		return err
+	}
+	if !*structureEnabled {
+		emitLexicon = false
+		arcanaEnabled = false
 	}
 	mode, err := embedding.ParseQueryMode(*modeValue)
 	if err != nil {
@@ -76,7 +86,7 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	}
 
 	structural := collectStructuralContext(context.Background(), snapshot, *query, structuralContextOptions{
-		Enabled: *structureEnabled, ArcanaEnabled: *structureEnabled,
+		Enabled: emitLexicon || arcanaEnabled, ArcanaEnabled: arcanaEnabled, EmitLexicon: emitLexicon,
 		Root: *root, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
 		LexiconState: *lexiconState, LexiconCommand: *lexiconCommand,
 		ArcanaState: *arcanaState, ArcanaCommand: *arcanaCommand,
@@ -87,7 +97,11 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	}
 
 	exact := retrieve.Exact(snapshot, *query, min(*limit, maxExactCandidates))
-	merged := mergeContextProviders(*limit, exact, baseCandidates, structural.Lexicon.Candidates)
+	lexiconCandidates := structural.Lexicon.Candidates
+	if !emitLexicon {
+		lexiconCandidates = nil
+	}
+	merged := mergeContextProviders(*limit, exact, baseCandidates, lexiconCandidates)
 	candidates := selection.Curate(snapshot, merged)
 
 	result, err := compiler.CompileWithEvidence(
@@ -103,4 +117,31 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	}
 	_, err = stdout.Write(data)
 	return err
+}
+
+func parseContextStructuralProviders(value string) (emitLexicon, arcanaEnabled bool, err error) {
+	value = strings.TrimSpace(strings.ToLower(value))
+	if value == "" || value == "none" {
+		return false, false, nil
+	}
+	seen := make(map[string]struct{})
+	for _, provider := range strings.Split(value, ",") {
+		provider = strings.TrimSpace(provider)
+		if provider == "" {
+			continue
+		}
+		if _, exists := seen[provider]; exists {
+			continue
+		}
+		seen[provider] = struct{}{}
+		switch provider {
+		case "lexicon":
+			emitLexicon = true
+		case "arcana":
+			arcanaEnabled = true
+		default:
+			return false, false, fmt.Errorf("unsupported structural provider %q", provider)
+		}
+	}
+	return emitLexicon, arcanaEnabled, nil
 }

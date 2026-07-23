@@ -44,7 +44,8 @@ func evaluateContext(
 	var base []retrieve.Candidate
 	var broad []retrieve.Candidate
 
-	if options.Mode == "lexical" {
+	switch options.Mode {
+	case "lexical":
 		searchStart := time.Now()
 		base = retrieve.Search(snapshot, options.Query, options.Limit)
 		result.Timings.LexicalSearchMS = durationMS(time.Since(searchStart))
@@ -55,7 +56,34 @@ func evaluateContext(
 		probeStart := time.Now()
 		broad = retrieve.Search(snapshot, options.Query, probeLimit)
 		result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
-	} else {
+	case "hybrid":
+		searchStart := time.Now()
+		lexical := retrieve.Search(snapshot, options.Query, options.Limit)
+		result.Timings.LexicalSearchMS = durationMS(time.Since(searchStart))
+		probeLimit := options.ProbeLimit
+		if probeLimit <= 0 {
+			probeLimit = options.Limit
+		}
+		probeStart := time.Now()
+		lexicalBroad := retrieve.Search(snapshot, options.Query, probeLimit)
+		result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
+
+		semantic, err := semanticCandidatesForEvaluation(
+			ctx, snapshot, options.StatePath, options.Query, options.Endpoint,
+			options.EnginePath, options.Limit, options.ProbeLimit, options.QueryOptions,
+		)
+		if err != nil {
+			return result, err
+		}
+		mergeStart := time.Now()
+		base = mergeRankedProviders(options.Limit, lexical, semantic.Candidates)
+		broad = mergeRankedProviders(probeLimit, lexicalBroad, semantic.BroadProbe)
+		result.Timings.SnapshotValidationMS = durationMS(semantic.Metrics.SnapshotValidation)
+		result.Timings.EmbeddingMS = durationMS(semantic.Metrics.Embedding)
+		result.Timings.VectorSearchMS = durationMS(semantic.Metrics.VectorSearch)
+		result.Timings.CandidateMergeMS = durationMS(semantic.Metrics.CandidateMerge) + durationMS(time.Since(mergeStart))
+		result.Timings.DiagnosticProbeMS += durationMS(semantic.Metrics.DiagnosticProbe)
+	default:
 		semantic, err := semanticCandidatesForEvaluation(
 			ctx, snapshot, options.StatePath, options.Query, options.Endpoint,
 			options.EnginePath, options.Limit, options.ProbeLimit, options.QueryOptions,
@@ -144,6 +172,9 @@ func candidatesToEvaluation(candidates []retrieve.Candidate) []evaluation.Candid
 			Text:            candidate.Chunk.Text,
 			RetrievalSource: candidate.Source,
 			ProviderRank:    candidate.Rank,
+			Score:           candidate.Score,
+			ScoreDetails:    scoreDetailsToEvaluation(candidate.ScoreDetails),
+			Reasons:         append([]string(nil), candidate.Reasons...),
 			TokenCount:      candidate.Chunk.TokenCount,
 		})
 	}
@@ -160,8 +191,18 @@ func selectionsToEvaluation(selections []compiler.Selection) []evaluation.Candid
 			Text:            selected.Content,
 			RetrievalSource: selected.RetrievalSource,
 			ProviderRank:    selected.RetrievalRank,
+			Score:           selected.Score,
+			Reasons:         append([]string(nil), selected.Reasons...),
 			TokenCount:      selected.TokenCount,
 		})
+	}
+	return result
+}
+
+func scoreDetailsToEvaluation(details []retrieve.ScoreDetail) []evaluation.ScoreDetail {
+	result := make([]evaluation.ScoreDetail, 0, len(details))
+	for _, detail := range details {
+		result = append(result, evaluation.ScoreDetail{Name: detail.Name, Value: detail.Value})
 	}
 	return result
 }

@@ -51,6 +51,40 @@ func mergeContextCandidates(limit int, groups ...[]retrieve.Candidate) []retriev
 	return merged
 }
 
+func mergeRankedProviders(limit int, groups ...[]retrieve.Candidate) []retrieve.Candidate {
+	if limit <= 0 {
+		return nil
+	}
+	merged := make([]retrieve.Candidate, 0, limit)
+	positions := make(map[string]int, limit)
+	for rank := 0; len(merged) < limit; rank++ {
+		advanced := false
+		for _, group := range groups {
+			if rank >= len(group) {
+				continue
+			}
+			advanced = true
+			candidate := group[rank]
+			key := contextCandidateKey(candidate)
+			if existing, found := positions[key]; found {
+				reason := fmt.Sprintf("also retrieved by %s rank %d", candidate.Source, candidate.Rank)
+				merged[existing].Reasons = appendUniqueReason(merged[existing].Reasons, reason)
+				continue
+			}
+			positions[key] = len(merged)
+			candidate.Reasons = append([]string(nil), candidate.Reasons...)
+			merged = append(merged, candidate)
+			if len(merged) >= limit {
+				break
+			}
+		}
+		if !advanced {
+			break
+		}
+	}
+	return merged
+}
+
 func mergeContextProviders(
 	limit int,
 	exact, base, lexicon []retrieve.Candidate,

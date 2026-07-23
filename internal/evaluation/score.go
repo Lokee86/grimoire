@@ -36,6 +36,7 @@ type Stages struct {
 
 func ScoreCase(entry Case, run *CaseRun, stages Stages) {
 	run.Ranking = ScoreRanking(entry, stages.Retrieved)
+	run.CandidateDiagnostics = BuildCandidateDiagnostics(entry, stages)
 	run.Required = scoreEvidenceGroup(entry.Query, entry.Required, stages)
 	run.Supporting = scoreEvidenceGroup(entry.Query, entry.Supporting, stages)
 	run.RequiredEvidenceRecall = recall(run.Required)

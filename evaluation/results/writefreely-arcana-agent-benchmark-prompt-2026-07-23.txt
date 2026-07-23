@@ -1,0 +1,19 @@
+Repository under investigation: C:\!bin\workspace\writefreely-benchmark
+Task: Trace how a WriteFreely post is created and persisted.
+
+Benchmark constraints:
+- Read the supplied Grimoire context package first. That initial package read is setup and does not count as a discovery call.
+- Treat the package as hints; verify the trace against repository source.
+- Perform read-only investigation. Do not edit files, run tests, build the project, or start services.
+- Do not invoke Grimoire, Lexicon, or Arcana.
+- Do not inspect .git, .grimoire, .lexicon, .arcana, benchmark logs, or other generated state.
+- Stop after at most 55 repository-discovery tool calls. Count every source search, file listing, and source-file read after the initial context read as one discovery call.
+
+Required answer:
+1. HTTP route entry points.
+2. Ordered handler and datastore call chain.
+3. Authentication, validation, collection ownership, ID/slug, and timestamp handling that materially affects creation.
+4. Exact SQL persistence boundary and retry/error behavior.
+5. Response construction and post-persistence side effects.
+6. File:line citations for every major step.
+7. End with exactly: DISCOVERY_CALLS_USED: <number>

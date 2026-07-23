@@ -45,7 +45,7 @@ func NewClient(endpoint string) *Client {
 	return &Client{
 		Endpoint: strings.TrimRight(endpoint, "/"),
 		HTTPClient: &http.Client{
-			Timeout: 2 * time.Minute,
+			Timeout: 10 * time.Minute,
 		},
 	}
 }

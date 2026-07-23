@@ -34,6 +34,13 @@ func TestSearchRanksFilenameAndContentDeterministically(t *testing.T) {
 	if results[0].Source != "lexical" || results[0].Rank != 1 || results[1].Rank != 2 {
 		t.Fatalf("unexpected lexical provenance: %+v", results)
 	}
+	var attributed float64
+	for _, detail := range results[0].ScoreDetails {
+		attributed += detail.Value
+	}
+	if len(results[0].ScoreDetails) == 0 || attributed != results[0].Score {
+		t.Fatalf("lexical score is not fully attributed: %+v", results[0])
+	}
 }
 
 func TestSearchUsesStablePathTieBreak(t *testing.T) {

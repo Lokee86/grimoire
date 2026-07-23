@@ -17,12 +17,21 @@ func Exact(snapshot index.Snapshot, query string, limit int) []Candidate {
 		candidate := Candidate{Chunk: chunk, Source: "exact"}
 		for _, signal := range signals {
 			if strings.Contains(chunk.Path, signal.value) {
-				candidate.Score += signal.weight + 1
-				candidate.Reasons = append(candidate.Reasons, exactReason(signal, "path"))
+				value := signal.weight + 1
+				reason := exactReason(signal, "path")
+				candidate.Score += value
+				candidate.Reasons = append(candidate.Reasons, reason)
+				candidate.ScoreDetails = append(candidate.ScoreDetails, ScoreDetail{
+					Name: reason, Value: value,
+				})
 			}
 			if exactContains(chunk.Text, signal.value, signal.kind) {
+				reason := exactReason(signal, "content")
 				candidate.Score += signal.weight
-				candidate.Reasons = append(candidate.Reasons, exactReason(signal, "content"))
+				candidate.Reasons = append(candidate.Reasons, reason)
+				candidate.ScoreDetails = append(candidate.ScoreDetails, ScoreDetail{
+					Name: reason, Value: signal.weight,
+				})
 			}
 		}
 		if candidate.Score > 0 {

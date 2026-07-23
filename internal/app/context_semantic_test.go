@@ -1,6 +1,7 @@
 package app
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -34,6 +35,9 @@ func TestMergeSemanticHitsCombinesWindowsDeterministically(t *testing.T) {
 		!strings.Contains(candidates[0].Reasons[0], "window 1/2") ||
 		!strings.Contains(candidates[0].Reasons[1], "window 2/2") {
 		t.Fatalf("missing window provenance: %+v", candidates[0].Reasons)
+	}
+	if len(candidates[0].ScoreDetails) != 2 || math.Abs(candidates[0].ScoreDetails[1].Value-0.95) > 0.000001 {
+		t.Fatalf("missing semantic score attribution: %+v", candidates[0].ScoreDetails)
 	}
 }
 
