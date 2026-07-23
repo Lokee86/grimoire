@@ -1,15 +1,12 @@
 package app
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/Lokee86/grimoire/internal/embedding"
@@ -20,6 +17,23 @@ import (
 type vectorChunk struct {
 	Chunk  index.Chunk
 	Source string
+}
+
+type vectorBuildResult struct {
+	Snapshot         string  `json:"snapshot"`
+	Identity         string  `json:"identity"`
+	PreparedIdentity string  `json:"prepared_identity"`
+	Model            string  `json:"model"`
+	Chunks           int     `json:"chunks"`
+	UniqueVectors    int     `json:"unique_vectors"`
+	Embedded         int     `json:"embedded"`
+	EmbeddedVectors  int     `json:"embedded_vectors"`
+	Reused           int     `json:"reused"`
+	ObjectChecks     int     `json:"object_checks"`
+	CachedSnapshot   bool    `json:"cached_snapshot"`
+	DurationMS       float64 `json:"duration_ms"`
+	SnapshotBytes    int64   `json:"snapshot_bytes"`
+	PeakMemoryBytes  uint64  `json:"peak_memory_bytes"`
 }
 
 func runVectorBuild(args []string, stdout, stderr io.Writer) error {
@@ -50,6 +64,31 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
+	paths := resolveVectorPaths(statePath)
+	if err := os.MkdirAll(paths.Root, 0o755); err != nil {
+		return err
+	}
+	defer os.Remove(paths.Ingest)
+	defer os.Remove(paths.Records)
+
+	if base, baseErr := index.RebuildBase(statePath); baseErr == nil && base.Identity() != "" {
+		if manifest, snapshotInfo, reusable := reusableVectorSnapshot(paths, base.Identity(), 0); reusable {
+			peakMemory := memory.stopAndRead()
+			memoryStopped = true
+			uniqueVectors := len(manifest.Sources)
+			if uniqueVectors == 0 {
+				uniqueVectors = manifest.Count
+			}
+			_, _ = fmt.Fprintf(stderr, "vector build: snapshot is current; reused %d chunks in %s\n", manifest.Count, formatVectorDuration(time.Since(started)))
+			return writeJSON(stdout, vectorBuildResult{
+				Snapshot: paths.Snapshot, Identity: manifest.SnapshotIdentity, PreparedIdentity: base.Identity(),
+				Model: embedding.Identity(), Chunks: manifest.Count, UniqueVectors: uniqueVectors,
+				Reused: manifest.Count, CachedSnapshot: true, DurationMS: durationMS(time.Since(started)),
+				SnapshotBytes: snapshotInfo.Size(), PeakMemoryBytes: peakMemory,
+			})
+		}
+	}
+
 	snapshot, err := index.Load(statePath)
 	if err != nil {
 		return fmt.Errorf("load prepared index: %w", err)
@@ -58,12 +97,11 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 	if len(chunks) == 0 {
 		return errors.New("prepared index has no chunks")
 	}
-	paths := resolveVectorPaths(statePath)
-	if err := os.MkdirAll(paths.Root, 0o755); err != nil {
-		return err
+	preparedIdentity := snapshot.Identity()
+	if preparedIdentity == "" {
+		return errors.New("prepared index has no published identity")
 	}
-	defer os.Remove(paths.Ingest)
-	defer os.Remove(paths.Records)
+	_, _ = fmt.Fprintf(stderr, "vector build: prepared %d chunks\n", len(chunks))
 
 	library, err := vectorstore.Load(*enginePath)
 	if err != nil {
@@ -71,11 +109,15 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 	}
 	defer library.Close()
 
-	all := make([]vectorChunk, 0, len(chunks))
+	all, unique, sourceCounts := vectorEntries(chunks)
+	previousSources := reusableVectorSources(paths)
 	missing := make([]vectorChunk, 0)
-	for _, chunk := range chunks {
-		entry := vectorChunk{Chunk: chunk, Source: vectorSource(chunk.Text)}
-		all = append(all, entry)
+	objectChecks := 0
+	for _, entry := range unique {
+		if _, reused := previousSources[entry.Source]; reused {
+			continue
+		}
+		objectChecks++
 		exists, existsErr := library.ObjectExists(paths.Store, embedding.Identity(), entry.Source)
 		if existsErr != nil {
 			return existsErr
@@ -84,18 +126,34 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 			missing = append(missing, entry)
 		}
 	}
+	embeddedChunks := 0
+	for _, entry := range missing {
+		embeddedChunks += sourceCounts[entry.Source]
+	}
+	_, _ = fmt.Fprintf(
+		stderr,
+		"vector build: %d unique vectors; %d cached, %d to embed, %d object checks\n",
+		len(unique), len(unique)-len(missing), len(missing), objectChecks,
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	if len(missing) > 0 {
-		if err := embedMissing(ctx, embedding.NewClient(*endpoint), library, paths, missing, *batchSize, *batchConcurrency); err != nil {
+		progress := newVectorEmbeddingProgress(stderr, len(missing))
+		if err := embedMissing(
+			ctx,
+			embedding.NewClient(*endpoint),
+			library,
+			paths,
+			missing,
+			*batchSize,
+			*batchConcurrency,
+			progress.complete,
+		); err != nil {
 			return err
 		}
 	}
-	preparedIdentity := snapshot.Identity()
-	if preparedIdentity == "" {
-		return errors.New("prepared index has no published identity")
-	}
+	_, _ = fmt.Fprintf(stderr, "vector build: materializing %d chunk records\n", len(all))
 	if err := writeVectorRecords(paths.Records, all); err != nil {
 		return err
 	}
@@ -110,6 +168,7 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 		Model:            embedding.Identity(),
 		Dimensions:       embedding.Dimensions,
 		Count:            len(all),
+		Sources:          vectorSources(unique),
 	}
 	if err := writeVectorSnapshotManifest(paths.Manifest, manifest); err != nil {
 		return err
@@ -120,146 +179,12 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 	}
 	peakMemory := memory.stopAndRead()
 	memoryStopped = true
-	return writeJSON(stdout, struct {
-		Snapshot         string  `json:"snapshot"`
-		Identity         string  `json:"identity"`
-		PreparedIdentity string  `json:"prepared_identity"`
-		Model            string  `json:"model"`
-		Chunks           int     `json:"chunks"`
-		Embedded         int     `json:"embedded"`
-		Reused           int     `json:"reused"`
-		DurationMS       float64 `json:"duration_ms"`
-		SnapshotBytes    int64   `json:"snapshot_bytes"`
-		PeakMemoryBytes  uint64  `json:"peak_memory_bytes"`
-	}{
+	_, _ = fmt.Fprintf(stderr, "vector build: complete in %s\n", formatVectorDuration(time.Since(started)))
+	return writeJSON(stdout, vectorBuildResult{
 		Snapshot: paths.Snapshot, Identity: identity, PreparedIdentity: preparedIdentity,
-		Model: embedding.Identity(), Chunks: len(all), Embedded: len(missing),
-		Reused: len(all) - len(missing), DurationMS: durationMS(time.Since(started)),
+		Model: embedding.Identity(), Chunks: len(all), UniqueVectors: len(unique),
+		Embedded: embeddedChunks, EmbeddedVectors: len(missing), Reused: len(all) - embeddedChunks,
+		ObjectChecks: objectChecks, DurationMS: durationMS(time.Since(started)),
 		SnapshotBytes: snapshotInfo.Size(), PeakMemoryBytes: peakMemory,
 	})
-}
-
-type documentEmbedder interface {
-	EmbedDocuments(context.Context, []string) ([][]float32, error)
-}
-
-type embeddedVectorBatch struct {
-	batch   []vectorChunk
-	vectors [][]float32
-	err     error
-}
-
-func embedMissing(
-	ctx context.Context,
-	client documentEmbedder,
-	library *vectorstore.Library,
-	paths vectorStatePaths,
-	missing []vectorChunk,
-	batchSize int,
-	concurrency int,
-) error {
-	return embedVectorBatches(ctx, client, missing, batchSize, concurrency, func(batch []vectorChunk, vectors [][]float32) error {
-		return ingestVectorBatch(library, paths, batch, vectors)
-	})
-}
-
-func embedVectorBatches(
-	ctx context.Context,
-	client documentEmbedder,
-	missing []vectorChunk,
-	batchSize int,
-	concurrency int,
-	ingest func([]vectorChunk, [][]float32) error,
-) error {
-	if len(missing) == 0 {
-		return nil
-	}
-	if batchSize <= 0 || concurrency <= 0 {
-		return errors.New("embedding batch size and concurrency must be positive")
-	}
-	workerCount := min(concurrency, (len(missing)+batchSize-1)/batchSize)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	jobs := make(chan []vectorChunk)
-	results := make(chan embeddedVectorBatch, workerCount)
-	var workers sync.WaitGroup
-	for range workerCount {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
-			for batch := range jobs {
-				documents := make([]string, len(batch))
-				for index, entry := range batch {
-					documents[index] = entry.Chunk.Text
-				}
-				vectors, err := client.EmbedDocuments(ctx, documents)
-				select {
-				case results <- embeddedVectorBatch{batch: batch, vectors: vectors, err: err}:
-				case <-ctx.Done():
-					return
-				}
-				if err != nil {
-					return
-				}
-			}
-		}()
-	}
-	go func() {
-		defer close(jobs)
-		for start := 0; start < len(missing); start += batchSize {
-			end := min(start+batchSize, len(missing))
-			select {
-			case jobs <- missing[start:end]:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	go func() {
-		workers.Wait()
-		close(results)
-	}()
-
-	var firstErr error
-	for result := range results {
-		if result.err != nil {
-			if firstErr == nil {
-				firstErr = result.err
-				cancel()
-			}
-			continue
-		}
-		if firstErr != nil {
-			continue
-		}
-		if err := ingest(result.batch, result.vectors); err != nil {
-			firstErr = err
-			cancel()
-		}
-	}
-	return firstErr
-}
-
-func writeVectorRecords(path string, entries []vectorChunk) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	writer := bufio.NewWriter(file)
-	encoder := json.NewEncoder(writer)
-	for _, entry := range entries {
-		if err := encoder.Encode(struct {
-			ID     string `json:"id"`
-			Source string `json:"source"`
-		}{entry.Chunk.ID, entry.Source}); err != nil {
-			file.Close()
-			return err
-		}
-	}
-	if err := writer.Flush(); err != nil {
-		file.Close()
-		return err
-	}
-	return file.Close()
 }

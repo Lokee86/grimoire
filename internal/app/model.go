@@ -35,6 +35,7 @@ func runModelSetup(args []string, stdout, stderr io.Writer) error {
 	flags := flag.NewFlagSet("model setup", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	cacheDir := flags.String("cache", "", "managed model and runtime cache directory")
+	backend := flags.String("backend", embedding.RuntimeBackendAuto, "llama.cpp backend: auto, cuda, vulkan, or cpu")
 	timeout := flags.Duration("timeout", 45*time.Minute, "complete setup timeout")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -47,6 +48,7 @@ func runModelSetup(args []string, stdout, stderr io.Writer) error {
 	defer cancel()
 	result, err := embedding.Setup(ctx, embedding.SetupOptions{
 		CacheDir: *cacheDir,
+		Backend:  *backend,
 		Progress: stderr,
 	})
 	if err != nil {

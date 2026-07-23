@@ -16,8 +16,10 @@ import (
 const (
 	RuntimeVersion = "b8121"
 
-	windowsAMD64RuntimeURL = "https://github.com/ggml-org/llama.cpp/releases/download/b8121/llama-b8121-bin-win-cpu-x64.zip"
-	windowsAMD64RuntimeSHA = "e7de7919fc141dd1193e6116dc9f965b872b15f85a7a13b4631f3893a250f5b8"
+	RuntimeBackendAuto   = "auto"
+	RuntimeBackendCUDA   = "cuda"
+	RuntimeBackendVulkan = "vulkan"
+	RuntimeBackendCPU    = "cpu"
 
 	modelFilename = "Qwen3-Embedding-0.6B-Q8_0.gguf"
 	modelURL      = "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF/resolve/main/Qwen3-Embedding-0.6B-Q8_0.gguf?download=true"
@@ -26,6 +28,7 @@ const (
 
 type SetupOptions struct {
 	CacheDir   string
+	Backend    string
 	HTTPClient *http.Client
 	Progress   io.Writer
 }
@@ -35,6 +38,7 @@ type SetupResult struct {
 	RuntimePath string `json:"runtime_path"`
 	ModelPath   string `json:"model_path"`
 	Runtime     string `json:"runtime_version"`
+	Backend     string `json:"backend"`
 	Model       string `json:"model"`
 	Dimensions  int    `json:"dimensions"`
 }
@@ -60,12 +64,39 @@ func ManagedRuntimePath(cacheDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	runtimeDir := filepath.Join(root, "runtime", "llama.cpp-"+RuntimeVersion)
+	preferred, _ := selectRuntimeBackend("")
+	backends := uniqueRuntimeBackends(preferred, RuntimeBackendCUDA, RuntimeBackendVulkan, RuntimeBackendCPU)
+	for _, backend := range backends {
+		if path, pathErr := managedRuntimePathForBackend(root, backend); pathErr == nil {
+			return path, nil
+		}
+	}
+	legacyDir := filepath.Join(root, "runtime", "llama.cpp-"+RuntimeVersion)
+	if path, legacyErr := findNamedFile(legacyDir, runtimeExecutableName()); legacyErr == nil {
+		return path, nil
+	}
+	return "", os.ErrNotExist
+}
+
+func managedRuntimePathForBackend(cacheDir, backend string) (string, error) {
+	root, err := resolveCacheDir(cacheDir)
+	if err != nil {
+		return "", err
+	}
+	backend, err = normalizeRuntimeBackend(backend)
+	if err != nil || backend == RuntimeBackendAuto {
+		return "", fmt.Errorf("specific runtime backend required")
+	}
+	runtimeDir := filepath.Join(root, "runtime", "llama.cpp-"+RuntimeVersion+"-"+backend)
+	return findNamedFile(runtimeDir, runtimeExecutableName())
+}
+
+func runtimeExecutableName() string {
 	name := "llama-server"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	return findNamedFile(runtimeDir, name)
+	return name
 }
 
 func FindModel(explicit string) (string, error) {
@@ -99,6 +130,10 @@ func Setup(ctx context.Context, options SetupOptions) (SetupResult, error) {
 	if err != nil {
 		return SetupResult{}, err
 	}
+	backend, err := selectRuntimeBackend(options.Backend)
+	if err != nil {
+		return SetupResult{}, err
+	}
 	client := options.HTTPClient
 	if client == nil {
 		client = &http.Client{Timeout: 45 * time.Minute}
@@ -107,8 +142,9 @@ func Setup(ctx context.Context, options SetupOptions) (SetupResult, error) {
 	if progress == nil {
 		progress = io.Discard
 	}
+	_, _ = fmt.Fprintf(progress, "selected llama.cpp backend: %s\n", backend)
 
-	runtimePath, err := installRuntime(ctx, client, cacheDir, progress)
+	runtimePath, err := installRuntime(ctx, client, cacheDir, backend, progress)
 	if err != nil {
 		return SetupResult{}, err
 	}
@@ -119,46 +155,8 @@ func Setup(ctx context.Context, options SetupOptions) (SetupResult, error) {
 
 	return SetupResult{
 		CacheDir: cacheDir, RuntimePath: runtimePath, ModelPath: modelPath,
-		Runtime: RuntimeVersion, Model: ModelReference, Dimensions: Dimensions,
+		Runtime: RuntimeVersion, Backend: backend, Model: ModelReference, Dimensions: Dimensions,
 	}, nil
-}
-
-func installRuntime(ctx context.Context, client *http.Client, cacheDir string, progress io.Writer) (string, error) {
-	if existing, err := ManagedRuntimePath(cacheDir); err == nil {
-		return existing, nil
-	}
-
-	archivePath := filepath.Join(cacheDir, "downloads", "llama.cpp-"+RuntimeVersion+"-windows-amd64.zip")
-	if err := downloadVerified(
-		ctx, client, windowsAMD64RuntimeURL, windowsAMD64RuntimeSHA,
-		archivePath, "llama.cpp runtime", progress,
-	); err != nil {
-		return "", err
-	}
-
-	targetDir := filepath.Join(cacheDir, "runtime", "llama.cpp-"+RuntimeVersion)
-	temporaryDir := targetDir + ".partial"
-	if err := os.RemoveAll(temporaryDir); err != nil {
-		return "", err
-	}
-	if err := extractZip(archivePath, temporaryDir); err != nil {
-		return "", fmt.Errorf("extract llama.cpp runtime: %w", err)
-	}
-	if err := os.RemoveAll(targetDir); err != nil {
-		return "", err
-	}
-	if err := os.Rename(temporaryDir, targetDir); err != nil {
-		return "", fmt.Errorf("publish llama.cpp runtime: %w", err)
-	}
-	if err := os.Remove(archivePath); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return "", err
-	}
-
-	runtimePath, err := ManagedRuntimePath(cacheDir)
-	if err != nil {
-		return "", fmt.Errorf("locate installed llama.cpp runtime: %w", err)
-	}
-	return runtimePath, nil
 }
 
 func resolveCacheDir(cacheDir string) (string, error) {

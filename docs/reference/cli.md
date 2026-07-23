@@ -19,9 +19,10 @@ grimoire model setup [flags]
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `--cache <path>` | operating-system user cache plus `grimoire` | Managed runtime and model directory |
+| `--backend <name>` | `auto` | `auto`, `cuda`, `vulkan`, or `cpu` llama.cpp runtime |
 | `--timeout <duration>` | `45m` | Complete download and installation timeout |
 
-On Windows x64 the command downloads a pinned CPU `llama.cpp` runtime and `Qwen3-Embedding-0.6B-Q8_0.gguf`, verifies fixed SHA-256 digests, and publishes them atomically into the cache. Repeated setup reuses verified files.
+On Windows x64 the command downloads a pinned `llama.cpp` runtime and `Qwen3-Embedding-0.6B-Q8_0.gguf`, verifies fixed SHA-256 digests, and publishes them atomically into the cache. `auto` selects CUDA when a compatible NVIDIA driver is present, otherwise Vulkan when available, then CPU. Set `GRIMOIRE_LLAMA_BACKEND` or pass `--backend` to override detection. Repeated setup reuses verified files.
 
 The JSON result contains the cache, runtime, and model paths plus their identities.
 
@@ -123,7 +124,9 @@ grimoire vector build [flags]
 | `--batch-concurrency <n>` | `1` | Concurrent embedding requests; ingestion remains serialized |
 | `--timeout <duration>` | `30m` | Complete build timeout |
 
-The command reuses immutable vectors for unchanged chunk text, embeds only missing source identities, persists completed batches immediately, and materializes a sorted memory-mapped snapshot. The local llama.cpp server already distributes one request across its four slots, so the defaults send four documents in one request and avoid competing request queues. Higher request concurrency remains available for remote providers; object-store ingestion stays serialized and deterministic.
+The command returns the existing snapshot immediately when the prepared-index identity and vector manifest already match. Changed builds deduplicate identical chunk text, reuse source identities recorded by the previous manifest without probing the object store, check only newly introduced source hashes, embed only genuinely missing vectors, persist completed batches immediately, and materialize a sorted memory-mapped snapshot. Progress and throughput are written to stderr while the final JSON result remains on stdout.
+
+The local llama.cpp server already distributes one request across its four slots, so the defaults send four documents in one request and avoid competing request queues. Higher request concurrency remains available for remote providers; object-store ingestion stays serialized and deterministic. The result reports chunk and unique-vector counts, embedded and reused counts, object checks, cache-hit status, duration, snapshot size, and peak memory.
 
 ## `grimoire vector search`
 
