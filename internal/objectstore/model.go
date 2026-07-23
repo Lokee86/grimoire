@@ -16,6 +16,7 @@ type FactObject struct {
 	SchemaVersion    int               `json:"schema_version"`
 	AnalysisConfigID string            `json:"analysis_config_id"`
 	Records          []json.RawMessage `json:"records"`
+	typed            *typedRecords
 }
 
 type FileEntry struct {

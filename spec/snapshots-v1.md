@@ -18,30 +18,15 @@ Lexicon snapshots expose one complete, immutable analysis state. The mutable sou
 
 ## Fact objects
 
-A fact object contains all records owned by one source file, or the shared synthetic records for one language:
-
-```json
-{
-  "version": 1,
-  "language": "python",
-  "owner": "src/example.py",
-  "source_content_id": "sha256:...",
-  "adapter_version": "0.1.0",
-  "schema_version": 1,
-  "analysis_config_id": "sha256:...",
-  "records": []
-}
-```
-
-`owner` and `source_content_id` are omitted for a shared language object. Record ownership follows `facts-v1.md`: explicit `owner`, span path, file-node path, then the owning source node for edge and unresolved records.
+A fact object contains all records owned by one source file, or the shared synthetic records for one language. New objects use the deterministic binary format defined in [`objects-v1.md`](objects-v1.md). `owner` and `source_content_id` are absent for a shared language object. Record ownership follows `facts-v1.md`: explicit `owner`, span path, file-node path, then the owning source node for edge and unresolved records.
 
 The object ID is SHA-256 over:
 
 ```text
-lexicon:fact-object:v1\0<canonical object JSON>
+lexicon:fact-object:v1\0<object bytes>
 ```
 
-The object file path omits the `sha256:` prefix and splits the first two hexadecimal characters into a directory. Existing objects are immutable. Writing different bytes under an existing ID is an error.
+The object file path omits the `sha256:` prefix and splits the first two hexadecimal characters into a directory. Existing objects are immutable. Writing different bytes under an existing ID is an error. Readers accept both binary v1 and legacy canonical JSON fact objects; writers emit binary objects only.
 
 ## Snapshot manifest
 

@@ -1,7 +1,6 @@
 package objectstore
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 )
@@ -37,23 +36,25 @@ func (a *Analysis) IsIncremental() bool {
 	return a != nil && a.Header.Mode == "incremental"
 }
 
-func (a *Analysis) groups(allowedOwners map[string]struct{}) (map[string][]json.RawMessage, []json.RawMessage) {
+func (a *Analysis) groups(allowedOwners map[string]struct{}) (map[string]typedRecords, typedRecords) {
 	owners := nodeOwners(a.records)
-	groups := make(map[string][]json.RawMessage)
-	shared := make([]json.RawMessage, 0)
+	groups := make(map[string]typedRecords)
+	shared := typedRecords{}
 	for _, record := range a.records {
 		owner := recordOwner(record.value, owners)
 		if owner == "" {
-			shared = append(shared, record.raw)
+			shared.append(record.typed)
 			continue
 		}
 		if allowedOwners != nil {
 			if _, allowed := allowedOwners[owner]; !allowed {
-				shared = append(shared, record.raw)
+				shared.append(record.typed)
 				continue
 			}
 		}
-		groups[owner] = append(groups[owner], record.raw)
+		group := groups[owner]
+		group.append(record.typed)
+		groups[owner] = group
 	}
 	return groups, shared
 }

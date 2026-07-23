@@ -74,7 +74,7 @@ lexicon version
 
 The state commit is always amended and remains a parentless root commit, so only one commit is reachable. Reflogs are expired after replacement. The repository is an implementation detail used to answer one question: what source content changed since Lexicon last successfully published a snapshot?
 
-Each snapshot manifest records the internal state commit, adapter and schema versions, configuration identity, source-content identity, and fact-object identity for every relevant file. Shared synthetic facts are stored in a separate language object. Objects and snapshot manifests are immutable; identical content reuses the existing object.
+Each snapshot manifest records the internal state commit, adapter and schema versions, configuration identity, source-content identity, and fact-object identity for every relevant file. Shared synthetic facts are stored in a separate language object. Objects and snapshot manifests are immutable; identical content reuses the existing object. Fact objects use Lexicon's deterministic binary v1 codec with a shared string table and independently length-prefixed node, edge, and unresolved sections. JSONL is reconstructed only by `lexicon export`; snapshot consumers can skip unused binary sections and attributes.
 
 `CURRENT` contains the complete snapshot ID and is replaced atomically only after the internal state commit and every referenced object are durable. Consumers should resolve `CURRENT`, load the corresponding manifest, and then open its objects. They never need to observe the mutable mirror or adapter JSONL transport files.
 

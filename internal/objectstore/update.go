@@ -1,7 +1,6 @@
 package objectstore
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -119,12 +118,12 @@ func languageMetadata(header Header, analysisConfigID, adapterFingerprint string
 	}
 }
 
-func (s Store) writeFileObject(entry LanguageEntry, path string, source []byte, records []json.RawMessage) (FileEntry, error) {
+func (s Store) writeFileObject(entry LanguageEntry, path string, source []byte, records typedRecords) (FileEntry, error) {
 	contentID := ContentID(source)
 	objectID, err := s.WriteObject(FactObject{
 		Language: entry.Language, Owner: path, SourceContentID: contentID,
 		AdapterVersion: entry.AdapterVersion, SchemaVersion: entry.SchemaVersion,
-		AnalysisConfigID: entry.AnalysisConfigID, Records: nonNil(records),
+		AnalysisConfigID: entry.AnalysisConfigID, typed: &records,
 	})
 	if err != nil {
 		return FileEntry{}, err
@@ -132,14 +131,14 @@ func (s Store) writeFileObject(entry LanguageEntry, path string, source []byte, 
 	return FileEntry{Path: path, Language: entry.Language, ContentID: contentID, ObjectID: objectID}, nil
 }
 
-func (s Store) writeSharedObject(entry LanguageEntry, records []json.RawMessage) (string, error) {
-	if len(records) == 0 {
+func (s Store) writeSharedObject(entry LanguageEntry, records typedRecords) (string, error) {
+	if records.len() == 0 {
 		return "", nil
 	}
 	return s.WriteObject(FactObject{
 		Language: entry.Language, AdapterVersion: entry.AdapterVersion,
 		SchemaVersion: entry.SchemaVersion, AnalysisConfigID: entry.AnalysisConfigID,
-		Records: records,
+		typed: &records,
 	})
 }
 

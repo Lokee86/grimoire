@@ -83,12 +83,12 @@ func (s Store) WriteObject(object FactObject) (string, error) {
 		object.Records = []json.RawMessage{}
 	}
 	object.Version = ObjectVersion
-	data, err := json.Marshal(object)
+	data, err := encodeBinaryObject(object)
 	if err != nil {
 		return "", fmt.Errorf("encode Lexicon fact object: %w", err)
 	}
 	id := digest("lexicon:fact-object:v1\x00", data)
-	if err := writeImmutable(s.objectPath(id), append(data, '\n')); err != nil {
+	if err := writeImmutable(s.objectPath(id), data); err != nil {
 		return "", err
 	}
 	return id, nil
@@ -102,12 +102,20 @@ func (s Store) LoadObject(id string) (FactObject, error) {
 	if err != nil {
 		return FactObject{}, fmt.Errorf("read Lexicon object %s: %w", id, err)
 	}
-	canonical := bytes.TrimSpace(data)
+	canonical := data
+	if !isBinaryObject(data) {
+		canonical = bytes.TrimSpace(data)
+	}
 	if actual := digest("lexicon:fact-object:v1\x00", canonical); actual != id {
 		return FactObject{}, fmt.Errorf("Lexicon object %s failed content verification", id)
 	}
 	var object FactObject
-	if err := json.Unmarshal(canonical, &object); err != nil {
+	if isBinaryObject(canonical) {
+		object, err = decodeBinaryObject(canonical)
+	} else {
+		err = json.Unmarshal(canonical, &object)
+	}
+	if err != nil {
 		return FactObject{}, fmt.Errorf("decode Lexicon object %s: %w", id, err)
 	}
 	if object.Version != ObjectVersion {

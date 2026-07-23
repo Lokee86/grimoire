@@ -24,6 +24,7 @@ type rawRecord struct {
 type parsedRecord struct {
 	raw   json.RawMessage
 	value rawRecord
+	typed typedRecord
 }
 
 func parseOutput(path string) (Header, []parsedRecord, error) {
@@ -55,16 +56,11 @@ func parseOutput(path string) (Header, []parsedRecord, error) {
 			return Header{}, nil, fmt.Errorf("decode adapter record: %w", err)
 		}
 		raw := append(json.RawMessage(nil), compact.Bytes()...)
-		var value rawRecord
-		if err := json.Unmarshal(raw, &value); err != nil {
+		typed, err := parseTypedRecord(raw)
+		if err != nil {
 			return Header{}, nil, fmt.Errorf("decode adapter record: %w", err)
 		}
-		switch value.Record {
-		case "node", "edge", "unresolved":
-		default:
-			return Header{}, nil, fmt.Errorf("unsupported Lexicon record %q in %s", value.Record, path)
-		}
-		records = append(records, parsedRecord{raw: raw, value: value})
+		records = append(records, parsedRecord{raw: raw, value: typed.ownership(), typed: typed})
 	}
 	if err := scanner.Err(); err != nil {
 		return Header{}, nil, err
@@ -109,14 +105,12 @@ func nodeOwners(records []parsedRecord) map[string]string {
 		if record.value.Record != "node" {
 			continue
 		}
-		var identity struct {
-			ID string `json:"id"`
-		}
-		if json.Unmarshal(record.raw, &identity) != nil || identity.ID == "" {
+		identity := record.typed.nodeID()
+		if identity == "" {
 			continue
 		}
 		if owner := directOwner(record.value); owner != "" {
-			owners[identity.ID] = owner
+			owners[identity] = owner
 		}
 	}
 	return owners
