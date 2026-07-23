@@ -33,9 +33,25 @@ pub(crate) fn structure(
             },
         );
         let field_qn = format!("{qn}::{field_name}");
-        let field_id = add_node(context, "field", &field_qn, &field_name, source, field.span(), "field");
-        context.field_ids.insert((qn.clone(), field_name), field_id.clone());
-        crate::relationships::define_and_contain(context, &id, &field_id, field.span(), &source.relative);
+        let field_id = add_node(
+            context,
+            "field",
+            &field_qn,
+            &field_name,
+            source,
+            field.span(),
+            "field",
+        );
+        context
+            .field_ids
+            .insert((qn.clone(), field_name), field_id.clone());
+        crate::relationships::define_and_contain(
+            context,
+            &id,
+            &field_id,
+            field.span(),
+            &source.relative,
+        );
     }
     if matches!(item.fields, syn::Fields::Unnamed(_)) {
         let constructor_qn = format!("{qn}::constructor");
@@ -101,12 +117,18 @@ pub(crate) fn value_type(
 ) {
     let name_text = name.to_string();
     let qn = format!("{module}::{name_text}");
-    let id = add_node(context, "constant", &qn, &name_text, source, name.span(), "constant");
+    let id = add_node(
+        context,
+        "constant",
+        &qn,
+        &name_text,
+        source,
+        name.span(),
+        "constant",
+    );
     context.symbols.insert(qn.clone(), id.clone());
     crate::relationships::define_and_contain(context, owner, &id, name.span(), &source.relative);
-    context
-        .value_types
-        .insert(qn, type_tokens(value_type));
+    context.value_types.insert(qn, type_tokens(value_type));
 }
 
 pub(crate) fn alias(

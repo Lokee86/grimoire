@@ -50,7 +50,9 @@ func emitGDScriptStatement(facts *factSet, model *semanticModel, context analysi
 			if receiver != nil {
 				emitGDScriptMemberTarget(facts, model, context, source, pf, target, receiver, name, compound)
 			} else if id := gdscriptLocalTarget(facts, context.functionID, name); id != "" {
-				if compound { facts.addDataflowEdge(edge(source, id, "reads", spanFromTokens(pf.path, left[0], left[len(left)-1]))) }
+				if compound {
+					facts.addDataflowEdge(edge(source, id, "reads", spanFromTokens(pf.path, left[0], left[len(left)-1])))
+				}
 				facts.addDataflowEdge(edge(source, id, "writes", spanFromTokens(pf.path, left[0], left[len(left)-1])))
 			}
 		}
@@ -59,14 +61,19 @@ func emitGDScriptStatement(facts *factSet, model *semanticModel, context analysi
 	}
 	if len(stmt.tokens) > 1 && (stmt.tokens[0].text == "++" || stmt.tokens[0].text == "--" || stmt.tokens[len(stmt.tokens)-1].text == "++" || stmt.tokens[len(stmt.tokens)-1].text == "--") {
 		target := stmt.tokens[1:]
-		if stmt.tokens[len(stmt.tokens)-1].text == "++" || stmt.tokens[len(stmt.tokens)-1].text == "--" { target = stmt.tokens[:len(stmt.tokens)-1] }
+		if stmt.tokens[len(stmt.tokens)-1].text == "++" || stmt.tokens[len(stmt.tokens)-1].text == "--" {
+			target = stmt.tokens[:len(stmt.tokens)-1]
+		}
 		if left, receiver, name := gdscriptTarget(target); name != "" {
 			if receiver == nil {
 				if id := gdscriptLocalTarget(facts, context.functionID, name); id != "" {
 					span := spanFromTokens(pf.path, left[0], left[len(left)-1])
-					facts.addDataflowEdge(edge(source, id, "reads", span)); facts.addDataflowEdge(edge(source, id, "writes", span))
+					facts.addDataflowEdge(edge(source, id, "reads", span))
+					facts.addDataflowEdge(edge(source, id, "writes", span))
 				}
-			} else { emitGDScriptMemberTarget(facts, model, context, source, pf, left, receiver, name, true) }
+			} else {
+				emitGDScriptMemberTarget(facts, model, context, source, pf, left, receiver, name, true)
+			}
 		}
 		return
 	}
@@ -100,7 +107,9 @@ func emitGDScriptMemberTarget(facts *factSet, model *semanticModel, context anal
 		return
 	}
 	span := spanFromTokens(pf.path, target[0], target[len(target)-1])
-	if compound { facts.addDataflowEdge(edge(source, id, "reads", span)) }
+	if compound {
+		facts.addDataflowEdge(edge(source, id, "reads", span))
+	}
 	facts.addDataflowEdge(edge(source, id, "writes", span))
 }
 
@@ -121,7 +130,9 @@ func gdscriptLocalTarget(facts *factSet, functionID, name string) string {
 	for _, decl := range facts.declarationByID {
 		if decl.nodeID == functionID {
 			for _, parameter := range decl.parameterNames {
-				if parameter == name { return nodeID("parameter", decl.key+"::parameter::"+name) }
+				if parameter == name {
+					return nodeID("parameter", decl.key+"::parameter::"+name)
+				}
 			}
 		}
 	}
@@ -131,7 +142,9 @@ func gdscriptLocalTarget(facts *factSet, functionID, name string) string {
 func gdscriptMemberTargetID(model *semanticModel, context analysisContext, receiver []token, name string) string {
 	owners := ownerSet{}
 	if simpleIdentifier(receiver) == "self" {
-		if context.ownerID != "" { owners[context.ownerID] = struct{}{} }
+		if context.ownerID != "" {
+			owners[context.ownerID] = struct{}{}
+		}
 	} else if len(receiver) > 0 {
 		owners = model.inferExpressionOwners(context, receiver)
 	}
@@ -146,7 +159,9 @@ func gdscriptMemberTargetID(model *semanticModel, context analysisContext, recei
 }
 
 func gdscriptTarget(tokens []token) (target, receiver []token, name string) {
-	if len(tokens) == 1 && tokens[0].kind == tokenIdentifier { return tokens, nil, tokens[0].text }
+	if len(tokens) == 1 && tokens[0].kind == tokenIdentifier {
+		return tokens, nil, tokens[0].text
+	}
 	if len(tokens) >= 3 && tokens[len(tokens)-2].text == "." && tokens[len(tokens)-1].kind == tokenIdentifier {
 		return tokens, tokens[:len(tokens)-2], tokens[len(tokens)-1].text
 	}
@@ -157,15 +172,26 @@ func dataflowAssignmentIndex(tokens []token) int {
 	depth := 0
 	for index, current := range tokens {
 		switch current.text {
-		case "(", "[", "{": depth++
-		case ")", "]", "}": if depth > 0 { depth-- }
-		case "=", ":=", "+=", "-=", "*=", "/=": if depth == 0 { return index }
+		case "(", "[", "{":
+			depth++
+		case ")", "]", "}":
+			if depth > 0 {
+				depth--
+			}
+		case "=", ":=", "+=", "-=", "*=", "/=":
+			if depth == 0 {
+				return index
+			}
 		}
 	}
 	return -1
 }
 
 func tokenExcluded(current token, excluded []token) bool {
-	for _, candidate := range excluded { if candidate.line == current.line && candidate.column == current.column { return true } }
+	for _, candidate := range excluded {
+		if candidate.line == current.line && candidate.column == current.column {
+			return true
+		}
+	}
 	return false
 }

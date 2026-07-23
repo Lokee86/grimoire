@@ -43,32 +43,53 @@ fn edge_count(records: &[Value], source: &str, target: &str, relation: &str) -> 
         .count()
 }
 
-
 #[test]
 fn emits_conservative_dataflow_for_rust_locals_parameters_fields_constants_and_shadowing() {
     let records = records();
     let flow = node_id(&records, "lexicon_fixture::lexicon_fixture::flow");
     let inner = node_id(&records, "lexicon_fixture::lexicon_fixture::inner");
-    let update = node_id(&records, "lexicon_fixture::lexicon_fixture::FlowBox::update");
+    let update = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::FlowBox::update",
+    );
     let field = node_id(&records, "lexicon_fixture::lexicon_fixture::FlowBox::field");
     let constant = node_id(&records, "lexicon_fixture::lexicon_fixture::FLOW_CONST");
     let targets = |source: &str, relation: &str| {
-        records.iter().filter_map(|record| {
-            (record["record"] == "edge" && record["source"] == source && record["relation"] == relation)
-                .then(|| record["target"].as_str().unwrap())
-        }).collect::<std::collections::BTreeSet<_>>()
+        records
+            .iter()
+            .filter(|record| {
+                record["record"] == "edge"
+                    && record["source"] == source
+                    && record["relation"] == relation
+            })
+            .map(|record| record["target"].as_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>()
     };
     let flow_reads = targets(flow, "reads");
     let flow_writes = targets(flow, "writes");
     assert!(flow_reads.contains(constant));
     assert!(flow_writes.contains(field));
-    assert!(flow_reads.iter().any(|target| records.iter().any(|node| node["record"] == "node" && node["id"] == *target && node["name"] == "local")));
-    assert!(flow_writes.iter().any(|target| records.iter().any(|node| node["record"] == "node" && node["id"] == *target && node["name"] == "local")));
+    assert!(flow_reads.iter().any(|target| records
+        .iter()
+        .any(|node| node["record"] == "node" && node["id"] == *target && node["name"] == "local")));
+    assert!(flow_writes.iter().any(|target| records
+        .iter()
+        .any(|node| node["record"] == "node" && node["id"] == *target && node["name"] == "local")));
     assert!(targets(update, "reads").contains(field));
     assert!(targets(update, "writes").contains(field));
-    assert!(targets(inner, "reads").iter().any(|target| records.iter().any(|node| node["record"] == "node" && node["id"] == *target && node["name"] == "value")));
-    let node_ids: std::collections::BTreeSet<_> = records.iter().filter_map(|record| (record["record"] == "node").then(|| record["id"].as_str().unwrap())).collect();
-    assert!(records.iter().filter(|record| record["record"] == "edge" && ["reads", "writes"].contains(&record["relation"].as_str().unwrap())).all(|record| node_ids.contains(record["target"].as_str().unwrap())));
+    assert!(targets(inner, "reads").iter().any(|target| records
+        .iter()
+        .any(|node| node["record"] == "node" && node["id"] == *target && node["name"] == "value")));
+    let node_ids: std::collections::BTreeSet<_> = records
+        .iter()
+        .filter(|record| record["record"] == "node")
+        .map(|record| record["id"].as_str().unwrap())
+        .collect();
+    assert!(records
+        .iter()
+        .filter(|record| record["record"] == "edge"
+            && ["reads", "writes"].contains(&record["relation"].as_str().unwrap()))
+        .all(|record| node_ids.contains(record["target"].as_str().unwrap())));
 }
 
 #[test]
@@ -180,10 +201,7 @@ fn resolves_inherent_field_alias_constructor_ufcs_and_macro_calls() {
         "lexicon_fixture::lexicon_fixture::child::Worker::work",
     );
     assert!(has_edge(&records, run_local, work, "calls"));
-    let trait_run = node_id(
-        &records,
-        "lexicon_fixture::lexicon_fixture::Runnable::run",
-    );
+    let trait_run = node_id(&records, "lexicon_fixture::lexicon_fixture::Runnable::run");
     let service_run = node_id(
         &records,
         "lexicon_fixture::lexicon_fixture::Service::Runnable::run",
@@ -193,7 +211,10 @@ fn resolves_inherent_field_alias_constructor_ufcs_and_macro_calls() {
         "lexicon_fixture::lexicon_fixture::Alternate::Runnable::run",
     );
     assert_eq!(edge_count(&records, service_run, trait_run, "overrides"), 1);
-    assert_eq!(edge_count(&records, alternate_run, trait_run, "overrides"), 1);
+    assert_eq!(
+        edge_count(&records, alternate_run, trait_run, "overrides"),
+        1
+    );
     let factory = node_id(
         &records,
         "lexicon_fixture::lexicon_fixture::Service::factory",
@@ -239,6 +260,7 @@ fn resolves_local_methods_through_standard_combinators_and_trait_impls() {
         .iter()
         .find(|record| {
             record["record"] == "node"
+                && record["kind"] == "function"
                 && record["qualified_name"].as_str().is_some_and(|name| {
                     name.starts_with("lexicon_fixture::lexicon_fixture::map_snapshot::closure@")
                 })

@@ -74,7 +74,9 @@ func TestCaller(t *testing.T) { helper() }
 	}
 	dependencyEdges := 0
 	for _, edge := range first.Edges {
-		if edge.Relation == RelDependsOn { dependencyEdges++ }
+		if edge.Relation == RelDependsOn {
+			dependencyEdges++
+		}
 	}
 	if dependencyEdges != 1 {
 		t.Fatalf("local depends-on edge count = %d, want 1", dependencyEdges)
@@ -107,7 +109,9 @@ func TestParseGoManifestDependencies(t *testing.T) {
 	filename := filepath.Join(root, "go.mod")
 	writeFixture(t, root, map[string]string{"go.mod": "module example.com/demo\nrequire (\n example.com/external v1.2.3\n)\nreplace example.com/local => ./local\n"})
 	dependencies, err := parseGoDependencies(filename)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(dependencies) != 2 || dependencies[0].constraint != "v1.2.3" || dependencies[1].replacement != "./local" {
 		t.Fatalf("parsed dependencies = %#v", dependencies)
 	}

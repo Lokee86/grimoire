@@ -163,26 +163,44 @@ func inner(value):
     return value
 `)
 	data, err := analyzeRepository(root)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	records := decodeRecords(t, data)
 	ids := map[string]string{}
 	for _, record := range records {
 		if record["record"] == "node" {
-			if name, ok := record["name"].(string); ok && (name == "field" || name == "local" || name == "value") { ids[record["id"].(string)] = name }
+			if name, ok := record["name"].(string); ok && (name == "field" || name == "local" || name == "value") {
+				ids[record["id"].(string)] = name
+			}
 		}
 	}
 	run := findNode(records, "function", "run", "box.gd")
 	inner := findNode(records, "function", "inner", "box.gd")
-	if run == nil || inner == nil { t.Fatal("missing dataflow functions") }
+	if run == nil || inner == nil {
+		t.Fatal("missing dataflow functions")
+	}
 	var runReads, runWrites, innerReads int
 	for _, record := range records {
-		if record["record"] != "edge" { continue }
-		if record["source"] == run["id"] && record["relation"] == "reads" { runReads++ }
-		if record["source"] == run["id"] && record["relation"] == "writes" { runWrites++ }
-		if record["source"] == inner["id"] && record["relation"] == "reads" { innerReads++ }
-		if (record["relation"] == "reads" || record["relation"] == "writes") && ids[record["target"].(string)] == "" { t.Fatalf("dataflow target is not a repository symbol: %#v", record) }
+		if record["record"] != "edge" {
+			continue
+		}
+		if record["source"] == run["id"] && record["relation"] == "reads" {
+			runReads++
+		}
+		if record["source"] == run["id"] && record["relation"] == "writes" {
+			runWrites++
+		}
+		if record["source"] == inner["id"] && record["relation"] == "reads" {
+			innerReads++
+		}
+		if (record["relation"] == "reads" || record["relation"] == "writes") && ids[record["target"].(string)] == "" {
+			t.Fatalf("dataflow target is not a repository symbol: %#v", record)
+		}
 	}
-	if runReads < 2 || runWrites < 2 || innerReads == 0 { t.Fatalf("unexpected dataflow reads=%d writes=%d innerReads=%d", runReads, runWrites, innerReads) }
+	if runReads < 2 || runWrites < 2 || innerReads == 0 {
+		t.Fatalf("unexpected dataflow reads=%d writes=%d innerReads=%d", runReads, runWrites, innerReads)
+	}
 }
 
 func TestFactSetDeduplicatesEdgesAndUnresolved(t *testing.T) {

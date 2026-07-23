@@ -126,9 +126,17 @@ impl Facts {
         self.unresolved.entry(key).or_insert(Value::Object(record));
     }
 
-    pub(crate) fn add_dataflow_edge(&mut self, source: &str, target: &str, relation: &str, span: Option<Value>) {
+    pub(crate) fn add_dataflow_edge(
+        &mut self,
+        source: &str,
+        target: &str,
+        relation: &str,
+        span: Option<Value>,
+    ) {
         let key = format!("{source}\0{target}\0{relation}");
-        if !self.dataflow_edges.insert(key) { return; }
+        if !self.dataflow_edges.insert(key) {
+            return;
+        }
         self.add_edge(source, target, relation, span);
     }
 }
