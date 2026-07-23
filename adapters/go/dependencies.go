@@ -54,14 +54,8 @@ func (s *scanner) addDependencyFacts() error {
 			if !s.isInternalNamespace(importPath) {
 				continue
 			}
-			var target NodeKey
-			for _, packageInfo := range s.packages {
-				if packageInfo.importKey == importPath {
-					target = packageInfo.key
-					break
-				}
-			}
-			if target != "" {
+			target, found := s.packageNodeForNamespace(importPath)
+			if found {
 				s.addEdge(source, target, RelDependsOn, nil, dependencyAttributes("local", importPath, "", true))
 			}
 		}

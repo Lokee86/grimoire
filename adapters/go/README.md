@@ -9,6 +9,8 @@ go run . -repo /path/to/repository -output facts.jsonl
 python ../../tools/validate_jsonl.py facts.jsonl
 ```
 
+The standalone adapter also accepts `-workers`, `-shards`, and `-merge-fan-in`. Lexicon normally selects these values automatically from repository size and the available CPU budget. Semantic files are processed by a bounded worker pool, shard-local facts are combined through a deterministic reduction tree, and the final SSA/VTA pass resolves repository-wide dispatch. Output must remain byte-identical for every worker count and reduction shape.
+
 ## Modeled semantics
 
 The adapter models:

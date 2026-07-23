@@ -16,6 +16,7 @@ type analysisPlan struct {
 	ChangedFiles []string
 	RemovedFiles []string
 	ContextFiles []string
+	Execution    ExecutionPlan
 }
 
 func (s *Scanner) plansFor(changes []state.Change, drift []string) ([]analysisPlan, error) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/types"
 	"sort"
+	"time"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -40,8 +41,9 @@ type ssaOutcome struct {
 	targets map[NodeKey]bool
 }
 
-func (s *scanner) loadSemanticCalls() error {
+func (s *scanner) loadSemanticCalls(options ScanOptions) error {
 	for _, module := range s.modules {
+		packageLoadStarted := time.Now()
 		config := &packages.Config{
 			Mode:  packages.LoadAllSyntax | packages.NeedModule,
 			Dir:   module.Root,
@@ -52,10 +54,12 @@ func (s *scanner) loadSemanticCalls() error {
 			return fmt.Errorf("load Go module %s: %w", module.Path, err)
 		}
 		loaded := flattenPackages(roots)
+		s.summary.PackageLoad += time.Since(packageLoadStarted)
 		for _, pkg := range loaded {
 			s.summary.SemanticErrors += len(pkg.Errors)
 		}
 
+		semanticIndexStarted := time.Now()
 		targets := semanticTargets{
 			byObject:                 make(map[*types.Func]NodeKey),
 			byID:                     make(map[string][]NodeKey),
@@ -65,12 +69,19 @@ func (s *scanner) loadSemanticCalls() error {
 			s.collectSemanticTargets(pkg, &targets)
 		}
 		s.collectSemanticTypes(loaded, &targets)
-		for _, pkg := range loaded {
-			s.collectSemanticCalls(pkg, targets)
+		s.summary.SemanticIndex += time.Since(semanticIndexStarted)
+
+		typedResolutionStarted := time.Now()
+		if err := s.collectSemanticCallsParallel(loaded, targets, options); err != nil {
+			return fmt.Errorf("resolve Go module %s: %w", module.Path, err)
 		}
+		s.summary.TypedResolution += time.Since(typedResolutionStarted)
+
+		ssaResolutionStarted := time.Now()
 		if err := s.collectSSACalls(roots, targets); err != nil {
 			return fmt.Errorf("analyze Go module %s: %w", module.Path, err)
 		}
+		s.summary.SSAResolution += time.Since(ssaResolutionStarted)
 	}
 	return nil
 }

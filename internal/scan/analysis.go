@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"sync"
 
 	"github.com/Lokee86/lexicon/internal/adapters"
 	"github.com/Lokee86/lexicon/internal/config"
@@ -33,12 +35,46 @@ func (s *Scanner) analyzePlans(
 	if err := os.MkdirAll(temporary, 0o755); err != nil {
 		return objectstore.Manifest{}, err
 	}
-	for _, plan := range plans {
-		var err error
-		manifest, err = s.analyzePlan(ctx, manifest, plan, temporary)
+	prepared := append([]analysisPlan(nil), plans...)
+	for index := range prepared {
+		execution, err := s.executionPlan(prepared[index])
 		if err != nil {
 			return objectstore.Manifest{}, err
 		}
+		prepared[index].Execution = execution
+	}
+
+	type planResult struct {
+		manifest objectstore.Manifest
+		err      error
+	}
+	results := make([]planResult, len(prepared))
+	scheduler := newWeightedScheduler(runtime.GOMAXPROCS(0))
+	var group sync.WaitGroup
+	for index := range prepared {
+		index := index
+		plan := prepared[index]
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			scheduler.acquire(plan.Execution.ReservedWeight)
+			defer scheduler.release(plan.Execution.ReservedWeight)
+			results[index].manifest, results[index].err = s.analyzePlan(ctx, manifest, plan, temporary)
+		}()
+	}
+	group.Wait()
+
+	for index, result := range results {
+		if result.err != nil {
+			return objectstore.Manifest{}, result.err
+		}
+		language := prepared[index].Language
+		entry, present := result.manifest.Language(language)
+		if !present {
+			manifest = manifest.WithoutLanguage(language)
+			continue
+		}
+		manifest = manifest.WithLanguage(entry)
 	}
 	return manifest, nil
 }
@@ -55,20 +91,16 @@ func (s *Scanner) analyzePlan(
 		return objectstore.Manifest{}, err
 	}
 	if !present {
-		if s.Output != nil {
-			fmt.Fprintf(s.Output, "removing %s analysis\n", plan.Language)
-		}
+		s.writeOutput("removing %s analysis\n", plan.Language)
 		return manifest.WithoutLanguage(plan.Language), nil
 	}
 
 	adapterOutput := filepath.Join(temporary, plan.Language+".jsonl")
 	_ = os.Remove(adapterOutput)
-	if s.Output != nil {
-		if plan.Full {
-			fmt.Fprintf(s.Output, "analyzing %s\n", plan.Language)
-		} else {
-			fmt.Fprintf(s.Output, "analyzing %s files: %d\n", plan.Language, len(plan.ChangedFiles))
-		}
+	if plan.Full {
+		s.writeOutput("analyzing %s\n", plan.Language)
+	} else {
+		s.writeOutput("analyzing %s files: %d\n", plan.Language, len(plan.ChangedFiles))
 	}
 	request, err := s.analysisRequest(plan, sourceRoot, temporary, adapterOutput)
 	if err != nil {
@@ -179,6 +211,8 @@ func (s *Scanner) analysisRequest(plan analysisPlan, sourceRoot, temporary, outp
 	return adapters.Request{
 		Language: plan.Language, Repository: repository, Output: output,
 		ChangedFiles: plan.ChangedFiles, RemovedFiles: plan.RemovedFiles,
+		Workers: plan.Execution.ActiveWorkers, Shards: plan.Execution.LogicalShards,
+		MergeFanIn: plan.Execution.MergeFanIn,
 	}, nil
 }
 
@@ -188,9 +222,7 @@ func (s *Scanner) retryFull(
 	sourceRoot string,
 	scopedErr error,
 ) (*objectstore.Analysis, error) {
-	if s.Output != nil {
-		fmt.Fprintf(s.Output, "expanding %s to full analysis\n", request.Language)
-	}
+	s.writeOutput("expanding %s to full analysis\n", request.Language)
 	_ = os.Remove(request.Output)
 	request.Repository = sourceRoot
 	request.ChangedFiles = nil
@@ -209,6 +241,15 @@ func (s *Scanner) retryFull(
 		return nil, fmt.Errorf("full %s retry emitted incremental output", request.Language)
 	}
 	return analysis, nil
+}
+
+func (s *Scanner) writeOutput(format string, arguments ...any) {
+	if s.Output == nil {
+		return
+	}
+	s.outputMu.Lock()
+	defer s.outputMu.Unlock()
+	_, _ = fmt.Fprintf(s.Output, format, arguments...)
 }
 
 func planLanguages(plans []analysisPlan) []string {

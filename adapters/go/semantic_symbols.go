@@ -3,13 +3,14 @@ package main
 import (
 	"go/token"
 	"go/types"
+	"path"
 	"strings"
 )
 
 func (s *scanner) ensureTypedInternalFunction(function *types.Func, namespace string, set *token.FileSet) NodeKey {
 	id := semanticFunctionID(function, namespace)
 	key := hashIdentity(id)
-	if _, exists := s.nodes[key]; exists {
+	if s.hasNode(key) {
 		s.registerSemanticID(id, key)
 		return key
 	}
@@ -43,7 +44,7 @@ func (s *scanner) ensureExternalFunction(function *types.Func, namespace string)
 	}
 	id := semanticFunctionID(function, namespace)
 	key := hashIdentity(id)
-	if _, exists := s.nodes[key]; exists {
+	if s.hasNode(key) {
 		return key
 	}
 	kind := KindFunction
@@ -78,7 +79,7 @@ func (s *scanner) ensureTypeNode(value types.Type) NodeKey {
 		object := named.Obj()
 		namespace := s.canonicalNamespace(objectNamespace(object))
 		key := hashIdentity("type:" + namespace + ":" + object.Name())
-		if _, exists := s.nodes[key]; exists {
+		if s.hasNode(key) {
 			return key
 		}
 		path := s.pathForNamespace(namespace)
@@ -105,7 +106,7 @@ func (s *scanner) ensureTypeNode(value types.Type) NodeKey {
 
 func (s *scanner) ensureNamespaceNode(namespace string) NodeKey {
 	key := hashIdentity("namespace:" + namespace)
-	if _, exists := s.nodes[key]; exists {
+	if s.hasNode(key) {
 		return key
 	}
 	s.addNode(NodeFact{Key: key, Kind: KindNamespace, Path: s.pathForNamespace(namespace), Name: namespace})
@@ -115,12 +116,26 @@ func (s *scanner) ensureNamespaceNode(namespace string) NodeKey {
 
 func (s *scanner) packageNodeForNamespace(namespace string) (NodeKey, bool) {
 	namespace = s.canonicalNamespace(namespace)
+	expectedName := path.Base(namespace)
+	var selected packageInfo
+	selectedScore := -1
 	for _, pkg := range s.packages {
-		if pkg.importKey == namespace {
-			return pkg.key, true
+		if pkg.importKey != namespace {
+			continue
+		}
+		score := 0
+		if !strings.HasSuffix(pkg.name, "_test") {
+			score++
+		}
+		if pkg.name == expectedName {
+			score += 2
+		}
+		if selectedScore < score || (selectedScore == score && (selected.key == "" || pkg.key < selected.key)) {
+			selected = pkg
+			selectedScore = score
 		}
 	}
-	return "", false
+	return selected.key, selectedScore >= 0
 }
 
 func (s *scanner) pathForNamespace(namespace string) string {

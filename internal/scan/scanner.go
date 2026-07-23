@@ -3,6 +3,7 @@ package scan
 import (
 	"context"
 	"io"
+	"sync"
 
 	"github.com/Lokee86/lexicon/internal/adapters"
 	"github.com/Lokee86/lexicon/internal/config"
@@ -22,6 +23,7 @@ type Scanner struct {
 	Analyzer         adapters.Analyzer
 	Store            objectstore.Store
 	Output           io.Writer
+	outputMu         sync.Mutex
 }
 
 type Report struct {

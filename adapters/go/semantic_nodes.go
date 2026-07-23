@@ -52,6 +52,14 @@ func (s *scanner) registerSemanticID(id string, key NodeKey) {
 	s.semanticIDs[id] = appendUniqueKey(s.semanticIDs[id], key)
 }
 
+func (s *scanner) semanticIDCandidates(id string) []NodeKey {
+	candidates := append([]NodeKey(nil), s.baseSemanticIDs[id]...)
+	for _, key := range s.semanticIDs[id] {
+		candidates = appendUniqueKey(candidates, key)
+	}
+	return candidates
+}
+
 func astSemanticFunctionID(importPath string, declaration *ast.FuncDecl) string {
 	if declaration.Recv == nil {
 		return "function:" + importPath + ":" + declaration.Name.Name
@@ -93,7 +101,7 @@ func (s *scanner) internalFunctionCandidates(function *types.Func, targets seman
 	namespace := s.canonicalNamespace(objectNamespace(function))
 	id := semanticFunctionID(function, namespace)
 	candidates := append([]NodeKey(nil), targets.byID[id]...)
-	for _, key := range s.semanticIDs[id] {
+	for _, key := range s.semanticIDCandidates(id) {
 		candidates = appendUniqueKey(candidates, key)
 	}
 	return candidates
@@ -108,7 +116,7 @@ func (s *scanner) ensureFunctionNode(
 	if s.isInternalNamespace(namespace) {
 		id := semanticFunctionID(function, namespace)
 		canonical := hashIdentity(id)
-		if _, exists := s.nodes[canonical]; exists {
+		if s.hasNode(canonical) {
 			return canonical, true, true
 		}
 		candidates := s.internalFunctionCandidates(function, targets)
