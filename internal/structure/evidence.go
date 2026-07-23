@@ -1,5 +1,7 @@
 package structure
 
+import "github.com/Lokee86/grimoire/internal/evidence"
+
 // Span identifies a repository source range.
 type Span struct {
 	Path        string `json:"path"`
@@ -64,16 +66,17 @@ type ProviderState struct {
 // package. Kind identifies the concrete shape: symbol, operational_role,
 // impact, call_chain, or unresolved.
 type Evidence struct {
-	Provider      string         `json:"provider"`
-	Kind          string         `json:"kind"`
-	Rank          int            `json:"rank"`
-	Score         float64        `json:"score,omitempty"`
-	Reasons       []string       `json:"reasons,omitempty"`
-	Node          *Node          `json:"node,omitempty"`
-	Summary       string         `json:"summary,omitempty"`
-	Relationships []Relationship `json:"relationships,omitempty"`
-	Dependents    []DepthNode    `json:"dependents,omitempty"`
-	Chain         *Path          `json:"chain,omitempty"`
-	Unresolved    []Unresolved   `json:"unresolved,omitempty"`
-	Truncated     bool           `json:"truncated,omitempty"`
+	Provider      string               `json:"provider"`
+	Kind          string               `json:"kind"`
+	Rank          int                  `json:"rank"`
+	Score         float64              `json:"score,omitempty"`
+	Reasons       []string             `json:"reasons,omitempty"`
+	Node          *Node                `json:"node,omitempty"`
+	Summary       string               `json:"summary,omitempty"`
+	Relationships []Relationship       `json:"relationships,omitempty"`
+	Dependents    []DepthNode          `json:"dependents,omitempty"`
+	Chain         *Path                `json:"chain,omitempty"`
+	Unresolved    []Unresolved         `json:"unresolved,omitempty"`
+	Truncated     bool                 `json:"truncated,omitempty"`
+	Context       *evidence.Descriptor `json:"context,omitempty"`
 }

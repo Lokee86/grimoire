@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 )
@@ -25,6 +26,34 @@ func TestMergeContextCandidatesPrefersExactAndKeepsProviderEvidence(t *testing.T
 	}
 	if !slices.Contains(merged[0].Reasons, "also retrieved by vector rank 4") {
 		t.Fatalf("missing provider evidence: %+v", merged[0].Reasons)
+	}
+}
+
+func TestMergeContextCandidatesMergesSharedEvidenceMetadata(t *testing.T) {
+	chunk := index.Chunk{ID: "alpha", Path: "alpha.go", StartLine: 1, EndLine: 3}
+	primary := retrieve.Candidate{
+		Chunk: chunk, Source: "vector", Rank: 1,
+		Context: &evidence.Descriptor{
+			Identity: "range:alpha.go:1:3",
+			Intents:  []evidence.Intent{evidence.IntentMechanism},
+		},
+	}
+	structural := retrieve.Candidate{
+		Chunk: chunk, Source: "lexicon", Rank: 2,
+		Context: &evidence.Descriptor{
+			GroupIDs: []string{"call-chain:alpha"},
+			Roles:    []evidence.Role{evidence.RoleStructural},
+		},
+	}
+
+	merged := mergeContextCandidates(10, []retrieve.Candidate{primary}, []retrieve.Candidate{structural})
+	if len(merged) != 1 || merged[0].Context == nil {
+		t.Fatalf("unexpected merge: %+v", merged)
+	}
+	if !slices.Contains(merged[0].Context.Intents, evidence.IntentMechanism) ||
+		!slices.Contains(merged[0].Context.GroupIDs, "call-chain:alpha") ||
+		!slices.Contains(merged[0].Context.Roles, evidence.RoleStructural) {
+		t.Fatalf("merged context lost provider metadata: %+v", merged[0].Context)
 	}
 }
 
