@@ -41,34 +41,36 @@ type ssaOutcome struct {
 }
 
 func (s *scanner) loadSemanticCalls() error {
-	config := &packages.Config{
-		Mode:  packages.LoadAllSyntax | packages.NeedModule,
-		Dir:   s.root,
-		Tests: true,
-	}
-	roots, err := packages.Load(config, "./...")
-	if err != nil {
-		return fmt.Errorf("load Go packages: %w", err)
-	}
-	loaded := flattenPackages(roots)
-	for _, pkg := range loaded {
-		s.summary.SemanticErrors += len(pkg.Errors)
-	}
+	for _, module := range s.modules {
+		config := &packages.Config{
+			Mode:  packages.LoadAllSyntax | packages.NeedModule,
+			Dir:   module.Root,
+			Tests: true,
+		}
+		roots, err := packages.Load(config, "./...")
+		if err != nil {
+			return fmt.Errorf("load Go module %s: %w", module.Path, err)
+		}
+		loaded := flattenPackages(roots)
+		for _, pkg := range loaded {
+			s.summary.SemanticErrors += len(pkg.Errors)
+		}
 
-	targets := semanticTargets{
-		byObject:                 make(map[*types.Func]NodeKey),
-		byID:                     make(map[string][]NodeKey),
-		interfaceImplementations: make(map[NodeKey][]NodeKey),
-	}
-	for _, pkg := range loaded {
-		s.collectSemanticTargets(pkg, &targets)
-	}
-	s.collectSemanticTypes(loaded, &targets)
-	for _, pkg := range loaded {
-		s.collectSemanticCalls(pkg, targets)
-	}
-	if err := s.collectSSACalls(roots, targets); err != nil {
-		return err
+		targets := semanticTargets{
+			byObject:                 make(map[*types.Func]NodeKey),
+			byID:                     make(map[string][]NodeKey),
+			interfaceImplementations: make(map[NodeKey][]NodeKey),
+		}
+		for _, pkg := range loaded {
+			s.collectSemanticTargets(pkg, &targets)
+		}
+		s.collectSemanticTypes(loaded, &targets)
+		for _, pkg := range loaded {
+			s.collectSemanticCalls(pkg, targets)
+		}
+		if err := s.collectSSACalls(roots, targets); err != nil {
+			return fmt.Errorf("analyze Go module %s: %w", module.Path, err)
+		}
 	}
 	return nil
 }

@@ -134,7 +134,7 @@ func (s *scanner) collectSSACaptures(functions map[*ssa.Function]bool, set *toke
 				}
 				identity = fmt.Sprintf(
 					"variable:%s:%s:%d:%d:%s",
-					s.module, variablePath, variablePosition.Line, variablePosition.Column, variable.Name(),
+					s.importPathFor(variablePath), variablePath, variablePosition.Line, variablePosition.Column, variable.Name(),
 				)
 				span = &SourceSpan{
 					Path:        variablePath,

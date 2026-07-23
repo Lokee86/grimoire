@@ -15,28 +15,35 @@ type goDependency struct {
 }
 
 func (s *scanner) addDependencyFacts() error {
-	manifest := filepath.Join(s.root, "go.mod")
-	dependencies, err := parseGoDependencies(manifest)
-	if err != nil {
-		return err
-	}
-	repository := hashIdentity("repository:" + s.module)
-	for _, dependency := range dependencies {
-		targetName := dependency.name
-		local := ""
-		if dependency.replacement != "" && (strings.HasPrefix(dependency.replacement, "./") || strings.HasPrefix(dependency.replacement, "../")) {
-			candidate := filepath.ToSlash(filepath.Clean(dependency.replacement))
-			if candidate != ".." && !strings.HasPrefix(candidate, "../") {
-				local = candidate
-				if module, readErr := readGoModule(filepath.Join(s.root, filepath.FromSlash(local))); readErr == nil {
-					targetName = module
-				}
-				dependency.path = true
-			}
+	repository := s.repositoryKey()
+	for _, module := range s.modules {
+		manifest := filepath.Join(module.Root, "go.mod")
+		dependencies, err := parseGoDependencies(manifest)
+		if err != nil {
+			return err
 		}
-		target := s.dependencyNode("go", targetName, dependency.path, local)
-		attributes := dependencyAttributes(dependency.category, dependency.source, dependency.constraint, dependency.path)
-		s.addEdge(repository, target, RelDependsOn, nil, attributes)
+		for _, dependency := range dependencies {
+			targetName := dependency.name
+			local := ""
+			if dependency.replacement != "" && (strings.HasPrefix(dependency.replacement, "./") || strings.HasPrefix(dependency.replacement, "../")) {
+				candidateRoot := filepath.Clean(filepath.Join(module.Root, filepath.FromSlash(dependency.replacement)))
+				relative, relErr := filepath.Rel(s.root, candidateRoot)
+				if relErr == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+					if relative == "." {
+						local = ".lexicon-repository"
+					} else if normalized, normalizeErr := normalizePath(relative); normalizeErr == nil {
+						local = normalized
+					}
+					if replacementModule, readErr := readGoModule(candidateRoot); readErr == nil {
+						targetName = replacementModule
+					}
+					dependency.path = true
+				}
+			}
+			target := s.dependencyNode("go", targetName, dependency.path, local)
+			attributes := dependencyAttributes(dependency.category, dependency.source, dependency.constraint, dependency.path)
+			s.addEdge(repository, target, RelDependsOn, nil, attributes)
+		}
 	}
 	for relative, imports := range s.fileImports {
 		source, ok := s.packageByFile[relative]
@@ -44,7 +51,7 @@ func (s *scanner) addDependencyFacts() error {
 			continue
 		}
 		for _, importPath := range imports {
-			if !strings.HasPrefix(importPath, s.module+"/") && importPath != s.module {
+			if !s.isInternalNamespace(importPath) {
 				continue
 			}
 			var target NodeKey

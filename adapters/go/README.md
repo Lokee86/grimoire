@@ -1,11 +1,11 @@
 # Go adapter
 
-The Go adapter scans one Go module and emits deterministic Lexicon facts v1 JSONL. It combines repository-wide AST extraction with `golang.org/x/tools/go/packages`, Go type information, SSA, and variable-type analysis.
+The Go adapter scans a Go module or a repository containing multiple Go modules and emits deterministic Lexicon facts v1 JSONL. It discovers every `go.mod`, assigns each source file to its nearest module root, analyzes modules independently, and merges their facts into one repository graph. Semantic extraction combines `golang.org/x/tools/go/packages`, Go type information, SSA, and variable-type analysis.
 
 ## Run
 
 ```bash
-go run . -repo /path/to/module -output facts.jsonl
+go run . -repo /path/to/repository -output facts.jsonl
 python ../../tools/validate_jsonl.py facts.jsonl
 ```
 
@@ -40,7 +40,7 @@ The SHA-256 payload defined by the shared contract uses these Go identity string
 
 | Kind | Canonical identity |
 | --- | --- |
-| repository | `repository:<module path>` |
+| repository | `repository:<root module path>` or `repository:<repository directory name>` for a multi-module root |
 | directory | `directory:<repository-relative path>` |
 | file | `file:<repository-relative path>` |
 | module | `package:<import path>:<package name>` |
@@ -52,7 +52,7 @@ The SHA-256 payload defined by the shared contract uses these Go identity string
 | interface method | `interface-method:<import path>:<interface>.<method name>` |
 | test | `test:<import path>:<test name>` |
 | closure | `closure:<import path>:<file>:<line>:<column>` |
-| captured variable | `variable:<module>:<file>:<line>:<column>:<name>` |
+| captured variable | `variable:<owning import path>:<file>:<line>:<column>:<name>` |
 
 Compiler-generated wrappers and external closures use deterministic `ssa-function:` identities. Synthetic built-in and type-expression nodes use stable language namespaces such as `go:builtins` and `go:types`. Absolute checkout paths are never part of an identity.
 

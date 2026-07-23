@@ -133,13 +133,20 @@ func (s *scanner) pathForNamespace(namespace string) string {
 	case "go:unknown":
 		return "@external/go-unknown"
 	}
-	if s.isInternalNamespace(namespace) {
-		relative := strings.TrimPrefix(namespace, s.module)
+	if module, ok := s.moduleForNamespace(namespace); ok {
+		relative := strings.TrimPrefix(namespace, module.Path)
 		relative = strings.TrimPrefix(relative, "/")
-		if relative == "" {
+		path := module.Relative
+		if relative != "" {
+			if path != "" {
+				path += "/"
+			}
+			path += relative
+		}
+		if path == "" {
 			return ".lexicon-repository"
 		}
-		return relative
+		return path
 	}
 	if isStandardLibraryNamespace(namespace) {
 		return "@stdlib/" + namespace
