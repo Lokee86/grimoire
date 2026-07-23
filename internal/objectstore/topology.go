@@ -6,29 +6,8 @@ import (
 )
 
 func (s Store) DirectChangesRequireFull(language string, roots []string) (bool, error) {
-	_, objects, nodeOwners, _, err := s.dependencyData(language)
-	if err != nil {
-		return true, err
-	}
-	for _, path := range roots {
-		object, ok := objects[path]
-		if !ok {
-			return true, nil
-		}
-		for _, raw := range object.Records {
-			var record dependencyRecord
-			if err := json.Unmarshal(raw, &record); err != nil {
-				return true, err
-			}
-			if record.Record == "unresolved" && repositorySensitiveUnresolved(record.Reason) {
-				return true, nil
-			}
-			if record.Record == "edge" && semanticRelation(record.Relation) && nodeOwners[record.Target] != path {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
+	fullRequired, _, _, err := s.IncrementalScope(language, roots)
+	return fullRequired, err
 }
 
 func repositorySensitiveUnresolved(reason string) bool {
@@ -59,30 +38,38 @@ type topologyRecord struct {
 	CandidateName string `json:"candidate_name"`
 }
 
-func (s Store) RequiresFullAnalysis(language string, changedFiles []string, incrementalPath string) (bool, error) {
-	_, objects, previousOwners, _, err := s.dependencyData(language)
+func (s Store) RequiresFullAnalysis(language string, changedFiles []string, analysis *Analysis) (bool, error) {
+	if analysis == nil || !analysis.IsIncremental() {
+		return true, nil
+	}
+	_, manifest, err := s.Current()
 	if err != nil {
 		return true, err
+	}
+	entry, ok := languageEntry(manifest, language)
+	if !ok {
+		return true, nil
+	}
+	files := make(map[string]FileEntry, len(entry.Files))
+	for _, file := range entry.Files {
+		files[file.Path] = file
 	}
 	selected := make(map[string]struct{}, len(changedFiles))
 	previous := make(map[string]map[string]struct{}, len(changedFiles))
 	for _, path := range changedFiles {
 		selected[path] = struct{}{}
-		object, ok := objects[path]
+		file, ok := files[path]
 		if !ok {
 			return true, nil
 		}
+		object, err := s.LoadObject(file.ObjectID)
+		if err != nil {
+			return true, err
+		}
 		previous[path] = relationKeys(object.Records)
 	}
-	_, records, err := parseOutput(incrementalPath)
-	if err != nil {
-		return true, err
-	}
-	owners := previousOwners
-	for id, owner := range nodeOwners(records) {
-		owners[id] = owner
-	}
-	for _, record := range records {
+	owners := nodeOwners(analysis.records)
+	for _, record := range analysis.records {
 		key, relationship, err := relationKey(record.raw)
 		if err != nil {
 			return true, err
@@ -91,8 +78,11 @@ func (s Store) RequiresFullAnalysis(language string, changedFiles []string, incr
 			continue
 		}
 		owner := recordOwner(record.value, owners)
-		if _, ok := selected[owner]; !ok {
+		if owner == "" {
 			continue
+		}
+		if _, ok := selected[owner]; !ok {
+			return true, nil
 		}
 		if _, existed := previous[owner][key]; !existed {
 			return true, nil

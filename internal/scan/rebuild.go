@@ -20,13 +20,17 @@ func (s *Scanner) rebuild(ctx context.Context, languages []string) (Report, erro
 		return Report{}, err
 	}
 	defer guard.Close()
+	if err := s.recoverPending(); err != nil {
+		return Report{}, err
+	}
 	if err := s.Git.ResetIndex(); err != nil {
 		return Report{}, err
 	}
-	if err := s.Git.RestoreLibrary(); err != nil {
+	manifest, err := s.loadManifest()
+	if err != nil {
 		return Report{}, err
 	}
-	if _, err := s.pruneDisabledLibraries(); err != nil {
+	if _, err := s.removeLegacyLibrary(); err != nil {
 		return Report{}, err
 	}
 	if err := s.Mirror.SyncAll(s.Repository); err != nil {
@@ -39,6 +43,7 @@ func (s *Scanner) rebuild(ctx context.Context, languages []string) (Report, erro
 	if err != nil {
 		return Report{}, err
 	}
+	manifest, _ = s.pruneDisabledLanguages(manifest)
 	if len(languages) == 0 {
 		languages, err = languagesInTree(filepath.Join(s.StateRoot, "source"))
 		if err != nil {
@@ -51,20 +56,11 @@ func (s *Scanner) rebuild(ctx context.Context, languages []string) (Report, erro
 			return Report{}, err
 		}
 	}
-	plans := make([]analysisPlan, 0, len(languages))
-	for _, language := range languages {
-		plans = append(plans, analysisPlan{Language: language, Full: true})
-	}
-	if err := s.analyzePlans(ctx, plans); err != nil {
+	manifest, err = s.analyzeFull(ctx, manifest, languages)
+	if err != nil {
 		return Report{}, err
 	}
-	if err := s.Git.StageAll(); err != nil {
-		return Report{}, err
-	}
-	if err := s.Git.CommitState(); err != nil {
-		return Report{}, err
-	}
-	snapshotID, err := s.publishSnapshot()
+	snapshotID, err := s.commitManifest(manifest)
 	if err != nil {
 		return Report{}, err
 	}

@@ -132,7 +132,8 @@ func includePath(path string, selected map[string]struct{}) bool {
 }
 
 func sortedPathList(paths []string) []string {
-	result := append([]string(nil), paths...)
+	result := make([]string, len(paths))
+	copy(result, paths)
 	for index := range result {
 		result[index] = filepath.ToSlash(result[index])
 	}

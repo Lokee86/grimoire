@@ -53,18 +53,13 @@ func (s *Scanner) plansFor(changes []state.Change, drift []string) ([]analysisPl
 	for _, plan := range plans {
 		if !plan.Full {
 			roots := uniqueSorted(plan.ChangedFiles)
-			fullRequired, err := s.Store.DirectChangesRequireFull(plan.Language, roots)
+			fullRequired, impacted, context, err := s.Store.IncrementalScope(plan.Language, roots)
 			if err != nil || fullRequired {
 				plan.Full = true
 			} else {
-				impacted, context, err := s.Store.DependencyScope(plan.Language, roots)
-				if err != nil {
-					plan.Full = true
-				} else {
-					plan.ChangedFiles = impacted
-					plan.RemovedFiles = []string{}
-					plan.ContextFiles = context
-				}
+				plan.ChangedFiles = impacted
+				plan.RemovedFiles = []string{}
+				plan.ContextFiles = context
 			}
 		}
 		if plan.Full {

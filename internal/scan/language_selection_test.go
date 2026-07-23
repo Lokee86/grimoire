@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Lokee86/lexicon/internal/config"
+	"github.com/Lokee86/lexicon/internal/objectstore"
 	"github.com/Lokee86/lexicon/internal/state"
 )
 
@@ -64,11 +65,8 @@ func TestOpenDisablesPreviouslyAnalyzedLanguage(t *testing.T) {
 	if _, err := opened.Scan(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(stateRoot, "library", "python.jsonl")); err != nil {
-		t.Fatalf("enabled library: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(stateRoot, "library", "ruby.jsonl")); !os.IsNotExist(err) {
-		t.Fatalf("disabled library retained: %v", err)
+	if _, err := os.Stat(filepath.Join(stateRoot, "library")); !os.IsNotExist(err) {
+		t.Fatalf("materialized library retained: %v", err)
 	}
 	_, manifest, err := opened.Store.Current()
 	if err != nil {
@@ -82,21 +80,20 @@ func TestOpenDisablesPreviouslyAnalyzedLanguage(t *testing.T) {
 	}
 }
 
-func prepareSnapshotWithLanguages(t *testing.T, scanner *Scanner, repository *state.Repository, languages []string) {
+func prepareSnapshotWithLanguages(t *testing.T, scanner *Scanner, _ *state.Repository, languages []string) {
 	t.Helper()
 	if err := scanner.Mirror.SyncAll(scanner.Repository); err != nil {
 		t.Fatal(err)
 	}
-	if err := scanner.analyzeFull(context.Background(), languages); err != nil {
+	manifest, err := scanner.analyzeFull(
+		context.Background(),
+		objectstore.Manifest{Version: objectstore.SnapshotVersion},
+		languages,
+	)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := repository.StageAll(); err != nil {
-		t.Fatal(err)
-	}
-	if err := repository.CommitState(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := scanner.publishSnapshot(); err != nil {
+	if _, err := scanner.commitManifest(manifest); err != nil {
 		t.Fatal(err)
 	}
 }

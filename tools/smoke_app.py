@@ -99,13 +99,13 @@ def main() -> int:
 
         run(binary, "init", "--repo", str(repository), "--adapters", str(ROOT / "adapters"))
         library_root = repository / ".lexicon" / "repo" / "library"
-        for language in ("gdscript", "go", "python", "ruby", "rust", "typescript"):
-            library = library_root / f"{language}.jsonl"
-            records = [json.loads(line) for line in library.read_text(encoding="utf-8").splitlines()]
-            if not records or records[0].get("record") != "lexicon":
-                raise RuntimeError(f"{language} library did not contain a Lexicon header")
-        library = library_root / "python.jsonl"
+        if library_root.exists():
+            raise RuntimeError("normal initialization retained a materialized JSONL library")
         initial_id, initial_manifest = validate_snapshot(repository)
+        languages = {entry["language"] for entry in initial_manifest["languages"]}
+        expected = {"gdscript", "go", "python", "ruby", "rust", "typescript"}
+        if languages != expected:
+            raise RuntimeError(f"unexpected snapshot languages: {sorted(languages)}")
 
         source.write_text("def answer():\n    return 43\n", encoding="utf-8")
         updated = run(binary, "scan", "--repo", str(repository))
@@ -136,21 +136,6 @@ def main() -> int:
             updated_id, _ = validate_snapshot(repository)
 
         current_path = repository / ".lexicon" / "CURRENT"
-        current_path.write_text(initial_id + "\n", encoding="utf-8")
-        repaired = run(binary, "scan", "--repo", str(repository))
-        if "Lexicon is current" not in repaired.stdout:
-            raise RuntimeError(f"unexpected recovery scan output: {repaired.stdout}")
-        repaired_id, _ = validate_snapshot(repository)
-        if repaired_id != updated_id:
-            raise RuntimeError("stale CURRENT pointer was not repaired")
-
-        current_path.unlink()
-        run(binary, "scan", "--repo", str(repository))
-        restored_id, _ = validate_snapshot(repository)
-        if restored_id != updated_id:
-            raise RuntimeError("missing CURRENT pointer was not restored")
-
-        before_demon = library.read_bytes()
         before_snapshot = current_path.read_bytes()
         demon = subprocess.Popen(
             [
@@ -170,9 +155,10 @@ def main() -> int:
         try:
             time.sleep(0.5)
             source.write_text("def answer():\n    return 44\n", encoding="utf-8")
-            wait_for_change(library, before_demon)
             wait_for_change(current_path, before_snapshot)
             validate_snapshot(repository)
+            if library_root.exists():
+                raise RuntimeError("demon recreated a materialized JSONL library")
         finally:
             demon.terminate()
             try:

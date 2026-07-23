@@ -8,48 +8,59 @@ import (
 
 	"github.com/Lokee86/lexicon/internal/adapters"
 	"github.com/Lokee86/lexicon/internal/config"
-	"github.com/Lokee86/lexicon/internal/library"
+	"github.com/Lokee86/lexicon/internal/objectstore"
 	analysisscope "github.com/Lokee86/lexicon/internal/scope"
 )
 
-func (s *Scanner) analyzeFull(ctx context.Context, languages []string) error {
+func (s *Scanner) analyzeFull(
+	ctx context.Context,
+	manifest objectstore.Manifest,
+	languages []string,
+) (objectstore.Manifest, error) {
 	plans := make([]analysisPlan, 0, len(languages))
 	for _, language := range languages {
 		plans = append(plans, analysisPlan{Language: language, Full: true})
 	}
-	return s.analyzePlans(ctx, plans)
+	return s.analyzePlans(ctx, manifest, plans)
 }
 
-func (s *Scanner) analyzePlans(ctx context.Context, plans []analysisPlan) error {
-	libraryRoot := filepath.Join(s.StateRoot, "library")
+func (s *Scanner) analyzePlans(
+	ctx context.Context,
+	manifest objectstore.Manifest,
+	plans []analysisPlan,
+) (objectstore.Manifest, error) {
 	temporary := filepath.Join(config.StateRoot(s.Repository), "tmp")
 	if err := os.MkdirAll(temporary, 0o755); err != nil {
-		return err
+		return objectstore.Manifest{}, err
 	}
 	for _, plan := range plans {
-		if err := s.analyzePlan(ctx, plan, libraryRoot, temporary); err != nil {
-			return err
+		var err error
+		manifest, err = s.analyzePlan(ctx, manifest, plan, temporary)
+		if err != nil {
+			return objectstore.Manifest{}, err
 		}
 	}
-	return nil
+	return manifest, nil
 }
 
-func (s *Scanner) analyzePlan(ctx context.Context, plan analysisPlan, libraryRoot, temporary string) error {
-	output := filepath.Join(libraryRoot, plan.Language+".jsonl")
+func (s *Scanner) analyzePlan(
+	ctx context.Context,
+	manifest objectstore.Manifest,
+	plan analysisPlan,
+	temporary string,
+) (objectstore.Manifest, error) {
 	sourceRoot := filepath.Join(s.StateRoot, "source")
 	present, err := hasLanguage(sourceRoot, plan.Language)
 	if err != nil {
-		return err
+		return objectstore.Manifest{}, err
 	}
 	if !present {
 		if s.Output != nil {
-			fmt.Fprintf(s.Output, "removing %s library\n", plan.Language)
+			fmt.Fprintf(s.Output, "removing %s analysis\n", plan.Language)
 		}
-		if err := os.Remove(output); err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		return nil
+		return manifest.WithoutLanguage(plan.Language), nil
 	}
+
 	adapterOutput := filepath.Join(temporary, plan.Language+".jsonl")
 	_ = os.Remove(adapterOutput)
 	if s.Output != nil {
@@ -61,33 +72,99 @@ func (s *Scanner) analyzePlan(ctx context.Context, plan analysisPlan, libraryRoo
 	}
 	request, err := s.analysisRequest(plan, sourceRoot, temporary, adapterOutput)
 	if err != nil {
-		return err
+		return objectstore.Manifest{}, err
 	}
 	if err := s.Analyzer.Run(ctx, request); err != nil {
 		if plan.Full {
-			return err
+			return objectstore.Manifest{}, err
 		}
-		return s.retryFull(ctx, request, sourceRoot, output, err)
+		analysis, retryErr := s.retryFull(ctx, request, sourceRoot, err)
+		if retryErr != nil {
+			return objectstore.Manifest{}, retryErr
+		}
+		return s.applyFullAnalysis(manifest, analysis, sourceRoot)
+	}
+
+	analysis, err := objectstore.ReadAnalysis(adapterOutput, plan.Language)
+	if err != nil {
+		return objectstore.Manifest{}, err
 	}
 	if plan.Full {
-		return replace(adapterOutput, output)
+		return s.applyFullAnalysis(manifest, analysis, sourceRoot)
 	}
-	fullRequired, err := s.Store.RequiresFullAnalysis(plan.Language, plan.ChangedFiles, adapterOutput)
+	if !analysis.IsIncremental() {
+		analysis, err = s.retryFull(ctx, request, sourceRoot, fmt.Errorf("scoped adapter emitted a full stream"))
+		if err != nil {
+			return objectstore.Manifest{}, err
+		}
+		return s.applyFullAnalysis(manifest, analysis, sourceRoot)
+	}
+	fullRequired, err := s.Store.RequiresFullAnalysis(plan.Language, plan.ChangedFiles, analysis)
 	if err != nil {
-		return err
+		return objectstore.Manifest{}, err
 	}
 	if fullRequired {
-		return s.retryFull(ctx, request, sourceRoot, output, nil)
+		analysis, err = s.retryFull(ctx, request, sourceRoot, nil)
+		if err != nil {
+			return objectstore.Manifest{}, err
+		}
+		return s.applyFullAnalysis(manifest, analysis, sourceRoot)
 	}
-	if err := library.SetSharedComplete(adapterOutput, false); err != nil {
-		return err
+	previous, ok := manifest.Language(plan.Language)
+	if !ok {
+		analysis, err = s.retryFull(ctx, request, sourceRoot, fmt.Errorf("snapshot has no %s analysis", plan.Language))
+		if err != nil {
+			return objectstore.Manifest{}, err
+		}
+		return s.applyFullAnalysis(manifest, analysis, sourceRoot)
 	}
-	merged := filepath.Join(temporary, plan.Language+".merged.jsonl")
-	_ = os.Remove(merged)
-	if err := library.Merge(output, adapterOutput, merged); err != nil {
-		return err
+	fingerprint, err := s.adapterFingerprint(plan.Language)
+	if err != nil {
+		return objectstore.Manifest{}, err
 	}
-	return replace(merged, output)
+	entry, err := s.Store.BuildIncrementalLanguage(
+		previous,
+		analysis,
+		sourceRoot,
+		config.AnalysisID(),
+		fingerprint,
+		plan.ChangedFiles,
+		plan.RemovedFiles,
+		false,
+	)
+	if err != nil {
+		return objectstore.Manifest{}, err
+	}
+	return manifest.WithLanguage(entry), nil
+}
+
+func (s *Scanner) applyFullAnalysis(
+	manifest objectstore.Manifest,
+	analysis *objectstore.Analysis,
+	sourceRoot string,
+) (objectstore.Manifest, error) {
+	fingerprint, err := s.adapterFingerprint(analysis.Header.Language)
+	if err != nil {
+		return objectstore.Manifest{}, err
+	}
+	entry, err := s.Store.BuildFullLanguage(
+		analysis,
+		sourceRoot,
+		analysis.Header.Language,
+		config.AnalysisID(),
+		fingerprint,
+	)
+	if err != nil {
+		return objectstore.Manifest{}, err
+	}
+	return manifest.WithLanguage(entry), nil
+}
+
+func (s *Scanner) adapterFingerprint(language string) (string, error) {
+	if s.AdapterRoot == "" {
+		return "", nil
+	}
+	return adapters.Fingerprint(s.AdapterRoot, language)
 }
 
 func (s *Scanner) analysisRequest(plan analysisPlan, sourceRoot, temporary, output string) (adapters.Request, error) {
@@ -105,7 +182,12 @@ func (s *Scanner) analysisRequest(plan analysisPlan, sourceRoot, temporary, outp
 	}, nil
 }
 
-func (s *Scanner) retryFull(ctx context.Context, request adapters.Request, sourceRoot, output string, scopedErr error) error {
+func (s *Scanner) retryFull(
+	ctx context.Context,
+	request adapters.Request,
+	sourceRoot string,
+	scopedErr error,
+) (*objectstore.Analysis, error) {
 	if s.Output != nil {
 		fmt.Fprintf(s.Output, "expanding %s to full analysis\n", request.Language)
 	}
@@ -115,11 +197,18 @@ func (s *Scanner) retryFull(ctx context.Context, request adapters.Request, sourc
 	request.RemovedFiles = nil
 	if err := s.Analyzer.Run(ctx, request); err != nil {
 		if scopedErr != nil {
-			return fmt.Errorf("scoped %s analysis failed: %v; full retry failed: %w", request.Language, scopedErr, err)
+			return nil, fmt.Errorf("scoped %s analysis failed: %v; full retry failed: %w", request.Language, scopedErr, err)
 		}
-		return err
+		return nil, err
 	}
-	return replace(request.Output, output)
+	analysis, err := objectstore.ReadAnalysis(request.Output, request.Language)
+	if err != nil {
+		return nil, err
+	}
+	if analysis.IsIncremental() {
+		return nil, fmt.Errorf("full %s retry emitted incremental output", request.Language)
+	}
+	return analysis, nil
 }
 
 func planLanguages(plans []analysisPlan) []string {
@@ -128,17 +217,4 @@ func planLanguages(plans []analysisPlan) []string {
 		languages = append(languages, plan.Language)
 	}
 	return languages
-}
-
-func replace(source, destination string) error {
-	if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
-		return err
-	}
-	if err := os.Rename(source, destination); err == nil {
-		return nil
-	}
-	if err := os.Remove(destination); err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	return os.Rename(source, destination)
 }

@@ -15,19 +15,39 @@ type dependencyRecord struct {
 	Reason   string `json:"reason"`
 }
 
-func (s Store) DependencyScope(language string, roots []string) ([]string, []string, error) {
-	entry, objects, nodeOwners, unresolved, err := s.dependencyData(language)
+// IncrementalScope loads the current language objects once, decides whether
+// direct edits require full analysis, and computes the incremental emission
+// and context closures from the same dependency view.
+func (s Store) IncrementalScope(language string, roots []string) (bool, []string, []string, error) {
+	_, objects, nodeOwners, unresolved, err := s.dependencyData(language)
 	if err != nil {
-		return nil, nil, err
+		return true, nil, nil, err
 	}
-	_ = entry
+	rootSet := make(map[string]struct{}, len(roots))
+	for _, path := range roots {
+		rootSet[path] = struct{}{}
+	}
+	foundRoots := make(map[string]struct{}, len(rootSet))
+	fullRequired := false
 	reverse := make(map[string]map[string]struct{})
 	forward := make(map[string]map[string]struct{})
 	for owner, object := range objects {
+		_, directRoot := rootSet[owner]
+		if directRoot {
+			foundRoots[owner] = struct{}{}
+		}
 		for _, raw := range object.Records {
 			var record dependencyRecord
 			if err := json.Unmarshal(raw, &record); err != nil {
-				return nil, nil, err
+				return true, nil, nil, err
+			}
+			if directRoot {
+				if record.Record == "unresolved" && repositorySensitiveUnresolved(record.Reason) {
+					fullRequired = true
+				}
+				if record.Record == "edge" && semanticRelation(record.Relation) && nodeOwners[record.Target] != owner {
+					fullRequired = true
+				}
 			}
 			if record.Record != "edge" || record.Target == "" {
 				continue
@@ -40,13 +60,21 @@ func (s Store) DependencyScope(language string, roots []string) ([]string, []str
 			addRelation(forward, owner, targetOwner)
 		}
 	}
+	if len(foundRoots) != len(rootSet) {
+		fullRequired = true
+	}
 	emitSeeds := append([]string(nil), roots...)
 	for path := range unresolved {
 		emitSeeds = append(emitSeeds, path)
 	}
 	emit := closure(emitSeeds, reverse)
 	context := closure(emit, forward)
-	return emit, context, nil
+	return fullRequired, emit, context, nil
+}
+
+func (s Store) DependencyScope(language string, roots []string) ([]string, []string, error) {
+	_, emit, context, err := s.IncrementalScope(language, roots)
+	return emit, context, err
 }
 
 func (s Store) ImpactedFiles(language string, roots []string) ([]string, error) {
@@ -61,7 +89,7 @@ func (s Store) dependencyData(language string) (LanguageEntry, map[string]FactOb
 	}
 	entry, ok := languageEntry(manifest, language)
 	if !ok {
-		return LanguageEntry{}, nil, nil, nil, fmt.Errorf("snapshot has no %s library", language)
+		return LanguageEntry{}, nil, nil, nil, fmt.Errorf("snapshot has no %s analysis", language)
 	}
 	objects := make(map[string]FactObject, len(entry.Files))
 	nodeOwners := make(map[string]string)

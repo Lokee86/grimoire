@@ -43,10 +43,13 @@ type Manifest struct {
 }
 
 type Header struct {
-	Record         string `json:"record"`
-	SchemaVersion  int    `json:"schema_version"`
-	AdapterVersion string `json:"adapter_version"`
-	Language       string `json:"language"`
-	Repository     string `json:"repository"`
-	Mode           string `json:"mode"`
+	Record         string   `json:"record"`
+	SchemaVersion  int      `json:"schema_version"`
+	AdapterVersion string   `json:"adapter_version"`
+	Language       string   `json:"language"`
+	Repository     string   `json:"repository"`
+	Mode           string   `json:"mode"`
+	ChangedFiles   []string `json:"changed_files"`
+	RemovedFiles   []string `json:"removed_files"`
+	SharedComplete *bool    `json:"shared_complete"`
 }

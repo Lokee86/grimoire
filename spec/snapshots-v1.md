@@ -1,6 +1,6 @@
 # Lexicon snapshot contract v1
 
-Lexicon snapshots expose one complete, immutable analysis state. The mutable source mirror and materialized language JSONL files are implementation details and are not consumer consistency boundaries.
+Lexicon snapshots expose one complete, immutable analysis state. The mutable source mirror and temporary adapter JSONL streams are implementation details and are not consumer consistency boundaries.
 
 ## Layout
 
@@ -8,6 +8,7 @@ Lexicon snapshots expose one complete, immutable analysis state. The mutable sou
 .lexicon/
     CURRENT
     LOCK
+    PENDING
     objects/<first-two-hex>/<remaining-hex>
     snapshots/<64-hex>.json
     repo/
@@ -87,24 +88,23 @@ A successful update follows this order:
 2. replace the relevant private source mirror;
 3. calculate the private Git diff;
 4. compute the impacted file closure or select the complete-language fallback;
-5. request and validate full or incremental language streams;
-6. merge incremental records into complete materialized language files and atomically replace them;
-7. amend the single private state commit;
-8. write all missing immutable fact objects;
-9. write the immutable snapshot manifest;
-10. atomically replace `CURRENT`;
-11. release the update lock.
+5. request and validate a full or incremental adapter stream;
+6. partition the parsed records directly into replacement per-file objects and reuse unaffected manifest entries;
+7. write all missing immutable fact objects;
+8. atomically write `PENDING` with the complete candidate manifest;
+9. amend the single private source-state commit when required;
+10. write the immutable snapshot manifest with the accepted state commit;
+11. atomically replace `CURRENT` and remove `PENDING`;
+12. release the update lock.
 
 Consumers resolve `CURRENT` once and then read only the referenced immutable manifest and objects. They therefore observe either the previous complete snapshot or the new complete snapshot, never a partially published state.
 
 ## Recovery
 
-Before a scan, uncommitted materialized language output is restored from the private state commit. This rolls back a process that failed before step 6.
-
-If the private commit completed but `CURRENT` was not published, a no-change scan rebuilds the manifest from the committed language streams and atomically republishes it without rerunning adapters.
+If a process stops before the private state commit advances, the next scan discards `PENDING` and recomputes the candidate from source. If the commit advanced but `CURRENT` did not, the next scan attaches the new commit ID to the pending candidate and publishes it without rerunning adapters. A candidate that requires no source commit can be published directly from `PENDING` after a restart.
 
 ## Incremental analysis
 
 Ordinary source modifications update only the changed files and their transitive dependents. The dependency closure is calculated from cross-file relationships in the previous snapshot; owners with unresolved relationships are included conservatively. The adapter executes against a temporary repository containing that emission set, its transitive forward dependencies, and required language configuration. Go expands scopes to packages and Rust expands scopes to crates.
 
-A directly edited file with prior cross-file or unresolved relationships selects complete-language analysis before a scope is built. Scoped streams are reserved for leaf and local-only direct edits; they contain selected file-owned records and declare their shared synthetic set partial, so previous complete shared records remain authoritative. Before merge, new edge or unresolved topology causes a complete-language retry. A scoped adapter failure also retries the complete language repository. Additions, deletions, renames, copies, configuration changes, missing dependency state, and corrupt libraries use the same full fallback. More precise structural invalidation can be added without changing this snapshot contract.
+A directly edited file with prior cross-file or unresolved relationships selects complete-language analysis before a scope is built. Scoped streams are reserved for leaf and local-only direct edits; they contain selected file-owned records and declare their shared synthetic set partial, so the previous complete shared object remains authoritative. Before object replacement, new edge or unresolved topology causes a complete-language retry. A scoped adapter failure also retries the complete language repository. Additions, deletions, renames, copies, configuration changes, missing dependency state, and invalid prior snapshot state use the same full fallback. More precise structural invalidation can be added without changing this snapshot contract.

@@ -52,20 +52,6 @@ func (r *Repository) ResetIndex() error {
 	return r.run("reset", "--quiet", "--mixed", "HEAD")
 }
 
-func (r *Repository) RestoreLibrary() error {
-	if !r.HasHead() {
-		return nil
-	}
-	tracked, err := r.output("ls-tree", "-r", "--name-only", "HEAD", "--", "library")
-	if err != nil {
-		return err
-	}
-	if tracked == "" {
-		return os.RemoveAll(filepath.Join(r.Root, "library"))
-	}
-	return r.run("restore", "--source=HEAD", "--staged", "--worktree", "--", "library")
-}
-
 func (r *Repository) StageSource() error {
 	return r.run("add", "-A", "--", "source")
 }

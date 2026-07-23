@@ -41,11 +41,11 @@ lexicon version
 
 `lexicon init` creates `.lexicon/repo`, performs complete analysis for the selected detected languages, creates the initial private state commit, and publishes an immutable analysis snapshot. Omitting `--languages` or using `all` enables every supported language.
 
-`lexicon scan` replaces the private source mirror with the repository's current relevant files. The private Git repository supplies the diff from the last successful scan. For ordinary source-file modifications, Lexicon expands changed paths through the previous snapshot's reverse dependency graph, requests incremental records for that impacted file set, merges them into the materialized language library, and publishes a new immutable snapshot. Structural changes and adapter fingerprint changes use complete-language analysis.
+`lexicon scan` replaces the private source mirror with the repository's current relevant files. The private Git repository supplies the diff from the last successful scan. For ordinary source-file modifications, Lexicon expands changed paths through the previous snapshot's reverse dependency graph, requests incremental JSONL records for that impacted file set, parses the stream once at the adapter boundary, writes replacement per-file objects, reuses every unaffected manifest entry, and publishes a new immutable snapshot. Structural changes and adapter fingerprint changes use complete-language analysis.
 
 `lexicon demon` watches the repository recursively and invokes the same scan transaction after a debounce. A periodic complete reconciliation repairs missed filesystem events.
 
-`lexicon rebuild` forces complete analysis of all enabled detected languages or an explicit enabled subset. `lexicon languages set` updates the configured selection, removes disabled libraries, scans immediately, and publishes the resulting snapshot.
+`lexicon rebuild` forces complete analysis of all enabled detected languages or an explicit enabled subset. `lexicon languages set` updates the configured selection, removes disabled language entries from the snapshot, scans immediately, and publishes the result.
 
 `lexicon status` reports the repository, current snapshot, detected and enabled languages, and consumers. `lexicon doctor` verifies configuration, private Git state, immutable objects, adapter paths, runtime requirements, and consumer commands.
 
@@ -58,6 +58,7 @@ lexicon version
     config.json
     CURRENT
     LOCK
+    PENDING              # transient crash-recovery record
     consumers/
         arcana.json
     consumer-state/
@@ -69,20 +70,13 @@ lexicon version
     repo/
         .git/
         source/
-        library/
-            go.jsonl
-            python.jsonl
-            ruby.jsonl
-            gdscript.jsonl
-            rust.jsonl
-            typescript.jsonl
 ```
 
-The state commit is always amended and remains a parentless root commit, so only one commit is reachable. Reflogs are expired after replacement. The repository is an implementation detail used to answer one question: what changed since Lexicon last successfully updated its library?
+The state commit is always amended and remains a parentless root commit, so only one commit is reachable. Reflogs are expired after replacement. The repository is an implementation detail used to answer one question: what source content changed since Lexicon last successfully published a snapshot?
 
 Each snapshot manifest records the internal state commit, adapter and schema versions, configuration identity, source-content identity, and fact-object identity for every relevant file. Shared synthetic facts are stored in a separate language object. Objects and snapshot manifests are immutable; identical content reuses the existing object.
 
-`CURRENT` contains the complete snapshot ID and is replaced atomically only after the internal state commit and every referenced object are durable. Consumers should resolve `CURRENT`, load the corresponding manifest, and then open its objects. They never need to observe the mutable mirror or materialized JSONL libraries.
+`CURRENT` contains the complete snapshot ID and is replaced atomically only after the internal state commit and every referenced object are durable. Consumers should resolve `CURRENT`, load the corresponding manifest, and then open its objects. They never need to observe the mutable mirror or adapter JSONL transport files.
 
 ## Object garbage collection
 
@@ -116,17 +110,19 @@ destination file.
 
 Only one process may update a repository at a time. Manual scans and demon updates acquire the same advisory lock; a competing writer receives an explicit busy error.
 
-Before each scan, Lexicon restores the materialized library from the last internal commit. A crash before commit therefore leaves no accepted library changes. A crash after the internal commit but before snapshot publication is repaired by the next scan, which reconstructs and republishes the snapshot without rerunning adapters when the source diff is empty.
+Before advancing the private state commit, Lexicon writes a durable `PENDING` record containing the complete candidate manifest and whether the source commit must advance. If a process stops before the commit, the next scan discards that candidate and recomputes it. If the commit succeeded but publication did not, the next scan attaches the committed state ID to the pending manifest and atomically publishes it without rerunning adapters. Publications that do not require a source commit, such as adapter-only rebuilds, are also recoverable from `PENDING`.
+
+Existing installations that still contain committed `.lexicon/repo/library/*.jsonl` files are migrated once into snapshot objects when necessary, after which the materialized directory is removed from the private state commit. New scans never create it.
 
 ## Incremental boundary
 
-A modified source file starts an impacted-file update rather than a complete language-library replacement. Lexicon reads the previous immutable snapshot, follows cross-file edges in reverse, and includes every transitive dependent. Files that previously contained unresolved relationships are also included conservatively because a newly introduced declaration may resolve them.
+A modified source file starts an impacted-file object update rather than a complete language rewrite. Lexicon reads the previous immutable snapshot, follows cross-file edges in reverse, and includes every transitive dependent. Files that previously contained unresolved relationships are also included conservatively because a newly introduced declaration may resolve them.
 
 Lexicon builds a temporary scoped repository containing the impacted files, their transitive forward dependencies from the previous snapshot, and the language's configuration files. Go scopes expand to complete packages and Rust scopes expand to complete crates because those are their minimum sound semantic units. The adapter emits only records owned by the impacted files. Shared synthetic records from the scoped view are marked partial and are not allowed to replace the previous complete shared set.
 
-A directly edited file that already owns cross-file or unresolved relationships uses complete-language analysis immediately, because a partial candidate universe could preserve the same edge identity while changing its true resolution. Leaf and local-only files use the scoped path. Before merging a scoped result, Lexicon compares emitted edge and unresolved topology with the previous file objects. A new relationship, a new unresolved reference, or a scoped adapter failure automatically retries the complete language repository. When the scoped result is accepted, unaffected file objects remain byte-identical and are reused.
+A directly edited file that already owns cross-file or unresolved relationships uses complete-language analysis immediately, because a partial candidate universe could preserve the same edge identity while changing its true resolution. Leaf and local-only files use the scoped path. Before applying a scoped result, Lexicon compares emitted edge and unresolved topology with the previous file objects. A new relationship, a new unresolved reference, or a scoped adapter failure automatically retries the complete language repository. When the scoped result is accepted, unaffected file objects remain byte-identical and are reused.
 
-Additions, deletions, renames, copies, language configuration changes, missing prior dependency data, and corrupt materialized libraries also trigger a complete rebuild of the affected language. This is a correctness boundary, not a permanent protocol limitation. The incremental contract already carries removed-file scopes, so future dependency metadata can narrow those cases without changing consumers or snapshot storage.
+Additions, deletions, renames, copies, language configuration changes, missing prior dependency data, and invalid prior snapshot state trigger a complete rebuild of the affected language. This is a correctness boundary, not a permanent protocol limitation. The incremental contract already carries removed-file scopes, so future dependency metadata can narrow those cases without changing consumers or snapshot storage.
 
 ## Watch behavior
 

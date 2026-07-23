@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	lexfiles "github.com/Lokee86/lexicon/internal/files"
 	"github.com/Lokee86/lexicon/internal/objectstore"
@@ -58,11 +57,11 @@ func hasLanguage(root, language string) (bool, error) {
 	return found, err
 }
 
-func libraryDriftLanguages(stateRoot string) ([]string, error) {
-	return libraryDriftLanguagesFor(stateRoot, func(string) bool { return true })
-}
-
-func libraryDriftLanguagesFor(stateRoot string, enabled func(string) bool) ([]string, error) {
+func snapshotDriftLanguages(
+	stateRoot string,
+	manifest objectstore.Manifest,
+	enabled func(string) bool,
+) ([]string, error) {
 	required, err := languagesInTree(filepath.Join(stateRoot, "source"))
 	if err != nil {
 		return nil, err
@@ -73,27 +72,12 @@ func libraryDriftLanguagesFor(stateRoot string, enabled func(string) bool) ([]st
 			requiredSet[language] = struct{}{}
 		}
 	}
-	libraryRoot := filepath.Join(stateRoot, "library")
-	entries, err := os.ReadDir(libraryRoot)
-	if os.IsNotExist(err) {
-		entries = nil
-	} else if err != nil {
-		return nil, err
-	}
-	present := make(map[string]struct{})
+	present := make(map[string]struct{}, len(manifest.Languages))
 	dirty := make(map[string]struct{})
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".jsonl" {
-			continue
-		}
-		language := strings.TrimSuffix(entry.Name(), ".jsonl")
-		present[language] = struct{}{}
-		if _, ok := requiredSet[language]; !ok {
-			dirty[language] = struct{}{}
-			continue
-		}
-		if err := objectstore.ValidateOutput(filepath.Join(libraryRoot, entry.Name()), language); err != nil {
-			dirty[language] = struct{}{}
+	for _, entry := range manifest.Languages {
+		present[entry.Language] = struct{}{}
+		if _, ok := requiredSet[entry.Language]; !ok {
+			dirty[entry.Language] = struct{}{}
 		}
 	}
 	for language := range requiredSet {

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/Lokee86/lexicon/internal/adapters"
+	"github.com/Lokee86/lexicon/internal/objectstore"
 	"github.com/Lokee86/lexicon/internal/state"
 )
 
@@ -43,6 +44,15 @@ func TestScanRequestsOnlyImpactedFilesAfterInitialSnapshot(t *testing.T) {
 	analyzer := &fakeAnalyzer{}
 	scanner := New(source, stateRoot, gitRepository, analyzer, io.Discard)
 	prepareSnapshot(t, scanner, gitRepository)
+	_, before, err := scanner.Store.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforePython, ok := before.Language("python")
+	if !ok {
+		t.Fatal("initial snapshot has no python analysis")
+	}
+	beforeB := manifestFileEntry(t, beforePython, "b.py")
 	if err := os.WriteFile(changed, []byte("value = 2\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -64,6 +74,21 @@ func TestScanRequestsOnlyImpactedFilesAfterInitialSnapshot(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(request.Repository, "b.py")); !os.IsNotExist(err) {
 		t.Fatalf("unchanged file leaked into scope: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(stateRoot, "library")); !os.IsNotExist(err) {
+		t.Fatalf("materialized JSONL library retained: %v", err)
+	}
+	_, after, err := scanner.Store.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterPython, ok := after.Language("python")
+	if !ok {
+		t.Fatal("updated snapshot has no python analysis")
+	}
+	afterB := manifestFileEntry(t, afterPython, "b.py")
+	if afterB != beforeB {
+		t.Fatalf("unchanged object was rebuilt: before=%#v after=%#v", beforeB, afterB)
 	}
 }
 
@@ -95,21 +120,31 @@ func TestScopedAdapterFailureRetriesCompleteLanguage(t *testing.T) {
 	}
 }
 
-func prepareSnapshot(t *testing.T, scanner *Scanner, repository *state.Repository) {
+func manifestFileEntry(t *testing.T, entry objectstore.LanguageEntry, path string) objectstore.FileEntry {
+	t.Helper()
+	for _, file := range entry.Files {
+		if file.Path == path {
+			return file
+		}
+	}
+	t.Fatalf("missing file entry %s", path)
+	return objectstore.FileEntry{}
+}
+
+func prepareSnapshot(t *testing.T, scanner *Scanner, _ *state.Repository) {
 	t.Helper()
 	if err := scanner.Mirror.SyncAll(scanner.Repository); err != nil {
 		t.Fatal(err)
 	}
-	if err := scanner.analyzeFull(context.Background(), []string{"python"}); err != nil {
+	manifest, err := scanner.analyzeFull(
+		context.Background(),
+		objectstore.Manifest{Version: objectstore.SnapshotVersion},
+		[]string{"python"},
+	)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := repository.StageAll(); err != nil {
-		t.Fatal(err)
-	}
-	if err := repository.CommitState(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := scanner.publishSnapshot(); err != nil {
+	if _, err := scanner.commitManifest(manifest); err != nil {
 		t.Fatal(err)
 	}
 }

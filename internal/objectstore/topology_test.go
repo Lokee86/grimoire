@@ -43,12 +43,20 @@ func TestRequiresFullAnalysisForNewRelationshipTopology(t *testing.T) {
 
 	path := filepath.Join(t.TempDir(), "incremental.jsonl")
 	writeTopologyStream(t, path, "node-x")
-	full, err := store.RequiresFullAnalysis("python", []string{"a.py"}, path)
+	analysis, err := ReadAnalysis(path, "python")
+	if err != nil {
+		t.Fatal(err)
+	}
+	full, err := store.RequiresFullAnalysis("python", []string{"a.py"}, analysis)
 	if err != nil || full {
 		t.Fatalf("existing topology required full analysis: full=%v err=%v", full, err)
 	}
 	writeTopologyStream(t, path, "node-y")
-	full, err = store.RequiresFullAnalysis("python", []string{"a.py"}, path)
+	analysis, err = ReadAnalysis(path, "python")
+	if err != nil {
+		t.Fatal(err)
+	}
+	full, err = store.RequiresFullAnalysis("python", []string{"a.py"}, analysis)
 	if err != nil || !full {
 		t.Fatalf("new topology did not require full analysis: full=%v err=%v", full, err)
 	}

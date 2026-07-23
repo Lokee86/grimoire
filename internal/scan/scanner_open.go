@@ -61,7 +61,13 @@ func initialize(
 		return nil, Report{}, err
 	}
 	scanner.EnabledLanguages = configuration.EnabledLanguages
+	if err := scanner.recoverPending(); err != nil {
+		return nil, Report{}, err
+	}
 	if err := scanner.Mirror.SyncAll(absolute); err != nil {
+		return nil, Report{}, err
+	}
+	if _, err := scanner.removeLegacyLibrary(); err != nil {
 		return nil, Report{}, err
 	}
 	languages, err := languagesInTree(filepath.Join(stateRoot, "source"))
@@ -69,19 +75,15 @@ func initialize(
 		return nil, Report{}, err
 	}
 	languages = selectedLanguages(languages, scanner.languageEnabled)
-	if _, err := scanner.pruneDisabledLibraries(); err != nil {
+	manifest, err := scanner.analyzeFull(
+		ctx,
+		objectstore.Manifest{Version: objectstore.SnapshotVersion},
+		languages,
+	)
+	if err != nil {
 		return nil, Report{}, err
 	}
-	if err := scanner.analyzeFull(ctx, languages); err != nil {
-		return nil, Report{}, err
-	}
-	if err := gitRepository.StageAll(); err != nil {
-		return nil, Report{}, err
-	}
-	if err := gitRepository.CommitState(); err != nil {
-		return nil, Report{}, err
-	}
-	snapshotID, err := scanner.publishSnapshot()
+	snapshotID, err := scanner.commitManifest(manifest)
 	if err != nil {
 		return nil, Report{}, err
 	}

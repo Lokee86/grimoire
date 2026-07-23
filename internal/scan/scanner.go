@@ -3,9 +3,6 @@ package scan
 import (
 	"context"
 	"io"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/Lokee86/lexicon/internal/adapters"
 	"github.com/Lokee86/lexicon/internal/config"
@@ -59,13 +56,17 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 		return Report{}, err
 	}
 	defer guard.Close()
+	if err := s.recoverPending(); err != nil {
+		return Report{}, err
+	}
 	if err := s.Git.ResetIndex(); err != nil {
 		return Report{}, err
 	}
-	if err := s.Git.RestoreLibrary(); err != nil {
+	manifest, err := s.loadManifest()
+	if err != nil {
 		return Report{}, err
 	}
-	pruned, err := s.pruneDisabledLibraries()
+	legacyRemoved, err := s.removeLegacyLibrary()
 	if err != nil {
 		return Report{}, err
 	}
@@ -79,11 +80,12 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 	if err != nil {
 		return Report{}, err
 	}
-	drift, err := libraryDriftLanguagesFor(s.StateRoot, s.languageEnabled)
+	manifest, pruned := s.pruneDisabledLanguages(manifest)
+	drift, err := snapshotDriftLanguages(s.StateRoot, manifest, s.languageEnabled)
 	if err != nil {
 		return Report{}, err
 	}
-	adapterDrift, err := s.adapterDriftLanguages()
+	adapterDrift, err := s.adapterDriftLanguages(manifest)
 	if err != nil {
 		return Report{}, err
 	}
@@ -92,63 +94,33 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 	if err != nil {
 		return Report{}, err
 	}
-	if len(changes) == 0 && len(plans) == 0 {
-		if pruned {
-			if err := s.Git.StageAll(); err != nil {
-				return Report{}, err
-			}
-			if err := s.Git.CommitState(); err != nil {
-				return Report{}, err
-			}
-			snapshotID, err := s.publishSnapshot()
-			return Report{SnapshotID: snapshotID}, err
-		}
-		snapshotID, err := s.ensureSnapshot()
+	if len(changes) == 0 && len(plans) == 0 && !pruned && !legacyRemoved {
+		snapshotID, err := s.ensureSnapshot(manifest)
 		return Report{SnapshotID: snapshotID}, err
 	}
-	if err := s.analyzePlans(ctx, plans); err != nil {
-		return Report{}, err
-	}
-	languages := planLanguages(plans)
-	if err := s.Git.StageAll(); err != nil {
-		return Report{}, err
-	}
-	if err := s.Git.CommitState(); err != nil {
-		return Report{}, err
-	}
-	snapshotID, err := s.publishSnapshot()
+	manifest, err = s.analyzePlans(ctx, manifest, plans)
 	if err != nil {
 		return Report{}, err
 	}
-	return Report{Changed: changes, Languages: languages, SnapshotID: snapshotID}, nil
+	snapshotID, err := s.commitManifest(manifest)
+	if err != nil {
+		return Report{}, err
+	}
+	return Report{Changed: changes, Languages: planLanguages(plans), SnapshotID: snapshotID}, nil
 }
 
 func (s *Scanner) languageEnabled(language string) bool {
 	return config.Config{EnabledLanguages: s.EnabledLanguages}.LanguageEnabled(language)
 }
 
-func (s *Scanner) pruneDisabledLibraries() (bool, error) {
-	libraryRoot := filepath.Join(s.StateRoot, "library")
-	entries, err := os.ReadDir(libraryRoot)
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	removed := false
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".jsonl" {
+func (s *Scanner) pruneDisabledLanguages(manifest objectstore.Manifest) (objectstore.Manifest, bool) {
+	pruned := false
+	for _, entry := range append([]objectstore.LanguageEntry(nil), manifest.Languages...) {
+		if s.languageEnabled(entry.Language) {
 			continue
 		}
-		language := strings.TrimSuffix(entry.Name(), ".jsonl")
-		if s.languageEnabled(language) {
-			continue
-		}
-		if err := os.Remove(filepath.Join(libraryRoot, entry.Name())); err != nil && !os.IsNotExist(err) {
-			return false, err
-		}
-		removed = true
+		manifest = manifest.WithoutLanguage(entry.Language)
+		pruned = true
 	}
-	return removed, nil
+	return manifest, pruned
 }
