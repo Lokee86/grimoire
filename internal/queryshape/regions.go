@@ -16,7 +16,7 @@ func candidateRegions(candidates []retrieve.Candidate) []string {
 	seen := make(map[string]struct{}, limit)
 	var regions []string
 	for _, candidate := range candidates[:limit] {
-		region := pathRegion(candidate.Chunk.Path)
+		region := PathRegion(candidate.Chunk.Path)
 		if region == "" {
 			continue
 		}
@@ -33,7 +33,7 @@ func structuralRegions(evidence []structure.Evidence) []string {
 	seen := make(map[string]struct{})
 	var regions []string
 	add := func(path string) {
-		region := pathRegion(path)
+		region := PathRegion(path)
 		if region == "" {
 			return
 		}
@@ -62,7 +62,8 @@ func structuralRegions(evidence []structure.Evidence) []string {
 	return regions
 }
 
-func pathRegion(path string) string {
+// PathRegion returns the stable repository region used by query and assembly analysis.
+func PathRegion(path string) string {
 	path = filepath.ToSlash(strings.TrimSpace(path))
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) == 0 || parts[0] == "" {
@@ -96,7 +97,7 @@ func candidateDispersion(candidates []retrieve.Candidate) float64 {
 	}
 	regions := make(map[string]struct{}, limit)
 	for _, candidate := range candidates[:limit] {
-		if region := pathRegion(candidate.Chunk.Path); region != "" {
+		if region := PathRegion(candidate.Chunk.Path); region != "" {
 			regions[region] = struct{}{}
 		}
 	}

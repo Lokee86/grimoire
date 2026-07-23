@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Lokee86/grimoire/internal/assembly"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/structure"
 	"github.com/Lokee86/grimoire/internal/tokenizer"
 )
 
 const (
-	PackageVersion      = 4
+	PackageVersion      = 5
 	maxTokenCountPasses = 8
 )
 
@@ -25,6 +26,7 @@ type Package struct {
 	StructuralSources          []string                  `json:"structural_sources,omitempty"`
 	StructuralState            []structure.ProviderState `json:"structural_state,omitempty"`
 	StructuralEvidence         []structure.Evidence      `json:"structural_evidence,omitempty"`
+	Assembly                   *assembly.Decision        `json:"assembly,omitempty"`
 	Selections                 []Selection               `json:"selections"`
 	OmittedStructuralForBudget int                       `json:"omitted_structural_for_budget"`
 	OmittedForBudget           int                       `json:"omitted_for_budget"`
@@ -70,6 +72,42 @@ func CompileWithEvidence(
 	evidence []structure.Evidence,
 	candidates []retrieve.Candidate,
 ) (Package, error) {
+	return compileWithEvidence(
+		query, budget, indexVersion, indexTokenizer, retrievalSources,
+		providerState, evidence, nil, candidates,
+	)
+}
+
+// CompileAdaptiveWithEvidence retains the assembly decision in the versioned
+// package so automatic stopping behavior is inspectable by consumers.
+func CompileAdaptiveWithEvidence(
+	query string,
+	budget int,
+	indexVersion int,
+	indexTokenizer string,
+	retrievalSources []string,
+	providerState []structure.ProviderState,
+	evidence []structure.Evidence,
+	decision assembly.Decision,
+	candidates []retrieve.Candidate,
+) (Package, error) {
+	return compileWithEvidence(
+		query, budget, indexVersion, indexTokenizer, retrievalSources,
+		providerState, evidence, &decision, candidates,
+	)
+}
+
+func compileWithEvidence(
+	query string,
+	budget int,
+	indexVersion int,
+	indexTokenizer string,
+	retrievalSources []string,
+	providerState []structure.ProviderState,
+	evidence []structure.Evidence,
+	decision *assembly.Decision,
+	candidates []retrieve.Candidate,
+) (Package, error) {
 	if budget <= 0 {
 		return Package{}, fmt.Errorf("token budget must be positive")
 	}
@@ -85,6 +123,7 @@ func CompileWithEvidence(
 		IndexVersion:               indexVersion,
 		RetrievalSources:           append([]string(nil), retrievalSources...),
 		StructuralEvidence:         make([]structure.Evidence, 0),
+		Assembly:                   decision,
 		Selections:                 make([]Selection, 0),
 		OmittedStructuralForBudget: len(evidence),
 		OmittedForBudget:           len(candidates),

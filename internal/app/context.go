@@ -8,6 +8,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/Lokee86/grimoire/internal/assembly"
 	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/index"
@@ -94,16 +95,30 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		Exact: exact, Ranked: baseCandidates, Candidates: merged, Structural: structural.Combined,
 	})
 	effectiveBudget := *budget
-	if effectiveBudget == 0 {
+	automatic := effectiveBudget == 0
+	if automatic {
 		policy = queryshape.Activate(policy)
 		effectiveBudget = policy.TargetTokens
 	}
 	candidates := selection.Curate(snapshot, merged)
+	evidence := structural.Combined
 
-	result, err := compiler.CompileWithEvidence(
-		*query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
-		contextCandidateSources(candidates), structural.ProviderState, structural.Combined, candidates,
-	)
+	var result compiler.Package
+	if automatic {
+		planned := assembly.Plan(policy, candidates, evidence)
+		candidates = planned.Candidates
+		evidence = planned.Structural
+		result, err = compiler.CompileAdaptiveWithEvidence(
+			*query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
+			contextCandidateSources(candidates), structural.ProviderState, evidence,
+			planned.Decision, candidates,
+		)
+	} else {
+		result, err = compiler.CompileWithEvidence(
+			*query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
+			contextCandidateSources(candidates), structural.ProviderState, evidence, candidates,
+		)
+	}
 	if err != nil {
 		return err
 	}

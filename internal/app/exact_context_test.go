@@ -35,6 +35,9 @@ func TestContextSelectsAutomaticBudgetWhenOmitted(t *testing.T) {
 	if pkg.Budget != queryshape.FocusedTargetTokens {
 		t.Fatalf("expected focused automatic budget %d, got %d", queryshape.FocusedTargetTokens, pkg.Budget)
 	}
+	if pkg.Assembly == nil || pkg.Assembly.Scope != queryshape.ScopeFocused || pkg.Assembly.StopReason == "" {
+		t.Fatalf("expected focused assembly decision, got %+v", pkg.Assembly)
+	}
 }
 
 func TestContextUsesExactRecoveryDuringSemanticFallback(t *testing.T) {
@@ -59,6 +62,9 @@ func TestContextUsesExactRecoveryDuringSemanticFallback(t *testing.T) {
 	}
 	if pkg.Budget != 500 {
 		t.Fatalf("expected explicit budget 500, got %d", pkg.Budget)
+	}
+	if pkg.Assembly != nil {
+		t.Fatalf("explicit budget should preserve fixed assembly, got %+v", pkg.Assembly)
 	}
 	if len(pkg.Selections) != 1 || pkg.Selections[0].RetrievalSource != "exact" {
 		t.Fatalf("expected exact selection, got %+v", pkg.Selections)

@@ -9,9 +9,10 @@ ambiguity, candidate dispersion, and graph-region spread before context assembly
 - `RetrievalPolicy` recommends focused, bounded, or exploratory assembly.
 
 Retrieval evaluation retains the policy in shadow mode. The normal `context`
-command activates automatic budget recommendations only when `--budget` is
-omitted or zero. Explicit positive budgets remain fixed. Candidate ordering,
-curation, expansion, and stopping behavior do not yet consume the policy.
+command activates automatic budget and assembly recommendations only when
+`--budget` is omitted or zero. Explicit positive budgets retain fixed assembly.
+Automatic requests use the policy scope to select bounded evidence coverage and
+emit the resulting assembly decision in the context package.
 
 Automatic target and maximum recommendations are:
 

@@ -4,7 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/assembly"
 	"github.com/Lokee86/grimoire/internal/index"
+	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/structure"
 	"github.com/Lokee86/grimoire/internal/tokenizer"
@@ -72,7 +74,7 @@ func TestCompileWithEvidenceEmitsStructuralFactsBeforeSourceSelections(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	if full.Version != 4 || len(full.StructuralEvidence) != 1 {
+	if full.Version != PackageVersion || len(full.StructuralEvidence) != 1 {
 		t.Fatalf("structural evidence missing from package: %+v", full)
 	}
 	if len(full.StructuralSources) != 1 || full.StructuralSources[0] != "lexicon" {
@@ -103,6 +105,28 @@ func TestCompileWithEvidenceEmitsStructuralFactsBeforeSourceSelections(t *testin
 	if !retainedWithoutSource {
 		t.Fatal("no budget retained structural evidence before the larger source selection")
 	}
+}
+
+func TestCompileAdaptiveRetainsAssemblyDecision(t *testing.T) {
+	decision := assembly.Decision{
+		Scope: queryshape.ScopeFocused, CandidatesConsidered: 3,
+		CandidatesSelected: 2, StopReason: "focused evidence coverage satisfied",
+	}
+	pkg, err := CompileAdaptiveWithEvidence(
+		"where", 1000, index.FormatVersion, tokenizer.Name,
+		[]string{"exact"}, nil, nil, decision,
+		[]retrieve.Candidate{candidate(t, "example.go", "package example", 10)},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pkg.Assembly == nil || pkg.Assembly.Scope != decision.Scope ||
+		pkg.Assembly.CandidatesConsidered != decision.CandidatesConsidered ||
+		pkg.Assembly.CandidatesSelected != decision.CandidatesSelected ||
+		pkg.Assembly.StopReason != decision.StopReason {
+		t.Fatalf("assembly decision missing: %+v", pkg.Assembly)
+	}
+	assertExactPackageCount(t, pkg)
 }
 
 func TestCompileRejectsBudgetBelowPackageMetadata(t *testing.T) {

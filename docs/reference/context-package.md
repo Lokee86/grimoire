@@ -4,13 +4,13 @@
 
 `grimoire context` emits a versioned, agent-independent JSON package containing selected repository source plus bounded structural evidence from Lexicon and Arcana when their repository state is available.
 
-The current package version is `4`.
+The current package version is `5`.
 
 ## Example
 
 ```json
 {
-  "version": 4,
+  "version": 5,
   "query": "trace player damage resolution",
   "budget": 2000,
   "tokenizer": "o200k_base",
@@ -33,6 +33,21 @@ The current package version is `4`.
       "snapshot": "sha256:..."
     }
   ],
+  "assembly": {
+    "scope": "focused",
+    "candidates_considered": 5,
+    "candidates_selected": 3,
+    "structural_considered": 2,
+    "structural_selected": 2,
+    "regions_represented": [
+      "internal/game"
+    ],
+    "roles_represented": [
+      "implementation",
+      "verification"
+    ],
+    "stop_reason": "focused evidence coverage satisfied"
+  },
   "structural_evidence": [
     {
       "provider": "lexicon",
@@ -108,7 +123,7 @@ The values illustrate the schema. A real `token_count` is calculated from the co
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `version` | integer | Context-package schema version; currently `4` |
+| `version` | integer | Context-package schema version; currently `5` |
 | `query` | string | Original query supplied by the caller |
 | `budget` | integer | Maximum `o200k_base` tokens permitted in the emitted package |
 | `tokenizer` | string | Tokenizer used for chunk and package accounting; currently `o200k_base` |
@@ -118,6 +133,7 @@ The values illustrate the schema. A real `token_count` is calculated from the co
 | `structural_sources` | string array | Structural providers retained in the package, ordered by first retained evidence |
 | `structural_state` | object array | Immutable provider snapshot identities for retained structural evidence |
 | `structural_evidence` | object array | Bounded Lexicon and Arcana facts retained under the package budget |
+| `assembly` | object | Automatic query scope, coverage, selected/considered counts, and stop reason; omitted for explicit budgets |
 | `selections` | object array | Ranked source chunks retained under the package budget |
 | `omitted_structural_for_budget` | integer | Structural facts rejected because the complete fact did not fit |
 | `omitted_for_budget` | integer | Source selections rejected because the complete chunk did not fit |
@@ -208,6 +224,8 @@ Fast mode divides the complete query into non-overlapping windows and sends boun
 When semantic retrieval is unavailable or incompatible, `context` writes a warning to stderr and substitutes deterministic lexical retrieval. Structural enrichment can still run independently.
 
 ## Compatibility
+
+Version 5 adds deterministic automatic budgeting and assembly metadata. Automatic requests may intentionally stop below their selected maximum after scope-specific evidence coverage is satisfied. Explicit-budget requests omit `assembly` and retain fit-to-budget behavior.
 
 Version 4 adds first-class structural evidence, structural-provider provenance, and separate structural budget omissions. It also changes runtime behavior by automatically using matching Lexicon and Arcana repository state when available.
 
