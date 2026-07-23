@@ -26,7 +26,7 @@ const (
 )
 
 func (s *scanner) repositoryKey() NodeKey {
-	return hashIdentity("repository:" + s.module)
+	return hashIdentity("repository:" + s.repository)
 }
 
 func (s *scanner) canonicalNamespace(namespace string) string {
@@ -35,7 +35,7 @@ func (s *scanner) canonicalNamespace(namespace string) string {
 	}
 	if strings.HasSuffix(namespace, "_test") {
 		base := strings.TrimSuffix(namespace, "_test")
-		if base == s.module || strings.HasPrefix(base, s.module+"/") {
+		if _, ok := s.moduleForNamespace(base); ok {
 			return base
 		}
 	}
@@ -44,7 +44,8 @@ func (s *scanner) canonicalNamespace(namespace string) string {
 
 func (s *scanner) isInternalNamespace(namespace string) bool {
 	namespace = s.canonicalNamespace(namespace)
-	return namespace == s.module || strings.HasPrefix(namespace, s.module+"/")
+	_, ok := s.moduleForNamespace(namespace)
+	return ok
 }
 
 func (s *scanner) registerSemanticID(id string, key NodeKey) {

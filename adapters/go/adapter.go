@@ -35,21 +35,22 @@ type callable struct {
 }
 
 type scanner struct {
-	root, module  string
-	set           *token.FileSet
-	facts         RepositoryFacts
-	nodes         map[NodeKey]NodeFact
-	edges         map[string]EdgeFact
-	packages      map[string]packageInfo
-	callables     []callable
-	targets       map[string]map[string][]NodeKey
-	semanticCalls map[string]semanticCall
-	semanticIDs   map[string][]NodeKey
-	closureKeys   map[string]NodeKey
-	callsiteKeys  map[string]string
-	fileImports   map[string]map[string]string
-	packageByFile map[string]NodeKey
-	summary       Summary
+	root, repository string
+	modules          []goModule
+	set              *token.FileSet
+	facts            RepositoryFacts
+	nodes            map[NodeKey]NodeFact
+	edges            map[string]EdgeFact
+	packages         map[string]packageInfo
+	callables        []callable
+	targets          map[string]map[string][]NodeKey
+	semanticCalls    map[string]semanticCall
+	semanticIDs      map[string][]NodeKey
+	closureKeys      map[string]NodeKey
+	callsiteKeys     map[string]string
+	fileImports      map[string]map[string]string
+	packageByFile    map[string]NodeKey
+	summary          Summary
 }
 
 func scanRepository(root string) (RepositoryFacts, Summary, error) {
@@ -57,21 +58,22 @@ func scanRepository(root string) (RepositoryFacts, Summary, error) {
 	if err != nil {
 		return RepositoryFacts{}, Summary{}, err
 	}
-	module, err := readModule(root)
+	files, dirs, err := discover(root)
 	if err != nil {
 		return RepositoryFacts{}, Summary{}, err
 	}
+	modules, err := discoverModules(root, files)
+	if err != nil {
+		return RepositoryFacts{}, Summary{}, err
+	}
+	repository := repositoryIdentity(root, modules)
 	s := &scanner{
-		root: root, module: module, set: token.NewFileSet(), facts: RepositoryFacts{Repository: module},
+		root: root, repository: repository, modules: modules, set: token.NewFileSet(), facts: RepositoryFacts{Repository: repository},
 		nodes: make(map[NodeKey]NodeFact), edges: make(map[string]EdgeFact),
 		packages: make(map[string]packageInfo), targets: make(map[string]map[string][]NodeKey),
 		semanticCalls: make(map[string]semanticCall),
 		semanticIDs:   make(map[string][]NodeKey), closureKeys: make(map[string]NodeKey),
 		callsiteKeys: make(map[string]string), fileImports: make(map[string]map[string]string), packageByFile: make(map[string]NodeKey),
-	}
-	files, dirs, err := discover(root)
-	if err != nil {
-		return RepositoryFacts{}, Summary{}, err
 	}
 	if err := s.addRootAndDirectories(dirs); err != nil {
 		return RepositoryFacts{}, Summary{}, err
@@ -162,8 +164,8 @@ func readModule(root string) (string, error) {
 
 func (s *scanner) addRootAndDirectories(dirs []string) error {
 	rootPath := ".lexicon-repository"
-	rootKey := hashIdentity("repository:" + s.module)
-	s.addNode(NodeFact{Key: rootKey, Kind: KindRepository, Path: rootPath, Name: s.module})
+	rootKey := s.repositoryKey()
+	s.addNode(NodeFact{Key: rootKey, Kind: KindRepository, Path: rootPath, Name: s.repository})
 	for _, absolute := range dirs {
 		rel, err := s.relative(absolute)
 		if err != nil {
@@ -205,7 +207,7 @@ func (s *scanner) relative(absolute string) (string, error) {
 func (s *scanner) parentKey(rel string) NodeKey {
 	dir := filepath.ToSlash(filepath.Dir(rel))
 	if dir == "." {
-		return hashIdentity("repository:" + s.module)
+		return s.repositoryKey()
 	}
 	return hashIdentity("directory:" + dir)
 }
@@ -240,10 +242,7 @@ func (s *scanner) parseGoFile(absolute string) error {
 	if dir == "." {
 		dir = ""
 	}
-	importPath := s.module
-	if dir != "" {
-		importPath += "/" + dir
-	}
+	importPath := s.moduleImportPath(absolute)
 	packageKey := dir + "\x00" + file.Name.Name
 	pkg, exists := s.packages[packageKey]
 	if !exists {
@@ -276,7 +275,7 @@ func (s *scanner) parseGoFile(absolute string) error {
 			}
 			s.fileImports[rel][alias] = importName
 		}
-		internal := importName == s.module || strings.HasPrefix(importName, s.module+"/")
+		internal := s.isInternalNamespace(importName)
 		class := "external"
 		if internal {
 			class = "internal"

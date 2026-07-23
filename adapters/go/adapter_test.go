@@ -104,6 +104,56 @@ func TestCaller(t *testing.T) { helper() }
 	}
 }
 
+func TestScanMultiModuleRepository(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, map[string]string{
+		"services/api/go.mod": `module example.com/api
+
+go 1.22
+
+require example.com/shared v0.0.0
+replace example.com/shared => ../../shared
+`,
+		"services/api/main.go": `package api
+
+import "example.com/shared"
+
+func Run() { shared.Helper() }
+`,
+		"shared/go.mod": `module example.com/shared
+
+go 1.22
+`,
+		"shared/helper.go": `package shared
+
+func Helper() {}
+`,
+	})
+
+	facts, summary, err := scanRepository(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if facts.Repository != filepath.Base(root) {
+		t.Fatalf("repository = %q, want %q", facts.Repository, filepath.Base(root))
+	}
+	if summary.Files != 4 {
+		t.Fatalf("file count = %d, want 4", summary.Files)
+	}
+	if summary.SemanticErrors != 0 {
+		t.Fatalf("semantic errors = %d, want 0", summary.SemanticErrors)
+	}
+	if !hasNode(facts, KindFunction, "Run") || !hasNode(facts, KindFunction, "Helper") {
+		t.Fatal("missing functions from one or more modules")
+	}
+	if countRelation(facts, RelCalls) == 0 {
+		t.Fatal("cross-module call was not resolved")
+	}
+	if !hasNodePath(facts, KindImport, "example.com/shared", "@internal/example.com/shared") {
+		t.Fatal("cross-module import was not classified as internal")
+	}
+}
+
 func TestParseGoManifestDependencies(t *testing.T) {
 	root := t.TempDir()
 	filename := filepath.Join(root, "go.mod")
@@ -133,6 +183,15 @@ func writeFixture(t *testing.T, root string, files map[string]string) {
 func hasNode(facts RepositoryFacts, kind NodeKind, name string) bool {
 	for _, node := range facts.Nodes {
 		if node.Kind == kind && node.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func hasNodePath(facts RepositoryFacts, kind NodeKind, name, path string) bool {
+	for _, node := range facts.Nodes {
+		if node.Kind == kind && node.Name == name && node.Path == path {
 			return true
 		}
 	}

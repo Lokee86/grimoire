@@ -17,11 +17,7 @@ func (s *scanner) semanticFilePath(set *token.FileSet, file *ast.File) (string, 
 }
 
 func (s *scanner) importPathFor(rel string) string {
-	dir := filepath.ToSlash(filepath.Dir(rel))
-	if dir == "" || dir == "." {
-		return s.module
-	}
-	return s.module + "/" + dir
+	return s.moduleImportPath(filepath.Join(s.root, filepath.FromSlash(rel)))
 }
 
 func appendUniqueKey(keys []NodeKey, key NodeKey) []NodeKey {
