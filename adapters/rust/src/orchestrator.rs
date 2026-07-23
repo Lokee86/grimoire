@@ -38,6 +38,7 @@ pub(crate) fn generate(
         methods: Vec::new(),
         method_index: BTreeMap::new(),
         trait_method_index: BTreeMap::new(),
+        trait_method_ids: Default::default(),
         type_traits: BTreeMap::new(),
         fields: BTreeMap::new(),
         pending_impls: Vec::new(),

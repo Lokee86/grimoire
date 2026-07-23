@@ -31,6 +31,19 @@ fn has_edge(records: &[Value], source: &str, target: &str, relation: &str) -> bo
     })
 }
 
+fn edge_count(records: &[Value], source: &str, target: &str, relation: &str) -> usize {
+    records
+        .iter()
+        .filter(|record| {
+            record["record"] == "edge"
+                && record["relation"] == relation
+                && record["source"] == source
+                && record["target"] == target
+        })
+        .count()
+}
+
+
 #[test]
 fn indexes_rust_declarations_imports_traits_and_local_macros() {
     let records = records();
@@ -90,6 +103,20 @@ fn resolves_inherent_field_alias_constructor_ufcs_and_macro_calls() {
         "lexicon_fixture::lexicon_fixture::child::Worker::work",
     );
     assert!(has_edge(&records, run_local, work, "calls"));
+    let trait_run = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::Runnable::run",
+    );
+    let service_run = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::Service::Runnable::run",
+    );
+    let alternate_run = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::Alternate::Runnable::run",
+    );
+    assert_eq!(edge_count(&records, service_run, trait_run, "overrides"), 1);
+    assert_eq!(edge_count(&records, alternate_run, trait_run, "overrides"), 1);
     let factory = node_id(
         &records,
         "lexicon_fixture::lexicon_fixture::Service::factory",

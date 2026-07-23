@@ -734,7 +734,57 @@ class PythonAdapterTest(unittest.TestCase):
             & {record["reason"] for record in unresolved}
         )
 
-    def test_ids_content_and_header(self) -> None:
+    def test_contract_dispatch_override_inheritance_narrowing_and_dynamic_fallback(self) -> None:
+        self._write(
+            "pkg/contracts.py",
+            "from typing import Protocol\n"
+            "class Runner(Protocol):\n"
+            "    def run(self): ...\n"
+            "class One(Runner):\n"
+            "    def run(self): return 1\n"
+            "class Two(Runner):\n"
+            "    def run(self): return 2\n"
+            "class Base:\n"
+            "    def inherited(self): return 1\n"
+            "class Child(Base):\n"
+            "    pass\n"
+            "def invoke(runner: Runner):\n"
+            "    return runner.run()\n"
+            "def exact():\n"
+            "    return One().run()\n"
+            "def inherited():\n"
+            "    return Child().inherited()\n"
+            "def dynamic(value, name):\n"
+            "    return getattr(value, name)()\n",
+        )
+        records = self._run(self.repo / "facts.jsonl")
+        nodes = [record for record in records if record["record"] == "node"]
+        edges = [record for record in records if record["record"] == "edge"]
+        unresolved = [record for record in records if record["record"] == "unresolved"]
+        node = lambda qualified: next(record for record in nodes if record.get("qualified_name") == qualified)
+        invoke = node("pkg.contracts.invoke")
+        exact = node("pkg.contracts.exact")
+        inherited = node("pkg.contracts.inherited")
+        one_run = node("pkg.contracts.One.run")
+        two_run = node("pkg.contracts.Two.run")
+        base_run = node("pkg.contracts.Base.inherited")
+        runner = node("pkg.contracts.Runner")
+        runner_method = node("pkg.contracts.Runner.run")
+        one = node("pkg.contracts.One")
+        two = node("pkg.contracts.Two")
+        child = node("pkg.contracts.Child")
+        self.assertEqual(runner["kind"], "interface")
+        self.assertTrue(any(edge["source"] == one["id"] and edge["target"] == runner["id"] and edge["relation"] == "implements" for edge in edges))
+        self.assertTrue(any(edge["source"] == two["id"] and edge["target"] == runner["id"] and edge["relation"] == "implements" for edge in edges))
+        self.assertTrue(any(edge["source"] == invoke["id"] and edge["target"] == one_run["id"] and edge["relation"] == "possible-calls" for edge in edges))
+        self.assertTrue(any(edge["source"] == invoke["id"] and edge["target"] == two_run["id"] and edge["relation"] == "possible-calls" for edge in edges))
+        self.assertTrue(any(edge["source"] == exact["id"] and edge["target"] == one_run["id"] and edge["relation"] == "calls" for edge in edges))
+        self.assertTrue(any(edge["source"] == inherited["id"] and edge["target"] == base_run["id"] and edge["relation"] == "calls" for edge in edges))
+        self.assertTrue(any(edge["source"] == one_run["id"] and edge["target"] == runner_method["id"] and edge["relation"] == "overrides" for edge in edges))
+        self.assertTrue(any(edge["source"] == two_run["id"] and edge["target"] == runner_method["id"] and edge["relation"] == "overrides" for edge in edges))
+        self.assertTrue(any(edge["source"] == child["id"] and edge["target"] == node("pkg.contracts.Base")["id"] and edge["relation"] == "extends" for edge in edges))
+        self.assertTrue(any(record["source"] == node("pkg.contracts.dynamic")["id"] and record["reason"] == "dynamic-target" for record in unresolved))
+
         output = self.repo / "facts.jsonl"
         records = self._run(output)
         header = records[0]

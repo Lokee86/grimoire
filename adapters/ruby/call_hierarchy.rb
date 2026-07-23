@@ -33,6 +33,19 @@ module LexiconRuby
         end
       end
       rebuild_mixin_hosts
+      emit_override_relationships
+    end
+
+    def emit_override_relationships
+      @methods.each_value do |method|
+        next if method.singleton || method.synthetic || type_info(method.owner)&.kind == "module"
+
+        chain = instance_chain(method.owner)
+        inherited = lookup_chain(chain.drop(1), false, method.name)
+        inherited.each do |target|
+          add_edge(method.id, target, "overrides") if target != method.id
+        end
+      end
     end
 
     def external_type(name, kind:)

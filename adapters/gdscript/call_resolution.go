@@ -63,7 +63,7 @@ func (m *semanticModel) resolveCall(context analysisContext, call callReference)
 			return callResolution{reason: "builtin-target", knownReceiver: true}
 		}
 		if owners := m.bindingOwners(context, receiverName); len(owners) > 0 {
-			return m.resolveMethods(ownerSlice(owners), call.name, false, true)
+			return m.resolveMethods(m.runtimeReceiverOwners(ownerSlice(owners)), call.name, false, true)
 		}
 		if m.bindingDeclared(context, receiverName) {
 			return callResolution{reason: "dynamic-target", knownReceiver: true}
@@ -166,6 +166,26 @@ func (m *semanticModel) methodTargetsSeen(owner, name string, staticOnly, parent
 		inherited = append(inherited, m.methodTargetsSeen(parent, name, staticOnly, false, seen)...)
 	}
 	return uniqueSorted(inherited)
+}
+
+func (m *semanticModel) runtimeReceiverOwners(owners []string) []string {
+	result := append([]string(nil), owners...)
+	seen := make(map[string]bool)
+	for _, owner := range owners {
+		seen[owner] = true
+	}
+	for index := 0; index < len(result); index++ {
+		owner := result[index]
+		for candidate, parents := range m.facts.parentByOwnerID {
+			for _, parent := range parents {
+				if parent == owner && !seen[candidate] {
+					seen[candidate] = true
+					result = append(result, candidate)
+				}
+			}
+		}
+	}
+	return uniqueSorted(result)
 }
 
 func (m *semanticModel) bindingOwners(context analysisContext, name string) ownerSet {

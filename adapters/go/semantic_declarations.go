@@ -94,6 +94,9 @@ func (s *scanner) collectSemanticTypes(packages []*packages.Package, targets *se
 				s.ensureInterfaceMembers(named, iface, key, targets)
 				continue
 			}
+			if structure, ok := named.Underlying().(*types.Struct); ok {
+				s.collectEmbeddedTypeRelations(named, structure, key, *targets)
+			}
 			concrete = append(concrete, namedTypeTarget{named: named, key: key})
 		}
 	}
@@ -106,6 +109,53 @@ func (s *scanner) collectSemanticTypes(packages []*packages.Package, targets *se
 			}
 			s.addEdge(candidate.key, contract.key, RelImplements, nil)
 			s.linkImplementedMethods(candidate.named, contract, *targets)
+		}
+	}
+}
+
+func (s *scanner) collectEmbeddedTypeRelations(
+	named *types.Named,
+	structure *types.Struct,
+	ownerKey NodeKey,
+	targets semanticTargets,
+) {
+	for index := 0; index < structure.NumFields(); index++ {
+		field := structure.Field(index)
+		if !field.Embedded() {
+			continue
+		}
+		embedded := field.Type()
+		for {
+			pointer, ok := embedded.(*types.Pointer)
+			if !ok {
+				break
+			}
+			embedded = pointer.Elem()
+		}
+		embeddedNamed, ok := types.Unalias(embedded).(*types.Named)
+		if !ok {
+			continue
+		}
+		embeddedKey := s.ensureTypeNode(embeddedNamed)
+		if embeddedKey != ownerKey {
+			s.addEdge(ownerKey, embeddedKey, RelExtends, nil)
+		}
+		methodSet := types.NewMethodSet(types.NewPointer(embeddedNamed))
+		for index := 0; index < named.NumMethods(); index++ {
+			method := named.Method(index)
+			selection := methodSet.Lookup(method.Pkg(), method.Name())
+			if selection == nil {
+				continue
+			}
+			base, ok := selection.Obj().(*types.Func)
+			if !ok {
+				continue
+			}
+			overrider := s.internalFunctionCandidates(method, targets)
+			baseTarget := s.internalFunctionCandidates(base, targets)
+			if len(overrider) == 1 && len(baseTarget) == 1 && overrider[0] != baseTarget[0] {
+				s.addEdge(overrider[0], baseTarget[0], RelOverrides, nil)
+			}
 		}
 	}
 }
@@ -154,6 +204,9 @@ func (s *scanner) linkImplementedMethods(candidate *types.Named, contract interf
 		interfaceKey, exists := targets.byObject[interfaceMethod]
 		if len(concreteCandidates) == 1 && exists && concreteCandidates[0] != interfaceKey {
 			s.addEdge(concreteCandidates[0], interfaceKey, RelImplements, nil)
+			targets.interfaceImplementations[interfaceKey] = appendUniqueKey(
+				targets.interfaceImplementations[interfaceKey], concreteCandidates[0],
+			)
 		}
 	}
 }

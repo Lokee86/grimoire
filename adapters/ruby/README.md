@@ -48,6 +48,8 @@ Callsite spans are retained, so repeated calls from the same source method remai
 
 The adapter emits repository, directory, file, module, type, method, constructor, function, constant, and import nodes. Relationships include `contains`, `defines`, `imports`, `extends`, `includes`, `calls`, and `possible-calls`.
 
+Inheritance and mixin resolution also emits `overrides` from concrete methods to inherited repository-local methods. `include`, `prepend`, `extend`, and explicit concern installation are represented as mixin relationships and participate in method lookup. A single proven dispatch target is `calls`; multiple concrete runtime candidates are `possible-calls`. Modules and mixins are contracts/lookup owners, not fabricated runtime targets for unrelated calls.
+
 File content IDs are SHA-256 identities of the original bytes. Node IDs use the Lexicon v1 canonical identity contract. Output records and JSON object keys are deterministically sorted.
 
 ## Deliberate unresolved boundaries
@@ -57,6 +59,7 @@ File content IDs are SHA-256 identities of the original bytes. Node IDs use the 
 - Duck-typed parameters and injected objects remain dynamic when their complete runtime type set cannot be established.
 - Monkey patching, refinements, autoload behavior, dynamic constant lookup, and non-literal reflection cannot be made complete through static Ripper analysis alone.
 - Core-library calls and literal receiver operations are classified as builtin rather than linked to repository nodes.
+- Reflection, computed `send`/`public_send`, monkey patches, refinements, and runtime-generated methods remain unresolved; external framework dispatch is linked only when ordinary repository declarations prove the target.
 - Parse failures produce file facts and an unresolved parse record, but no declarations from the failed source.
 
 ## Tests

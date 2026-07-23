@@ -66,6 +66,37 @@ func processExtends(facts *factSet, pf *parsedFile) {
 	}
 }
 
+func processOverrides(facts *factSet) {
+	for methodID := range facts.ownerByFunctionID {
+		method := facts.declarationByID[methodID]
+		if method == nil || method.ownerClassID == "" {
+			continue
+		}
+		for _, parent := range facts.parentByOwnerID[method.ownerClassID] {
+			for _, target := range inheritedMethods(facts, parent, method.name, map[string]bool{}) {
+				if target != methodID {
+					facts.addEdge(edge(methodID, target, "overrides", method.span))
+				}
+			}
+		}
+	}
+}
+
+func inheritedMethods(facts *factSet, owner, name string, seen map[string]bool) []string {
+	if owner == "" || seen[owner] {
+		return nil
+	}
+	seen[owner] = true
+	if methods := facts.methodByOwnerID[owner][name]; len(methods) > 0 {
+		return uniqueSorted(methods)
+	}
+	var result []string
+	for _, parent := range facts.parentByOwnerID[owner] {
+		result = append(result, inheritedMethods(facts, parent, name, seen)...)
+	}
+	return uniqueSorted(result)
+}
+
 func preloadTypeOwners(facts *factSet, sourcePath, name string) ([]string, bool) {
 	parts := strings.Split(name, ".")
 	if len(parts) == 0 {

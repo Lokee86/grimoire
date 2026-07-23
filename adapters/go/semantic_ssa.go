@@ -76,13 +76,12 @@ func (s *scanner) collectSSACalls(roots []*packages.Package, targets semanticTar
 		}
 		if outcome.invoke {
 			edges := make([]semanticEdge, 0, len(resolvedTargets))
+			relation := RelPossibleCalls
+			if len(resolvedTargets) == 1 {
+				relation = RelCalls
+			}
 			for _, target := range resolvedTargets {
-				edges = append(edges, semanticEdge{target: target, relation: RelPossibleCalls})
-				for _, contract := range existing.edges {
-					if contract.relation == RelCalls && target != contract.target {
-						s.addEdge(target, contract.target, RelImplements, nil)
-					}
-				}
+				edges = append(edges, semanticEdge{target: target, relation: relation})
 			}
 			s.mergeSemanticCall(key, semanticCall{edges: edges, resolved: true, class: callClassInterface})
 			continue

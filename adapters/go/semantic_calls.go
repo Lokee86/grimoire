@@ -134,6 +134,9 @@ func (s *scanner) resolveTypedCall(
 			class = callClassInternal
 		}
 		if isInterfaceCall(pkg.TypesInfo, call.Fun) {
+			if contract, ok := targets.byObject[object]; ok {
+				return semanticInterfaceCall(contract, targets)
+			}
 			class = callClassInterface
 		}
 		return semanticCall{
@@ -147,6 +150,35 @@ func (s *scanner) resolveTypedCall(
 	default:
 		return semanticCall{reason: ReasonDynamicTarget, name: expressionName(call.Fun), class: callClassDynamic}
 	}
+}
+
+func semanticInterfaceCall(contract NodeKey, targets semanticTargets) semanticCall {
+	implementations := append([]NodeKey(nil), targets.interfaceImplementations[contract]...)
+	implementations = appendUniqueNodeKeys(implementations)
+	if len(implementations) == 0 {
+		return semanticCall{reason: ReasonDynamicTarget, class: callClassInterface, contract: contract}
+	}
+	relation := RelCalls
+	if len(implementations) > 1 {
+		relation = RelPossibleCalls
+	}
+	edges := make([]semanticEdge, 0, len(implementations))
+	for _, implementation := range implementations {
+		edges = append(edges, semanticEdge{target: implementation, relation: relation})
+	}
+	return semanticCall{edges: edges, resolved: true, class: callClassInterface, contract: contract}
+}
+
+func appendUniqueNodeKeys(keys []NodeKey) []NodeKey {
+	result := make([]NodeKey, 0, len(keys))
+	seen := make(map[NodeKey]bool)
+	for _, key := range keys {
+		if !seen[key] {
+			seen[key] = true
+			result = append(result, key)
+		}
+	}
+	return result
 }
 
 func calledFuncLiteral(expression ast.Expr) *ast.FuncLit {

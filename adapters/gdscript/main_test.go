@@ -451,6 +451,46 @@ func run():
 	}
 }
 
+func TestAnalyzeEmitsOverridesAndPolymorphicDispatch(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "base.gd", `class_name Base
+func ping():
+    pass
+`)
+	writeFixture(t, root, "child.gd", `class_name Child extends Base
+func ping():
+    pass
+`)
+	writeFixture(t, root, "caller.gd", `func dispatch(value: Base):
+    value.ping()
+func exact():
+    Child.new().ping()
+func dynamic(value, method_name):
+    value.call(method_name)
+`)
+	records := analyzeFixture(t, root)
+	basePing := findNode(records, "function", "ping", "base.gd")
+	childPing := findNode(records, "function", "ping", "child.gd")
+	dispatch := findNode(records, "function", "dispatch", "caller.gd")
+	exact := findNode(records, "function", "exact", "caller.gd")
+	if basePing == nil || childPing == nil || dispatch == nil || exact == nil {
+		t.Fatal("missing polymorphic dispatch declarations")
+	}
+	if !hasEdgeFromTo(records, "overrides", childPing["id"].(string), basePing["id"].(string)) {
+		t.Fatal("child override relationship was not emitted")
+	}
+	if !hasEdgeFromTo(records, "possible-calls", dispatch["id"].(string), basePing["id"].(string)) ||
+		!hasEdgeFromTo(records, "possible-calls", dispatch["id"].(string), childPing["id"].(string)) {
+		t.Fatal("typed base receiver did not retain both runtime dispatch targets")
+	}
+	if !hasEdgeFromTo(records, "calls", exact["id"].(string), childPing["id"].(string)) {
+		t.Fatal("concrete Child receiver did not narrow to its override")
+	}
+	if !hasUnresolved(records, "calls", "value.call", "dynamic-target") {
+		t.Fatal("computed GDScript call remained resolved")
+	}
+}
+
 func TestAnalyzePropagatesConstructorArgumentsAssignmentsAndReturns(t *testing.T) {
 	root := t.TempDir()
 	writeFixture(t, root, "dependency.gd", `class_name Dependency

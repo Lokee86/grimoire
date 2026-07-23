@@ -134,8 +134,12 @@ function visitInterface(node: ts.InterfaceDeclaration, ownerId: string, scope: s
 
 function addHeritage(node: ts.ClassLikeDeclaration | ts.InterfaceDeclaration, sourceId: string, scope: string[], context: FileContext, facts: FactStore): void {
   for (const clause of node.heritageClauses ?? []) {
-    const relation = clause.token === ts.SyntaxKind.ExtendsKeyword ? "extends" : "implements";
-    for (const type of clause.types) facts.relationships.push({ source: sourceId, relation, expression: type.expression, sourceFile: context.sourceFile, moduleKey: context.moduleKey, scope });
+    for (const type of clause.types) {
+      const relation = clause.token === ts.SyntaxKind.ExtendsKeyword
+        ? (ts.isCallExpression(type.expression) ? "uses-trait" : "extends")
+        : "implements";
+      facts.relationships.push({ source: sourceId, relation, expression: type.expression, sourceFile: context.sourceFile, moduleKey: context.moduleKey, scope });
+    }
   }
 }
 

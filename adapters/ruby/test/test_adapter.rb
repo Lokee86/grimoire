@@ -326,6 +326,10 @@ class RubyAdapterTest < Minitest::Test
       assert_call(records, nodes, "Result#success?", "Result#value")
       assert_call(records, nodes, "InstalledChild#run", "Installed#installed_call")
       assert_call(records, nodes, "SuperChild#execute", "Parent#execute")
+      assert(records.any? do |record|
+        record["record"] == "edge" && record["source"] == id_for(nodes, "SuperChild#execute") &&
+          record["target"] == id_for(nodes, "Parent#execute") && record["relation"] == "overrides"
+      end)
 
       dispatch_id = id_for(nodes, "dispatch")
       assert_equal ["Alpha#execute", "Beta#execute"], call_targets(records, nodes, dispatch_id, "possible-calls").sort

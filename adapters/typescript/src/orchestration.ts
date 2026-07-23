@@ -34,7 +34,7 @@ export function buildFacts(repositoryPath: string, changedFiles?: string[], remo
   for (const context of contexts) extractDeclarations(context, facts);
   resolveImports(facts, readPathMappings(root));
   resolveCalls(facts, checker);
-  resolveRelationships(facts);
+  resolveRelationships(facts, checker);
   return emitFacts(facts, changedFiles, removedFiles);
 }
 

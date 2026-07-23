@@ -13,8 +13,9 @@ class DeclarationFlow:
         nested_names = [name for name, _ in self.lexical_stack]
         nested_names.append(node.name)
         qname = f"{self.context.module_name}.{'.'.join(nested_names)}"
+        kind = "interface" if self._is_contract(node) else "type"
         identifier = self.facts.add_node(
-            "type",
+            kind,
             node.name,
             self.context.relative_path,
             qname,
@@ -25,7 +26,7 @@ class DeclarationFlow:
             },
         )
         self.facts.symbols[qname] = identifier
-        self.facts.symbol_kinds[qname] = "type"
+        self.facts.symbol_kinds[qname] = kind
         self.facts.scope_parents[identifier] = self.owner_id
         self.facts.classes[qname] = ClassInfo(self.context.module_name, qname, identifier, node)
         self.facts.add_edge(
@@ -167,4 +168,13 @@ class DeclarationFlow:
                 path=self.context.relative_path,
                 lines=self.context.lines,
             )
+        )
+
+    def _is_contract(self, node: ast.ClassDef) -> bool:
+        bases = {expression_text(base, self.context.source) for base in node.bases}
+        if any(base.split(".")[-1] in {"Protocol", "ABC", "Interface", "Trait"} for base in bases):
+            return True
+        return any(
+            expression_text(decorator, self.context.source).split(".")[-1] in {"runtime_checkable", "abstractclass"}
+            for decorator in node.decorator_list
         )

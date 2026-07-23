@@ -174,7 +174,12 @@ fn method_targets(
                     .trait_method_index
                     .get(&(trait_id.clone(), name.into()))
                 {
-                    targets.extend(values.iter().cloned());
+                    targets.extend(
+                        values
+                            .iter()
+                            .filter(|target| !context.trait_method_ids.contains(*target))
+                            .cloned(),
+                    );
                 }
             }
         }
@@ -184,7 +189,12 @@ fn method_targets(
             .trait_method_index
             .get(&(trait_id.clone(), name.into()))
         {
-            targets.extend(values.iter().cloned());
+            targets.extend(
+                values
+                    .iter()
+                    .filter(|target| !context.trait_method_ids.contains(*target))
+                    .cloned(),
+            );
         }
     }
     if targets.is_empty() && !receiver_syntax {
@@ -197,7 +207,12 @@ fn method_targets(
         );
         for trait_id in trait_ids {
             if let Some(values) = context.trait_method_index.get(&(trait_id, name.into())) {
-                targets.extend(values.iter().cloned());
+                targets.extend(
+                    values
+                        .iter()
+                        .filter(|target| !context.trait_method_ids.contains(*target))
+                        .cloned(),
+                );
             }
         }
     }

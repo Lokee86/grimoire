@@ -64,7 +64,6 @@ func caller() {
 		source, target NodeKey
 		relation       RelationKind
 	}{
-		{invoke, contract, RelCalls},
 		{invoke, firstMethod, RelPossibleCalls},
 		{invoke, secondMethod, RelPossibleCalls},
 		{firstMethod, contract, RelImplements},

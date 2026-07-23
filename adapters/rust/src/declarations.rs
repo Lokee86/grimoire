@@ -187,6 +187,12 @@ pub(crate) fn trait_decl(
                 "trait-method",
             );
             context.symbols.insert(method_qn.clone(), method_id.clone());
+            context.trait_method_ids.insert(method_id.clone());
+            context
+                .trait_method_index
+                .entry((id.clone(), method_name.clone()))
+                .or_default()
+                .push(method_id.clone());
             context
                 .function_qn_by_id
                 .insert(method_id.clone(), method_qn.clone());

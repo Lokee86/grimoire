@@ -44,6 +44,8 @@ The adapter creates one TypeScript `Program` for all discovered JS, TS, and Svel
 
 It emits declarations, imports, exports, inheritance, implementation, definite calls, possible calls, source spans, and explicit unresolved classifications.
 
+Class `extends` and `implements` relationships are compiler-backed. Mixin-style `extends factory(Base)` heritage is emitted as `uses-trait` when the factory is repository-local, and concrete overrides target inherited class methods rather than interface declarations. Interface signatures are contracts only: they are removed from runtime call targets, with one concrete implementation emitted as `calls` and multiple candidates as `possible-calls`.
+
 Call resolution covers:
 
 - functions, methods, constructors, overloads, and optional calls;
@@ -75,7 +77,7 @@ Absolute checkout paths are never used in node identities or fact paths.
 
 ## Conservative boundaries
 
-The adapter does not execute code or infer runtime mutation. Dynamic property installation, monkey-patching, computed exports, runtime-generated modules, and untyped polymorphic values remain dynamic or unresolved rather than guessed.
+The adapter does not execute code or infer runtime mutation. Dynamic property installation, monkey-patching, computed exports, runtime-generated modules, reflection, prototype mutation, and untyped polymorphic values remain dynamic or unresolved rather than guessed.
 
 Svelte markup is not yet converted into component-use, event-handler, binding, slot, or template-expression relationships. Module and instance script blocks are analyzed together as one virtual TypeScript module, so duplicate names across those two Svelte scopes remain a conservative limitation.
 

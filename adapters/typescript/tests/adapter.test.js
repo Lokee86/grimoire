@@ -92,6 +92,8 @@ function makeFixture() {
       "export interface Runner { run(): string }",
       "export class BaseRunner implements Runner { run(): string { return 'base'; } }",
       "export class ChildRunner extends BaseRunner { run(): string { return 'child'; } }",
+      "export function mixin<T extends new (...args: any[]) => {}>(Base: T) { return class extends Base {}; }",
+      "export class MixedRunner extends mixin(BaseRunner) {}",
       "export class Worker { run(): void {} }",
       "export function localCallback(): void {}",
       "export function invokeRunner(runner: Runner): string { return runner.run(); }",
@@ -297,6 +299,8 @@ test("resolves compiler-backed methods, dispatch, callbacks, JSX, wrappers, and 
   const exactRunner = node("src/semantics.exactRunner");
   const baseRun = node("src/semantics.BaseRunner.run");
   const childRun = node("src/semantics.ChildRunner.run");
+  const mixedRunner = node("src/semantics.MixedRunner");
+  const mixin = node("src/semantics.mixin");
   const interfaceRun = node("src/semantics.Runner.run");
   const higherOrder = node("src/semantics.higherOrder");
   const invokeCallback = node("src/semantics.invokeCallback");
@@ -310,11 +314,13 @@ test("resolves compiler-backed methods, dispatch, callbacks, JSX, wrappers, and 
   const renderDefault = node("src/default-consumer.RenderDefault");
   const assigned = node("src/default-component.AssignedComponent");
   const inner = node("src/default-component.InnerComponent");
-  for (const value of [invokeRunner, exactRunner, baseRun, childRun, interfaceRun, higherOrder, invokeCallback, localCallback, methodCalls, workerRun, arrowCaller, arrowCallable, taggedCaller, tag, renderDefault, assigned, inner]) assert.ok(value);
+  for (const value of [invokeRunner, exactRunner, baseRun, childRun, mixedRunner, mixin, interfaceRun, higherOrder, invokeCallback, localCallback, methodCalls, workerRun, arrowCaller, arrowCallable, taggedCaller, tag, renderDefault, assigned, inner]) assert.ok(value);
 
   for (const target of [baseRun, childRun]) assert.ok(edges.some((record) => record.source === invokeRunner.id && record.target === target.id && record.relation === "possible-calls"));
   assert.ok(!edges.some((record) => record.source === invokeRunner.id && record.target === interfaceRun.id && ["calls", "possible-calls"].includes(record.relation)));
   assert.ok(edges.some((record) => record.source === exactRunner.id && record.target === childRun.id && record.relation === "calls"));
+  assert.ok(edges.some((record) => record.source === childRun.id && record.target === baseRun.id && record.relation === "overrides"));
+  assert.ok(edges.some((record) => record.source === mixedRunner.id && record.target === mixin.id && record.relation === "uses-trait"));
   assert.ok(edges.some((record) => record.source === higherOrder.id && record.target === invokeCallback.id && record.relation === "calls"));
   assert.ok(edges.some((record) => record.source === invokeCallback.id && record.target === localCallback.id && record.relation === "calls"));
   assert.ok(edges.some((record) => record.source === higherOrder.id && record.target === localCallback.id && record.relation === "possible-calls" && record.attributes?.callback === true));

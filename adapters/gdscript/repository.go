@@ -75,6 +75,7 @@ func analyzeRepository(repo string, selections ...[]string) ([]byte, error) {
 	for _, pf := range parsed {
 		processExtends(facts, pf)
 	}
+	processOverrides(facts)
 	if err := processProjectAutoloads(root, projectRoots, facts); err != nil {
 		return nil, err
 	}

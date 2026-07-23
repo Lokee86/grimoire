@@ -51,6 +51,8 @@ Version 0.3 resolves statically defensible repository-local calls through:
 
 The type-flow analysis is a bounded deterministic fixed point. It combines only concrete local evidence; it does not execute code or guess runtime types.
 
+Typed base receivers include repository-local descendant overrides as `possible-calls`; exact constructed receivers narrow to one method and emit `calls`. `extends` and `overrides` are emitted for script inheritance. Engine classes and scripts are not treated as fabricated local contracts, and interface-like behavior without explicit static type evidence remains unresolved.
+
 ## Conservative boundaries
 
 GDScript and Godot permit substantial runtime behavior. The adapter intentionally leaves these unresolved rather than inventing graph edges:
@@ -63,6 +65,7 @@ GDScript and Godot permit substantial runtime behavior. The adapter intentionall
 - engine methods, engine classes, and external addons outside the scanned source set;
 - external or computed autoload targets;
 - signal connections or callbacks whose callable target is computed dynamically.
+- runtime method replacement, scene-instantiated polymorphism without a typed receiver, and computed `call`/`call_deferred`/RPC method names.
 
 Builtin and engine-owned calls are classified separately from missing repository-local targets. Multiple defensible local targets become `possible-calls` rather than an arbitrary definite edge.
 

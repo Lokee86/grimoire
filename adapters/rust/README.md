@@ -22,6 +22,7 @@ Adapter version 0.3.0 emits:
 - inline and external module ownership;
 - local imports, grouped imports, aliases, globs, and re-export bindings when their targets are statically unique;
 - inherent and trait implementation relationships;
+- `extends`-equivalent implementation ownership through `implements`, plus `overrides` from trait implementation methods to trait contract methods;
 - free-function, associated-function, method, constructor-like, UFCS, and local macro call edges;
 - receiver and return-value propagation through bindings, fields, parameters, and local expressions;
 - callable propagation through function values, closures, callback parameters, tuples, and fields;
@@ -30,11 +31,14 @@ Adapter version 0.3.0 emits:
 
 Canonical identities are based on Cargo package/target/module-qualified names and normalized repository-relative paths. Absolute checkout paths are never used in node identities or emitted paths.
 
+Trait declarations are contracts and are never emitted as runtime call targets. A single proven concrete implementation emits `calls`; multiple concrete implementations or unconstrained generic/trait-object candidates emit `possible-calls`. Inherited/default trait methods resolve only through indexed repository-local implementations.
+
 ## Conservative boundaries
 
 The adapter performs static analysis only. It does not expand procedural macros, execute build scripts, infer runtime plugin registration, or guess targets created through unsafe pointer manipulation, reflection-like registries, or unconstrained dynamic dispatch.
 
 External crates remain `external-target` unless their source is part of the scanned workspace. Macro-generated declarations that are not visible to `syn` cannot be indexed directly.
+Dynamic dispatch remains unresolved for procedural-macro-generated methods, build-script registration, reflection-like registries, unconstrained runtime trait objects, unsafe pointer mutation, and other runtime-generated implementations.
 
 ## Verification
 

@@ -126,6 +126,18 @@ pub(crate) fn finalize(context: &mut Context) {
                     .entry((trait_id.clone(), method.name.clone()))
                     .or_default()
                     .push(method.id.clone());
+                let contract_ids = context
+                    .trait_method_index
+                    .get(&(trait_id.clone(), method.name.clone()))
+                    .cloned()
+                    .unwrap_or_default();
+                for contract_id in contract_ids {
+                    if context.trait_method_ids.contains(&contract_id) && contract_id != method.id {
+                        context
+                            .facts
+                            .add_edge(&method.id, &contract_id, "overrides", None);
+                    }
+                }
             }
         }
         if method.self_type == "Self" {

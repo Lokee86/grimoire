@@ -37,6 +37,9 @@ const (
 	RelConvertsTo    RelationKind = "converts-to"
 	RelImplements    RelationKind = "implements"
 	RelExtends       RelationKind = "extends"
+	RelOverrides     RelationKind = "overrides"
+	RelUsesTrait     RelationKind = "uses-trait"
+	RelIncludes      RelationKind = "includes"
 	RelReferences    RelationKind = "references"
 )
 

@@ -45,7 +45,38 @@ func (s *scanner) mergeSemanticCall(key string, incoming semanticCall) {
 		existing.reason = ""
 		existing.namespace = ""
 		existing.name = ""
-		existing.edges = uniqueSemanticEdges(append(existing.edges, incoming.edges...))
+		contract := existing.contract
+		if incoming.contract != "" {
+			contract = incoming.contract
+		}
+		existing.contract = contract
+		merged := append(append([]semanticEdge(nil), existing.edges...), incoming.edges...)
+		concrete := make(map[NodeKey]bool)
+		for _, edge := range merged {
+			if edge.target != contract && (edge.relation == RelCalls || edge.relation == RelPossibleCalls) {
+				concrete[edge.target] = true
+			}
+		}
+		callRelation := RelCalls
+		if len(concrete) > 1 {
+			callRelation = RelPossibleCalls
+		}
+		filtered := make([]semanticEdge, 0, len(merged))
+		seenTargets := make(map[NodeKey]bool)
+		for _, edge := range merged {
+			if edge.target == contract && (edge.relation == RelCalls || edge.relation == RelPossibleCalls) {
+				continue
+			}
+			if edge.relation == RelCalls || edge.relation == RelPossibleCalls {
+				if seenTargets[edge.target] {
+					continue
+				}
+				seenTargets[edge.target] = true
+				edge.relation = callRelation
+			}
+			filtered = append(filtered, edge)
+		}
+		existing.edges = uniqueSemanticEdges(filtered)
 		if callClassPriority(incoming.class) > callClassPriority(existing.class) {
 			existing.class = incoming.class
 		}

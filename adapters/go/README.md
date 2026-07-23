@@ -28,6 +28,12 @@ The scanner excludes `.git`, `.worktrees`, `.workingtrees`, `.ddocs`, `.lexicon`
 
 `calls` indicates one definite callable contract. Multiple sound runtime targets remain explicit `possible-calls` relationships rather than being promoted to certainty.
 
+## Dispatch and relationship boundaries
+
+The semantic pass emits `extends` for named embedded/base relationships, `implements` for repository-local interface satisfaction, `uses-trait`/`includes` for embedded implementation relationships, and `overrides` from concrete methods to inherited or interface contract methods. Interface declarations are contracts only and are never runtime call targets. A proven concrete target emits `calls`; multiple concrete implementations emit `possible-calls`.
+
+Reflection, `reflect`-derived calls, external packages, generated methods without repository evidence, unsafe runtime mutation, and otherwise dynamic function values remain unresolved or externally classified. Build-tag variants are merged only where their callable identity is stable.
+
 ## Canonical identities
 
 The SHA-256 payload defined by the shared contract uses these Go identity strings:

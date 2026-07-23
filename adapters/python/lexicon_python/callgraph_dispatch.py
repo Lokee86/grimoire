@@ -11,6 +11,13 @@ class DispatchFlow:
         class_qname = self.facts.node_qnames.get(class_id)
         if not class_qname:
             return set()
+        if self._kind(class_id) in {"interface", "trait"}:
+            targets: set[str] = set()
+            for descendant in self._descendant_ids(class_qname):
+                if self._kind(descendant) in {"interface", "trait"}:
+                    continue
+                targets.update(self._method_targets(descendant, method_name))
+            return targets
         for candidate_qname in self._mro_qnames(class_qname):
             target = self.facts.symbols.get(f"{candidate_qname}.{method_name}")
             if target and self._kind(target) == "method":
@@ -39,7 +46,7 @@ class DispatchFlow:
             target_id, reason = self.bindings.resolve_reference(
                 info.module_name, class_qname, dotted(base), None
             )
-            if target_id and self._kind(target_id) == "type":
+            if target_id and self._kind(target_id) in {"type", "interface", "trait"}:
                 target_qname = self.facts.node_qnames.get(target_id)
                 reasons.update(self._runtime_base_reasons(target_qname))
             elif reason in {"builtin-target", "external-target", "dynamic-target"}:
@@ -58,7 +65,7 @@ class DispatchFlow:
                 target_id, _ = self.bindings.resolve_reference(
                     info.module_name, class_qname, dotted(base), None
                 )
-                if target_id and self._kind(target_id) == "type":
+                if target_id and self._kind(target_id) in {"type", "interface", "trait"}:
                     target_qname = self.facts.node_qnames.get(target_id)
                     if target_qname:
                         bases.append(target_qname)
@@ -118,7 +125,7 @@ class DispatchFlow:
         return result
 
     def _annotation_shape_for_reference(self, identifier: str | None) -> TypeShape:
-        if identifier is None or self._kind(identifier) != "type":
+        if identifier is None or self._kind(identifier) not in {"type", "interface", "trait"}:
             return _EMPTY
         return TypeShape(direct=self._instance_type_ids(identifier))
 
@@ -126,7 +133,7 @@ class DispatchFlow:
         if identifier is None:
             return _EMPTY
         kind = self._kind(identifier)
-        if kind == "type":
+        if kind in {"type", "interface", "trait"}:
             return TypeShape(direct=frozenset({identifier}), callables=frozenset({identifier}))
         if kind in {"function", "method"}:
             return TypeShape(callables=self._effective_target_ids(identifier))

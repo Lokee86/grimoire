@@ -163,6 +163,7 @@ pub(crate) struct Context {
     pub(crate) methods: Vec<MethodInfo>,
     pub(crate) method_index: BTreeMap<(String, String), Vec<String>>,
     pub(crate) trait_method_index: BTreeMap<(String, String), Vec<String>>,
+    pub(crate) trait_method_ids: BTreeSet<String>,
     pub(crate) type_traits: BTreeMap<String, BTreeSet<String>>,
     pub(crate) fields: BTreeMap<(String, String), FieldInfo>,
     pub(crate) pending_impls: Vec<PendingImpl>,

@@ -54,7 +54,9 @@ Current static resolution covers:
 - bare repository-local decorators whose returned wrapper is statically recoverable;
 - pytest `parametrize` callback values.
 
-The adapter also emits repository, directory, file, module, type, function, method, and import nodes; structural `contains` and `defines` edges; resolved `imports` and `extends` edges; and source spans for emitted relationships.
+The adapter also emits repository, directory, file, module, type, interface/protocol, function, method, and import nodes; structural `contains` and `defines` edges; resolved `imports`, `extends`, and `implements` edges; `overrides` edges to inherited or protocol contract methods; and source spans for emitted relationships.
+
+Protocol and other recognized interface contracts are not runtime call targets. An annotated protocol receiver expands only to repository-local concrete implementors: one proven implementation is `calls`, while multiple implementations are `possible-calls`. Exact concrete construction and C3-inherited methods remain definite when the receiver evidence is concrete. Dynamic `getattr` names, reflection, monkey patching, metaclass-generated members, and runtime class mutation remain unresolved.
 
 ## Deliberate unresolved boundaries
 

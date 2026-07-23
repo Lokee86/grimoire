@@ -52,7 +52,8 @@ def resolve_facts(facts: Facts, contexts: list[FileContext]) -> None:
         )
         base_span = span(inheritance.base, inheritance.path, inheritance.lines)
         if target_id:
-            facts.add_edge(inheritance.source_id, target_id, "extends", record_span=base_span)
+            relation = "implements" if facts.nodes.get(target_id, {}).get("kind") in {"interface", "trait"} else "extends"
+            facts.add_edge(inheritance.source_id, target_id, relation, record_span=base_span)
         else:
             facts.add_unresolved(
                 inheritance.source_id,
@@ -62,6 +63,8 @@ def resolve_facts(facts: Facts, contexts: list[FileContext]) -> None:
                 record_span=base_span,
                 candidate_name=target_name,
             )
+
+    _emit_overrides(facts, bindings)
 
     callgraph = CallGraphResolver(facts, bindings)
     for call in facts.calls:
@@ -87,3 +90,39 @@ def resolve_facts(facts: Facts, contexts: list[FileContext]) -> None:
                 record_span=call_span,
                 candidate_name=dotted(call.callee),
             )
+
+
+def _emit_overrides(facts: Facts, bindings: BindingResolver) -> None:
+    for function in facts.functions.values():
+        if not function.class_qname:
+            continue
+        method_name = function.qname.rsplit(".", 1)[-1]
+        for ancestor in _ancestor_qnames(facts, bindings, function.module_name, function.class_qname):
+            target = facts.symbols.get(f"{ancestor}.{method_name}")
+            if target and facts.nodes.get(target, {}).get("kind") == "method" and target != function.node_id:
+                facts.add_edge(function.node_id, target, "overrides")
+
+
+def _ancestor_qnames(
+    facts: Facts,
+    bindings: BindingResolver,
+    module_name: str,
+    class_qname: str,
+    seen: set[str] | None = None,
+) -> tuple[str, ...]:
+    seen = set() if seen is None else seen
+    if class_qname in seen:
+        return ()
+    seen.add(class_qname)
+    info = facts.classes.get(class_qname)
+    if info is None:
+        return ()
+    result: list[str] = []
+    for base in info.node.bases:
+        target_id, _ = bindings.resolve_reference(module_name, class_qname, dotted(base))
+        target_qname = facts.node_qnames.get(target_id) if target_id else None
+        if not target_qname:
+            continue
+        result.append(target_qname)
+        result.extend(_ancestor_qnames(facts, bindings, module_name, target_qname, seen))
+    return tuple(dict.fromkeys(result))

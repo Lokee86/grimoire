@@ -14,7 +14,7 @@ export type Span = {
 
 export type PendingRelationship = {
   source: string;
-  relation: "extends" | "implements";
+  relation: "extends" | "implements" | "uses-trait";
   expression: ts.Expression;
   sourceFile: ts.SourceFile;
   moduleKey: string;

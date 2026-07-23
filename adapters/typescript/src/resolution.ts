@@ -67,9 +67,10 @@ function resolveReexportBindings(facts: FactStore, pathMappings: PathMapping[]):
   }
 }
 
-export function resolveRelationships(facts: FactStore): void {
+export function resolveRelationships(facts: FactStore, checker?: ts.TypeChecker): void {
   for (const relationship of facts.relationships) {
-    const targetName = staticTarget(relationship.expression);
+    const targetName = staticTarget(relationship.expression)
+      ?? (ts.isCallExpression(relationship.expression) ? staticTarget(relationship.expression.expression) : null);
     const recordSpan = spanFor(
       relationship.expression,
       relationship.sourceFile,
@@ -96,6 +97,41 @@ export function resolveRelationships(facts: FactStore): void {
       targetName,
     );
   }
+  if (checker) emitOverrides(facts, checker);
+}
+
+function emitOverrides(facts: FactStore, checker: ts.TypeChecker): void {
+  for (const [methodId, declarations] of facts.idDeclarations) {
+    if (facts.nodes.get(methodId)?.kind !== "method") continue;
+    const method = declarations.find((declaration): declaration is ts.MethodDeclaration => ts.isMethodDeclaration(declaration));
+    if (!method || !ts.isClassDeclaration(method.parent) || !method.name) continue;
+    const owner = method.parent;
+    const ownerSymbol = owner.name ? checker.getSymbolAtLocation(owner.name) : undefined;
+    if (!ownerSymbol) continue;
+    const ownerType = checker.getDeclaredTypeOfSymbol(ownerSymbol);
+    const methodName = method.name.getText(method.getSourceFile());
+    for (const ancestor of ancestorTypes(ownerType, new Set<ts.Symbol>())) {
+      const property = checker.getPropertyOfType(ancestor, methodName);
+      for (const declaration of property?.declarations ?? []) {
+        if (!ts.isMethodDeclaration(declaration) || !ts.isClassDeclaration(declaration.parent)) continue;
+        const target = facts.declarationIds.get(declaration) ?? facts.declarationIds.get(declaration.name);
+        if (target && target !== methodId) facts.addEdge(methodId, target, "overrides");
+      }
+    }
+  }
+}
+
+function ancestorTypes(type: ts.Type, seen: Set<ts.Symbol>): ts.Type[] {
+  if ((type.flags & ts.TypeFlags.Object) === 0) return [];
+  const bases = (type as ts.InterfaceType).getBaseTypes() ?? [];
+  const result: ts.Type[] = [];
+  for (const base of bases) {
+    const symbol = base.getSymbol();
+    if (symbol && seen.has(symbol)) continue;
+    if (symbol) seen.add(symbol);
+    result.push(base, ...ancestorTypes(base, seen));
+  }
+  return result;
 }
 
 function resolveSymbol(facts: FactStore, moduleKey: string, scope: string[], name: string): string | null {

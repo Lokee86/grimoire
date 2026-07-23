@@ -51,6 +51,10 @@ class CallGraphResolver(
         reference = dotted(call.callee)
         if reference in {"importlib.import_module", "import_module", "__import__"}:
             return (), "dynamic-target"
+        if isinstance(call.callee, ast.Call) and dotted(call.callee.func) == "getattr":
+            attribute = call.callee.args[1] if len(call.callee.args) > 1 else None
+            if not isinstance(attribute, ast.Constant) or not isinstance(attribute.value, str):
+                return (), "dynamic-target"
         targets, reason = self._callable_targets(
             call.callee,
             call.module_name,

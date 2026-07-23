@@ -15,11 +15,13 @@ type semanticCall struct {
 	namespace string
 	name      string
 	class     callClass
+	contract  NodeKey
 }
 
 type semanticTargets struct {
-	byObject map[*types.Func]NodeKey
-	byID     map[string][]NodeKey
+	byObject                 map[*types.Func]NodeKey
+	byID                     map[string][]NodeKey
+	interfaceImplementations map[NodeKey][]NodeKey
 }
 
 type namedTypeTarget struct {
@@ -54,8 +56,9 @@ func (s *scanner) loadSemanticCalls() error {
 	}
 
 	targets := semanticTargets{
-		byObject: make(map[*types.Func]NodeKey),
-		byID:     make(map[string][]NodeKey),
+		byObject:                 make(map[*types.Func]NodeKey),
+		byID:                     make(map[string][]NodeKey),
+		interfaceImplementations: make(map[NodeKey][]NodeKey),
 	}
 	for _, pkg := range loaded {
 		s.collectSemanticTargets(pkg, &targets)
