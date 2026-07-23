@@ -61,6 +61,7 @@ func runIndex(args []string, stdout, stderr io.Writer) error {
 	state := flags.String("state", "", "prepared index repository path")
 	ignoreFile := flags.String("ignore-file", "", "root-relative or absolute ignore file; defaults to .gitignore hierarchy")
 	maxFileBytes := flags.Int64("max-file-bytes", 0, "maximum indexed file size")
+	includeGenerated := flags.Bool("include-generated", false, "include generated, vendored, lock, bundled, and minified content")
 	var excludePaths stringListFlag
 	flags.Var(&excludePaths, "exclude", "root-relative or absolute path to exclude; may be repeated")
 	if err := flags.Parse(args); err != nil {
@@ -78,9 +79,10 @@ func runIndex(args []string, stdout, stderr io.Writer) error {
 
 	excluded := append([]string{statePath}, excludePaths...)
 	snapshot, stats, err := index.Build(*root, previous, index.BuildOptions{
-		MaxFileBytes: *maxFileBytes,
-		IgnoreFile:   *ignoreFile,
-		ExcludePaths: excluded,
+		MaxFileBytes:     *maxFileBytes,
+		IgnoreFile:       *ignoreFile,
+		ExcludePaths:     excluded,
+		IncludeGenerated: *includeGenerated,
 	})
 	if err != nil {
 		return err

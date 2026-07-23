@@ -33,7 +33,7 @@ Without `--ignore-file`, Grimoire loads the root `.gitignore` and nested `.gitig
 
 `--ignore-file` replaces the root and nested hierarchy with one explicit Git-ignore-syntax file. The control file itself is excluded. A missing explicit ignore file is an error.
 
-Grimoire does not automatically exclude arbitrary dependency, coverage, generated, or build directories beyond the permanent list. Put those paths in repository ignore rules when they should not be indexed.
+By default, Grimoire also omits common dependency and generated-output directories (`node_modules`, `vendor`, `third_party`, `third-party`, `.next`, `.nuxt`, `coverage`, `dist`, `target`, and `out`). It skips common lockfiles, generated-code filename suffixes and headers, minified or bundled web assets, and large web/data files that are effectively one minified line. Small authored assets remain eligible. Pass `--include-generated` to bypass this policy; Git-ignore and explicit exclusions still apply.
 
 ## Supported files
 
@@ -65,7 +65,7 @@ Grimoire computes SHA-256 over each eligible file. A prior file record is reused
 
 A prior record is removed when its path is deleted, ignored, unsupported, oversized, binary, or otherwise absent from the eligible traversal result. Renames naturally reuse immutable content where the storage identity permits it while publishing the new path record.
 
-Changing traversal, chunking, tokenizer, or schema behavior invalidates the relevant identity and forces affected work to be rebuilt.
+Changing traversal, chunking, tokenizer, or schema behavior invalidates the relevant identity and forces affected work to be rebuilt. The token-ceiling and generated-content policy use prepared-index format version 3, so older prepared state is rebuilt once on the next `grimoire index` run.
 
 ## Fallback chunking
 
@@ -76,8 +76,11 @@ The current language-agnostic chunker:
 - skips empty or whitespace-only files;
 - targets roughly 48 lines per chunk;
 - prefers a recent blank-line boundary after at least eight useful lines;
-- trims blank lines at chunk edges; and
-- derives chunk identity from path, source range, and exact text.
+- trims blank lines at chunk edges;
+- enforces an exact 1,536-token ceiling after line-based chunking;
+- recursively splits oversized chunks at line boundaries;
+- falls back to token slices only when one source line alone exceeds the ceiling; and
+- derives chunk identity from path, source range, exact text, and token-slice position when required.
 
 Lexicon facts may enrich retrieval, but they do not currently replace fallback source chunk boundaries.
 
@@ -94,7 +97,8 @@ The command reports:
 - `scanned`: eligible files evaluated after filtering;
 - `reused`: scanned files using prior records;
 - `updated`: new or changed scanned files rebuilt; and
-- `removed`: prior records absent from the new snapshot.
+- `removed`: prior records absent from the new snapshot; and
+- `generated_skipped`: generated files or generated-directory roots omitted by the default policy.
 
 For a successful run:
 

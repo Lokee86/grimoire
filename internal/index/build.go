@@ -18,16 +18,18 @@ import (
 const defaultMaxFileBytes int64 = 2 << 20
 
 type BuildOptions struct {
-	MaxFileBytes int64
-	IgnoreFile   string
-	ExcludePaths []string
+	MaxFileBytes     int64
+	IgnoreFile       string
+	ExcludePaths     []string
+	IncludeGenerated bool
 }
 
 type BuildStats struct {
-	Scanned int `json:"scanned"`
-	Reused  int `json:"reused"`
-	Updated int `json:"updated"`
-	Removed int `json:"removed"`
+	Scanned          int `json:"scanned"`
+	Reused           int `json:"reused"`
+	Updated          int `json:"updated"`
+	Removed          int `json:"removed"`
+	GeneratedSkipped int `json:"generated_skipped"`
 }
 
 func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, BuildStats, error) {
@@ -77,6 +79,10 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 			}
 			return nil
 		}
+		if path != absoluteRoot && !options.IncludeGenerated && generatedDirectory(entry) {
+			stats.GeneratedSkipped++
+			return filepath.SkipDir
+		}
 		if path != absoluteRoot {
 			ignored, err := ignorePolicy.Ignored(path, entry.IsDir())
 			if err != nil {
@@ -95,6 +101,10 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 		if path == ignorePolicy.ControlFile() || !entry.Type().IsRegular() || !indexableFile(entry.Name()) {
 			return nil
 		}
+		if !options.IncludeGenerated && generatedFileName(entry.Name()) {
+			stats.GeneratedSkipped++
+			return nil
+		}
 
 		info, err := entry.Info()
 		if err != nil {
@@ -109,6 +119,10 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 			return err
 		}
 		if bytes.IndexByte(content, 0) >= 0 {
+			return nil
+		}
+		if !options.IncludeGenerated && generatedFileContent(entry.Name(), content) {
+			stats.GeneratedSkipped++
 			return nil
 		}
 

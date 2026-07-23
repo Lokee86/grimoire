@@ -2,7 +2,7 @@ package index
 
 import "errors"
 
-const FormatVersion = 2
+const FormatVersion = 3
 
 var ErrIncompatibleIndex = errors.New("incompatible prepared index")
 
