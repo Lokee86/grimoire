@@ -30,6 +30,7 @@ class CallGraphResolver(
         self._parameter_active: set[tuple[str, str]] = set()
         self._field_cache: dict[tuple[str, str], TypeShape] = {}
         self._base_cache: dict[str, tuple[str, ...]] = {}
+        self._runtime_base_cache: dict[str, frozenset[str]] = {}
         self._mro_cache: dict[str, tuple[str, ...]] = {}
         self._descendant_cache: dict[str, frozenset[str]] = {}
         self._decorator_argument_shapes: dict[tuple[str, str], TypeShape] = {}
@@ -39,6 +40,12 @@ class CallGraphResolver(
         self._return_cache.clear()
         self._parameter_cache.clear()
         self._direct_callers = self._index_direct_callers()
+
+    @staticmethod
+    def _runtime_reason(reasons: frozenset[str]) -> str | None:
+        if not reasons:
+            return None
+        return next(iter(reasons)) if len(reasons) == 1 else "dynamic-target"
 
     def resolve_call(self, call: CallInfo) -> tuple[tuple[str, ...], str]:
         reference = dotted(call.callee)
@@ -70,11 +77,17 @@ class CallGraphResolver(
             local = self._local_shape(callee.id, module_name, class_qname, scope_id, before, seen)
             if local.callables:
                 return set(local.callables), ""
+            local_reason = self._runtime_reason(local.call_reasons)
+            if local_reason:
+                return set(), local_reason
             instance_targets: set[str] = set()
             for class_id in local.direct:
                 instance_targets.update(self._method_targets(class_id, "__call__"))
             if instance_targets:
                 return instance_targets, ""
+            local_reason = self._runtime_reason(local.runtime_reasons)
+            if local_reason:
+                return set(), local_reason
             target_id, reason = self.bindings.resolve_reference(
                 module_name, class_qname, callee.id, scope_id
             )
@@ -82,7 +95,10 @@ class CallGraphResolver(
         if isinstance(callee, ast.Attribute):
             if isinstance(callee.value, ast.Call) and isinstance(callee.value.func, ast.Name) and callee.value.func.id == "super":
                 targets = self._super_method_targets(class_qname, callee.attr)
-                return (targets, "") if targets else (set(), "missing-target")
+                if targets:
+                    return targets, ""
+                base_reason = self._runtime_reason(self._runtime_base_reasons(class_qname))
+                return set(), base_reason or "missing-target"
             target_id, reason = self.bindings.resolve_reference(
                 module_name, class_qname, dotted(callee), scope_id
             )
@@ -93,6 +109,9 @@ class CallGraphResolver(
             )
             if attribute_shape.callables:
                 return set(attribute_shape.callables), ""
+            attribute_reason = self._runtime_reason(attribute_shape.call_reasons)
+            if attribute_reason:
+                return set(), attribute_reason
             receiver = self.expression_shape(
                 callee.value, module_name, class_qname, scope_id, before, seen
             )
@@ -101,9 +120,18 @@ class CallGraphResolver(
                 targets.update(self._method_targets(class_id, callee.attr))
             if targets:
                 return targets, ""
+            receiver_reason = self._runtime_reason(receiver.runtime_reasons)
+            if receiver_reason:
+                return set(), receiver_reason
             if receiver.direct:
-                return set(), "missing-target"
-            return set(), reason if reason != "missing-target" else "ambiguous-target"
+                inherited_reasons: set[str] = set()
+                for class_id in receiver.direct:
+                    inherited_reasons.update(
+                        self._runtime_base_reasons(self.facts.node_qnames.get(class_id))
+                    )
+                inherited_reason = self._runtime_reason(frozenset(inherited_reasons))
+                return set(), inherited_reason or "missing-target"
+            return set(), reason if reason != "missing-target" else "dynamic-target"
         if isinstance(callee, ast.Lambda):
             lambda_id = self.facts.lambda_ids.get(id(callee))
             return ({lambda_id}, "") if lambda_id else (set(), "dynamic-target")
@@ -112,5 +140,10 @@ class CallGraphResolver(
             targets = set(returned.callables)
             for class_id in returned.direct:
                 targets.update(self._method_targets(class_id, "__call__"))
-            return (targets, "") if targets else (set(), "dynamic-target")
+            if targets:
+                return targets, ""
+            returned_reason = self._runtime_reason(
+                returned.call_reasons or returned.runtime_reasons
+            )
+            return set(), returned_reason or "dynamic-target"
         return set(), "dynamic-target"

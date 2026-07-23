@@ -45,6 +45,10 @@ class TypeShape:
     elements: frozenset[str] = frozenset()
     callables: frozenset[str] = frozenset()
     element_callables: frozenset[str] = frozenset()
+    runtime_reasons: frozenset[str] = frozenset()
+    call_reasons: frozenset[str] = frozenset()
+    element_runtime_reasons: frozenset[str] = frozenset()
+    element_call_reasons: frozenset[str] = frozenset()
 
     def merge(self, other: "TypeShape") -> "TypeShape":
         return TypeShape(
@@ -52,10 +56,19 @@ class TypeShape:
             self.elements | other.elements,
             self.callables | other.callables,
             self.element_callables | other.element_callables,
+            self.runtime_reasons | other.runtime_reasons,
+            self.call_reasons | other.call_reasons,
+            self.element_runtime_reasons | other.element_runtime_reasons,
+            self.element_call_reasons | other.element_call_reasons,
         )
 
     def element_shape(self) -> "TypeShape":
-        return TypeShape(direct=self.elements, callables=self.element_callables)
+        return TypeShape(
+            direct=self.elements,
+            callables=self.element_callables,
+            runtime_reasons=self.element_runtime_reasons,
+            call_reasons=self.element_call_reasons,
+        )
 
 
 _EMPTY = TypeShape()
@@ -80,6 +93,7 @@ def _merge_shapes(shapes: list[TypeShape]) -> TypeShape:
 
 def _elements_from_shapes(shapes: list[TypeShape]) -> TypeShape:
     return TypeShape(
+        runtime_reasons=frozenset({"builtin-target"}),
         elements=frozenset(
             identifier
             for shape in shapes
@@ -89,6 +103,16 @@ def _elements_from_shapes(shapes: list[TypeShape]) -> TypeShape:
             identifier
             for shape in shapes
             for identifier in (*shape.callables, *shape.element_callables)
+        ),
+        element_runtime_reasons=frozenset(
+            reason
+            for shape in shapes
+            for reason in (*shape.runtime_reasons, *shape.element_runtime_reasons)
+        ),
+        element_call_reasons=frozenset(
+            reason
+            for shape in shapes
+            for reason in (*shape.call_reasons, *shape.element_call_reasons)
         ),
     )
 

@@ -26,6 +26,28 @@ class DispatchFlow:
                 return {target}
         return set()
 
+    def _runtime_base_reasons(self, class_qname: str | None) -> frozenset[str]:
+        if not class_qname:
+            return frozenset()
+        if class_qname in self._runtime_base_cache:
+            return self._runtime_base_cache[class_qname]
+        info = self.facts.classes.get(class_qname)
+        if info is None:
+            return frozenset()
+        reasons: set[str] = set()
+        for base in info.node.bases:
+            target_id, reason = self.bindings.resolve_reference(
+                info.module_name, class_qname, dotted(base), None
+            )
+            if target_id and self._kind(target_id) == "type":
+                target_qname = self.facts.node_qnames.get(target_id)
+                reasons.update(self._runtime_base_reasons(target_qname))
+            elif reason in {"builtin-target", "external-target", "dynamic-target"}:
+                reasons.add(reason)
+        result = frozenset(reasons)
+        self._runtime_base_cache[class_qname] = result
+        return result
+
     def _base_qnames(self, class_qname: str) -> tuple[str, ...]:
         if class_qname in self._base_cache:
             return self._base_cache[class_qname]

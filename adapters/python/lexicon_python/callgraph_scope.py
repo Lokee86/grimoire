@@ -50,8 +50,8 @@ class ScopeFlow:
                 assignment.class_qname,
                 assignment.scope_id,
             )
-            if candidate == _EMPTY:
-                candidate = self.expression_shape(
+            candidate = candidate.merge(
+                self.expression_shape(
                     assignment.value,
                     assignment.module_name,
                     assignment.class_qname,
@@ -59,6 +59,7 @@ class ScopeFlow:
                     assignment.assignment_node,
                     next_seen,
                 )
+            )
             shape = shape.merge(candidate) if assignment.branch_dependent else candidate
         loops = sorted(
             (
@@ -90,6 +91,8 @@ class ScopeFlow:
                     next_seen,
                 )
                 candidate = container.element_shape()
+                if candidate == _EMPTY:
+                    candidate = TypeShape(runtime_reasons=container.runtime_reasons)
             elif binding.element_index is not None:
                 candidate = _EMPTY
             else:
@@ -102,6 +105,8 @@ class ScopeFlow:
                     next_seen,
                 )
                 candidate = iterable.element_shape()
+                if candidate == _EMPTY:
+                    candidate = TypeShape(runtime_reasons=iterable.runtime_reasons)
             shape = shape.merge(candidate) if binding.branch_dependent else candidate
         if not has_local_evidence:
             enclosing_scope = self._enclosing_value_scope(scope_id, module_name)

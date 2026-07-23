@@ -54,14 +54,20 @@ class ExpressionFlow:
             )
             if imported != _EMPTY:
                 return imported
-            target_id, _ = self.bindings.resolve_reference(
+            target_id, reason = self.bindings.resolve_reference(
                 module_name,
                 class_qname,
                 expression.id,
                 scope_id,
             )
-            return self._shape_for_reference(target_id)
+            if target_id:
+                return self._shape_for_reference(target_id)
+            if reason in {"builtin-target", "external-target", "dynamic-target"}:
+                return TypeShape(runtime_reasons=frozenset({reason}))
+            return _EMPTY
         if isinstance(expression, ast.Attribute):
+            if expression.attr == "__dict__":
+                return TypeShape(runtime_reasons=frozenset({"builtin-target"}))
             direct_id, _ = self.bindings.resolve_reference(
                 module_name,
                 class_qname,
@@ -88,6 +94,8 @@ class ExpressionFlow:
                 method_targets.update(self._method_targets(class_id, expression.attr))
             if method_targets:
                 result = result.merge(TypeShape(callables=frozenset(method_targets)))
+            if result == _EMPTY and receiver.runtime_reasons:
+                return TypeShape(runtime_reasons=receiver.runtime_reasons)
             return result
         if isinstance(expression, ast.Lambda):
             lambda_id = self.facts.lambda_ids.get(id(expression))
@@ -101,7 +109,10 @@ class ExpressionFlow:
                 before,
                 seen,
             )
-            return container.element_shape()
+            element = container.element_shape()
+            if element != _EMPTY:
+                return element
+            return TypeShape(runtime_reasons=container.runtime_reasons)
         if isinstance(expression, ast.Call):
             reference = dotted(expression.func)
             if reference in {"functools.partial", "partial"} and expression.args:
@@ -166,7 +177,7 @@ class ExpressionFlow:
                             )
                         )
                     return element
-            targets, _ = self._callable_targets(
+            targets, reason = self._callable_targets(
                 expression.func,
                 module_name,
                 class_qname,
@@ -181,7 +192,34 @@ class ExpressionFlow:
                     result = result.merge(TypeShape(direct=frozenset({target_id})))
                 elif kind in {"function", "method"}:
                     result = result.merge(self.function_return_shape(target_id))
+            if result == _EMPTY and reason in {
+                "builtin-target",
+                "external-target",
+                "dynamic-target",
+            }:
+                return TypeShape(runtime_reasons=frozenset({reason}))
             return result
+        if isinstance(expression, ast.Constant):
+            return TypeShape(runtime_reasons=frozenset({"builtin-target"}))
+        if isinstance(expression, ast.JoinedStr):
+            return TypeShape(runtime_reasons=frozenset({"builtin-target"}))
+        if isinstance(expression, ast.BinOp):
+            left = self.expression_shape(
+                expression.left, module_name, class_qname, scope_id, before, seen
+            )
+            if isinstance(expression.op, ast.Div) and left != _EMPTY:
+                return left
+            return left.merge(
+                self.expression_shape(
+                    expression.right, module_name, class_qname, scope_id, before, seen
+                )
+            )
+        if isinstance(expression, ast.UnaryOp):
+            return self.expression_shape(
+                expression.operand, module_name, class_qname, scope_id, before, seen
+            )
+        if isinstance(expression, (ast.Compare, ast.FormattedValue)):
+            return TypeShape(runtime_reasons=frozenset({"builtin-target"}))
         if isinstance(expression, ast.IfExp):
             return self.expression_shape(expression.body, module_name, class_qname, scope_id, before, seen).merge(
                 self.expression_shape(expression.orelse, module_name, class_qname, scope_id, before, seen)

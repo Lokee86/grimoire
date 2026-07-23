@@ -52,11 +52,19 @@ class AnnotationFlow:
             if origin in _WRAPPER_TYPES:
                 return shapes[0] if shapes else _EMPTY
             if origin == "Callable":
-                return _EMPTY
+                return TypeShape(call_reasons=frozenset({"dynamic-target"}))
             return self.annotation_shape(annotation.value, module_name, class_qname, scope_id)
         reference = dotted(annotation)
-        target_id, _ = self.bindings.resolve_reference(module_name, class_qname, reference, scope_id)
-        return self._annotation_shape_for_reference(target_id)
+        if reference == "Any" or (reference and reference.endswith(".Any")):
+            return TypeShape(runtime_reasons=frozenset({"dynamic-target"}))
+        target_id, reason = self.bindings.resolve_reference(
+            module_name, class_qname, reference, scope_id
+        )
+        if target_id:
+            return self._annotation_shape_for_reference(target_id)
+        if reason in {"builtin-target", "external-target", "dynamic-target"}:
+            return TypeShape(runtime_reasons=frozenset({reason}))
+        return _EMPTY
 
     def function_return_shape(self, function_id: str) -> TypeShape:
         if function_id in self._return_cache:
@@ -128,8 +136,8 @@ class AnnotationFlow:
                 assignment.class_qname,
                 assignment.scope_id,
             )
-            if candidate == _EMPTY:
-                candidate = self.expression_shape(
+            candidate = candidate.merge(
+                self.expression_shape(
                     assignment.value,
                     assignment.module_name,
                     assignment.class_qname,
@@ -137,6 +145,7 @@ class AnnotationFlow:
                     assignment.assignment_node,
                     next_seen,
                 )
+            )
             shape = shape.merge(candidate)
         for base_qname in self._base_qnames(class_qname):
             shape = shape.merge(self._field_shape(base_qname, field_name, next_seen))

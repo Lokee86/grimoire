@@ -631,6 +631,109 @@ class PythonAdapterTest(unittest.TestCase):
         self.assertEqual(len(unresolved), 5)
         self.assertEqual({record["reason"] for record in unresolved}, {"builtin-target"})
 
+    def test_imported_module_callbacks_in_mapping_resolve(self) -> None:
+        self._write(
+            "pkg/generators.py",
+            "def first(value):\n"
+            "    return value\n\n"
+            "def second(value):\n"
+            "    return value\n",
+        )
+        self._write(
+            "callback_registry.py",
+            "from typing import Callable\n"
+            "from pkg import generators\n\n"
+            "Generator = Callable[[str], str]\n"
+            "GENERATORS: dict[str, Generator] = {\n"
+            "    'first': generators.first,\n"
+            "    'second': generators.second,\n"
+            "}\n\n"
+            "def use(name: str, value: str):\n"
+            "    generator = GENERATORS.get(name)\n"
+            "    if generator is None:\n"
+            "        return value\n"
+            "    return generator(value)\n",
+        )
+        records = self._run(self.repo / "facts.jsonl")
+        nodes = {
+            record["qualified_name"]: record["id"]
+            for record in records
+            if record["record"] == "node" and "qualified_name" in record
+        }
+        possible = {
+            record["target"]
+            for record in records
+            if record["record"] == "edge"
+            and record["relation"] == "possible-calls"
+            and record["source"] == nodes["callback_registry.use"]
+        }
+        self.assertEqual(
+            possible,
+            {nodes["pkg.generators.first"], nodes["pkg.generators.second"]},
+        )
+
+    def test_runtime_receiver_provenance_classifies_common_python_calls(self) -> None:
+        self._write(
+            "runtime_receivers.py",
+            "from collections.abc import Callable\n"
+            "from pathlib import Path\n"
+            "import argparse\n"
+            "import unittest\n\n"
+            "class Failure(Exception):\n"
+            "    def __init__(self):\n"
+            "        super().__init__('failed')\n\n"
+            "class Case(unittest.TestCase):\n"
+            "    def check(self):\n"
+            "        self.assertEqual(1, 1)\n\n"
+            "class Runner:\n"
+            "    def __init__(self, clock: Callable[[], float]):\n"
+            "        self.clock = clock\n"
+            "    def run(self):\n"
+            "        return self.clock()\n\n"
+            "def use(values: list[str], mapping: dict[str, list[str]], root: Path):\n"
+            "    lines = []\n"
+            "    lines.append('value')\n"
+            "    values.extend(lines)\n"
+            "    ' value '.strip().lower()\n"
+            "    mapping.setdefault('key', []).append('value')\n"
+            "    (root / 'file.txt').read_text(encoding='utf-8').strip()\n"
+            "    parser = argparse.ArgumentParser()\n"
+            "    return parser.parse_args([])\n",
+        )
+        records = self._run(self.repo / "facts.jsonl")
+        unresolved = [
+            record
+            for record in records
+            if record["record"] == "unresolved"
+            and record["relation"] == "calls"
+            and record.get("span", {}).get("path") == "runtime_receivers.py"
+        ]
+        by_expression = {record["expression"]: record["reason"] for record in unresolved}
+
+        for expression in (
+            "super().__init__('failed')",
+            "lines.append('value')",
+            "values.extend(lines)",
+            "' value '.strip()",
+            "' value '.strip().lower()",
+            "mapping.setdefault('key', [])",
+            "mapping.setdefault('key', []).append('value')",
+        ):
+            self.assertEqual(by_expression[expression], "builtin-target", expression)
+        for expression in (
+            "self.assertEqual(1, 1)",
+            "(root / 'file.txt').read_text(encoding='utf-8')",
+            "(root / 'file.txt').read_text(encoding='utf-8').strip()",
+            "argparse.ArgumentParser()",
+            "parser.parse_args([])",
+        ):
+            self.assertEqual(by_expression[expression], "external-target")
+        self.assertEqual(by_expression["self.clock()"], "dynamic-target")
+        self.assertFalse(
+            {"ambiguous-target", "missing-target", "unsupported-form"}
+            & {record["reason"] for record in unresolved}
+        )
+
     def test_ids_content_and_header(self) -> None:
         output = self.repo / "facts.jsonl"
         records = self._run(output)
