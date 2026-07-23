@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/retrieve"
@@ -73,6 +74,77 @@ func TestPlanExploratoryCapsStructuralEvidence(t *testing.T) {
 	}
 }
 
+func TestPlanRetainsEligibleGroupedCompanion(t *testing.T) {
+	grouped := candidateWithContext("internal/damage/resolve.go", "exact", 1, []string{"zeta", "alpha"}, 500)
+	companion := candidateWithContext("internal/damage/trace.go", "lexical", 6, []string{"alpha"}, 700)
+	candidates := []retrieve.Candidate{
+		grouped,
+		candidate("internal/damage/model.go", "lexical", 2),
+		candidateWithContext("internal/network/trace.go", "lexical", 3, []string{"alpha"}, 700),
+		candidate("internal/damage/shield.go", "lexical", 4),
+		candidate("internal/damage/status.go", "lexical", 5),
+		companion,
+	}
+	result := Plan(queryshape.RetrievalPolicy{
+		Scope: queryshape.ScopeFocused, TargetTokens: 750,
+	}, candidates, nil)
+	if len(result.Candidates) != 3 || result.Candidates[1].Chunk.Path != companion.Chunk.Path {
+		t.Fatalf("grouped companion was not prioritized: %+v", result.Candidates)
+	}
+	if result.Decision.CandidateTokens != 3200 {
+		t.Fatalf("candidate tokens = %d, want 3200", result.Decision.CandidateTokens)
+	}
+	if len(result.Decision.GroupsRepresented) != 2 ||
+		result.Decision.GroupsRepresented[0] != "alpha" || result.Decision.GroupsRepresented[1] != "zeta" {
+		t.Fatalf("unexpected represented groups: %+v", result.Decision.GroupsRepresented)
+	}
+}
+
+func TestPlanGroupedPriorityRespectsCandidateCap(t *testing.T) {
+	candidates := make([]retrieve.Candidate, 0, 170)
+	for index := range 170 {
+		candidates = append(candidates, candidate(fmt.Sprintf("internal/damage/file_%03d.go", index), "lexical", index+1))
+	}
+	candidates[0].Context = &evidence.Descriptor{GroupIDs: []string{"call-chain"}}
+	candidates[169].Context = &evidence.Descriptor{GroupIDs: []string{"call-chain"}}
+	result := Plan(queryshape.RetrievalPolicy{
+		Scope: queryshape.ScopeBounded, TargetTokens: 1_000_000_000,
+	}, candidates, nil)
+	if len(result.Candidates) != 160 {
+		t.Fatalf("selected %d candidates, want 160", len(result.Candidates))
+	}
+	if result.Candidates[1].Chunk.Path != candidates[169].Chunk.Path {
+		t.Fatalf("grouped companion was not retained before cap: %s", result.Candidates[1].Chunk.Path)
+	}
+	if result.Decision.GroupsRepresented == nil || len(result.Decision.GroupsRepresented) != 1 ||
+		result.Decision.GroupsRepresented[0] != "call-chain" {
+		t.Fatalf("unexpected represented groups: %+v", result.Decision.GroupsRepresented)
+	}
+}
+
+func TestPlanUngroupedOrderingRemainsCuratedOrder(t *testing.T) {
+	candidates := []retrieve.Candidate{
+		candidate("internal/damage/first.go", "exact", 1),
+		candidate("internal/damage/second.go", "lexical", 2),
+		candidate("internal/damage/third.go", "adjacent", 3),
+		candidate("internal/damage/fourth.go", "lexical", 4),
+	}
+	result := Plan(queryshape.RetrievalPolicy{
+		Scope: queryshape.ScopeFocused, TargetTokens: 1000,
+	}, candidates, nil)
+	if len(result.Candidates) != 3 {
+		t.Fatalf("selected %d candidates, want 3", len(result.Candidates))
+	}
+	for index, selected := range result.Candidates {
+		if selected.Chunk.Path != candidates[index].Chunk.Path {
+			t.Fatalf("candidate %d = %s, want %s", index, selected.Chunk.Path, candidates[index].Chunk.Path)
+		}
+	}
+	if result.Decision.GroupsRepresented != nil {
+		t.Fatalf("unexpected groups for ungrouped candidates: %+v", result.Decision.GroupsRepresented)
+	}
+}
+
 func candidate(path, source string, rank int) retrieve.Candidate {
 	return retrieve.Candidate{
 		Chunk: index.Chunk{
@@ -82,4 +154,13 @@ func candidate(path, source string, rank int) retrieve.Candidate {
 		Source: source,
 		Rank:   rank,
 	}
+}
+
+func candidateWithContext(path, source string, rank int, groupIDs []string, estimatedTokens int) retrieve.Candidate {
+	candidate := candidate(path, source, rank)
+	candidate.Context = &evidence.Descriptor{
+		GroupIDs:        groupIDs,
+		EstimatedTokens: estimatedTokens,
+	}
+	return candidate
 }
