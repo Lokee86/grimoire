@@ -1,6 +1,7 @@
 package queryshape
 
 import (
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
@@ -57,16 +58,26 @@ type Profile struct {
 	Ambiguity           Level    `json:"ambiguity"`
 }
 
+// RetrievalIntent is one ordered retrieval request derived from a query.
+// Weight is relative to the other entries in the same policy and is always
+// positive for an emitted intent.
+type RetrievalIntent struct {
+	Intent evidence.Intent `json:"intent"`
+	Query  string          `json:"query"`
+	Weight float64         `json:"weight"`
+}
+
 // RetrievalPolicy is the non-authoritative policy recommendation derived from
 // a Profile. Shadow remains true until assembly consumes this contract.
 type RetrievalPolicy struct {
-	Shadow               bool     `json:"shadow"`
-	Scope                Scope    `json:"scope"`
-	BudgetMode           string   `json:"budget_mode"`
-	TargetTokens         int      `json:"target_tokens"`
-	MaximumTokens        int      `json:"maximum_tokens"`
-	ExpansionRadius      int      `json:"expansion_radius"`
-	RequiredEvidence     []string `json:"required_evidence_types"`
-	DiversityRequirement int      `json:"diversity_requirement"`
-	StopConditions       []string `json:"stop_conditions"`
+	Shadow               bool              `json:"shadow"`
+	Scope                Scope             `json:"scope"`
+	BudgetMode           string            `json:"budget_mode"`
+	TargetTokens         int               `json:"target_tokens"`
+	MaximumTokens        int               `json:"maximum_tokens"`
+	ExpansionRadius      int               `json:"expansion_radius"`
+	Intents              []RetrievalIntent `json:"intents"`
+	RequiredEvidence     []string          `json:"required_evidence_types"`
+	DiversityRequirement int               `json:"diversity_requirement"`
+	StopConditions       []string          `json:"stop_conditions"`
 }
