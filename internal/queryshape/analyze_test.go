@@ -66,12 +66,12 @@ func TestAnalyzeBroadCrossSystemQuery(t *testing.T) {
 	}
 }
 
-func TestAnalyzeRepresentsUnspecifiedBudgetWithoutSelectingOne(t *testing.T) {
+func TestAnalyzeRecommendsAutomaticBudgetWhenUnspecified(t *testing.T) {
 	profile, policy := Analyze(Input{Query: "Explain persistence"})
 	if profile.Specificity != LevelMedium || profile.Breadth != LevelLow || profile.Ambiguity != LevelMedium {
 		t.Fatalf("unexpected profile: %+v", profile)
 	}
-	if policy.BudgetMode != "automatic-shadow" || policy.TargetTokens != 0 || policy.MaximumTokens != 0 {
+	if policy.BudgetMode != "automatic-shadow" || policy.TargetTokens != BoundedTargetTokens || policy.MaximumTokens != BoundedMaximumTokens {
 		t.Fatalf("unexpected policy: %+v", policy)
 	}
 }

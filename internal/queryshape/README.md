@@ -8,6 +8,15 @@ ambiguity, candidate dispersion, and graph-region spread before context assembly
 - `Profile` records the measured query and retrieval shape.
 - `RetrievalPolicy` recommends focused, bounded, or exploratory assembly.
 
-The policy is currently shadow-only. Evaluation reports retain it, but retrieval,
-curation, token budgeting, and package compilation do not consume it. A missing
-budget is represented as `automatic-shadow` without selecting a token target.
+Retrieval evaluation retains the policy in shadow mode. The normal `context`
+command activates automatic budget recommendations only when `--budget` is
+omitted or zero. Explicit positive budgets remain fixed. Candidate ordering,
+curation, expansion, and stopping behavior do not yet consume the policy.
+
+Automatic target and maximum recommendations are:
+
+| Scope | Target | Maximum |
+| --- | ---: | ---: |
+| focused | 3,000 | 4,000 |
+| bounded | 6,000 | 8,000 |
+| exploratory | 12,000 | 16,000 |

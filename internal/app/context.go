@@ -11,6 +11,7 @@ import (
 	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/index"
+	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/selection"
 )
@@ -21,7 +22,7 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	root := flags.String("root", ".", "repository root")
 	state := flags.String("state", "", "prepared index repository path")
 	query := flags.String("query", "", "task or retrieval query")
-	budget := flags.Int("budget", 2000, "maximum o200k_base tokens in the emitted package")
+	budget := flags.Int("budget", 0, "maximum o200k_base tokens in the emitted package; zero selects automatically")
 	limit := flags.Int("candidate-limit", 200, "maximum ranked candidates")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
@@ -41,8 +42,8 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if *query == "" || *budget <= 0 || *limit <= 0 || *timeout <= 0 || *structureTimeout <= 0 {
-		return errors.New("--query and positive --budget, --candidate-limit, --timeout, and --structure-timeout are required")
+	if *query == "" || *budget < 0 || *limit <= 0 || *timeout <= 0 || *structureTimeout <= 0 {
+		return errors.New("--query, non-negative --budget, and positive --candidate-limit, --timeout, and --structure-timeout are required")
 	}
 	mode, err := embedding.ParseQueryMode(*modeValue)
 	if err != nil {
@@ -88,10 +89,19 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 
 	exact := retrieve.Exact(snapshot, *query, min(*limit, maxExactCandidates))
 	merged := mergeContextProviders(*limit, exact, baseCandidates, structural.Lexicon.Candidates)
+	_, policy := queryshape.Analyze(queryshape.Input{
+		Query: *query, RequestedBudget: *budget,
+		Exact: exact, Ranked: baseCandidates, Candidates: merged, Structural: structural.Combined,
+	})
+	effectiveBudget := *budget
+	if effectiveBudget == 0 {
+		policy = queryshape.Activate(policy)
+		effectiveBudget = policy.TargetTokens
+	}
 	candidates := selection.Curate(snapshot, merged)
 
 	result, err := compiler.CompileWithEvidence(
-		*query, *budget, snapshot.Version, snapshot.Tokenizer,
+		*query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
 		contextCandidateSources(candidates), structural.ProviderState, structural.Combined, candidates,
 	)
 	if err != nil {

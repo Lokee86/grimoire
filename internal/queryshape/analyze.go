@@ -178,8 +178,7 @@ func policyFor(profile Profile, budget int) RetrievalPolicy {
 	}
 	if budget <= 0 {
 		policy.BudgetMode = "automatic-shadow"
-		policy.TargetTokens = 0
-		policy.MaximumTokens = 0
+		applyAutomaticBudget(&policy)
 	}
 	applyScopePolicy(&policy)
 	return policy

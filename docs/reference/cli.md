@@ -175,7 +175,7 @@ grimoire context [flags]
 | `--root <path>` | `.` | Repository root used to resolve state |
 | `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
 | `--query <text>` | none | Required retrieval query |
-| `--budget <n>` | `2000` | Maximum `o200k_base` tokens in emitted JSON |
+| `--budget <n>` | `0` | Maximum `o200k_base` tokens; zero selects a deterministic automatic target |
 | `--candidate-limit <n>` | `200` | Maximum merged exact plus semantic/fallback primary candidates before curation |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
@@ -193,7 +193,7 @@ grimoire context [flags]
 | `--query-batch-concurrency <n>` | `2` | Maximum concurrent query embedding requests |
 | `--query-max-tokens <n>` | `0` | Optional query-token limit; zero keeps the complete query |
 
-The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds the complete query as fixed non-overlapping windows grouped into bounded 64-token requests, with at most two requests active concurrently. `full` embeds the complete query once. `quality` adds the full-query vector to the split windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged, deduplicated, diversified, and expanded with bounded prepared neighbours before exact-budget compilation.
+The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds the complete query as fixed non-overlapping windows grouped into bounded 64-token requests, with at most two requests active concurrently. `full` embeds the complete query once. `quality` adds the full-query vector to the split windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged before deterministic query-shape analysis. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, expanded with bounded prepared neighbours, and compiled within the selected budget.
 
 Structural enrichment is enabled by default. When Lexicon state exists, Grimoire resolves `.lexicon/CURRENT`, creates or reuses a cached `lexicon export`, and emits matched symbols, source spans, and immediate relationships as first-class package evidence. It then resolves the Arcana snapshot for the same Lexicon ID, invokes one-shot `arcana sync` when necessary, and queries Arcana's JSONL protocol for operational roles, impact, unresolved references, and shortest call chains. Structural failures warn and preserve standalone source retrieval. Use `--structure=false` to skip both providers or the explicit state, command, and facts flags to override discovery.
 
