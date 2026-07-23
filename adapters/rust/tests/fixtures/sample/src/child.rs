@@ -1,11 +1,13 @@
-use super::Runnable;
-
 pub struct Worker;
 
-pub trait LocalTrait {}
+impl Worker {
+    pub fn new() -> Self {
+        Self
+    }
 
-impl LocalTrait for Worker {}
-
-pub mod nested {
-    pub fn nested_fn() {}
+    pub fn work(&self) {
+        helper();
+    }
 }
+
+pub fn helper() {}

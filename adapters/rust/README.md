@@ -1,6 +1,6 @@
 # Lexicon Rust adapter
 
-This directory contains a self-contained Rust CLI that emits Lexicon facts v1 JSONL for a Cargo repository.
+This directory contains a self-contained Rust CLI that emits deterministic Lexicon facts v1 JSONL for Cargo repositories and workspaces.
 
 ## Usage
 
@@ -10,37 +10,38 @@ From this directory:
 cargo run -- --repo /path/to/repository --output /path/to/facts.jsonl
 ```
 
-The adapter uses `cargo_metadata` to identify workspace packages and Cargo targets, and `syn` to parse Rust source. `--repo` must point to a Cargo workspace or package containing `Cargo.toml`. The output parent directory is created when needed.
+The adapter uses `cargo_metadata` for workspace and target discovery and `syn` for source parsing. `--repo` must point to a Cargo package or workspace containing `Cargo.toml`.
 
-The scanner excludes `.git/`, `.worktrees/`, `.workingtrees/`, `.ddocs/`, `.lexicon/`, `.arcana/`, `.grimoire/`, `.pitlord/`, `.cantrip/`, `.homunculus/`, `.incubus/`, `.ritual/`, `.warlock/`, `target/`, `node_modules/`, `vendor/`, `build/`, `dist/`, and `out/` directories.
+The scanner excludes Git/worktree metadata, generated output, dependency trees, caches, and all Warlock tool-state directories.
 
-## Emitted facts
+## Analysis model
 
-The current slice emits:
+Adapter version 0.3.0 emits:
 
-- one repository node, source directory and Rust file nodes with content identities;
-- Cargo target crate nodes represented as `module` nodes;
-- inline and external module declarations;
-- structs and enums as `type` nodes;
-- traits and trait methods;
-- free functions and impl methods;
-- `use` declarations as `import` nodes;
-- containment and definition edges for declarations and files;
-- statically resolved local import edges;
-- local free-function `calls` edges from free functions and impl methods;
-- local inherent associated-function `calls` edges when the type and target are unambiguous;
-- simple local `impl Trait for Type` `implements` edges;
-- unresolved records for macro-generated declarations, missing module files, unsupported imports, and external or missing import/implementation targets.
+- repository, directory, file, crate/module, type, trait, function, method, import, and macro facts;
+- inline and external module ownership;
+- local imports, grouped imports, aliases, globs, and re-export bindings when their targets are statically unique;
+- inherent and trait implementation relationships;
+- free-function, associated-function, method, constructor-like, UFCS, and local macro call edges;
+- receiver and return-value propagation through bindings, fields, parameters, and local expressions;
+- callable propagation through function values, closures, callback parameters, tuples, and fields;
+- definite `calls` edges and conservative `possible-calls` edges for generic or multi-target trait dispatch;
+- explicit builtin, external, dynamic, missing, ambiguous, and unsupported classifications where a definite local target cannot be proven.
 
-Node identity uses the contract form `lexicon:v1\\0rust\\0<kind>\\0<canonical identity>`. Declaration identities are workspace-relative Cargo package/target/module qualified names; file and directory identities are normalized repository-relative paths. No absolute checkout path is included in an identity or emitted path.
+Canonical identities are based on Cargo package/target/module-qualified names and normalized repository-relative paths. Absolute checkout paths are never used in node identities or emitted paths.
 
-## Current limits
+## Conservative boundaries
 
-- The scanner parses `.rs` files reachable from Cargo targets and then processes remaining package-local Rust files as crate-level fallback files.
-- Import resolution is intentionally conservative: simple paths are resolved only when a local declaration is known, and grouped imports are expanded independently. Globs, aliases, and external symbols become unresolved records.
-- Call extraction is intentionally conservative: receiver methods, trait-associated functions, macros, generic or qualified paths, external calls, and unsupported forms remain unresolved.
-- Trait implementation extraction is limited to local, syntactically simple `impl Trait for Type` relationships. Generic, macro-generated, dynamic, and external relationships are not guessed.
-- Macro bodies, fields, lifetimes, and type references are not yet modeled as separate facts.
-- Source spans use parser locations; synthetic or unavailable spans are omitted by the parser boundary.
+The adapter performs static analysis only. It does not expand procedural macros, execute build scripts, infer runtime plugin registration, or guess targets created through unsafe pointer manipulation, reflection-like registries, or unconstrained dynamic dispatch.
 
-The adapter writes records in the contract order: header, canonically sorted nodes, edges, and unresolved records. JSON object keys are lexicographically ordered.
+External crates remain `external-target` unless their source is part of the scanned workspace. Macro-generated declarations that are not visible to `syn` cannot be indexed directly.
+
+## Verification
+
+```text
+cargo fmt -- --check
+cargo test
+cargo clippy --all-targets -- -D warnings
+```
+
+The semantic fixture suite covers declarations, imports, traits, inherent methods, field aliases, constructor-like calls, UFCS, local macros, callbacks, generic trait dispatch, canonical ordering, relative paths, unresolved classifications, and byte-identical repeat runs.

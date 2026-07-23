@@ -154,11 +154,22 @@ pub(crate) fn add_crates(context: &mut Context, metadata: &Metadata) {
                 attributes,
             );
             context.modules.insert(qn.clone(), node_id.clone());
+            let external_crates = package
+                .dependencies
+                .iter()
+                .map(|dependency| {
+                    dependency
+                        .rename
+                        .clone()
+                        .unwrap_or_else(|| dependency.name.replace('-', "_"))
+                })
+                .collect();
             context.crates.push(crate::model::CrateContext {
                 qn,
                 node_id,
                 root,
                 package_root: package_root.clone(),
+                external_crates,
             });
         }
     }

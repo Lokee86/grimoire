@@ -1,7 +1,5 @@
 use crate::contract::stable_id;
-use crate::items;
 use crate::model::Context;
-use crate::relationships;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn extract(context: &mut Context) {
@@ -46,23 +44,25 @@ pub(crate) fn extract(context: &mut Context) {
             );
         }
     }
-    relationships::resolve_calls(context);
+    crate::relationships::finalize(context);
 }
 
 pub(crate) fn process_file(
     context: &mut Context,
     path: &Path,
-    owner_id: &str,
-    module_qn: &str,
+    owner: &str,
+    module: &str,
     crate_context: &crate::model::CrateContext,
 ) {
-    let key = (path.to_path_buf(), module_qn.to_string());
-    if !context.processed.insert(key) {
+    if !context
+        .processed
+        .insert((path.to_path_buf(), module.to_string()))
+    {
         return;
     }
     let Some(source) = context.sources.get(path).cloned() else {
         context.facts.add_unresolved(
-            owner_id,
+            owner,
             "contains",
             &path.display().to_string(),
             "missing-target",
@@ -71,7 +71,7 @@ pub(crate) fn process_file(
         return;
     };
     let file_id = stable_id("rust", "file", &source.relative);
-    context.facts.add_edge(owner_id, &file_id, "contains", None);
+    context.facts.add_edge(owner, &file_id, "contains", None);
     let items = source.syntax.items.clone();
-    items::process_items(context, &items, &file_id, module_qn, &source, crate_context);
+    crate::items::process_items(context, &items, &file_id, module, &source, crate_context);
 }

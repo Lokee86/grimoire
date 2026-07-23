@@ -19,6 +19,7 @@ impl Facts {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn add_node(
         &mut self,
         language: &str,

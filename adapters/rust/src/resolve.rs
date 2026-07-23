@@ -1,140 +1,223 @@
-use crate::model::Context;
-use quote::ToTokens;
-use std::collections::BTreeMap;
-use syn::UseTree;
+use crate::model::{Context, FunctionInfo};
+pub(crate) use crate::type_resolution::{is_external_path, value_from_type};
+use std::collections::{BTreeMap, BTreeSet};
 
-pub(crate) fn resolve_type(
+pub(crate) fn resolve_type_ids(
     context: &Context,
     path: &str,
-    module_qn: &str,
-    crate_qn: &str,
-) -> Option<String> {
-    resolve_from_map(&context.types, path, module_qn, crate_qn)
-}
-
-pub(crate) fn resolve_trait(
-    context: &Context,
-    path: &str,
-    module_qn: &str,
-    crate_qn: &str,
-) -> Option<String> {
-    resolve_from_map(&context.traits, path, module_qn, crate_qn)
-}
-
-pub(crate) fn resolve_symbol(
-    context: &Context,
-    path: &str,
-    module_qn: &str,
-    crate_qn: &str,
-) -> Option<String> {
-    resolve_from_map(&context.symbols, path, module_qn, crate_qn)
-}
-
-fn resolve_from_map(
-    map: &BTreeMap<String, String>,
-    path: &str,
-    module_qn: &str,
-    crate_qn: &str,
-) -> Option<String> {
-    let path = path.trim_start_matches("::");
-    if path.is_empty() || path.contains('{') || path.contains('*') {
-        return None;
-    }
-    if let Some(rest) = path.strip_prefix("crate::") {
-        return map.get(&format!("{crate_qn}::{rest}")).cloned();
-    }
-    if let Some(rest) = path.strip_prefix("self::") {
-        return map.get(&format!("{module_qn}::{rest}")).cloned();
-    }
-    if let Some(rest) = path.strip_prefix("super::") {
-        let parent = parent_module(module_qn, crate_qn)?;
-        return resolve_from_map(map, rest, &parent, crate_qn);
-    }
-    let mut base = module_qn.to_string();
-    loop {
-        if let Some(value) = map.get(&format!("{base}::{path}")) {
-            return Some(value.clone());
-        }
-        if base == crate_qn {
-            break;
-        }
-        base = parent_module(&base, crate_qn)?;
-    }
-    if !path.contains("::") {
-        map.iter()
-            .find(|(candidate, _)| candidate.ends_with(&format!("::{path}")))
-            .map(|(_, value)| value.clone())
-    } else {
-        None
-    }
-}
-
-fn parent_module(module_qn: &str, crate_qn: &str) -> Option<String> {
-    if module_qn == crate_qn {
-        return None;
-    }
-    let parent = module_qn.rsplit_once("::")?.0.to_string();
-    if parent.len() < crate_qn.len() || !parent.starts_with(crate_qn) {
-        None
-    } else {
-        Some(parent)
-    }
-}
-
-pub(crate) fn use_paths(tree: &UseTree) -> Option<Vec<String>> {
-    let mut paths = Vec::new();
-    collect_use_paths(tree, &[], &mut paths)?;
-    Some(paths)
-}
-
-fn collect_use_paths(tree: &UseTree, prefix: &[String], paths: &mut Vec<String>) -> Option<()> {
-    match tree {
-        UseTree::Path(path) => {
-            let mut next = prefix.to_vec();
-            next.push(path.ident.to_string());
-            collect_use_paths(&path.tree, &next, paths)
-        }
-        UseTree::Name(name) => {
-            let mut path = prefix.to_vec();
-            path.push(name.ident.to_string());
-            paths.push(path.join("::"));
-            Some(())
-        }
-        UseTree::Group(group) => {
-            for item in &group.items {
-                collect_use_paths(item, prefix, paths)?;
-            }
-            Some(())
-        }
-        UseTree::Glob(_) | UseTree::Rename(_) => None,
-    }
-}
-
-pub(crate) fn normalized_tokens<T: ToTokens>(value: &T) -> String {
-    value
-        .to_token_stream()
-        .to_string()
-        .split_whitespace()
+    function: &FunctionInfo,
+) -> BTreeSet<String> {
+    resolve_qns(context, path, function)
+        .into_iter()
+        .filter_map(|qn| context.types.get(&qn).cloned())
         .collect()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub(crate) fn resolve_trait_ids(
+    context: &Context,
+    path: &str,
+    function: &FunctionInfo,
+) -> BTreeSet<String> {
+    resolve_qns(context, path, function)
+        .into_iter()
+        .filter_map(|qn| context.traits.get(&qn).cloned())
+        .collect()
+}
 
-    #[test]
-    fn expands_grouped_use_paths_and_rejects_unsupported_forms() {
-        let item: syn::ItemUse =
-            syn::parse_str("use crate::storage::{PackedGraph, write_packed};").unwrap();
-        assert_eq!(
-            use_paths(&item.tree),
-            Some(vec![
-                "crate::storage::PackedGraph".into(),
-                "crate::storage::write_packed".into(),
-            ])
-        );
-
-        let glob: syn::ItemUse = syn::parse_str("use super::*;").unwrap();
-        assert_eq!(use_paths(&glob.tree), None);
+pub(crate) fn resolve_qns(
+    context: &Context,
+    raw: &str,
+    function: &FunctionInfo,
+) -> BTreeSet<String> {
+    let path = clean_path(raw);
+    if path.is_empty() {
+        return BTreeSet::new();
     }
+    if path == "Self" {
+        return function
+            .self_type
+            .as_deref()
+            .filter(|value| *value != "Self")
+            .map(|value| resolve_qns(context, value, function))
+            .unwrap_or_default();
+    }
+    if let Some(rest) = path.strip_prefix("crate::") {
+        return existing(context, [format!("{}::{rest}", function.crate_qn)]);
+    }
+    if let Some(rest) = path.strip_prefix("self::") {
+        return existing(context, [format!("{}::{rest}", function.module_qn)]);
+    }
+    if path.starts_with("super::") {
+        let mut base = function.module_qn.as_str();
+        let mut rest = path.as_str();
+        while let Some(next) = rest.strip_prefix("super::") {
+            base = base
+                .rsplit_once("::")
+                .map(|(value, _)| value)
+                .unwrap_or(&function.crate_qn);
+            rest = next;
+        }
+        return existing(context, [format!("{base}::{rest}")]);
+    }
+    let (first, suffix) = path
+        .split_once("::")
+        .map(|(a, b)| (a, Some(b)))
+        .unwrap_or((&path, None));
+    if let Some(scope) = context.imports.get(&function.module_qn) {
+        if let Some(targets) = scope.bindings.get(first) {
+            let imported = existing(
+                context,
+                targets.iter().map(|target| {
+                    suffix
+                        .map(|rest| format!("{target}::{rest}"))
+                        .unwrap_or_else(|| target.clone())
+                }),
+            );
+            if !imported.is_empty() {
+                return imported;
+            }
+        }
+    }
+    let mut base = function.module_qn.clone();
+    loop {
+        let local = existing(context, [format!("{base}::{path}")]);
+        if !local.is_empty() {
+            return local;
+        }
+        if base == function.crate_qn {
+            break;
+        }
+        let Some((parent, _)) = base.rsplit_once("::") else {
+            break;
+        };
+        base = parent.to_string();
+    }
+    if let Some(scope) = context.imports.get(&function.module_qn) {
+        let globbed = existing(
+            context,
+            scope
+                .glob_modules
+                .iter()
+                .map(|module| format!("{module}::{path}")),
+        );
+        if !globbed.is_empty() {
+            return globbed;
+        }
+    }
+    if !path.contains("::") {
+        return existing(
+            context,
+            all_qns(context)
+                .into_iter()
+                .filter(|qn| qn.ends_with(&format!("::{path}"))),
+        );
+    }
+    BTreeSet::new()
+}
+
+fn existing(context: &Context, candidates: impl IntoIterator<Item = String>) -> BTreeSet<String> {
+    let mut result = BTreeSet::new();
+    for candidate in candidates {
+        if has_qn(context, &candidate) {
+            result.insert(candidate.clone());
+        }
+        result.extend(expand_module_reexport(context, &candidate));
+    }
+    result
+}
+
+fn expand_module_reexport(context: &Context, candidate: &str) -> BTreeSet<String> {
+    let mut modules: Vec<_> = context
+        .modules
+        .keys()
+        .filter(|module| candidate.starts_with(&format!("{module}::")))
+        .collect();
+    modules.sort_by_key(|module| std::cmp::Reverse(module.len()));
+    for module in modules {
+        let rest = &candidate[module.len() + 2..];
+        let (first, suffix) = rest
+            .split_once("::")
+            .map(|(a, b)| (a, Some(b)))
+            .unwrap_or((rest, None));
+        let Some(targets) = context
+            .imports
+            .get(module)
+            .and_then(|scope| scope.bindings.get(first))
+        else {
+            continue;
+        };
+        let expanded: BTreeSet<_> = targets
+            .iter()
+            .filter_map(|target| {
+                let qn = suffix
+                    .map(|tail| format!("{target}::{tail}"))
+                    .unwrap_or_else(|| target.clone());
+                has_qn(context, &qn).then_some(qn)
+            })
+            .collect();
+        if !expanded.is_empty() {
+            return expanded;
+        }
+    }
+    BTreeSet::new()
+}
+
+pub(crate) fn resolve_any_qns(
+    context: &Context,
+    path: &str,
+    module_qn: &str,
+    crate_qn: &str,
+) -> BTreeSet<String> {
+    let function = FunctionInfo {
+        id: String::new(),
+        qn: String::new(),
+        module_qn: module_qn.into(),
+        crate_qn: crate_qn.into(),
+        source_path: String::new(),
+        body: crate::model::FunctionBody::Expr(syn::parse_quote!(())),
+        parameters: Vec::new(),
+        return_type: None,
+        self_type: None,
+        trait_path: None,
+        generic_bounds: BTreeMap::new(),
+    };
+    resolve_qns(context, path, &function)
+}
+
+pub(crate) fn clean_path(raw: &str) -> String {
+    let mut output = String::new();
+    let mut depth = 0usize;
+    for ch in raw.trim().trim_start_matches("::").chars() {
+        match ch {
+            '<' => depth += 1,
+            '>' => depth = depth.saturating_sub(1),
+            _ if depth == 0 && !ch.is_whitespace() => output.push(ch),
+            _ => {}
+        }
+    }
+    output
+}
+
+fn has_qn(context: &Context, qn: &str) -> bool {
+    context.modules.contains_key(qn)
+        || context.symbols.contains_key(qn)
+        || context.types.contains_key(qn)
+        || context.traits.contains_key(qn)
+        || context.macros.contains_key(qn)
+        || context.constructors.contains_key(qn)
+        || context.type_aliases.contains_key(qn)
+}
+
+fn all_qns(context: &Context) -> BTreeSet<String> {
+    context
+        .modules
+        .keys()
+        .chain(context.symbols.keys())
+        .chain(context.types.keys())
+        .chain(context.traits.keys())
+        .chain(context.macros.keys())
+        .chain(context.constructors.keys())
+        .chain(context.type_aliases.keys())
+        .cloned()
+        .collect()
 }
