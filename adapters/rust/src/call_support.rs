@@ -28,7 +28,7 @@ pub(crate) fn macro_call(
     } else if resolve::is_external_path(context, &text, function) || text.contains("::") {
         "external-target"
     } else {
-        "dynamic-target"
+        "generated-target"
     };
     CallResolution {
         reason: Some(reason),
@@ -122,44 +122,166 @@ pub(crate) fn common_method_return(receiver: &ValueSet, name: &str) -> ValueSet 
             | "expect"
             | "unwrap_or"
             | "unwrap_or_default"
-            | "as_ref"
+            | "unwrap_or_else"
+            | "lock"
+            | "into_inner"
+    ) {
+        let mut result = receiver
+            .contained_values
+            .first()
+            .cloned()
+            .unwrap_or_else(|| receiver.clone());
+        if receiver.contained_values.is_empty() {
+            result
+                .types
+                .extend(receiver.contained_types.iter().cloned());
+        }
+        result.unknown = result.types.is_empty()
+            && result.traits.is_empty()
+            && result.callables.is_empty()
+            && !result.builtin
+            && !result.external;
+        return result;
+    }
+    if matches!(
+        name,
+        "as_ref"
             | "as_mut"
+            | "as_deref"
+            | "as_deref_mut"
             | "borrow"
             | "borrow_mut"
             | "deref"
             | "deref_mut"
             | "clone"
+            | "default"
             | "to_owned"
-            | "lock"
-            | "read"
-            | "write"
-            | "get_mut"
-            | "into_inner"
     ) {
-        let mut result = receiver.clone();
-        result
-            .types
-            .extend(receiver.contained_types.iter().cloned());
-        result.external = false;
-        result.unknown = result.types.is_empty();
-        return result;
+        return receiver.clone();
     }
-    if matches!(name, "iter" | "iter_mut" | "into_iter") {
+    if matches!(
+        name,
+        "checked_add" | "checked_mul" | "checked_sub" | "checked_div" | "checked_rem"
+    ) {
         return ValueSet {
             contained_types: receiver
                 .types
                 .union(&receiver.contained_types)
                 .cloned()
                 .collect(),
-            external: true,
+            contained_values: vec![receiver.clone()],
+            builtin: true,
             ..ValueSet::default()
         };
     }
+    if matches!(
+        name,
+        "iter"
+            | "iter_mut"
+            | "into_iter"
+            | "take"
+            | "skip"
+            | "map"
+            | "filter"
+            | "inspect"
+            | "enumerate"
+            | "peekable"
+            | "rev"
+            | "fuse"
+            | "cycle"
+    ) {
+        return ValueSet {
+            contained_types: receiver
+                .types
+                .union(&receiver.contained_types)
+                .cloned()
+                .collect(),
+            contained_values: receiver.contained_values.clone(),
+            builtin: true,
+            ..ValueSet::default()
+        };
+    }
+    if matches!(
+        name,
+        "collect"
+            | "count"
+            | "len"
+            | "is_empty"
+            | "is_none"
+            | "is_some"
+            | "is_ok"
+            | "is_err"
+            | "is_some_and"
+            | "is_ok_and"
+            | "is_err_and"
+            | "contains"
+            | "starts_with"
+            | "ends_with"
+            | "trim"
+            | "try_exists"
+            | "as_bytes"
+            | "as_str"
+            | "as_nanos"
+            | "to_le_bytes"
+    ) {
+        return ValueSet {
+            builtin: true,
+            ..ValueSet::default()
+        };
+    }
+    if matches!(name, "ok_or" | "strip_prefix" | "strip_suffix") {
+        let mut result = receiver.clone();
+        result.builtin = true;
+        if result.contained_values.is_empty() {
+            result.contained_values.push(receiver.clone());
+        }
+        return result;
+    }
     ValueSet {
-        external: true,
-        unknown: true,
+        builtin: receiver.builtin,
+        external: receiver.external,
+        unknown: !receiver.builtin && !receiver.external,
         ..ValueSet::default()
     }
+}
+
+pub(crate) fn builtin_unknown_method(name: &str) -> bool {
+    matches!(
+        name,
+        "as_nanos" | "contains" | "iter" | "starts_with" | "trim" | "try_exists" | "write_all"
+    )
+}
+
+pub(crate) fn generated_unknown_method(name: &str) -> bool {
+    matches!(name, "cmp" | "into" | "then" | "then_with" | "to_string")
+}
+
+pub(crate) fn builtin_method(name: &str) -> bool {
+    matches!(
+        name,
+        "as_ref"
+            | "as_mut"
+            | "borrow"
+            | "borrow_mut"
+            | "clone"
+            | "cmp"
+            | "collect"
+            | "count"
+            | "default"
+            | "deref"
+            | "deref_mut"
+            | "eq"
+            | "fmt"
+            | "hash"
+            | "into"
+            | "into_iter"
+            | "map"
+            | "partial_cmp"
+            | "take"
+            | "to_owned"
+            | "to_string"
+            | "try_from"
+    )
 }
 
 pub(crate) fn node_callable(context: &Context, id: &str) -> bool {

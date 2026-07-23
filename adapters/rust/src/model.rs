@@ -28,6 +28,7 @@ pub(crate) struct ValueSet {
     pub(crate) callables: BTreeSet<String>,
     pub(crate) tuple_elements: Vec<ValueSet>,
     pub(crate) contained_values: Vec<ValueSet>,
+    pub(crate) builtin: bool,
     pub(crate) external: bool,
     pub(crate) unknown: bool,
     pub(crate) dynamic_callable: bool,
@@ -43,6 +44,7 @@ impl ValueSet {
         self.callables.extend(other.callables.iter().cloned());
         merge_value_lists(&mut self.tuple_elements, &other.tuple_elements);
         merge_value_lists(&mut self.contained_values, &other.contained_values);
+        self.builtin |= other.builtin;
         self.external |= other.external;
         self.unknown |= other.unknown;
         self.dynamic_callable |= other.dynamic_callable;
@@ -130,6 +132,7 @@ pub(crate) struct PendingImport {
 pub(crate) struct ImportScope {
     pub(crate) bindings: BTreeMap<String, Vec<String>>,
     pub(crate) glob_modules: BTreeSet<String>,
+    pub(crate) builtin_aliases: BTreeSet<String>,
     pub(crate) external_aliases: BTreeSet<String>,
 }
 
@@ -152,6 +155,7 @@ pub(crate) struct Context {
     pub(crate) constructors: BTreeMap<String, String>,
     pub(crate) constructor_types: BTreeMap<String, String>,
     pub(crate) type_aliases: BTreeMap<String, String>,
+    pub(crate) value_types: BTreeMap<String, String>,
     pub(crate) type_qn_by_id: BTreeMap<String, String>,
     pub(crate) trait_qn_by_id: BTreeMap<String, String>,
     pub(crate) function_qn_by_id: BTreeMap<String, String>,
@@ -166,6 +170,7 @@ pub(crate) struct Context {
     pub(crate) imports: BTreeMap<String, ImportScope>,
     pub(crate) closure_ids: BTreeMap<(String, usize, usize), String>,
     pub(crate) propagated_parameters: BTreeMap<(String, usize), ValueSet>,
+    pub(crate) propagated_captures: BTreeMap<(String, String), ValueSet>,
     pub(crate) return_values: BTreeMap<String, ValueSet>,
     pub(crate) processed: HashSet<(PathBuf, String)>,
 }

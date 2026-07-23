@@ -1,5 +1,5 @@
 use crate::model::{Context, FunctionInfo};
-pub(crate) use crate::type_resolution::{is_external_path, value_from_type};
+pub(crate) use crate::type_resolution::{is_builtin_path, is_external_path, value_from_type};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn resolve_type_ids(
@@ -40,6 +40,19 @@ pub(crate) fn resolve_qns(
             .filter(|value| *value != "Self")
             .map(|value| resolve_qns(context, value, function))
             .unwrap_or_default();
+    }
+    if let Some(rest) = path.strip_prefix("Self::") {
+        let mut result = BTreeSet::new();
+        if let Some(self_type) = function
+            .self_type
+            .as_deref()
+            .filter(|value| *value != "Self")
+        {
+            for qn in resolve_qns(context, self_type, function) {
+                result.extend(existing(context, [format!("{qn}::{rest}")]));
+            }
+        }
+        return result;
     }
     if let Some(rest) = path.strip_prefix("crate::") {
         return existing(context, [format!("{}::{rest}", function.crate_qn)]);
@@ -206,6 +219,7 @@ fn has_qn(context: &Context, qn: &str) -> bool {
         || context.macros.contains_key(qn)
         || context.constructors.contains_key(qn)
         || context.type_aliases.contains_key(qn)
+        || context.value_types.contains_key(qn)
 }
 
 fn all_qns(context: &Context) -> BTreeSet<String> {
@@ -218,6 +232,7 @@ fn all_qns(context: &Context) -> BTreeSet<String> {
         .chain(context.macros.keys())
         .chain(context.constructors.keys())
         .chain(context.type_aliases.keys())
+        .chain(context.value_types.keys())
         .cloned()
         .collect()
 }

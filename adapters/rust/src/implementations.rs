@@ -14,7 +14,7 @@ pub(crate) fn process(
     crate_qn: &str,
     source: &SourceFile,
 ) {
-    let self_type = normalized_tokens(&item.self_ty);
+    let self_type = crate::syntax::type_tokens(&item.self_ty);
     let type_name = self_type_name(&item.self_ty);
     let trait_path = item
         .trait_
@@ -115,13 +115,11 @@ pub(crate) fn finalize(context: &mut Context) {
             .unwrap_or_default();
         for type_id in &type_ids {
             context.facts.add_edge(type_id, &method.id, "defines", None);
-            if method.trait_path.is_none() {
-                context
-                    .method_index
-                    .entry((type_id.clone(), method.name.clone()))
-                    .or_default()
-                    .push(method.id.clone());
-            }
+            context
+                .method_index
+                .entry((type_id.clone(), method.name.clone()))
+                .or_default()
+                .push(method.id.clone());
             for trait_id in &trait_ids {
                 context
                     .trait_method_index

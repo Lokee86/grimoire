@@ -7,6 +7,7 @@ pub(crate) fn analyze(context: &mut Context) {
         let functions: Vec<_> = context.functions.values().cloned().collect();
         let mut returns = BTreeMap::<String, ValueSet>::new();
         let mut parameters = context.propagated_parameters.clone();
+        let mut captures = context.propagated_captures.clone();
         for function in &functions {
             let result = Analyzer::new(context, function).run();
             returns
@@ -16,12 +17,19 @@ pub(crate) fn analyze(context: &mut Context) {
             for (key, value) in result.parameter_updates {
                 parameters.entry(key).or_default().merge(&value);
             }
+            for (key, value) in result.capture_updates {
+                captures.entry(key).or_default().merge(&value);
+            }
         }
-        if returns == context.return_values && parameters == context.propagated_parameters {
+        if returns == context.return_values
+            && parameters == context.propagated_parameters
+            && captures == context.propagated_captures
+        {
             break;
         }
         context.return_values = returns;
         context.propagated_parameters = parameters;
+        context.propagated_captures = captures;
     }
     let functions: Vec<_> = context.functions.values().cloned().collect();
     for function in &functions {

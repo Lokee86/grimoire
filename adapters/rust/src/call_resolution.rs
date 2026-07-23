@@ -1,6 +1,7 @@
 use crate::call_model::CallResolution;
 use crate::call_support::{
-    builtin_function, callable_targets, common_method_return, from_callable_values,
+    builtin_function, builtin_method, builtin_unknown_method, callable_targets,
+    common_method_return, from_callable_values, generated_unknown_method,
 };
 use crate::model::{Context, FunctionInfo, ValueSet};
 use crate::resolve;
@@ -30,6 +31,17 @@ pub(crate) fn path_call(
             ..CallResolution::default()
         };
     }
+    if callee_value.builtin || callee_value.external {
+        return CallResolution {
+            reason: Some(if callee_value.builtin {
+                "builtin-target"
+            } else {
+                "external-target"
+            }),
+            return_value: callee_value.clone(),
+            ..CallResolution::default()
+        };
+    }
     let text = normalized_tokens(&path.path);
     let targets = callable_targets(context, function, &text);
     if !targets.is_empty() {
@@ -44,8 +56,21 @@ pub(crate) fn path_call(
     if let Some((receiver_path, method)) = split_last(&text) {
         let receiver = resolve::value_from_type(context, receiver_path, function);
         let mut associated = method_targets(context, function, &receiver, method, false);
-        if associated.targets.is_empty() && !receiver.types.is_empty() {
-            associated.reason = Some("external-target");
+        if associated.targets.is_empty() {
+            associated.reason = if receiver.builtin {
+                Some("builtin-target")
+            } else if receiver.external {
+                Some("external-target")
+            } else if !receiver.types.is_empty() && builtin_method(method) {
+                Some("generated-target")
+            } else if !receiver.types.is_empty() {
+                Some("missing-target")
+            } else {
+                None
+            };
+            if associated.reason.is_some() {
+                associated.return_value = common_method_return(&receiver, method);
+            }
         }
         if !associated.targets.is_empty() || associated.reason.is_some() {
             return associated;
@@ -57,7 +82,9 @@ pub(crate) fn path_call(
                 .split("::")
                 .next()
                 .is_some_and(|root| !matches!(root, "crate" | "self" | "super" | "Self")));
-    let reason = if builtin_function(&text) {
+    let builtin_path =
+        builtin_function(&text) || resolve::is_builtin_path(context, &text, function);
+    let reason = if builtin_path {
         "builtin-target"
     } else if external_path {
         "external-target"
@@ -66,6 +93,11 @@ pub(crate) fn path_call(
     };
     CallResolution {
         reason: Some(reason),
+        return_value: ValueSet {
+            builtin: builtin_path,
+            external: external_path,
+            ..ValueSet::default()
+        },
         ..CallResolution::default()
     }
 }
@@ -78,11 +110,19 @@ pub(crate) fn method_call(
 ) -> CallResolution {
     let mut resolution = method_targets(context, function, receiver, name, true);
     if resolution.targets.is_empty() {
-        resolution.reason = Some(if receiver.external {
-            "external-target"
-        } else {
-            "dynamic-target"
-        });
+        resolution.reason = Some(
+            if receiver.builtin || (!receiver.types.is_empty() && builtin_method(name)) {
+                "builtin-target"
+            } else if receiver.external {
+                "external-target"
+            } else if builtin_unknown_method(name) {
+                "builtin-target"
+            } else if generated_unknown_method(name) {
+                "generated-target"
+            } else {
+                "dynamic-target"
+            },
+        );
         resolution.return_value = common_method_return(receiver, name);
     }
     resolution
@@ -92,7 +132,7 @@ fn qself_call(context: &Context, function: &FunctionInfo, path: &ExprPath) -> Ca
     let Some(qself) = &path.qself else {
         return CallResolution::default();
     };
-    let self_text = normalized_tokens(&qself.ty);
+    let self_text = crate::syntax::type_tokens(&qself.ty);
     let method = path
         .path
         .segments

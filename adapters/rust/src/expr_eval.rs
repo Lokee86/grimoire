@@ -4,7 +4,7 @@ use crate::flow::Analyzer;
 use crate::model::ValueSet;
 use crate::paths::span_value;
 use crate::resolve;
-use crate::syntax::normalized_tokens;
+use crate::syntax::type_tokens;
 use quote::ToTokens;
 use syn::spanned::Spanned;
 
@@ -35,11 +35,7 @@ pub(crate) fn evaluate(analyzer: &mut Analyzer<'_>, expression: &syn::Expr) -> V
         syn::Expr::Await(value) => analyzer.eval_expr(&value.base),
         syn::Expr::Cast(value) => {
             analyzer.eval_expr(&value.expr);
-            resolve::value_from_type(
-                analyzer.context,
-                &normalized_tokens(&value.ty),
-                analyzer.function,
-            )
+            resolve::value_from_type(analyzer.context, &type_tokens(&value.ty), analyzer.function)
         }
         syn::Expr::Struct(value) => crate::expr_values::structure(analyzer, value),
         syn::Expr::Field(value) => crate::expr_values::field(analyzer, value),
@@ -77,25 +73,47 @@ pub(crate) fn evaluate(analyzer: &mut Analyzer<'_>, expression: &syn::Expr) -> V
         syn::Expr::Binary(value) => {
             let mut result = analyzer.eval_expr(&value.left);
             result.merge(&analyzer.eval_expr(&value.right));
+            if matches!(
+                value.op,
+                syn::BinOp::Eq(_)
+                    | syn::BinOp::Lt(_)
+                    | syn::BinOp::Le(_)
+                    | syn::BinOp::Ne(_)
+                    | syn::BinOp::Ge(_)
+                    | syn::BinOp::Gt(_)
+                    | syn::BinOp::And(_)
+                    | syn::BinOp::Or(_)
+            ) {
+                return ValueSet {
+                    builtin: true,
+                    ..ValueSet::default()
+                };
+            }
             result
         }
         syn::Expr::Index(value) => {
             let base = analyzer.eval_expr(&value.expr);
             analyzer.eval_expr(&value.index);
-            ValueSet {
-                types: base.contained_types.clone(),
-                unknown: base.contained_types.is_empty(),
-                ..ValueSet::default()
-            }
+            base.contained_values
+                .first()
+                .cloned()
+                .unwrap_or_else(|| ValueSet {
+                    types: base.contained_types.clone(),
+                    builtin: base.builtin,
+                    external: base.external,
+                    unknown: base.contained_types.is_empty() && !base.builtin && !base.external,
+                    ..ValueSet::default()
+                })
         }
         syn::Expr::Array(value) => crate::expr_values::contained(analyzer, value.elems.iter()),
-        syn::Expr::Tuple(value) => crate::expr_values::contained(analyzer, value.elems.iter()),
+        syn::Expr::Tuple(value) => crate::expr_values::tuple(analyzer, value.elems.iter()),
         syn::Expr::Repeat(value) => {
             let item = analyzer.eval_expr(&value.expr);
             analyzer.eval_expr(&value.len);
             ValueSet {
                 contained_types: item.types.union(&item.contained_types).cloned().collect(),
-                external: true,
+                contained_values: vec![item],
+                builtin: true,
                 ..ValueSet::default()
             }
         }
@@ -103,7 +121,7 @@ pub(crate) fn evaluate(analyzer: &mut Analyzer<'_>, expression: &syn::Expr) -> V
             let item = analyzer.eval_expr(&value.expr);
             analyzer.bind_pattern(&value.pat, &item);
             ValueSet {
-                external: true,
+                builtin: true,
                 ..ValueSet::default()
             }
         }
@@ -115,7 +133,7 @@ pub(crate) fn evaluate(analyzer: &mut Analyzer<'_>, expression: &syn::Expr) -> V
                 analyzer.eval_expr(end);
             }
             ValueSet {
-                external: true,
+                builtin: true,
                 ..ValueSet::default()
             }
         }
@@ -130,7 +148,7 @@ pub(crate) fn evaluate(analyzer: &mut Analyzer<'_>, expression: &syn::Expr) -> V
             .map(|expr| analyzer.eval_expr(expr))
             .unwrap_or_default(),
         syn::Expr::Lit(_) | syn::Expr::Infer(_) | syn::Expr::Continue(_) => ValueSet {
-            external: true,
+            builtin: true,
             ..ValueSet::default()
         },
         _ => ValueSet {

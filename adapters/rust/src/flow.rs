@@ -13,7 +13,17 @@ pub(crate) struct Analyzer<'a> {
 
 impl<'a> Analyzer<'a> {
     pub(crate) fn new(context: &'a Context, function: &'a FunctionInfo) -> Self {
-        let mut env = BTreeMap::new();
+        let parameter_names: std::collections::BTreeSet<_> = function
+            .parameters
+            .iter()
+            .map(|parameter| parameter.name.as_str())
+            .collect();
+        let mut env = BTreeMap::<String, ValueSet>::new();
+        for ((closure_id, name), value) in &context.propagated_captures {
+            if closure_id == &function.id && !parameter_names.contains(name.as_str()) {
+                env.entry(name.clone()).or_default().merge(value);
+            }
+        }
         for (index, parameter) in function.parameters.iter().enumerate() {
             let mut value = parameter
                 .type_text
@@ -91,7 +101,7 @@ impl<'a> Analyzer<'a> {
         if let Pat::Type(typed) = &local.pat {
             value.merge(&resolve::value_from_type(
                 self.context,
-                &crate::syntax::normalized_tokens(&typed.ty),
+                &crate::syntax::type_tokens(&typed.ty),
                 self.function,
             ));
         }
@@ -118,15 +128,26 @@ impl<'a> Analyzer<'a> {
                 let mut typed_value = value.clone();
                 typed_value.merge(&resolve::value_from_type(
                     self.context,
-                    &crate::syntax::normalized_tokens(&typed.ty),
+                    &crate::syntax::type_tokens(&typed.ty),
                     self.function,
                 ));
                 self.bind_pattern(&typed.pat, &typed_value);
             }
             Pat::Reference(reference) => self.bind_pattern(&reference.pat, value),
             Pat::Tuple(tuple) => {
-                if value.tuple_elements.len() == tuple.elems.len() {
-                    for (element, element_value) in tuple.elems.iter().zip(&value.tuple_elements) {
+                let elements = if value.tuple_elements.len() == tuple.elems.len() {
+                    Some(value.tuple_elements.as_slice())
+                } else if value.contained_values.len() == tuple.elems.len() {
+                    Some(value.contained_values.as_slice())
+                } else {
+                    value
+                        .contained_values
+                        .first()
+                        .filter(|inner| inner.tuple_elements.len() == tuple.elems.len())
+                        .map(|inner| inner.tuple_elements.as_slice())
+                };
+                if let Some(elements) = elements {
+                    for (element, element_value) in tuple.elems.iter().zip(elements) {
                         self.bind_pattern(element, element_value);
                     }
                 } else {
@@ -136,8 +157,15 @@ impl<'a> Analyzer<'a> {
                 }
             }
             Pat::TupleStruct(tuple) => {
-                for element in &tuple.elems {
-                    self.bind_pattern(element, value);
+                let inner = value.contained_values.first().unwrap_or(value);
+                if inner.tuple_elements.len() == tuple.elems.len() {
+                    for (element, element_value) in tuple.elems.iter().zip(&inner.tuple_elements) {
+                        self.bind_pattern(element, element_value);
+                    }
+                } else {
+                    for element in &tuple.elems {
+                        self.bind_pattern(element, inner);
+                    }
                 }
             }
             Pat::Struct(structure) => {

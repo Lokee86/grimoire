@@ -1,7 +1,7 @@
 use crate::function_index::{self, Registration};
 use crate::model::{Context, FieldInfo, FunctionBody, MethodInfo, SourceFile};
 use crate::paths::span_value;
-use crate::syntax::normalized_tokens;
+use crate::syntax::{normalized_tokens, type_tokens};
 use proc_macro2::Span;
 use quote::ToTokens;
 use serde_json::Value;
@@ -29,7 +29,7 @@ pub(crate) fn structure(
         context.fields.insert(
             (qn.clone(), field_name),
             FieldInfo {
-                type_text: normalized_tokens(&field.ty),
+                type_text: type_tokens(&field.ty),
             },
         );
     }
@@ -87,6 +87,17 @@ pub(crate) fn enumeration(
     }
 }
 
+pub(crate) fn value_type(
+    context: &mut Context,
+    name: &syn::Ident,
+    value_type: &syn::Type,
+    module: &str,
+) {
+    context
+        .value_types
+        .insert(format!("{module}::{name}"), type_tokens(value_type));
+}
+
 pub(crate) fn alias(
     context: &mut Context,
     item: &syn::ItemType,
@@ -106,7 +117,7 @@ pub(crate) fn alias(
         "type-alias",
     );
     context.symbols.insert(qn.clone(), id.clone());
-    context.type_aliases.insert(qn, normalized_tokens(&item.ty));
+    context.type_aliases.insert(qn, type_tokens(&item.ty));
     crate::relationships::define_and_contain(context, owner, &id, item.span(), &source.relative);
 }
 
@@ -222,6 +233,15 @@ pub(crate) fn macro_decl(
     source: &SourceFile,
 ) {
     let Some(ident) = &item.ident else {
+        if normalized_tokens(&item.mac.path) == "thread_local" {
+            if let Ok(file) = syn::parse2::<syn::File>(item.mac.tokens.clone()) {
+                for nested in file.items {
+                    if let syn::Item::Static(value) = nested {
+                        value_type(context, &value.ident, &value.ty, module);
+                    }
+                }
+            }
+        }
         context.facts.add_unresolved(
             owner,
             "defines",

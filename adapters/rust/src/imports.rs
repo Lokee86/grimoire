@@ -76,18 +76,19 @@ pub(crate) fn resolve_all(context: &mut Context) {
 }
 
 fn install(context: &mut Context, item: &PendingImport, binding: &Binding, emit: bool) -> bool {
-    let external = external_root(context, &binding.path, &item.crate_qn);
-    if external {
+    let builtin = builtin_root(&binding.path);
+    let external = !builtin && external_root(context, &binding.path, &item.crate_qn);
+    if builtin || external {
         let alias = binding
             .alias
             .clone()
             .unwrap_or_else(|| binding.path.split("::").last().unwrap_or_default().into());
-        return context
-            .imports
-            .entry(item.module_qn.clone())
-            .or_default()
-            .external_aliases
-            .insert(alias);
+        let scope = context.imports.entry(item.module_qn.clone()).or_default();
+        return if builtin {
+            scope.builtin_aliases.insert(alias)
+        } else {
+            scope.external_aliases.insert(alias)
+        };
     }
     let targets = resolve::resolve_any_qns(context, &binding.path, &item.module_qn, &item.crate_qn);
     let mut changed = false;
@@ -202,16 +203,25 @@ fn any_id(context: &Context, qn: &str) -> Option<String> {
         .cloned()
 }
 
+fn builtin_root(path: &str) -> bool {
+    matches!(
+        path.trim_start_matches("::")
+            .split("::")
+            .next()
+            .unwrap_or_default(),
+        "std" | "core" | "alloc" | "proc_macro" | "test"
+    )
+}
+
 fn external_root(context: &Context, path: &str, crate_qn: &str) -> bool {
     let root = path
         .trim_start_matches("::")
         .split("::")
         .next()
         .unwrap_or_default();
-    matches!(root, "std" | "core" | "alloc" | "proc_macro" | "test")
-        || context
-            .crates
-            .iter()
-            .find(|item| item.qn == crate_qn)
-            .is_some_and(|item| item.external_crates.contains(root))
+    context
+        .crates
+        .iter()
+        .find(|item| item.qn == crate_qn)
+        .is_some_and(|item| item.external_crates.contains(root))
 }

@@ -24,6 +24,12 @@ pub(crate) fn process_items(
                 declarations::enumeration(context, value, owner, module, source)
             }
             syn::Item::Type(value) => declarations::alias(context, value, owner, module, source),
+            syn::Item::Const(value) => {
+                declarations::value_type(context, &value.ident, &value.ty, module)
+            }
+            syn::Item::Static(value) => {
+                declarations::value_type(context, &value.ident, &value.ty, module)
+            }
             syn::Item::Trait(value) => {
                 declarations::trait_decl(context, value, owner, module, &crate_context.qn, source)
             }

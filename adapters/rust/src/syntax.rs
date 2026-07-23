@@ -10,6 +10,10 @@ pub(crate) fn normalized_tokens<T: ToTokens>(value: &T) -> String {
         .collect()
 }
 
+pub(crate) fn type_tokens<T: ToTokens>(value: &T) -> String {
+    value.to_token_stream().to_string()
+}
+
 pub(crate) fn pattern_name(pattern: &Pat) -> Option<String> {
     match pattern {
         Pat::Ident(value) => Some(value.ident.to_string()),
@@ -30,7 +34,7 @@ pub(crate) fn signature_parameters(signature: &Signature) -> Vec<crate::model::P
                 callable_bound: false,
             },
             FnArg::Typed(value) => {
-                let text = normalized_tokens(&value.ty);
+                let text = type_tokens(&value.ty);
                 crate::model::ParameterInfo {
                     name: pattern_name(&value.pat).unwrap_or_else(|| "_".into()),
                     callable_bound: is_callable_type(&text),
@@ -47,7 +51,7 @@ pub(crate) fn closure_parameters(closure: &syn::ExprClosure) -> Vec<crate::model
         .iter()
         .map(|pattern| {
             let type_text = match pattern {
-                Pat::Type(value) => Some(normalized_tokens(&value.ty)),
+                Pat::Type(value) => Some(type_tokens(&value.ty)),
                 _ => None,
             };
             crate::model::ParameterInfo {
@@ -62,7 +66,7 @@ pub(crate) fn closure_parameters(closure: &syn::ExprClosure) -> Vec<crate::model
 pub(crate) fn return_type(output: &ReturnType) -> Option<String> {
     match output {
         ReturnType::Default => None,
-        ReturnType::Type(_, value) => Some(normalized_tokens(value)),
+        ReturnType::Type(_, value) => Some(type_tokens(value)),
     }
 }
 

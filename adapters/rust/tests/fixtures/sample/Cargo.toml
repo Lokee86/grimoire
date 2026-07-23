@@ -2,3 +2,6 @@
 name = "lexicon_fixture"
 version = "0.1.0"
 edition = "2021"
+
+[dependencies]
+external_fixture = { path = "../external_fixture" }

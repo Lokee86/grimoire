@@ -22,7 +22,7 @@ fn value_from_syn_type(context: &Context, value: &Type, function: &FunctionInfo)
         Type::Array(value) => contained_value(context, &value.elem, function),
         Type::Tuple(value) => {
             let mut result = ValueSet {
-                external: true,
+                builtin: true,
                 ..ValueSet::default()
             };
             for item in &value.elems {
@@ -41,6 +41,19 @@ fn value_from_syn_type(context: &Context, value: &Type, function: &FunctionInfo)
         Type::BareFn(_) => ValueSet {
             dynamic_callable: true,
             unknown: true,
+            ..ValueSet::default()
+        },
+        Type::Ptr(value) => {
+            let inner = value_from_syn_type(context, &value.elem, function);
+            ValueSet {
+                contained_types: inner.types.union(&inner.contained_types).cloned().collect(),
+                contained_values: vec![inner],
+                builtin: true,
+                ..ValueSet::default()
+            }
+        }
+        Type::Never(_) => ValueSet {
+            builtin: true,
             ..ValueSet::default()
         },
         Type::TraitObject(value) => value_from_bounds(context, &value.bounds, function),
@@ -87,8 +100,9 @@ fn value_from_syn_type(context: &Context, value: &Type, function: &FunctionInfo)
                 {
                     return value_from_type(context, &context.type_aliases[&alias_qn], function);
                 }
-                result.external = is_external_path(context, &text, function);
-                result.unknown = !result.external;
+                result.builtin = is_builtin_path(context, &text, function);
+                result.external = !result.builtin && is_external_path(context, &text, function);
+                result.unknown = !result.builtin && !result.external;
             }
             result
         }
@@ -105,7 +119,7 @@ fn contained_value(context: &Context, value: &Type, function: &FunctionInfo) -> 
         contained_types: inner.types.union(&inner.contained_types).cloned().collect(),
         dynamic_callable: inner.dynamic_callable,
         contained_values: vec![inner],
-        external: true,
+        builtin: true,
         ..ValueSet::default()
     }
 }
@@ -129,11 +143,52 @@ fn value_from_bounds(
     result
 }
 
+pub(crate) fn is_builtin_path(context: &Context, raw: &str, function: &FunctionInfo) -> bool {
+    let path = clean_path(raw);
+    let root = path.split("::").next().unwrap_or_default();
+    if matches!(
+        root,
+        "std"
+            | "core"
+            | "alloc"
+            | "proc_macro"
+            | "test"
+            | "bool"
+            | "char"
+            | "str"
+            | "String"
+            | "Vec"
+            | "Option"
+            | "Result"
+            | "Box"
+            | "usize"
+            | "isize"
+            | "u8"
+            | "u16"
+            | "u32"
+            | "u64"
+            | "u128"
+            | "i8"
+            | "i16"
+            | "i32"
+            | "i64"
+            | "i128"
+            | "f32"
+            | "f64"
+    ) {
+        return true;
+    }
+    context
+        .imports
+        .get(&function.module_qn)
+        .is_some_and(|scope| scope.builtin_aliases.contains(root))
+}
+
 pub(crate) fn is_external_path(context: &Context, raw: &str, function: &FunctionInfo) -> bool {
     let path = clean_path(raw);
     let root = path.split("::").next().unwrap_or_default();
-    if matches!(root, "std" | "core" | "alloc" | "proc_macro" | "test") {
-        return true;
+    if is_builtin_path(context, raw, function) {
+        return false;
     }
     if context
         .crates

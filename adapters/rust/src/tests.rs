@@ -128,6 +128,231 @@ fn propagates_callbacks_and_generic_trait_dispatch_as_possible_calls() {
 }
 
 #[test]
+fn resolves_local_methods_through_standard_combinators_and_trait_impls() {
+    let records = records();
+    let info = node_id(&records, "lexicon_fixture::lexicon_fixture::Snapshot::info");
+    let closure = records
+        .iter()
+        .find(|record| {
+            record["record"] == "node"
+                && record["qualified_name"].as_str().is_some_and(|name| {
+                    name.starts_with("lexicon_fixture::lexicon_fixture::map_snapshot::closure@")
+                })
+        })
+        .and_then(|record| record["id"].as_str())
+        .expect("missing map_snapshot closure node");
+    assert!(
+        has_edge(&records, closure, info, "calls")
+            || has_edge(&records, closure, info, "possible-calls"),
+        "missing Result::map closure call to Snapshot::info"
+    );
+
+    let partial_cmp = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::Ordered::PartialOrd::partial_cmp",
+    );
+    let cmp = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::Ordered::Ord::cmp",
+    );
+    assert!(
+        has_edge(&records, partial_cmp, cmp, "calls")
+            || has_edge(&records, partial_cmp, cmp, "possible-calls"),
+        "missing concrete Self dispatch to external-trait implementation"
+    );
+}
+
+#[test]
+fn classifies_standard_collection_calls_as_builtin_not_dynamic() {
+    let records = records();
+    let source = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::builtin_collections",
+    );
+    let calls: Vec<_> = records
+        .iter()
+        .filter(|record| {
+            record["record"] == "unresolved"
+                && record["source"] == source
+                && record["relation"] == "calls"
+        })
+        .collect();
+    assert!(!calls.is_empty());
+    assert!(calls
+        .iter()
+        .all(|record| record["reason"] == "builtin-target"));
+}
+
+#[test]
+fn preserves_parseable_pointer_reference_and_generic_type_text() {
+    let records = records();
+    let source = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::builtin_type_text",
+    );
+    let builtin_map = node_id(&records, "lexicon_fixture::lexicon_fixture::builtin_map");
+    assert!(has_edge(&records, source, builtin_map, "calls"));
+    let unresolved: Vec<_> = records
+        .iter()
+        .filter(|record| {
+            record["record"] == "unresolved"
+                && record["source"] == source
+                && record["relation"] == "calls"
+        })
+        .collect();
+    assert!(!unresolved.is_empty());
+    assert!(unresolved
+        .iter()
+        .all(|record| record["reason"] == "builtin-target"));
+}
+
+#[test]
+fn resolves_typed_values_and_standard_callback_inputs() {
+    let records = records();
+    let source = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::builtin_value_flow",
+    );
+    let dynamic_calls: Vec<_> = records
+        .iter()
+        .filter(|record| {
+            record["record"] == "unresolved"
+                && record["relation"] == "calls"
+                && record["reason"] == "dynamic-target"
+                && (record["source"] == source
+                    || record["qualified_name"]
+                        .as_str()
+                        .is_some_and(|name| name.contains("builtin_value_flow::closure@")))
+        })
+        .collect();
+    assert!(
+        dynamic_calls.is_empty(),
+        "unexpected dynamic calls: {dynamic_calls:?}"
+    );
+
+    let code = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::LocalError::code",
+    );
+    let map_error_closure = records
+        .iter()
+        .find(|record| {
+            record["record"] == "node"
+                && record["qualified_name"].as_str().is_some_and(|name| {
+                    name.starts_with("lexicon_fixture::lexicon_fixture::map_error_value::closure@")
+                })
+        })
+        .and_then(|record| record["id"].as_str())
+        .expect("missing map_error_value closure node");
+    assert!(
+        has_edge(&records, map_error_closure, code, "calls")
+            || has_edge(&records, map_error_closure, code, "possible-calls"),
+        "missing map_err error-value call to LocalError::code"
+    );
+}
+
+#[test]
+fn classifies_generated_macros_and_standard_runtime_flow_without_false_dynamics() {
+    let records = records();
+    let source = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::final_runtime_calibration",
+    );
+    let closure_prefix = "lexicon_fixture::lexicon_fixture::final_runtime_calibration::closure@";
+    let source_ids: std::collections::BTreeSet<_> = records
+        .iter()
+        .filter(|record| {
+            record["record"] == "node"
+                && (record["id"] == source
+                    || record["qualified_name"]
+                        .as_str()
+                        .is_some_and(|name| name.starts_with(closure_prefix)))
+        })
+        .filter_map(|record| record["id"].as_str())
+        .collect();
+    let dynamic_calls: Vec<_> = records
+        .iter()
+        .filter(|record| {
+            record["record"] == "unresolved"
+                && record["relation"] == "calls"
+                && record["reason"] == "dynamic-target"
+                && record["source"]
+                    .as_str()
+                    .is_some_and(|id| source_ids.contains(id))
+        })
+        .collect();
+    assert!(
+        dynamic_calls.is_empty(),
+        "unexpected dynamic calls: {dynamic_calls:?}"
+    );
+    assert!(records.iter().any(|record| {
+        record["record"] == "unresolved"
+            && record["source"] == source
+            && record["relation"] == "calls"
+            && record["reason"] == "generated-target"
+            && record["expression"]
+                .as_str()
+                .is_some_and(|expression| expression.starts_with("field !"))
+    }));
+
+    let finish = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::LocalHasher::finish",
+    );
+    assert!(source_ids.iter().any(|source_id| {
+        has_edge(&records, source_id, finish, "calls")
+            || has_edge(&records, source_id, finish, "possible-calls")
+    }));
+}
+
+#[test]
+fn resolves_self_variants_generated_defaults_and_closure_captures() {
+    let records = records();
+    let failure = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::LocalError::failure",
+    );
+    let variant = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::LocalError::Failure",
+    );
+    assert!(has_edge(&records, failure, variant, "calls"));
+
+    let generated_default = node_id(
+        &records,
+        "lexicon_fixture::lexicon_fixture::generated_default",
+    );
+    assert!(records.iter().any(|record| {
+        record["record"] == "unresolved"
+            && record["source"] == generated_default
+            && record["relation"] == "calls"
+            && record["reason"] == "generated-target"
+            && record["expression"]
+                .as_str()
+                .is_some_and(|expression| expression.contains("GeneratedDefault :: default"))
+    }));
+
+    let closure = records
+        .iter()
+        .find(|record| {
+            record["record"] == "node"
+                && record["qualified_name"].as_str().is_some_and(|name| {
+                    name.starts_with(
+                        "lexicon_fixture::lexicon_fixture::captured_snapshot::closure@",
+                    )
+                })
+        })
+        .and_then(|record| record["id"].as_str())
+        .expect("missing captured_snapshot closure node");
+    let info = node_id(&records, "lexicon_fixture::lexicon_fixture::Snapshot::info");
+    assert!(
+        has_edge(&records, closure, info, "calls")
+            || has_edge(&records, closure, info, "possible-calls"),
+        "missing captured Snapshot::info call"
+    );
+}
+
+#[test]
 fn classifies_nested_bare_function_alias_calls_as_dynamic() {
     let records = records();
     let invoke_aliases = node_id(&records, "lexicon_fixture::lexicon_fixture::invoke_aliases");
@@ -180,12 +405,8 @@ fn classifies_only_current_unresolved_reasons() {
     assert!(reasons.contains(&"missing-target"));
     assert!(reasons.contains(&"external-target"));
     assert!(reasons.contains(&"builtin-target"));
-    for legacy in [
-        "method-call",
-        "associated-target",
-        "macro-call",
-        "generated-target",
-    ] {
+    assert!(reasons.contains(&"generated-target"));
+    for legacy in ["method-call", "associated-target", "macro-call"] {
         assert!(!reasons.contains(&legacy));
     }
     let ambiguous = node_id(&records, "lexicon_fixture::lexicon_fixture::ambiguous");

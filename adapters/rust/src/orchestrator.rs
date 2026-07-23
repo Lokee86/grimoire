@@ -30,6 +30,7 @@ pub(crate) fn generate(
         constructors: BTreeMap::new(),
         constructor_types: BTreeMap::new(),
         type_aliases: BTreeMap::new(),
+        value_types: BTreeMap::new(),
         type_qn_by_id: BTreeMap::new(),
         trait_qn_by_id: BTreeMap::new(),
         function_qn_by_id: BTreeMap::new(),
@@ -44,6 +45,7 @@ pub(crate) fn generate(
         imports: BTreeMap::new(),
         closure_ids: BTreeMap::new(),
         propagated_parameters: BTreeMap::new(),
+        propagated_captures: BTreeMap::new(),
         return_values: BTreeMap::new(),
         processed: HashSet::new(),
     };

@@ -21,5 +21,6 @@ pub(crate) struct CallEvent {
 pub(crate) struct AnalysisResult {
     pub(crate) return_value: ValueSet,
     pub(crate) parameter_updates: BTreeMap<(String, usize), ValueSet>,
+    pub(crate) capture_updates: BTreeMap<(String, String), ValueSet>,
     pub(crate) calls: Vec<CallEvent>,
 }
