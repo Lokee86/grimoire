@@ -179,6 +179,39 @@ fn catalogue_round_trips_and_supports_exact_lookups() {
 }
 
 #[test]
+fn catalogue_indexes_duplicate_names_paths_kinds_keys_and_prefix_boundaries() {
+    let catalogue = RepositoryCatalogue::new(vec![
+        catalogue_entry(3, 40, NodeKind::Function, "src/library.rs", "same"),
+        catalogue_entry(1, 20, NodeKind::Function, "src/lib/a.rs", "same"),
+        catalogue_entry(4, 50, NodeKind::File, "docs/readme.md", "readme"),
+        catalogue_entry(0, 10, NodeKind::Function, "src/a.rs", "same"),
+        catalogue_entry(2, 30, NodeKind::Type, "src/lib/a.rs", "same"),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        catalogue.node_ids_by_name("same"),
+        &[NodeId(0), NodeId(1), NodeId(2), NodeId(3)]
+    );
+    assert_eq!(
+        catalogue.node_ids_by_path("src/lib/a.rs").unwrap(),
+        &[NodeId(1), NodeId(2)]
+    );
+    assert_eq!(
+        catalogue.node_ids_by_path_prefix("src/lib").unwrap(),
+        &[NodeId(1), NodeId(2)]
+    );
+    assert_eq!(
+        catalogue.node_ids_by_kind(&NodeKind::Function),
+        &[NodeId(0), NodeId(1), NodeId(3)]
+    );
+    assert_eq!(
+        catalogue.node_id_by_key(NodeKey::from_u64(30)),
+        Some(NodeId(2))
+    );
+}
+
+#[test]
 fn catalogue_file_is_immutable_and_validated() {
     let catalogue = sample_catalogue();
     let path = std::env::temp_dir().join(format!("arcana-catalogue-{}.txt", std::process::id()));
@@ -206,6 +239,27 @@ fn sample_catalogue() -> RepositoryCatalogue {
         },
     }])
     .unwrap()
+}
+
+fn catalogue_entry(
+    node_id: u32,
+    key: u64,
+    kind: NodeKind,
+    path: &str,
+    name: &str,
+) -> CatalogueEntry {
+    CatalogueEntry {
+        node_id: NodeId(node_id),
+        fact: NodeFact {
+            key: NodeKey::from_u64(key),
+            external_identity: None,
+            kind,
+            path: path.to_owned(),
+            name: name.to_owned(),
+            content_id: None,
+            span: None,
+        },
+    }
 }
 
 fn node(key: NodeKey, path: &str) -> NodeFact {

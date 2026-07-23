@@ -1,8 +1,9 @@
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::synthetic::NodeId;
 
-use super::{NodeFact, NodeKey, RepositoryPathError, normalize_repository_path};
+use super::{NodeFact, NodeKey, NodeKind, RepositoryPathError, normalize_repository_path};
 
 #[path = "catalogue_file.rs"]
 mod catalogue_file;
@@ -20,6 +21,10 @@ pub struct CatalogueEntry {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RepositoryCatalogue {
     entries: Vec<CatalogueEntry>,
+    node_ids_by_key: BTreeMap<NodeKey, NodeId>,
+    node_ids_by_name: BTreeMap<String, Vec<NodeId>>,
+    node_ids_by_path: BTreeMap<String, Vec<NodeId>>,
+    node_ids_by_kind: BTreeMap<NodeKind, Vec<NodeId>>,
 }
 
 impl RepositoryCatalogue {
@@ -42,7 +47,32 @@ impl RepositoryCatalogue {
                 });
             }
         }
-        Ok(Self { entries })
+        let mut node_ids_by_key = BTreeMap::new();
+        let mut node_ids_by_name = BTreeMap::new();
+        let mut node_ids_by_path = BTreeMap::new();
+        let mut node_ids_by_kind = BTreeMap::new();
+        for entry in &entries {
+            node_ids_by_key.insert(entry.fact.key, entry.node_id);
+            node_ids_by_name
+                .entry(entry.fact.name.clone())
+                .or_insert_with(Vec::new)
+                .push(entry.node_id);
+            node_ids_by_path
+                .entry(entry.fact.path.clone())
+                .or_insert_with(Vec::new)
+                .push(entry.node_id);
+            node_ids_by_kind
+                .entry(entry.fact.kind.clone())
+                .or_insert_with(Vec::new)
+                .push(entry.node_id);
+        }
+        Ok(Self {
+            entries,
+            node_ids_by_key,
+            node_ids_by_name,
+            node_ids_by_path,
+            node_ids_by_kind,
+        })
     }
 
     pub fn entries(&self) -> &[CatalogueEntry] {
@@ -58,23 +88,66 @@ impl RepositoryCatalogue {
     }
 
     pub fn lookup_by_key(&self, key: NodeKey) -> Option<&CatalogueEntry> {
-        self.entries.iter().find(|entry| entry.fact.key == key)
+        self.node_id_by_key(key)
+            .and_then(|node_id| self.entry(node_id))
     }
 
     pub fn lookup_by_path(&self, path: &str) -> Result<Vec<&CatalogueEntry>, CatalogueError> {
         let path = normalize_repository_path(path).map_err(CatalogueError::InvalidPath)?;
-        Ok(self
-            .entries
+        let node_ids = self.node_ids_by_path(&path)?;
+        Ok(node_ids
             .iter()
-            .filter(|entry| entry.fact.path == path)
+            .filter_map(|&node_id| self.entry(node_id))
             .collect())
     }
 
     pub fn lookup_by_name(&self, name: &str) -> Vec<&CatalogueEntry> {
-        self.entries
+        self.node_ids_by_name(name)
             .iter()
-            .filter(|entry| entry.fact.name == name)
+            .filter_map(|&node_id| self.entry(node_id))
             .collect()
+    }
+
+    pub fn node_id_by_key(&self, key: NodeKey) -> Option<NodeId> {
+        self.node_ids_by_key.get(&key).copied()
+    }
+
+    pub fn node_ids_by_name(&self, name: &str) -> &[NodeId] {
+        self.node_ids_by_name.get(name).map_or(&[], Vec::as_slice)
+    }
+
+    pub fn node_ids_by_path(&self, path: &str) -> Result<&[NodeId], CatalogueError> {
+        let path = normalize_repository_path(path).map_err(CatalogueError::InvalidPath)?;
+        Ok(self.node_ids_by_path.get(&path).map_or(&[], Vec::as_slice))
+    }
+
+    pub fn node_ids_by_kind(&self, kind: &NodeKind) -> &[NodeId] {
+        self.node_ids_by_kind.get(kind).map_or(&[], Vec::as_slice)
+    }
+
+    /// Returns IDs for a path and its descendants using a bounded B-tree range.
+    pub fn node_ids_by_path_prefix(&self, prefix: &str) -> Result<Vec<NodeId>, CatalogueError> {
+        let prefix = normalize_repository_path(prefix).map_err(CatalogueError::InvalidPath)?;
+        let upper_bound = format!("{prefix}0");
+        let mut node_ids = self
+            .node_ids_by_path
+            .range(prefix.clone()..upper_bound)
+            .filter(|(path, _)| {
+                path.as_str() == prefix
+                    || path
+                        .strip_prefix(&prefix)
+                        .is_some_and(|suffix| suffix.starts_with('/'))
+            })
+            .flat_map(|(_, node_ids)| node_ids.iter().copied())
+            .collect::<Vec<_>>();
+        node_ids.sort_unstable();
+        Ok(node_ids)
+    }
+
+    fn entry(&self, node_id: NodeId) -> Option<&CatalogueEntry> {
+        self.entries
+            .get(node_id.0 as usize)
+            .filter(|entry| entry.node_id == node_id)
     }
 
     pub fn encode(&self) -> Result<String, CatalogueError> {

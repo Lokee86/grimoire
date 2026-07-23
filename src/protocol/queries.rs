@@ -22,14 +22,19 @@ impl ProtocolSnapshot {
     ) -> Result<Value, RequestFailure> {
         let kind = parse_kind(kind)?;
         let path = normalize_optional_path(path)?;
-        let matches = self
-            .catalogue
-            .lookup_by_name(name)
-            .into_iter()
-            .filter(|entry| kind.as_ref().is_none_or(|kind| &entry.fact.kind == kind))
-            .filter(|entry| path.as_ref().is_none_or(|path| &entry.fact.path == path))
-            .collect::<Vec<_>>();
-        Ok(node_list(matches, limit))
+        let mut matches = self.catalogue.node_ids_by_name(name).to_vec();
+        if let Some(kind) = kind {
+            matches = intersect_sorted_ids(&matches, self.catalogue.node_ids_by_kind(&kind));
+        }
+        if let Some(path) = path {
+            matches = intersect_sorted_ids(
+                &matches,
+                self.catalogue
+                    .node_ids_by_path(&path)
+                    .map_err(|error| RequestFailure::new("invalid_path", error.to_string()))?,
+            );
+        }
+        Ok(node_list(self, matches, limit))
     }
 
     pub(crate) fn resolve_file(
@@ -39,12 +44,12 @@ impl ProtocolSnapshot {
     ) -> Result<Value, RequestFailure> {
         let matches = self
             .catalogue
-            .lookup_by_path(path)
+            .node_ids_by_path(path)
             .map_err(|error| RequestFailure::new("invalid_path", error.to_string()))?
-            .into_iter()
-            .filter(|entry| entry.fact.kind == NodeKind::File)
-            .collect::<Vec<_>>();
-        Ok(node_list(matches, limit))
+            .to_vec();
+        let matches =
+            intersect_sorted_ids(&matches, self.catalogue.node_ids_by_kind(&NodeKind::File));
+        Ok(node_list(self, matches, limit))
     }
 
     pub(crate) fn list_nodes(
@@ -55,23 +60,24 @@ impl ProtocolSnapshot {
     ) -> Result<Value, RequestFailure> {
         let kind = parse_kind(kind)?;
         let path_prefix = normalize_optional_path(path_prefix)?;
-        let matches = self
-            .catalogue
-            .entries()
-            .iter()
-            .filter(|entry| kind.as_ref().is_none_or(|kind| &entry.fact.kind == kind))
-            .filter(|entry| {
-                path_prefix.as_ref().is_none_or(|prefix| {
-                    entry.fact.path == *prefix
-                        || entry
-                            .fact
-                            .path
-                            .strip_prefix(prefix)
-                            .is_some_and(|suffix| suffix.starts_with('/'))
-                })
-            })
-            .collect::<Vec<_>>();
-        Ok(node_list(matches, limit))
+        let matches = match (kind, path_prefix) {
+            (None, None) => (0..self.catalogue.len())
+                .map(|node_id| NodeId(node_id as u32))
+                .collect(),
+            (Some(kind), None) => self.catalogue.node_ids_by_kind(&kind).to_vec(),
+            (None, Some(prefix)) => self
+                .catalogue
+                .node_ids_by_path_prefix(&prefix)
+                .map_err(|error| RequestFailure::new("invalid_path", error.to_string()))?,
+            (Some(kind), Some(prefix)) => {
+                let path_ids = self
+                    .catalogue
+                    .node_ids_by_path_prefix(&prefix)
+                    .map_err(|error| RequestFailure::new("invalid_path", error.to_string()))?;
+                intersect_sorted_ids(&path_ids, self.catalogue.node_ids_by_kind(&kind))
+            }
+        };
+        Ok(node_list(self, matches, limit))
     }
 
     pub(crate) fn neighbors(
@@ -144,9 +150,20 @@ impl ProtocolSnapshot {
         let path = normalize_optional_path(path)?;
         let reason = parse_reason(reason)?;
         let relation = parse_relation(relation)?;
-        let matches = self
-            .unresolved
-            .iter()
+        let source_matches = source_key.map(|key| {
+            self.unresolved_by_source
+                .get(&key)
+                .into_iter()
+                .flat_map(|indices| indices.iter())
+                .map(|&index| &self.unresolved[index])
+                .collect::<Vec<_>>()
+        });
+        let matches = source_matches
+            .map_or_else(
+                || self.unresolved.iter().collect::<Vec<_>>(),
+                |matches| matches,
+            )
+            .into_iter()
             .filter(|reference| source_key.is_none_or(|key| reference.source == key))
             .filter(|reference| {
                 reason
@@ -187,13 +204,19 @@ impl ProtocolSnapshot {
     }
 }
 
-fn node_list(matches: Vec<&crate::repository::CatalogueEntry>, limit: Option<usize>) -> Value {
+fn node_list(snapshot: &ProtocolSnapshot, matches: Vec<NodeId>, limit: Option<usize>) -> Value {
     let total = matches.len();
     let limit = bounded_limit(limit);
     let nodes = matches
         .into_iter()
         .take(limit)
-        .map(node_value)
+        .map(|node_id| {
+            node_value(
+                snapshot
+                    .entry(node_id)
+                    .expect("catalogue index contains only valid node IDs"),
+            )
+        })
         .collect::<Vec<_>>();
     json!({
         "count": total,
@@ -201,6 +224,24 @@ fn node_list(matches: Vec<&crate::repository::CatalogueEntry>, limit: Option<usi
         "truncated": total > nodes.len(),
         "nodes": nodes,
     })
+}
+
+fn intersect_sorted_ids(left: &[NodeId], right: &[NodeId]) -> Vec<NodeId> {
+    let mut matches = Vec::new();
+    let mut left_index = 0;
+    let mut right_index = 0;
+    while left_index < left.len() && right_index < right.len() {
+        match left[left_index].cmp(&right[right_index]) {
+            std::cmp::Ordering::Less => left_index += 1,
+            std::cmp::Ordering::Greater => right_index += 1,
+            std::cmp::Ordering::Equal => {
+                matches.push(left[left_index]);
+                left_index += 1;
+                right_index += 1;
+            }
+        }
+    }
+    matches
 }
 
 fn bounded_limit(limit: Option<usize>) -> usize {

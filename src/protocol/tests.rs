@@ -121,6 +121,33 @@ fn opens_verified_overlay_snapshots() {
 }
 
 #[test]
+fn unresolved_node_filter_uses_source_index_and_preserves_full_scan_filters() {
+    let directory = TestDirectory::new();
+    let snapshot_path = directory.path.join("unresolved-index");
+    write_snapshot(&snapshot_path, unresolved_index_facts());
+    let snapshot = ProtocolSnapshot::open(&snapshot_path).unwrap();
+
+    let no_records = request(&snapshot, r#"{"op":"unresolved","node_id":0}"#);
+    assert_eq!(no_records["result"]["count"], 0);
+
+    let source_records = request(&snapshot, r#"{"op":"unresolved","node_id":1}"#);
+    assert_eq!(source_records["result"]["count"], 2);
+    assert!(
+        source_records["result"]["unresolved"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|record| record["source_node_id"] == 1)
+    );
+
+    let all_records = request(
+        &snapshot,
+        r#"{"op":"unresolved","reason":"missing-target"}"#,
+    );
+    assert_eq!(all_records["result"]["count"], 2);
+}
+
+#[test]
 fn jsonl_server_continues_after_request_errors() {
     let directory = TestDirectory::new();
     let snapshot_path = directory.path.join("snapshot");
@@ -465,6 +492,34 @@ fn current_facts() -> RepositoryFacts {
             span: None,
         }],
     )
+}
+
+fn unresolved_index_facts() -> RepositoryFacts {
+    RepositoryFacts::with_unresolved(
+        vec![
+            node(10, NodeKind::File, "src/lib.go", "lib.go", None),
+            node(20, NodeKind::Function, "src/lib.go", "alpha", Some(1)),
+            node(30, NodeKind::Function, "src/lib.go", "beta", Some(2)),
+        ],
+        vec![],
+        vec![
+            unresolved(20, "alpha-missing", UnresolvedReason::MissingTarget),
+            unresolved(20, "alpha-unsupported", UnresolvedReason::UnsupportedForm),
+            unresolved(30, "beta-missing", UnresolvedReason::MissingTarget),
+        ],
+    )
+}
+
+fn unresolved(source: u64, expression: &str, reason: UnresolvedReason) -> UnresolvedReferenceFact {
+    UnresolvedReferenceFact {
+        source: NodeKey::from_u64(source),
+        relation: RelationKind::Calls,
+        expression: expression.to_owned(),
+        candidate_namespace: None,
+        candidate_name: None,
+        reason,
+        span: None,
+    }
 }
 
 fn other_facts() -> RepositoryFacts {
