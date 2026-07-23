@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
@@ -53,10 +54,12 @@ func roleEvidence(seed resolvedSeed, role roleResult) structure.Evidence {
 		relationships = relationships[:16]
 	}
 	node := role.Node.toStructure()
+	context := structuralContext(seed.seed, "operational_role")
 	return structure.Evidence{
 		Provider: "arcana", Kind: "operational_role",
 		Reasons: []string{"Arcana graph role for Lexicon-matched symbol " + seed.seed.Name},
 		Node:    &node, Summary: role.Summary, Relationships: relationships, Truncated: truncated,
+		Context: &context,
 	}
 }
 
@@ -66,10 +69,12 @@ func impactEvidence(seed resolvedSeed, impact impactResult) structure.Evidence {
 		dependents[index] = structure.DepthNode{Depth: dependent.Depth, Node: dependent.Node.toStructure()}
 	}
 	node := seed.node.toStructure()
+	context := structuralContext(seed.seed, "impact")
 	return structure.Evidence{
 		Provider: "arcana", Kind: "impact",
 		Reasons: []string{"Arcana transitive dependents for Lexicon-matched symbol " + seed.seed.Name},
 		Node:    &node, Dependents: dependents, Truncated: impact.Truncated,
+		Context: &context,
 	}
 }
 
@@ -83,23 +88,132 @@ func unresolvedEvidence(seed resolvedSeed, unresolved unresolvedResult) structur
 		}
 	}
 	node := seed.node.toStructure()
+	context := structuralContext(seed.seed, "unresolved")
 	return structure.Evidence{
 		Provider: "arcana", Kind: "unresolved",
 		Reasons: []string{"Arcana unresolved references owned by Lexicon-matched symbol " + seed.seed.Name},
 		Node:    &node, Unresolved: items, Truncated: unresolved.Truncated,
+		Context: &context,
 	}
 }
 
 func callChainEvidence(from, to resolvedSeed, chain arcanaPath) structure.Evidence {
 	nodes := make([]structure.Node, len(chain.Nodes))
+	chainParts := make([]string, len(chain.Nodes))
 	for index, node := range chain.Nodes {
 		nodes[index] = node.toStructure()
+		chainParts[index] = chainNodeIdentity(node)
 	}
+	chainGroup := evidence.StableID("call-chain", chainParts...)
+	context := structuralContext(from.seed, "call_chain")
+	context.GroupIDs = appendUniqueStrings(context.GroupIDs, chainGroup, nodeGroupID(to.seed))
+	context.Links = appendUniqueLinks(context.Links, sourceLink(from.seed), sourceLink(to.seed))
 	return structure.Evidence{
 		Provider: "arcana", Kind: "call_chain",
 		Reasons: []string{fmt.Sprintf("Arcana shortest call chain from %s to %s", from.seed.Name, to.seed.Name)},
 		Chain:   &structure.Path{Depth: chain.Depth, Nodes: nodes, Relations: chain.Relations},
+		Context: &context,
 	}
+}
+
+func structuralContext(seed structure.Node, kind string) evidence.Descriptor {
+	identity := sourceIdentity(seed)
+	context := evidence.Descriptor{
+		Identity: identity,
+		Roles:    []evidence.Role{evidence.RoleStructural},
+		GroupIDs: []string{nodeGroupID(seed)},
+	}
+	if link := sourceLink(seed); link.Identity != "" {
+		context.Links = []evidence.Link{link}
+	}
+	if identity == "" {
+		context.Identity = evidence.StableID("arcana-evidence", kind, nodeGroupID(seed))
+	}
+	return context
+}
+
+func sourceIdentity(node structure.Node) string {
+	if node.Span == nil || node.Span.Path == "" || node.Span.StartLine <= 0 {
+		return ""
+	}
+	end := node.Span.EndLine
+	if end < node.Span.StartLine {
+		end = node.Span.StartLine
+	}
+	return evidence.RangeIdentity(node.Span.Path, node.Span.StartLine, end)
+}
+
+func nodeGroupID(node structure.Node) string {
+	if identity := sourceIdentity(node); identity != "" {
+		return evidence.StableID("lexicon-node", identity)
+	}
+	if node.Identity != "" {
+		return evidence.StableID("lexicon-node", "node:"+node.Identity)
+	}
+	return evidence.StableID("lexicon-node", node.Path, node.Name)
+}
+
+func sourceLink(node structure.Node) evidence.Link {
+	identity := sourceIdentity(node)
+	if identity == "" {
+		return evidence.Link{}
+	}
+	return evidence.Link{Identity: identity, Relation: "source"}
+}
+
+func appendUniqueStrings(existing []string, values ...string) []string {
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		found := false
+		for _, prior := range existing {
+			if prior == value {
+				found = true
+				break
+			}
+		}
+		if !found {
+			existing = append(existing, value)
+		}
+	}
+	return existing
+}
+
+func appendUniqueLinks(existing []evidence.Link, links ...evidence.Link) []evidence.Link {
+	for _, link := range links {
+		if link.Identity == "" {
+			continue
+		}
+		found := false
+		for _, prior := range existing {
+			if prior == link {
+				found = true
+				break
+			}
+		}
+		if !found {
+			existing = append(existing, link)
+		}
+	}
+	return existing
+}
+
+func chainNodeIdentity(node arcanaNode) string {
+	if node.Span != nil && node.Span.Path != "" && node.Span.StartLine > 0 {
+		end := node.Span.EndLine
+		if end < node.Span.StartLine {
+			end = node.Span.StartLine
+		}
+		return evidence.RangeIdentity(node.Span.Path, node.Span.StartLine, end)
+	}
+	if node.Identity != "" {
+		return node.Identity
+	}
+	if node.NodeID != 0 {
+		return fmt.Sprintf("node:%d", node.NodeID)
+	}
+	return node.Path + "::" + node.Name
 }
 
 func relationship(direction string, related relatedNode) structure.Relationship {

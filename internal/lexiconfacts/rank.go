@@ -16,7 +16,7 @@ func rankNodes(nodes map[string]Node, query string, terms []string) []scoredNode
 		if score <= 0 {
 			continue
 		}
-		result = append(result, scoredNode{node: node, score: score, reasons: reasons})
+		result = append(result, scoredNode{node: node, score: score, reasons: reasons, primary: true})
 	}
 	sort.Slice(result, func(i, j int) bool {
 		if result[i].score != result[j].score {

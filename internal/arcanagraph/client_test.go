@@ -3,8 +3,10 @@ package arcanagraph
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"testing"
 
+	sharedevidence "github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
@@ -93,8 +95,8 @@ func TestClientReturnsOperationalImpactUnresolvedAndChainEvidence(t *testing.T) 
 	evidence, err := (Client{Command: "arcana-test", Run: run}).Search(
 		context.Background(), "snapshot",
 		[]structure.Node{
-			{Name: "Alpha", Path: "internal/alpha.go"},
-			{Name: "Beta", Path: "internal/beta.go"},
+			{Name: "Alpha", Path: "internal/alpha.go", Span: &structure.Span{Path: "internal/alpha.go", StartLine: 10, EndLine: 20}},
+			{Name: "Beta", Path: "internal/beta.go", Span: &structure.Span{Path: "internal/beta.go", StartLine: 30, EndLine: 40}},
 		},
 	)
 	if err != nil {
@@ -109,11 +111,40 @@ func TestClientReturnsOperationalImpactUnresolvedAndChainEvidence(t *testing.T) 
 			t.Fatalf("invalid Arcana provenance: %+v", item)
 		}
 		kinds[item.Kind]++
+		if item.Context == nil || !slices.Contains(item.Context.Roles, sharedevidence.RoleStructural) {
+			t.Fatalf("missing structural descriptor: %+v", item)
+		}
 	}
 	for _, kind := range []string{"operational_role", "impact", "unresolved", "call_chain"} {
 		if kinds[kind] == 0 {
 			t.Fatalf("missing %s evidence: %+v", kind, evidence)
 		}
+	}
+	var chain structure.Evidence
+	for _, item := range evidence {
+		if item.Kind == "call_chain" {
+			chain = item
+			break
+		}
+	}
+	if chain.Context == nil || len(chain.Context.GroupIDs) < 2 || len(chain.Context.Links) != 2 {
+		t.Fatalf("call-chain descriptor did not retain endpoint groups and links: %+v", chain.Context)
+	}
+	chainGroup := sharedevidence.StableID(
+		"call-chain",
+		sharedevidence.RangeIdentity("internal/alpha.go", 10, 20),
+		sharedevidence.RangeIdentity("internal/beta.go", 30, 40),
+	)
+	if !slices.Contains(chain.Context.GroupIDs, chainGroup) {
+		t.Fatalf("call-chain group lost ordered chain identity: %+v", chain.Context)
+	}
+	reversed := sharedevidence.StableID(
+		"call-chain",
+		sharedevidence.RangeIdentity("internal/beta.go", 30, 40),
+		sharedevidence.RangeIdentity("internal/alpha.go", 10, 20),
+	)
+	if chainGroup == reversed {
+		t.Fatal("call-chain group ignored node order")
 	}
 }
 
