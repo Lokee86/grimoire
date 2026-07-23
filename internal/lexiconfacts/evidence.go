@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
@@ -18,6 +19,14 @@ func evidenceForSeeds(seeds []scoredNode, facts library, limit int) []structure.
 	result := make([]structure.Evidence, 0, len(seeds))
 	for index, seed := range seeds {
 		node := structureNode(seed.node)
+		context := evidence.Descriptor{
+			Identity: sourceRangeIdentity(seed.node),
+			Roles:    []evidence.Role{evidence.RoleStructural},
+			GroupIDs: []string{nodeGroupID(seed.node)},
+		}
+		if identity := sourceRangeIdentity(seed.node); identity != "" {
+			context.Links = []evidence.Link{{Identity: identity, Relation: "source"}}
+		}
 		result = append(result, structure.Evidence{
 			Provider:      source,
 			Kind:          "symbol",
@@ -26,6 +35,7 @@ func evidenceForSeeds(seeds []scoredNode, facts library, limit int) []structure.
 			Reasons:       append([]string(nil), seed.reasons...),
 			Node:          &node,
 			Relationships: relationshipsForSeed(seed.node.ID, facts, 12),
+			Context:       &context,
 		})
 	}
 	return result
