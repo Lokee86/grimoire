@@ -568,7 +568,7 @@ fn header_and_fact_order_are_canonical() {
     let output = orchestrator::generate(&fixture(), None, None).unwrap();
     assert_eq!(
         output.lines().next().unwrap(),
-        r#"{"adapter_version":"0.3.0","language":"rust","record":"lexicon","repository":"lexicon_fixture","schema_version":1}"#
+        r#"{"adapter_version":"0.4.0","language":"rust","record":"lexicon","repository":"lexicon_fixture","schema_version":1}"#
     );
     let records: Vec<Value> = output
         .lines()
@@ -583,4 +583,35 @@ fn header_and_fact_order_are_canonical() {
         }
         previous = Some(key);
     }
+}
+
+#[test]
+fn discovers_nested_cargo_workspace_without_root_manifest() {
+    let repository =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/nested_repository");
+    assert!(!repository.join("Cargo.toml").exists());
+
+    let records: Vec<Value> = orchestrator::generate(&repository, None, None)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+
+    for package in ["nested-core", "nested-cli"] {
+        assert!(
+            records.iter().any(|record| {
+                record["record"] == "node"
+                    && record["kind"] == "module"
+                    && record["attributes"]["package"] == package
+            }),
+            "missing nested Cargo package {package}"
+        );
+    }
+    assert!(records.iter().any(|record| {
+        record["record"] == "node"
+            && record["kind"] == "file"
+            && record["path"]
+                .as_str()
+                .is_some_and(|path| path.starts_with("native/vector-engine/"))
+    }));
 }

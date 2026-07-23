@@ -1,20 +1,78 @@
 use crate::contract::{content_id, stable_id};
 use crate::model::Context;
-use crate::paths::{normalize_path, relative_path, source_path_for};
-use anyhow::{Context as AnyhowContext, Result};
-use cargo_metadata::{Metadata, MetadataCommand};
+use crate::paths::{comparable_path, is_excluded, normalize_path, relative_path, source_path_for};
+use anyhow::{bail, Context as AnyhowContext, Result};
+use cargo_metadata::{Metadata, MetadataCommand, Package};
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(crate) fn load_metadata(repo: &Path) -> Result<Metadata> {
-    let manifest = repo.join("Cargo.toml");
-    MetadataCommand::new()
-        .manifest_path(&manifest)
-        .no_deps()
-        .exec()
-        .with_context(|| format!("cargo metadata failed for {}", manifest.display()))
+pub(crate) fn load_metadata(repo: &Path) -> Result<Vec<Metadata>> {
+    let mut manifests = Vec::new();
+    collect_manifests(repo, repo, &mut manifests)?;
+    manifests.sort_by(|left, right| {
+        left.components()
+            .count()
+            .cmp(&right.components().count())
+            .then_with(|| left.cmp(right))
+    });
+    if manifests.is_empty() {
+        bail!("no Cargo.toml found under {}", repo.display());
+    }
+
+    let mut covered_manifests = BTreeSet::new();
+    let mut projects = Vec::new();
+    for manifest in manifests {
+        let canonical = fs::canonicalize(&manifest).unwrap_or_else(|_| manifest.clone());
+        if covered_manifests.contains(&comparable_path(&canonical)) {
+            continue;
+        }
+        let metadata = MetadataCommand::new()
+            .manifest_path(&manifest)
+            .no_deps()
+            .exec()
+            .with_context(|| format!("cargo metadata failed for {}", manifest.display()))?;
+        for package in &metadata.packages {
+            let package_manifest = PathBuf::from(package.manifest_path.as_std_path());
+            let package_manifest = fs::canonicalize(&package_manifest).unwrap_or(package_manifest);
+            covered_manifests.insert(comparable_path(&package_manifest));
+        }
+        projects.push(metadata);
+    }
+    Ok(projects)
+}
+
+fn collect_manifests(root: &Path, directory: &Path, output: &mut Vec<PathBuf>) -> Result<()> {
+    let mut entries: Vec<_> = fs::read_dir(directory)?.collect::<std::io::Result<Vec<_>>>()?;
+    entries.sort_by_key(|entry| entry.file_name());
+    for entry in entries {
+        let path = entry.path();
+        let file_type = entry.file_type()?;
+        if file_type.is_dir() {
+            if !is_excluded(root, &path) {
+                collect_manifests(root, &path, output)?;
+            }
+        } else if file_type.is_file()
+            && path.file_name().and_then(|name| name.to_str()) == Some("Cargo.toml")
+        {
+            output.push(path);
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn metadata_packages(metadata: &[Metadata]) -> Vec<Package> {
+    let mut packages = BTreeMap::new();
+    for project in metadata {
+        for package in &project.packages {
+            let manifest = PathBuf::from(package.manifest_path.as_std_path());
+            packages
+                .entry(comparable_path(&manifest))
+                .or_insert_with(|| package.clone());
+        }
+    }
+    packages.into_values().collect()
 }
 
 fn is_analyzable_target_kind(kind: &str) -> bool {
@@ -34,9 +92,10 @@ fn is_analyzable_target_kind(kind: &str) -> bool {
     )
 }
 
-pub(crate) fn repository_identity(repo: &Path, metadata: &Metadata) -> String {
-    if metadata.packages.len() == 1 {
-        return metadata.packages[0].name.clone();
+pub(crate) fn repository_identity(repo: &Path, metadata: &[Metadata]) -> String {
+    let packages = metadata_packages(metadata);
+    if packages.len() == 1 {
+        return packages[0].name.clone();
     }
     repo.file_name()
         .and_then(|name| name.to_str())
@@ -119,9 +178,15 @@ pub(crate) fn add_repository_and_files(context: &mut Context) {
     }
 }
 
-pub(crate) fn add_crates(context: &mut Context, metadata: &Metadata) {
-    let mut packages = metadata.packages.clone();
-    packages.sort_by(|left, right| left.name.cmp(&right.name));
+pub(crate) fn add_crates(context: &mut Context, metadata: &[Metadata]) {
+    let mut packages = metadata_packages(metadata);
+    packages.sort_by(|left, right| {
+        left.name.cmp(&right.name).then_with(|| {
+            left.manifest_path
+                .as_str()
+                .cmp(right.manifest_path.as_str())
+        })
+    });
     for package in packages {
         let manifest_path = PathBuf::from(package.manifest_path.as_std_path());
         let package_root = fs::canonicalize(&manifest_path)
