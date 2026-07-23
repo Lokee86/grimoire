@@ -175,7 +175,7 @@ grimoire context [flags]
 | `--root <path>` | `.` | Repository root used to resolve state |
 | `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
 | `--query <text>` | none | Required retrieval query |
-| `--budget <n>` | `2000` | Maximum `o200k_base` tokens in emitted JSON |
+| `--budget <n>` | `0` | Maximum `o200k_base` tokens; zero selects a deterministic automatic target |
 | `--candidate-limit <n>` | `200` | Maximum merged exact plus semantic/fallback primary candidates before curation |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
@@ -193,7 +193,7 @@ grimoire context [flags]
 | `--query-batch-concurrency <n>` | `2` | Maximum concurrent query embedding requests |
 | `--query-max-tokens <n>` | `0` | Optional query-token limit; zero keeps the complete query |
 
-The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds the complete query as fixed non-overlapping windows grouped into bounded 64-token requests, with at most two requests active concurrently. `full` embeds the complete query once. `quality` adds the full-query vector to the split windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged, deduplicated, diversified, and expanded with bounded prepared neighbours before exact-budget compilation.
+The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds the complete query as fixed non-overlapping windows grouped into bounded 64-token requests, with at most two requests active concurrently. `full` embeds the complete query once. `quality` adds the full-query vector to the split windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged before deterministic query-shape analysis. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, and expanded with bounded prepared neighbours. Automatic assembly stops after deterministic evidence coverage is reached: focused requests remain around one anchor region, bounded requests require two represented regions, and exploratory requests require three. The emitted package records the assembly decision. Explicit-budget requests retain the existing fit-to-budget behavior.
 
 Structural enrichment is enabled by default. When Lexicon state exists, Grimoire resolves `.lexicon/CURRENT`, creates or reuses a cached `lexicon export`, and emits matched symbols, source spans, and immediate relationships as first-class package evidence. It then resolves the Arcana snapshot for the same Lexicon ID, invokes one-shot `arcana sync` when necessary, and queries Arcana's JSONL protocol for operational roles, impact, unresolved references, and shortest call chains. Structural failures warn and preserve standalone source retrieval. Use `--structure=false` to skip both providers or the explicit state, command, and facts flags to override discovery.
 
@@ -214,7 +214,8 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | `--state <path>` | `<root>/.grimoire` | Prepared and vector state |
 | `--modes <list>` | `fast,full,quality,lexical` | Comma-separated modes to execute |
 | `--variant <name>` | `standalone` | Result label for paired comparisons |
-| `--budget <n>` | case budget | Optional budget override for every case |
+| `--budget <n>` | case budget | Optional fixed budget override for every case |
+| `--adaptive` | `false` | Replace case budgets with query-shape targets and evidence-coverage assembly |
 | `--candidate-limit <n>` | `200` | Normal ranked candidate limit |
 | `--probe-limit <n>` | `800` | Broader diagnostic ranking probe used only for failure attribution |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint |
@@ -237,9 +238,9 @@ Structural expectations require `provider` and `kind`. Optional assertions inclu
 
 `--structural-providers none` runs the source-only baseline. `lexicon` executes immutable Lexicon export and symbol matching. `lexicon,arcana` additionally synchronizes and queries Arcana against the same snapshot. Arcana cannot be enabled without Lexicon because Lexicon-matched symbols are its bounded graph-query seeds.
 
-For each case and mode the runner records source and structural timings, provider warnings, selected source chunks, retained structural facts, immutable provider snapshots, final serialized package tokens, separate source and structural recall, separate irrelevant-evidence rates, and failure attribution. Structural failures are classified as provider miss, composition loss, or budget-fitting loss. The broad source-ranking probe does not contribute to reported context latency.
+For each case and mode the runner records source and structural timings, provider warnings, selected source chunks, retained structural facts, immutable provider snapshots, final serialized package tokens, separate source and structural recall, separate irrelevant-evidence rates, and failure attribution. `--adaptive` also records the selected automatic budget, curated and assembled candidate counts, represented evidence coverage, and the assembly stop reason. Source and structural failures distinguish adaptive assembly loss from later budget-fitting loss. `--adaptive` cannot be combined with a fixed `--budget` override. The broad source-ranking probe does not contribute to reported context latency.
 
-Outputs are a machine-readable JSON report and a concise Markdown comparison grouped by mode and category. A case passes only when every required source and structural expectation survives into the final context package.
+Outputs are a machine-readable JSON report and a concise Markdown comparison grouped by mode and category. Package comparison includes median and p95 tokens, median selected chunks, and median budget utilization. A case passes only when every required source and structural expectation survives into the final context package.
 
 ## `grimoire version`
 

@@ -43,6 +43,32 @@ func TestLoadCorpusRejectsInvalidStructuralExpectation(t *testing.T) {
 	}
 }
 
+func TestLoadCorpusAcceptsQueryProfileExpectation(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "cases.json")
+	data := `{"version":1,"repository":"test","cases":[{"id":"profile","query":"where","category":"direct-location","budget":100,"expected_query_profile":{"scope":"focused","specificity":"high","breadth":"low","ambiguity":"low"},"required":[{"path":"internal/example.go"}]}]}`
+	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	corpus, err := LoadCorpus(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if corpus.Cases[0].ExpectedQueryProfile == nil || corpus.Cases[0].ExpectedQueryProfile.Scope != "focused" {
+		t.Fatalf("unexpected profile expectation: %+v", corpus.Cases[0].ExpectedQueryProfile)
+	}
+}
+
+func TestLoadCorpusRejectsInvalidQueryProfileExpectation(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "cases.json")
+	data := `{"version":1,"repository":"test","cases":[{"id":"profile","query":"where","category":"direct-location","budget":100,"expected_query_profile":{"scope":"tiny","specificity":"high","breadth":"low","ambiguity":"low"},"required":[{"path":"internal/example.go"}]}]}`
+	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadCorpus(path); err == nil {
+		t.Fatal("expected invalid query profile expectation error")
+	}
+}
+
 func TestLoadCorpusAcceptsRepositoryOwnedFormat(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "cases.json")
 	data := `{"version":1,"repository":"test","cases":[{"id":"valid","query":"where","category":"direct-location","budget":100,"required":[{"path":"internal/example.go","symbols":["Example"]}]}]}`

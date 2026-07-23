@@ -13,25 +13,29 @@ const (
 	FailureExactRecoveryMiss           = "exact recovery miss"
 	FailureCandidateMergeLoss          = "candidate merge loss"
 	FailureCurationLoss                = "curation loss"
+	FailureAssemblyLoss                = "adaptive assembly loss"
 	FailureBudgetFittingLoss           = "budget-fitting loss"
 	FailureStaleOrIncompleteIndex      = "stale or incomplete index"
 	FailureIncorrectExpectation        = "incorrect evaluation expectation"
 	FailureStructuralProviderMiss      = "structural provider miss"
 	FailureStructuralCompositionLoss   = "structural composition loss"
+	FailureStructuralAssemblyLoss      = "structural adaptive assembly loss"
 	FailureStructuralBudgetFittingLoss = "structural budget-fitting loss"
 )
 
 type Stages struct {
-	Indexed            []Candidate
-	BroadProbe         []Candidate
-	Retrieved          []Candidate
-	Exact              []Candidate
-	Merged             []Candidate
-	Curated            []Candidate
-	Included           []Candidate
-	StructuralProduced []structure.Evidence
-	StructuralComposed []structure.Evidence
-	StructuralIncluded []structure.Evidence
+	Indexed             []Candidate
+	BroadProbe          []Candidate
+	Retrieved           []Candidate
+	Exact               []Candidate
+	Merged              []Candidate
+	Curated             []Candidate
+	Assembled           []Candidate
+	Included            []Candidate
+	StructuralProduced  []structure.Evidence
+	StructuralComposed  []structure.Evidence
+	StructuralAssembled []structure.Evidence
+	StructuralIncluded  []structure.Evidence
 }
 
 func ScoreCase(entry Case, run *CaseRun, stages Stages) {
@@ -96,7 +100,7 @@ func ScoreCase(entry Case, run *CaseRun, stages Stages) {
 		}
 		switch status.FailureStage {
 		case FailureEmbeddingMiss, FailureVectorRankingMiss, FailureExactRecoveryMiss,
-			FailureCandidateMergeLoss, FailureCurationLoss, FailureBudgetFittingLoss,
+			FailureCandidateMergeLoss, FailureCurationLoss, FailureAssemblyLoss, FailureBudgetFittingLoss,
 			FailureStaleOrIncompleteIndex, FailureIncorrectExpectation:
 			classifications[status.FailureStage] = struct{}{}
 		}
@@ -107,6 +111,8 @@ func ScoreCase(entry Case, run *CaseRun, stages Stages) {
 			run.RequiredLostDuringMerge++
 		case FailureCurationLoss:
 			run.RequiredLostDuringCuration++
+		case FailureAssemblyLoss:
+			run.RequiredLostDuringAssembly++
 		case FailureBudgetFittingLoss:
 			run.RequiredOmittedForBudget++
 		}
@@ -121,6 +127,8 @@ func ScoreCase(entry Case, run *CaseRun, stages Stages) {
 			run.RequiredStructuralNeverProduced++
 		case FailureStructuralCompositionLoss:
 			run.RequiredStructuralLostComposition++
+		case FailureStructuralAssemblyLoss:
+			run.RequiredStructuralLostAssembly++
 		case FailureStructuralBudgetFittingLoss:
 			run.RequiredStructuralOmittedBudget++
 		}
@@ -143,6 +151,7 @@ func scoreEvidenceGroup(query string, group []Evidence, stages Stages) []Evidenc
 			ExactRecovered: evidencePresent(evidence, stages.Exact),
 			Merged:         evidencePresent(evidence, stages.Merged),
 			Curated:        evidencePresent(evidence, stages.Curated),
+			Assembled:      evidencePresent(evidence, stages.Assembled),
 			Included:       evidencePresent(evidence, stages.Included),
 		}
 		status.FailureStage = classifyEvidenceFailure(query, status)
@@ -158,8 +167,11 @@ func classifyEvidenceFailure(query string, status EvidenceStatus) string {
 	if !status.Indexed {
 		return FailureStaleOrIncompleteIndex
 	}
-	if status.Curated {
+	if status.Assembled {
 		return FailureBudgetFittingLoss
+	}
+	if status.Curated {
+		return FailureAssemblyLoss
 	}
 	if status.Merged {
 		return FailureCurationLoss
@@ -256,6 +268,9 @@ func AggregateRuns(group string, runs []CaseRun) Aggregate {
 		return aggregate
 	}
 	latencies := make([]float64, 0, len(runs))
+	packageTokens := make([]float64, 0, len(runs))
+	selectedChunks := make([]float64, 0, len(runs))
+	budgetUtilization := make([]float64, 0, len(runs))
 	requiredIncluded, requiredTotal := 0, 0
 	supportingIncluded, supportingTotal := 0, 0
 	selectionTotal, irrelevantTotal := 0, 0
@@ -266,10 +281,21 @@ func AggregateRuns(group string, runs []CaseRun) Aggregate {
 	rankingReciprocalRank := 0.0
 	rankingRelevantAt10, rankingRelevantAt20 := 0.0, 0.0
 	for _, run := range runs {
+		if run.ExpectedQueryProfile != nil {
+			aggregate.ProfileCases++
+			if run.QueryProfileMatched {
+				aggregate.ProfileMatches++
+			}
+		}
 		if run.Pass {
 			aggregate.Passes++
 		}
 		latencies = append(latencies, run.Timings.TotalMS)
+		packageTokens = append(packageTokens, float64(run.FinalPackageTokens))
+		selectedChunks = append(selectedChunks, float64(len(run.Selections)))
+		if run.Budget > 0 {
+			budgetUtilization = append(budgetUtilization, float64(run.FinalPackageTokens)/float64(run.Budget))
+		}
 		if len(run.Required) > 0 && run.Error == "" {
 			aggregate.RankingCases++
 			rankingRequiredAt10 += run.Ranking.RequiredRecallAt10
@@ -334,6 +360,9 @@ func AggregateRuns(group string, runs []CaseRun) Aggregate {
 	if structuralTotal > 0 {
 		aggregate.IrrelevantStructuralRate = float64(structuralIrrelevant) / float64(structuralTotal)
 	}
+	if aggregate.ProfileCases > 0 {
+		aggregate.ProfileMatchRate = float64(aggregate.ProfileMatches) / float64(aggregate.ProfileCases)
+	}
 	if aggregate.RankingCases > 0 {
 		count := float64(aggregate.RankingCases)
 		aggregate.RequiredRecallAt10 = rankingRequiredAt10 / count
@@ -343,8 +372,15 @@ func AggregateRuns(group string, runs []CaseRun) Aggregate {
 		aggregate.RelevantRateAt20 = rankingRelevantAt20 / count
 	}
 	sort.Float64s(latencies)
+	sort.Float64s(packageTokens)
+	sort.Float64s(selectedChunks)
+	sort.Float64s(budgetUtilization)
 	aggregate.MedianLatencyMS = percentile(latencies, 0.5)
 	aggregate.P95LatencyMS = percentile(latencies, 0.95)
+	aggregate.MedianPackageTokens = percentile(packageTokens, 0.5)
+	aggregate.P95PackageTokens = percentile(packageTokens, 0.95)
+	aggregate.MedianSelectedChunks = percentile(selectedChunks, 0.5)
+	aggregate.MedianBudgetUtilization = percentile(budgetUtilization, 0.5)
 	return aggregate
 }
 

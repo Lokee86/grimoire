@@ -89,6 +89,15 @@ func Markdown(report Report) string {
 			aggregate.IrrelevantStructuralRate*100, aggregate.MedianLatencyMS, aggregate.P95LatencyMS)
 	}
 
+	output.WriteString("\n## Package comparison\n\n")
+	output.WriteString("| Mode | Median tokens | p95 tokens | Median chunks | Median budget use |\n")
+	output.WriteString("| --- | ---: | ---: | ---: | ---: |\n")
+	for _, aggregate := range report.ByMode {
+		fmt.Fprintf(&output, "| %s | %.0f | %.0f | %.1f | %.1f%% |\n",
+			aggregate.Group, aggregate.MedianPackageTokens, aggregate.P95PackageTokens,
+			aggregate.MedianSelectedChunks, aggregate.MedianBudgetUtilization*100)
+	}
+
 	output.WriteString("\n## Pre-curation source ranking\n\n")
 	output.WriteString("These metrics score the retrieved order before exact-result merging, curation, and package fitting.\n\n")
 	output.WriteString("| Mode | Queries | Required R@10 | Required R@20 | MRR | Relevant @10 | Relevant @20 |\n")
@@ -121,17 +130,48 @@ func Markdown(report Report) string {
 	}
 
 	output.WriteString("\n## Per-case results\n\n")
-	output.WriteString("| Case | Mode | Pass | Source req. | Structural req. | Source irrelevant | Structural irrelevant | Tokens | Latency | Failure |\n")
-	output.WriteString("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |\n")
+	output.WriteString("| Case | Mode | Pass | Source req. | Structural req. | Source irrelevant | Structural irrelevant | Budget | Tokens | Curated | Assembled | Stop | Latency | Failure |\n")
+	output.WriteString("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | --- |\n")
 	for _, run := range report.Runs {
 		failure := strings.Join(run.FailureClassifications, ", ")
 		if run.Error != "" {
 			failure = run.Error
 		}
-		fmt.Fprintf(&output, "| %s | %s | %t | %.1f%% | %.1f%% | %.1f%% | %.1f%% | %d | %.1f ms | %s |\n",
+		stopReason := "-"
+		if run.Assembly != nil {
+			stopReason = run.Assembly.StopReason
+		}
+		fmt.Fprintf(&output, "| %s | %s | %t | %.1f%% | %.1f%% | %.1f%% | %.1f%% | %d | %d | %d | %d | %s | %.1f ms | %s |\n",
 			run.CaseID, run.Mode, run.Pass, run.RequiredEvidenceRecall*100,
 			run.RequiredStructuralRecall*100, run.IrrelevantSelectionRate*100,
-			run.IrrelevantStructuralRate*100, run.FinalPackageTokens, run.Timings.TotalMS, escapeCell(failure))
+			run.IrrelevantStructuralRate*100, run.Budget, run.FinalPackageTokens,
+			run.CuratedCount, run.AssembledCount, escapeCell(stopReason), run.Timings.TotalMS, escapeCell(failure))
+	}
+
+	output.WriteString("\n## Query profile shadow output\n\n")
+	output.WriteString("These classifications are observational and do not change retrieval, curation, or package assembly.\n\n")
+	output.WriteString("| Case | Mode | Expected | Actual | Match | Specificity | Breadth | Ambiguity | Subsystems | Graph regions | Budget mode | Mismatches |\n")
+	output.WriteString("| --- | --- | --- | --- | ---: | --- | --- | --- | ---: | ---: | --- | --- |\n")
+	for _, run := range report.Runs {
+		expected := "-"
+		matched := "-"
+		if run.ExpectedQueryProfile != nil {
+			expected = string(run.ExpectedQueryProfile.Scope)
+			matched = fmt.Sprintf("%t", run.QueryProfileMatched)
+		}
+		fmt.Fprintf(&output, "| %s | %s | %s | %s | %s | %s | %s | %s | %d | %d | %s | %s |\n",
+			run.CaseID, run.Mode, expected, run.RetrievalPolicy.Scope, matched,
+			run.QueryProfile.Specificity, run.QueryProfile.Breadth, run.QueryProfile.Ambiguity,
+			len(run.QueryProfile.MatchedSubsystems), len(run.QueryProfile.MatchedGraphRegions),
+			run.RetrievalPolicy.BudgetMode, escapeCell(strings.Join(run.QueryProfileMismatches, "; ")))
+	}
+
+	output.WriteString("\n## Query profile calibration\n\n")
+	output.WriteString("| Mode | Judged profiles | Matches | Match rate |\n")
+	output.WriteString("| --- | ---: | ---: | ---: |\n")
+	for _, aggregate := range report.ByMode {
+		fmt.Fprintf(&output, "| %s | %d | %d | %.1f%% |\n",
+			aggregate.Group, aggregate.ProfileCases, aggregate.ProfileMatches, aggregate.ProfileMatchRate*100)
 	}
 
 	if hasCandidateDiagnostics(report.Runs) {

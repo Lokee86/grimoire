@@ -22,7 +22,8 @@ func TestScoreCaseClassifiesPipelineLosses(t *testing.T) {
 		{"exact", "where is Target", Stages{Indexed: []Candidate{indexed}}, FailureExactRecoveryMiss},
 		{"merge", "find target", Stages{Indexed: []Candidate{indexed}, Retrieved: []Candidate{indexed}}, FailureCandidateMergeLoss},
 		{"curation", "find target", Stages{Indexed: []Candidate{indexed}, Retrieved: []Candidate{indexed}, Merged: []Candidate{indexed}}, FailureCurationLoss},
-		{"budget", "find target", Stages{Indexed: []Candidate{indexed}, Retrieved: []Candidate{indexed}, Merged: []Candidate{indexed}, Curated: []Candidate{indexed}}, FailureBudgetFittingLoss},
+		{"assembly", "find target", Stages{Indexed: []Candidate{indexed}, Retrieved: []Candidate{indexed}, Merged: []Candidate{indexed}, Curated: []Candidate{indexed}}, FailureAssemblyLoss},
+		{"budget", "find target", Stages{Indexed: []Candidate{indexed}, Retrieved: []Candidate{indexed}, Merged: []Candidate{indexed}, Curated: []Candidate{indexed}, Assembled: []Candidate{indexed}}, FailureBudgetFittingLoss},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -79,7 +80,8 @@ func TestScoreCaseClassifiesStructuralPipelineLosses(t *testing.T) {
 	}{
 		{"provider", Stages{}, FailureStructuralProviderMiss},
 		{"composition", Stages{StructuralProduced: []structure.Evidence{item}}, FailureStructuralCompositionLoss},
-		{"budget", Stages{StructuralProduced: []structure.Evidence{item}, StructuralComposed: []structure.Evidence{item}}, FailureStructuralBudgetFittingLoss},
+		{"assembly", Stages{StructuralProduced: []structure.Evidence{item}, StructuralComposed: []structure.Evidence{item}}, FailureStructuralAssemblyLoss},
+		{"budget", Stages{StructuralProduced: []structure.Evidence{item}, StructuralComposed: []structure.Evidence{item}, StructuralAssembled: []structure.Evidence{item}}, FailureStructuralBudgetFittingLoss},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
