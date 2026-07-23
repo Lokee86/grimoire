@@ -17,6 +17,23 @@ pub(crate) fn load_metadata(repo: &Path) -> Result<Metadata> {
         .with_context(|| format!("cargo metadata failed for {}", manifest.display()))
 }
 
+fn is_analyzable_target_kind(kind: &str) -> bool {
+    matches!(
+        kind,
+        "lib"
+            | "rlib"
+            | "dylib"
+            | "cdylib"
+            | "staticlib"
+            | "proc-macro"
+            | "bin"
+            | "example"
+            | "test"
+            | "bench"
+            | "custom-build"
+    )
+}
+
 pub(crate) fn repository_identity(repo: &Path, metadata: &Metadata) -> String {
     if metadata.packages.len() == 1 {
         return metadata.packages[0].name.clone();
@@ -115,12 +132,11 @@ pub(crate) fn add_crates(context: &mut Context, metadata: &Metadata) {
         let mut targets = package.targets.clone();
         targets.sort_by(|left, right| left.name.cmp(&right.name));
         for target in targets {
-            if !target.kind.iter().any(|kind| {
-                matches!(
-                    kind.to_string().as_str(),
-                    "lib" | "bin" | "example" | "test" | "bench"
-                )
-            }) {
+            if !target
+                .kind
+                .iter()
+                .any(|kind| is_analyzable_target_kind(kind.to_string().as_str()))
+            {
                 continue;
             }
             let root_path = PathBuf::from(target.src_path.as_std_path());
@@ -172,5 +188,29 @@ pub(crate) fn add_crates(context: &mut Context, metadata: &Metadata) {
                 external_crates,
             });
         }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::is_analyzable_target_kind;
+
+    #[test]
+    fn accepts_all_cargo_rust_code_target_kinds() {
+        for kind in [
+            "lib",
+            "rlib",
+            "dylib",
+            "cdylib",
+            "staticlib",
+            "proc-macro",
+            "bin",
+            "example",
+            "test",
+            "bench",
+            "custom-build",
+        ] {
+            assert!(is_analyzable_target_kind(kind), "rejected {kind}");
+        }
+        assert!(!is_analyzable_target_kind("unknown"));
     }
 }
