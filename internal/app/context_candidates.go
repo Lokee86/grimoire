@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/selection"
@@ -38,6 +39,7 @@ func mergeContextCandidates(limit int, groups ...[]retrieve.Candidate) []retriev
 			if existing, found := positions[key]; found {
 				reason := fmt.Sprintf("also retrieved by %s rank %d", candidate.Source, candidate.Rank)
 				merged[existing].Reasons = appendUniqueReason(merged[existing].Reasons, reason)
+				merged[existing].Context = mergeCandidateContext(merged[existing].Context, candidate.Context)
 				continue
 			}
 			if len(merged) >= limit {
@@ -69,6 +71,7 @@ func mergeRankedProviders(limit int, groups ...[]retrieve.Candidate) []retrieve.
 			if existing, found := positions[key]; found {
 				reason := fmt.Sprintf("also retrieved by %s rank %d", candidate.Source, candidate.Rank)
 				merged[existing].Reasons = appendUniqueReason(merged[existing].Reasons, reason)
+				merged[existing].Context = mergeCandidateContext(merged[existing].Context, candidate.Context)
 				continue
 			}
 			positions[key] = len(merged)
@@ -133,4 +136,19 @@ func appendUniqueReason(reasons []string, reason string) []string {
 		}
 	}
 	return append(reasons, reason)
+}
+
+func mergeCandidateContext(left, right *evidence.Descriptor) *evidence.Descriptor {
+	if left == nil && right == nil {
+		return nil
+	}
+	var leftValue, rightValue evidence.Descriptor
+	if left != nil {
+		leftValue = *left
+	}
+	if right != nil {
+		rightValue = *right
+	}
+	merged := evidence.Merge(leftValue, rightValue)
+	return &merged
 }
