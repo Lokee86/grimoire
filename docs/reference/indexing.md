@@ -12,6 +12,7 @@ These directory names are always excluded at any traversal depth:
 .git
 .grimoire
 .ddocs
+.lexicon
 .arcana
 .warlock
 .worktrees

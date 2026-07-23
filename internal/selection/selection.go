@@ -21,9 +21,16 @@ func Curate(snapshot index.Snapshot, candidates []retrieve.Candidate) []retrieve
 
 	frontCount := min(maxAdjacentPrimaries, len(primaries))
 	front := primaries[:frontCount]
+	adjacent, promoted := adjacentCandidates(snapshot, front, primaries)
 	curated := append([]retrieve.Candidate(nil), front...)
-	curated = append(curated, adjacentCandidates(snapshot, front, primaries)...)
-	return append(curated, primaries[frontCount:]...)
+	curated = append(curated, adjacent...)
+	for _, primary := range primaries[frontCount:] {
+		if _, exists := promoted[candidateKey(primary)]; exists {
+			continue
+		}
+		curated = append(curated, primary)
+	}
+	return curated
 }
 
 func uniqueNonOverlapping(candidates []retrieve.Candidate) []retrieve.Candidate {
@@ -88,15 +95,20 @@ func diversityPenalty(
 func adjacentCandidates(
 	snapshot index.Snapshot,
 	primaries, existing []retrieve.Candidate,
-) []retrieve.Candidate {
+) ([]retrieve.Candidate, map[string]struct{}) {
 	files := make(map[string]index.FileRecord, len(snapshot.Files))
 	for _, file := range snapshot.Files {
 		files[file.Path] = file
 	}
-	seen := make(map[string]struct{}, len(existing))
+	existingByKey := make(map[string]retrieve.Candidate, len(existing))
 	for _, candidate := range existing {
-		seen[candidateKey(candidate)] = struct{}{}
+		existingByKey[candidateKey(candidate)] = candidate
 	}
+	seen := make(map[string]struct{}, len(primaries)*3)
+	for _, primary := range primaries {
+		seen[candidateKey(primary)] = struct{}{}
+	}
+	promoted := make(map[string]struct{})
 
 	adjacent := make([]retrieve.Candidate, 0, len(primaries)*2)
 	for _, primary := range primaries {
@@ -117,22 +129,30 @@ func adjacentCandidates(
 				continue
 			}
 			chunk := file.Chunks[neighborIndex]
-			candidate := retrieve.Candidate{
-				Chunk:  chunk,
-				Source: adjacentSource,
-				Reasons: []string{
-					"immediate " + neighbor.label + " prepared chunk adjacent to ranked candidate",
-				},
+			key := candidateKey(retrieve.Candidate{Chunk: chunk})
+			if _, exists := seen[key]; exists {
+				continue
 			}
-			key := candidateKey(candidate)
-			if _, exists := seen[key]; exists || overlapsAny(candidate, existing) || overlapsAny(candidate, adjacent) {
+			candidate, exists := existingByKey[key]
+			if exists {
+				promoted[key] = struct{}{}
+			} else {
+				candidate = retrieve.Candidate{
+					Chunk:  chunk,
+					Source: adjacentSource,
+					Reasons: []string{
+						"immediate " + neighbor.label + " prepared chunk adjacent to ranked candidate",
+					},
+				}
+			}
+			if overlapsAny(candidate, primaries) && !exists || overlapsAny(candidate, adjacent) {
 				continue
 			}
 			seen[key] = struct{}{}
 			adjacent = append(adjacent, candidate)
 		}
 	}
-	return adjacent
+	return adjacent, promoted
 }
 
 func preparedChunkIndex(chunks []index.Chunk, target index.Chunk) int {

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/Lokee86/grimoire/internal/embedding"
@@ -22,19 +23,28 @@ type vectorChunk struct {
 }
 
 func runVectorBuild(args []string, stdout, stderr io.Writer) error {
+	started := time.Now()
+	memory := startMemoryPeakSampler()
+	memoryStopped := false
+	defer func() {
+		if !memoryStopped {
+			memory.stopAndRead()
+		}
+	}()
 	flags := flag.NewFlagSet("vector build", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	root := flags.String("root", ".", "repository root")
 	state := flags.String("state", "", "prepared index repository path")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
-	batchSize := flags.Int("batch-size", 16, "documents embedded per request")
+	batchSize := flags.Int("batch-size", 4, "documents embedded per request")
+	batchConcurrency := flags.Int("batch-concurrency", 1, "concurrent embedding requests")
 	timeout := flags.Duration("timeout", 30*time.Minute, "complete vector build timeout")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if *batchSize <= 0 || *timeout <= 0 {
-		return errors.New("--batch-size and --timeout must be positive")
+	if *batchSize <= 0 || *batchConcurrency <= 0 || *timeout <= 0 {
+		return errors.New("--batch-size, --batch-concurrency, and --timeout must be positive")
 	}
 	statePath, err := resolveState(*root, *state)
 	if err != nil {
@@ -78,7 +88,7 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	if len(missing) > 0 {
-		if err := embedMissing(ctx, embedding.NewClient(*endpoint), library, paths, missing, *batchSize); err != nil {
+		if err := embedMissing(ctx, embedding.NewClient(*endpoint), library, paths, missing, *batchSize, *batchConcurrency); err != nil {
 			return err
 		}
 	}
@@ -104,44 +114,131 @@ func runVectorBuild(args []string, stdout, stderr io.Writer) error {
 	if err := writeVectorSnapshotManifest(paths.Manifest, manifest); err != nil {
 		return err
 	}
+	snapshotInfo, err := os.Stat(paths.Snapshot)
+	if err != nil {
+		return err
+	}
+	peakMemory := memory.stopAndRead()
+	memoryStopped = true
 	return writeJSON(stdout, struct {
-		Snapshot         string `json:"snapshot"`
-		Identity         string `json:"identity"`
-		PreparedIdentity string `json:"prepared_identity"`
-		Model            string `json:"model"`
-		Chunks           int    `json:"chunks"`
-		Embedded         int    `json:"embedded"`
-		Reused           int    `json:"reused"`
+		Snapshot         string  `json:"snapshot"`
+		Identity         string  `json:"identity"`
+		PreparedIdentity string  `json:"prepared_identity"`
+		Model            string  `json:"model"`
+		Chunks           int     `json:"chunks"`
+		Embedded         int     `json:"embedded"`
+		Reused           int     `json:"reused"`
+		DurationMS       float64 `json:"duration_ms"`
+		SnapshotBytes    int64   `json:"snapshot_bytes"`
+		PeakMemoryBytes  uint64  `json:"peak_memory_bytes"`
 	}{
-		paths.Snapshot, identity, preparedIdentity, embedding.Identity(),
-		len(all), len(missing), len(all) - len(missing),
+		Snapshot: paths.Snapshot, Identity: identity, PreparedIdentity: preparedIdentity,
+		Model: embedding.Identity(), Chunks: len(all), Embedded: len(missing),
+		Reused: len(all) - len(missing), DurationMS: durationMS(time.Since(started)),
+		SnapshotBytes: snapshotInfo.Size(), PeakMemoryBytes: peakMemory,
 	})
+}
+
+type documentEmbedder interface {
+	EmbedDocuments(context.Context, []string) ([][]float32, error)
+}
+
+type embeddedVectorBatch struct {
+	batch   []vectorChunk
+	vectors [][]float32
+	err     error
 }
 
 func embedMissing(
 	ctx context.Context,
-	client *embedding.Client,
+	client documentEmbedder,
 	library *vectorstore.Library,
 	paths vectorStatePaths,
 	missing []vectorChunk,
 	batchSize int,
+	concurrency int,
 ) error {
-	for start := 0; start < len(missing); start += batchSize {
-		end := min(start+batchSize, len(missing))
-		batch := missing[start:end]
-		documents := make([]string, len(batch))
-		for index, entry := range batch {
-			documents[index] = entry.Chunk.Text
+	return embedVectorBatches(ctx, client, missing, batchSize, concurrency, func(batch []vectorChunk, vectors [][]float32) error {
+		return ingestVectorBatch(library, paths, batch, vectors)
+	})
+}
+
+func embedVectorBatches(
+	ctx context.Context,
+	client documentEmbedder,
+	missing []vectorChunk,
+	batchSize int,
+	concurrency int,
+	ingest func([]vectorChunk, [][]float32) error,
+) error {
+	if len(missing) == 0 {
+		return nil
+	}
+	if batchSize <= 0 || concurrency <= 0 {
+		return errors.New("embedding batch size and concurrency must be positive")
+	}
+	workerCount := min(concurrency, (len(missing)+batchSize-1)/batchSize)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	jobs := make(chan []vectorChunk)
+	results := make(chan embeddedVectorBatch, workerCount)
+	var workers sync.WaitGroup
+	for range workerCount {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			for batch := range jobs {
+				documents := make([]string, len(batch))
+				for index, entry := range batch {
+					documents[index] = entry.Chunk.Text
+				}
+				vectors, err := client.EmbedDocuments(ctx, documents)
+				select {
+				case results <- embeddedVectorBatch{batch: batch, vectors: vectors, err: err}:
+				case <-ctx.Done():
+					return
+				}
+				if err != nil {
+					return
+				}
+			}
+		}()
+	}
+	go func() {
+		defer close(jobs)
+		for start := 0; start < len(missing); start += batchSize {
+			end := min(start+batchSize, len(missing))
+			select {
+			case jobs <- missing[start:end]:
+			case <-ctx.Done():
+				return
+			}
 		}
-		vectors, err := client.EmbedDocuments(ctx, documents)
-		if err != nil {
-			return err
+	}()
+	go func() {
+		workers.Wait()
+		close(results)
+	}()
+
+	var firstErr error
+	for result := range results {
+		if result.err != nil {
+			if firstErr == nil {
+				firstErr = result.err
+				cancel()
+			}
+			continue
 		}
-		if err := ingestVectorBatch(library, paths, batch, vectors); err != nil {
-			return err
+		if firstErr != nil {
+			continue
+		}
+		if err := ingest(result.batch, result.vectors); err != nil {
+			firstErr = err
+			cancel()
 		}
 	}
-	return nil
+	return firstErr
 }
 
 func writeVectorRecords(path string, entries []vectorChunk) error {

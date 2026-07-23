@@ -12,6 +12,7 @@ import (
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/retrieve"
+	"github.com/Lokee86/grimoire/internal/selection"
 )
 
 func runContext(args []string, stdout, stderr io.Writer) error {
@@ -24,6 +25,13 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	limit := flags.Int("candidate-limit", 200, "maximum ranked candidates")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
+	structureEnabled := flags.Bool("structure", true, "include available Lexicon and Arcana structural evidence")
+	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
+	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
+	lexiconCommand := flags.String("lexicon-command", "lexicon", "Lexicon executable used to export the current snapshot")
+	arcanaState := flags.String("arcana-state", "", "Arcana state directory; defaults to <root>/.arcana")
+	arcanaCommand := flags.String("arcana-command", "arcana", "Arcana executable used to synchronize and query graph state")
+	structureTimeout := flags.Duration("structure-timeout", 30*time.Second, "complete structural-provider timeout")
 	timeout := flags.Duration("timeout", 2*time.Second, "semantic retrieval timeout")
 	modeValue := flags.String("query-embedding-mode", string(embedding.QueryModeFast), "query embedding mode: fast, full, or quality")
 	windowTokens := flags.Int("query-window-tokens", embedding.DefaultQueryWindowTokens, "tokens per fast query window")
@@ -33,8 +41,8 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if *query == "" || *budget <= 0 || *limit <= 0 || *timeout <= 0 {
-		return errors.New("--query and positive --budget, --candidate-limit, and --timeout are required")
+	if *query == "" || *budget <= 0 || *limit <= 0 || *timeout <= 0 || *structureTimeout <= 0 {
+		return errors.New("--query and positive --budget, --candidate-limit, --timeout, and --structure-timeout are required")
 	}
 	mode, err := embedding.ParseQueryMode(*modeValue)
 	if err != nil {
@@ -57,20 +65,34 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("load prepared index: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
-	defer cancel()
+	semanticContext, cancelSemantic := context.WithTimeout(context.Background(), *timeout)
 	baseCandidates, err := semanticCandidates(
-		ctx, snapshot, statePath, *query, *endpoint, *enginePath, *limit, queryOptions,
+		semanticContext, snapshot, statePath, *query, *endpoint, *enginePath, *limit, queryOptions,
 	)
+	cancelSemantic()
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "warning: semantic retrieval unavailable; using lexical fallback: %v\n", err)
 		baseCandidates = retrieve.Search(snapshot, *query, *limit)
 	}
-	candidates := curateContextCandidates(snapshot, *query, baseCandidates, *limit)
 
-	result, err := compiler.Compile(
+	structural := collectStructuralContext(context.Background(), snapshot, *query, structuralContextOptions{
+		Enabled: *structureEnabled, ArcanaEnabled: *structureEnabled,
+		Root: *root, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
+		LexiconState: *lexiconState, LexiconCommand: *lexiconCommand,
+		ArcanaState: *arcanaState, ArcanaCommand: *arcanaCommand,
+		Limit: *limit, Timeout: *structureTimeout,
+	})
+	for _, warning := range structural.Warnings {
+		_, _ = fmt.Fprintf(stderr, "warning: %s\n", warning)
+	}
+
+	exact := retrieve.Exact(snapshot, *query, min(*limit, maxExactCandidates))
+	merged := mergeContextProviders(*limit, exact, baseCandidates, structural.Lexicon.Candidates)
+	candidates := selection.Curate(snapshot, merged)
+
+	result, err := compiler.CompileWithEvidence(
 		*query, *budget, snapshot.Version, snapshot.Tokenizer,
-		contextCandidateSources(candidates), candidates,
+		contextCandidateSources(candidates), structural.ProviderState, structural.Combined, candidates,
 	)
 	if err != nil {
 		return err

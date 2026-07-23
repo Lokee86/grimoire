@@ -6,6 +6,7 @@ Contributor-facing documentation for the current Grimoire codebase.
 
 - [Testing and benchmarks](testing-and-benchmarks.md) - Required checks and warm algorithm benchmarks.
 - [Retrieval quality and latency baselines](retrieval-quality.md) - Checked-in quality corpus and repository-scale measurements.
+- [Ranking calibration corpus](ranking-calibration-corpus.md) - Clean controls, judgement policy, and the staged tuning process.
 
 ## Package ownership
 

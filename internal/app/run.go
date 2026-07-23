@@ -8,15 +8,31 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Lokee86/grimoire/internal/index"
 )
 
 const Version = "0.1.0-dev"
 
+type stringListFlag []string
+
+func (values *stringListFlag) String() string {
+	return strings.Join(*values, ",")
+}
+
+func (values *stringListFlag) Set(value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return errors.New("exclude path must not be empty")
+	}
+	*values = append(*values, value)
+	return nil
+}
+
 func Run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("expected command: index, context, model, vector, or version")
+		return errors.New("expected command: index, context, eval, model, vector, or version")
 	}
 
 	switch args[0] {
@@ -24,6 +40,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		return runIndex(args[1:], stdout, stderr)
 	case "context":
 		return runContext(args[1:], stdout, stderr)
+	case "eval":
+		return runEval(args[1:], stdout, stderr)
 	case "model":
 		return runModel(args[1:], stdout, stderr)
 	case "vector":
@@ -43,6 +61,8 @@ func runIndex(args []string, stdout, stderr io.Writer) error {
 	state := flags.String("state", "", "prepared index repository path")
 	ignoreFile := flags.String("ignore-file", "", "root-relative or absolute ignore file; defaults to .gitignore hierarchy")
 	maxFileBytes := flags.Int64("max-file-bytes", 0, "maximum indexed file size")
+	var excludePaths stringListFlag
+	flags.Var(&excludePaths, "exclude", "root-relative or absolute path to exclude; may be repeated")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -56,10 +76,11 @@ func runIndex(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
+	excluded := append([]string{statePath}, excludePaths...)
 	snapshot, stats, err := index.Build(*root, previous, index.BuildOptions{
 		MaxFileBytes: *maxFileBytes,
 		IgnoreFile:   *ignoreFile,
-		ExcludePaths: []string{statePath},
+		ExcludePaths: excluded,
 	})
 	if err != nil {
 		return err

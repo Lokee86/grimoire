@@ -69,6 +69,7 @@ func TestBuildExcludesToolStateDirectories(t *testing.T) {
 		".workingtrees/branch/hidden.go",
 		".grimoire/objects/hidden.go",
 		".ddocs/state/hidden.go",
+		".lexicon/snapshots/hidden.go",
 		".arcana/index/hidden.go",
 		".warlock/runtime/hidden.go",
 	} {

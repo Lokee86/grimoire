@@ -6,7 +6,7 @@
 grimoire <command> [flags]
 ```
 
-Current top-level commands are `index`, `context`, `model`, `vector`, and `version`.
+Current top-level commands are `index`, `context`, `eval`, `model`, `vector`, and `version`.
 
 ## `grimoire model setup`
 
@@ -51,6 +51,7 @@ grimoire model serve [flags]
 | `--port <n>` | `9876` | Bind port |
 | `--context-size <n>` | `8192` | Runtime context size |
 | `--ubatch-size <n>` | `2048` | Runtime physical batch size |
+| `--parallel <n>` | `4` | Concurrent llama.cpp server slots |
 
 The command enables embedding mode and last-token pooling. Grimoire performs final 512-dimensional truncation and L2 normalization in its client.
 
@@ -85,6 +86,7 @@ grimoire index [flags]
 | `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
 | `--ignore-file <path>` | root and nested `.gitignore` files | Replacement Git-ignore file |
 | `--max-file-bytes <n>` | 2 MiB | Maximum eligible source file size |
+| `--exclude <path>` | none | Root-relative or absolute path to exclude; repeatable |
 
 The command prepares source chunks and exact token counts. Persistent embeddings are built separately by `grimoire vector build`.
 
@@ -117,10 +119,11 @@ grimoire vector build [flags]
 | `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
-| `--batch-size <n>` | `16` | Documents per embedding request |
+| `--batch-size <n>` | `4` | Documents per embedding request; matches the default four server slots |
+| `--batch-concurrency <n>` | `1` | Concurrent embedding requests; ingestion remains serialized |
 | `--timeout <duration>` | `30m` | Complete build timeout |
 
-The command reuses immutable vectors for unchanged chunk text, embeds only missing source identities, and materializes a sorted memory-mapped snapshot.
+The command reuses immutable vectors for unchanged chunk text, embeds only missing source identities, persists completed batches immediately, and materializes a sorted memory-mapped snapshot. The local llama.cpp server already distributes one request across its four slots, so the defaults send four documents in one request and avoid competing request queues. Higher request concurrency remains available for remote providers; object-store ingestion stays serialized and deterministic.
 
 ## `grimoire vector search`
 
@@ -176,6 +179,13 @@ grimoire context [flags]
 | `--candidate-limit <n>` | `200` | Maximum merged exact plus semantic/fallback primary candidates before curation |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
+| `--structure <bool>` | `true` | Include available Lexicon and Arcana structural evidence |
+| `--structure-timeout <duration>` | `30s` | Complete structural-provider timeout |
+| `--lexicon-facts <path>` | automatic snapshot export | Explicit standalone Lexicon JSONL directory override |
+| `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
+| `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
+| `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph-state directory |
+| `--arcana-command <path>` | `arcana` | Executable used for graph synchronization and protocol queries |
 | `--timeout <duration>` | `2s` | Complete semantic retrieval timeout |
 | `--query-embedding-mode <mode>` | `fast` | `fast`, `full`, or `quality` query plan |
 | `--query-window-tokens <n>` | `16` | Tokens per split-query window |
@@ -183,7 +193,53 @@ grimoire context [flags]
 | `--query-batch-concurrency <n>` | `2` | Maximum concurrent query embedding requests |
 | `--query-max-tokens <n>` | `0` | Optional query-token limit; zero keeps the complete query |
 
-The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds the complete query as fixed non-overlapping windows grouped into bounded 64-token requests, with at most two requests active concurrently. `full` embeds the complete query once. `quality` adds the full-query vector to the split windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged, deduplicated, diversified, and expanded with bounded prepared neighbours before exact-budget compilation. If the vector path is missing, stale, incompatible, or unavailable, the command writes a warning to stderr and substitutes the deterministic lexical fallback before the same exact-recovery and curation stages.
+The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds the complete query as fixed non-overlapping windows grouped into bounded 64-token requests, with at most two requests active concurrently. `full` embeds the complete query once. `quality` adds the full-query vector to the split windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged, deduplicated, diversified, and expanded with bounded prepared neighbours before exact-budget compilation.
+
+Structural enrichment is enabled by default. When Lexicon state exists, Grimoire resolves `.lexicon/CURRENT`, creates or reuses a cached `lexicon export`, and emits matched symbols, source spans, and immediate relationships as first-class package evidence. It then resolves the Arcana snapshot for the same Lexicon ID, invokes one-shot `arcana sync` when necessary, and queries Arcana's JSONL protocol for operational roles, impact, unresolved references, and shortest call chains. Structural failures warn and preserve standalone source retrieval. Use `--structure=false` to skip both providers or the explicit state, command, and facts flags to override discovery.
+
+If the vector path is missing, stale, incompatible, or unavailable, the command writes a warning to stderr and substitutes the deterministic lexical fallback before the same exact-recovery and curation stages. Structural evidence can still be emitted during semantic fallback.
+
+## `grimoire eval retrieval`
+
+Run a repository-owned judged retrieval corpus against one or more query modes:
+
+```bash
+grimoire eval retrieval --cases <path> --root <repository> [flags]
+```
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--cases <path>` | none | Required judged corpus JSON |
+| `--root <path>` | `.` | Repository being evaluated |
+| `--state <path>` | `<root>/.grimoire` | Prepared and vector state |
+| `--modes <list>` | `fast,full,quality,lexical` | Comma-separated modes to execute |
+| `--variant <name>` | `standalone` | Result label for paired comparisons |
+| `--budget <n>` | case budget | Optional budget override for every case |
+| `--candidate-limit <n>` | `200` | Normal ranked candidate limit |
+| `--probe-limit <n>` | `800` | Broader diagnostic ranking probe used only for failure attribution |
+| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint |
+| `--engine <path>` | discovered DLL | Rust vector-engine library |
+| `--structural-providers <list>` | `none` | `none`, `lexicon`, or `lexicon,arcana` |
+| `--structure-timeout <duration>` | `30s` | Per-case structural-provider timeout |
+| `--lexicon-facts <path>` | automatic snapshot export | Explicit standalone Lexicon JSONL directory override |
+| `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
+| `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
+| `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph-state directory |
+| `--arcana-command <path>` | `arcana` | Executable used for graph synchronization and protocol queries |
+| `--timeout <duration>` | `10s` | Per-case source-retrieval timeout |
+| `--output-dir <path>` | `evaluation/results` | JSON and Markdown result directory |
+| `--output-prefix <name>` | generated | Shared result filename prefix |
+| query planning flags | context defaults | Window, batch, concurrency, and optional max-token settings |
+
+The corpus is separate from deterministic unit-test fixtures. A case may require source evidence, structural evidence, or both. Source expectations use `required`, `supporting`, and `forbidden`. Structural expectations use `required_structural`, `supporting_structural`, and `forbidden_structural`.
+
+Structural expectations require `provider` and `kind`. Optional assertions include subject `symbol` and `path`, relationship `relation`, `direction`, and `certainty`, related `target_symbol` and `target_path`, an ordered `chain` subsequence, and unresolved-reference `expression`. Before retrieval, the runner verifies every referenced source path and any symbol paired with a path.
+
+`--structural-providers none` runs the source-only baseline. `lexicon` executes immutable Lexicon export and symbol matching. `lexicon,arcana` additionally synchronizes and queries Arcana against the same snapshot. Arcana cannot be enabled without Lexicon because Lexicon-matched symbols are its bounded graph-query seeds.
+
+For each case and mode the runner records source and structural timings, provider warnings, selected source chunks, retained structural facts, immutable provider snapshots, final serialized package tokens, separate source and structural recall, separate irrelevant-evidence rates, and failure attribution. Structural failures are classified as provider miss, composition loss, or budget-fitting loss. The broad source-ranking probe does not contribute to reported context latency.
+
+Outputs are a machine-readable JSON report and a concise Markdown comparison grouped by mode and category. A case passes only when every required source and structural expectation survives into the final context package.
 
 ## `grimoire version`
 

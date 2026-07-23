@@ -2,7 +2,7 @@
 
 ## Status
 
-Grimoire has incremental prepared state, exact package budgeting, an operational local embedding provider, persistent vector state, exact semantic search, vector-backed context compilation, and deterministic lexical fallback. It is not yet a complete context-selection and evidence-enrichment system.
+Grimoire has incremental prepared state, exact package budgeting, an operational local embedding provider, persistent vector state, exact semantic search, vector-backed context compilation, deterministic lexical fallback, immutable Lexicon symbol evidence, and bounded Arcana graph evidence. It is not yet a complete context-selection and evidence-enrichment system.
 
 ## Manual vector refresh
 
@@ -40,11 +40,23 @@ Exact recovery is conditional and skipped for ordinary natural-language queries,
 
 Planned removal condition: add a compact index only when repository-scale benchmarks show the conditional scan is material.
 
-## Language-agnostic chunks
+## Language-agnostic source chunks
 
-All supported files use the line-based fallback chunker. Function, method, type, Markdown-section, fenced-block, and structured-data boundaries are not preserved.
+All supported files still use the line-based fallback chunker. Lexicon symbols and source spans are now emitted as separate structural evidence and can steer source retrieval, but Grimoire does not yet use those ranges to replace fallback chunk boundaries.
 
-Planned removal condition: optionally consume Lexicon structural ranges while retaining fallback operation without Lexicon.
+Planned removal condition: optionally prepare Lexicon-aligned source chunks while retaining fallback operation without Lexicon.
+
+## Structural evidence depends on local tool executables
+
+Automatic enrichment discovers repository state through `.lexicon/CURRENT` and `.arcana/CURRENT`, but creating a missing cached export requires the `lexicon` executable and catching up a missing or stale graph requires the `arcana` executable. Explicit executable and state paths are supported. Provider failure emits a warning and preserves standalone source retrieval.
+
+Planned removal condition: add Warlock-supervised discovery or a stable shared invocation registry without coupling Grimoire to either implementation.
+
+## Structural retrieval policy is intentionally bounded
+
+Lexicon matching currently selects direct query-matched symbols and immediate relationships. Arcana queries operational roles, bounded impact, unresolved references, and shortest call chains among a small seed set. Grimoire does not yet infer every graph operation that may be useful for arbitrary tasks, and the judged retrieval evaluator does not yet score structural evidence.
+
+Planned removal condition: add task-shaped structural query planning and judged structural-evidence cases before expanding query breadth.
 
 ## Managed setup platform coverage
 
@@ -52,11 +64,11 @@ Planned removal condition: optionally consume Lexicon structural ranges while re
 
 Planned removal condition: add verified pinned runtime assets for additional supported platforms.
 
-## Selection remains heuristic and whole-chunk based
+## Selection remains heuristic and whole-item based
 
-Candidate curation removes duplicates and overlapping ranges, promotes file/subsystem diversity, and adds bounded prepared neighbours. The compiler still greedily fits complete chunks and does not optimize globally, reserve evidence classes, or trim excerpts within a chunk.
+Candidate curation removes duplicates and overlapping ranges, promotes file/subsystem diversity, and adds bounded prepared neighbours. The compiler fits one leading structural fact and one leading source selection before the remaining structural and source evidence, but it still uses deterministic greedy fitting rather than global optimization and never trims an individual fact or chunk.
 
-Planned removal condition: add stronger policy only when deterministic quality fixtures demonstrate a concrete failure.
+Planned removal condition: add stronger evidence-class allocation only when deterministic quality fixtures demonstrate a concrete failure.
 
 ## Single output tokenizer
 

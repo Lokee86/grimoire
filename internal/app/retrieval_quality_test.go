@@ -79,6 +79,48 @@ func TestRetrievalQualityFixtures(t *testing.T) {
 	}
 }
 
+func TestRetrievalQualityPromotesRetrievedAdjacentEvidence(t *testing.T) {
+	chunk := func(id, path, text string, start, end int) index.Chunk {
+		return index.Chunk{ID: id, Path: path, StartLine: start, EndLine: end, TokenCount: 24, Text: text}
+	}
+	primary := chunk("alpha-main", "internal/alpha.go", "package internal\nfunc AlphaOwner() { AlphaCore() }", 1, 48)
+	required := chunk("alpha-required", "internal/alpha.go", "package internal\nfunc ValidateAlphaSnapshot() { CheckAlphaIdentity(); CheckAlphaDimensions() }", 49, 96)
+	snapshot := index.Snapshot{
+		Version:   index.FormatVersion,
+		Tokenizer: "o200k_base",
+		Files: []index.FileRecord{
+			{Path: "internal/alpha.go", Chunks: []index.Chunk{primary, required}},
+			{Path: "internal/beta.go", Chunks: []index.Chunk{chunk("beta", "internal/beta.go", "package internal\nfunc BetaOwner() {}", 1, 48)}},
+			{Path: "internal/gamma.go", Chunks: []index.Chunk{chunk("gamma", "internal/gamma.go", "package internal\nfunc GammaOwner() {}", 1, 48)}},
+			{Path: "internal/delta.go", Chunks: []index.Chunk{chunk("delta", "internal/delta.go", "package internal\nfunc DeltaOwner() {}", 1, 48)}},
+			{Path: "internal/epsilon.go", Chunks: []index.Chunk{chunk("epsilon", "internal/epsilon.go", "package internal\nfunc EpsilonOwner() {}", 1, 48)}},
+			{Path: "internal/zeta.go", Chunks: []index.Chunk{chunk("zeta", "internal/zeta.go", "package internal\nfunc ZetaOwner() {}", 1, 48)}},
+		},
+	}
+	candidates := []retrieve.Candidate{
+		{Chunk: primary, Source: "vector", Rank: 1},
+		{Chunk: snapshot.Files[1].Chunks[0], Source: "vector", Rank: 2},
+		{Chunk: snapshot.Files[2].Chunks[0], Source: "vector", Rank: 3},
+		{Chunk: snapshot.Files[3].Chunks[0], Source: "vector", Rank: 4},
+		{Chunk: snapshot.Files[4].Chunks[0], Source: "vector", Rank: 5},
+		{Chunk: snapshot.Files[5].Chunks[0], Source: "vector", Rank: 6},
+		{Chunk: required, Source: "vector", Rank: 7},
+	}
+	curated := selection.Curate(snapshot, candidates)
+	requiredIndex, epsilonIndex := -1, -1
+	for index, candidate := range curated {
+		switch candidate.Chunk.ID {
+		case required.ID:
+			requiredIndex = index
+		case "epsilon":
+			epsilonIndex = index
+		}
+	}
+	if requiredIndex < 0 || epsilonIndex < 0 || requiredIndex > epsilonIndex {
+		t.Fatalf("retrieved adjacent evidence was not promoted: %+v", curated)
+	}
+}
+
 func fixtureSemanticCandidates(snapshot index.Snapshot, query string, paths []string) []retrieve.Candidate {
 	ranked := retrieve.Search(snapshot, query, 0)
 	byPath := make(map[string]index.Chunk)

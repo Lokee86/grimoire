@@ -6,6 +6,7 @@ import (
 
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/retrieve"
+	"github.com/Lokee86/grimoire/internal/structure"
 	"github.com/Lokee86/grimoire/internal/tokenizer"
 )
 
@@ -46,6 +47,62 @@ func TestCompileEnforcesSerializedPackageBudget(t *testing.T) {
 		t.Fatalf("package used %d tokens with budget %d", tight.TokenCount, tightBudget)
 	}
 	assertExactPackageCount(t, tight)
+}
+
+func TestCompileWithEvidenceEmitsStructuralFactsBeforeSourceSelections(t *testing.T) {
+	node := structure.Node{Name: "ResolveDamage", Kind: "function", Path: "internal/damage.go"}
+	evidence := []structure.Evidence{{
+		Provider: "lexicon", Kind: "symbol", Rank: 1, Node: &node,
+		Relationships: []structure.Relationship{{
+			Direction: "outgoing", Relation: "calls", Certainty: "definite",
+			Node: structure.Node{Name: "ApplyShield", Path: "internal/shield.go"},
+		}},
+	}}
+	candidates := []retrieve.Candidate{
+		candidate(t, "internal/damage.go", strings.Repeat("damage source value ", 120), 10),
+	}
+
+	providerState := []structure.ProviderState{{
+		Provider: "lexicon", Snapshot: "sha256:abc",
+	}}
+	full, err := CompileWithEvidence(
+		"trace damage", 10_000, index.FormatVersion, tokenizer.Name,
+		[]string{"vector"}, providerState, evidence, candidates,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if full.Version != 4 || len(full.StructuralEvidence) != 1 {
+		t.Fatalf("structural evidence missing from package: %+v", full)
+	}
+	if len(full.StructuralSources) != 1 || full.StructuralSources[0] != "lexicon" {
+		t.Fatalf("unexpected structural sources: %+v", full.StructuralSources)
+	}
+	if len(full.StructuralState) != 1 || full.StructuralState[0] != providerState[0] {
+		t.Fatalf("unexpected structural state: %+v", full.StructuralState)
+	}
+
+	retainedWithoutSource := false
+	for budget := 1; budget < full.TokenCount; budget++ {
+		pkg, compileErr := CompileWithEvidence(
+			"trace damage", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"vector"}, providerState, evidence, candidates,
+		)
+		if compileErr != nil {
+			continue
+		}
+		if len(pkg.StructuralEvidence) == 1 && len(pkg.Selections) == 0 {
+			retainedWithoutSource = true
+			if pkg.OmittedForBudget != 1 {
+				t.Fatalf("source omission not recorded: %+v", pkg)
+			}
+			assertExactPackageCount(t, pkg)
+			break
+		}
+	}
+	if !retainedWithoutSource {
+		t.Fatal("no budget retained structural evidence before the larger source selection")
+	}
 }
 
 func TestCompileRejectsBudgetBelowPackageMetadata(t *testing.T) {

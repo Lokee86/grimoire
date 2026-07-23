@@ -85,50 +85,85 @@ The request-shape benchmark isolates whether split windows should all be sent in
 
 Bounded 64-token requests were approximately 24%, 8%, and 7% faster than one all-window request at 128, 256, and 512 tokens respectively. The complete query is still represented; longer queries produce more bounded requests rather than being truncated. Absolute latency varies with machine load and runtime scheduling, so comparisons should be made within each benchmark row rather than across separate benchmark runs.
 
-## Repository-scale baseline
+## Judged repository-scale evaluation
 
-The current baseline repositories are:
+Repository-owned corpora live under `evaluation/retrieval/`. They are separate from deterministic unit fixtures and contain explicit required, supporting, and optional forbidden evidence for real development questions.
 
-| Repository | Prepared files | Prepared chunks | Baseline embedded | Baseline reused | Result |
-| --- | ---: | ---: | ---: | ---: | --- |
-| Grimoire | 114 | 282 | 3 | 279 | Measured incremental baseline after the initial 276-chunk build |
-| Lexicon | 211 | 730 | 730 | 0 | Initial snapshot published |
-| Space Rocks | 1,902 | 8,355 | deferred | — | Prepared large-corpus scaling case; snapshot not published |
+The initial judged set contains:
 
-The Space Rocks count is retained as the large-corpus scaling case. On the current CPU-only Q8 embedding runtime, fully materializing 8,355 chunks would primarily measure sustained model inference rather than retrieval or vector-store behavior. Vector builds now ingest each completed embedding batch immediately, so an interrupted future build can resume from durable immutable objects instead of restarting completed batches.
+| Repository | Cases | Purpose |
+| --- | ---: | --- |
+| Grimoire | 12 | Retrieval implementation and package-construction behavior |
+| Lexicon | 12 | Language analysis, snapshots, consumers, and repository ownership |
+| Space Rocks | 32 | Large heterogeneous Go, GDScript, Ruby, configuration, and cross-language work |
 
-## Warm context-command measurements
+Each corpus covers direct locations, mechanism explanations, architecture ownership, call-chain investigations, and long mixed implementation requests. Space Rocks includes multi-file and cross-language expectations.
 
-The Windows development run used the release Rust DLL through an explicit `--engine` path. A packaged build has the equivalent DLL beside `grimoire.exe`. Each query was warmed once and then measured three times with a 2,000-token budget; the table reports the median. No run emitted a semantic-fallback warning. Representative Grimoire and Lexicon queries also completed under the normal two-second timeout with no warning.
+Run all four modes with:
 
-| Repository | Query | Median | Sources | Representative result | Assessment |
-| --- | --- | ---: | --- | --- | --- |
-| Grimoire | Where is vector snapshot freshness validated? | 657 ms | vector | `internal/app/vector_manifest.go` | Direct implementation hit |
-| Grimoire | How does context fall back when semantic retrieval fails? | 689 ms | vector | retrieval and architecture documentation | Relevant, but implementation evidence could rank higher |
-| Grimoire | Where are exact token budgets enforced? | 637 ms | vector | `docs/reference/context-package.md` and compiler tests | Relevant contract and enforcement evidence |
-| Grimoire | `validateVectorSnapshotManifest` | 655 ms | exact, adjacent, vector | `context.go`, `vector.go`, `vector_manifest.go` | Exact recovery and neighbour expansion worked |
-| Lexicon | How are repository changes detected and cached analysis reused? | 735 ms | vector | `README.md`, `docs/APPLICATION.md`, `spec/snapshots-v1.md` | Relevant architectural evidence |
-| Lexicon | Where is the normalized consumer contract defined? | 647 ms | vector, adjacent | adapter and consumer-runner tests | Quality gap: the defining consumer contract did not survive selection |
-| Lexicon | Which Warlock directories are always ignored? | 641 ms | vector | path handling, ignore tests, and `files.go` | Relevant but includes one temporary-file distraction |
+```bash
+grimoire eval retrieval \
+  --cases evaluation/retrieval/grimoire.json \
+  --root .
+```
 
-The approximately 0.64–0.74 second warm command latency includes query embedding, snapshot validation, exact vector scan, optional exact recovery, candidate curation, complete package serialization, and process startup. At 282 and 730 vectors, the difference between repositories is small; query embedding is the evident dominant cost.
+The runner writes JSON and Markdown under `evaluation/results/` and reports complete-case pass rate, separate source and structural recall, separate irrelevant-evidence rates, median and p95 latency, provider warnings, and the stage where required evidence was lost. It also records the rank where each required evidence item first becomes complete and summarizes pre-curation required recall at ranks 10 and 20, mean reciprocal rank, and judged-path relevance at ranks 10 and 20. These ranking metrics isolate retrieval order from later exact merging, curation, and token-budget effects.
 
-The consumer-contract miss is retained as an observed quality failure rather than reclassified as success. It should become a reduced deterministic fixture before ranking rules change. The ignored-directory query also shows why repository hygiene and permanent temporary-file exclusions matter to retrieval quality.
+Run the three comparable variants against the same prepared and vector snapshot:
 
-Do not compare provider scores across exact, vector, lexical, or adjacent candidates. Provider rank, source, reason, selected path, and final package usefulness are the stable interpretation boundaries.
+```bash
+# Source retrieval only
+grimoire eval retrieval \
+  --cases evaluation/retrieval/grimoire.json \
+  --root . \
+  --structural-providers none \
+  --variant standalone
 
-## Change policy
+# Source retrieval plus Lexicon symbols and relationships
+grimoire eval retrieval \
+  --cases evaluation/retrieval/grimoire.json \
+  --root . \
+  --structural-providers lexicon \
+  --variant lexicon
 
-A retrieval or selection change should not be accepted solely because one demonstration query looks better. It should include:
+# Source retrieval plus Lexicon and Arcana graph evidence
+grimoire eval retrieval \
+  --cases evaluation/retrieval/grimoire.json \
+  --root . \
+  --structural-providers lexicon,arcana \
+  --variant lexicon-arcana
+```
 
-1. a reduced deterministic fixture for the observed failure or intended behavior;
-2. benchmark comparison when algorithmic work changes the hot path;
-3. repository-scale spot checks; and
-4. inspection of the final package, not only the top search result.
+A case may declare `required_structural`, `supporting_structural`, and `forbidden_structural`. Each expectation names a provider and evidence kind, then optionally constrains the subject symbol/path, relationship and target, ordered call-chain symbols, or unresolved expression. Structural failure attribution distinguishes a provider miss from loss during cross-provider composition and loss during final package budgeting.
+
+Lexicon and Arcana execute through the same production path used by `grimoire context`. Lexicon exports the immutable current snapshot into Grimoire's cache. Arcana is synchronized to that same snapshot and queried from the Lexicon-matched seeds. Standalone and assisted reports must use the same source, prepared, vector, Lexicon, and Arcana state where applicable.
+
+## Failure reduction policy
+
+Do not tune retrieval while constructing a judged corpus or recording its initial baseline. For each confirmed failure:
+
+1. identify the responsible stage from the report;
+2. reduce the behavior to the smallest deterministic repository fixture;
+3. confirm the fixture fails before changing retrieval;
+4. modify only the responsible stage;
+5. confirm the fixture passes; and
+6. rerun the full judged corpus to detect category, relevance, or latency regressions.
+
+The first confirmed live regression was curation failing to promote an immediately adjacent chunk when that chunk already existed later in the retrieved list. The deterministic fixture now verifies that the retrieved neighbor moves forward without losing provider rank or provenance.
+
+Do not compare provider scores across exact, vector, lexical, Lexicon, or adjacent candidates. Provider rank, source, reason, selected path, and final package usefulness are the stable interpretation boundaries.
+
+## Default-mode decision
+
+Do not choose the default from latency alone. `fast` remains acceptable only when its required-evidence recall is at least 90% of `quality`, failed cases do not materially increase, median latency is materially lower, long-query p95 remains acceptable, later query windows are not systematically lost, and no category consistently succeeds under `full` while failing under `fast`.
+
+The dated JSON and Markdown files under `evaluation/results/` are the authoritative measured baselines. Historical spot-query tables are not substitutes for the judged corpus.
 
 ## Related documentation
 
 - [Testing and benchmarks](testing-and-benchmarks.md)
+- [Ranking calibration corpus](ranking-calibration-corpus.md)
 - [Context package](../reference/context-package.md)
 - [Vector store](../reference/vector-store.md)
+- [CLI reference](../reference/cli.md)
 - [Roadmap](../planning/roadmap.md)

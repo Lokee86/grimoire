@@ -1,20 +1,21 @@
 # Context Compiler
 
-`internal/compiler` owns final whole-chunk selection and the versioned JSON context-package model.
+`internal/compiler` owns final whole-item selection and the versioned JSON context-package model.
 
 ## Owns
 
 - package versioning;
-- package and selection field definitions;
-- ranked whole-chunk budget fitting;
+- package, structural-provider-state, structural-evidence, and source-selection fields;
+- deterministic budget fitting across complete structural facts and complete source chunks;
 - exact serialized-package token accounting;
 - final package-byte verification;
-- budget-omission counting; and
-- retrieval-source metadata supplied by the current composition path.
+- separate structural and source budget-omission counts; and
+- provider-source metadata supplied by the composition path.
 
 ## Does not own
 
-- candidate discovery or relevance scoring;
+- candidate or structural-evidence discovery;
+- relevance scoring;
 - repository or prepared-state access;
 - chunk construction;
 - tokenizer selection or vocabulary ownership; or
@@ -22,12 +23,14 @@
 
 ## Main files
 
-- `compiler.go` - package model and selection algorithm.
-- `compiler_test.go` - budget and package behavior coverage.
+- `compiler.go` - package model and whole-item fitting algorithm.
+- `compiler_test.go` - budget, structural evidence, and package behavior coverage.
 
 ## Selection rule
 
-Candidates are considered in ranked order. For each candidate, the compiler serializes and counts the complete tentative JSON package. A complete chunk is retained only when that package fits the budget. A rejected candidate is counted, but later smaller candidates may still be selected. The final emitted bytes are counted again and must match the package-level `token_count`.
+The compiler first considers the highest-ranked structural fact, then the highest-ranked source selection. It next considers the remaining structural facts and finally the remaining source candidates. This gives first-class structural data an early reserved opportunity without allowing it to consume every token before implementation source is considered.
+
+For every item, the compiler serializes and counts the complete tentative JSON package. An item is retained only when that package fits the budget. A rejected item is counted, but later smaller items may still be selected. Individual facts and chunks are never truncated. The final emitted bytes are counted again and must match the package-level `token_count`.
 
 ## Related documentation
 

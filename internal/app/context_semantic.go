@@ -5,12 +5,27 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/vectorstore"
 )
+
+type semanticMetrics struct {
+	SnapshotValidation time.Duration
+	Embedding          time.Duration
+	VectorSearch       time.Duration
+	CandidateMerge     time.Duration
+	DiagnosticProbe    time.Duration
+}
+
+type semanticEvaluationResult struct {
+	Candidates []retrieve.Candidate
+	BroadProbe []retrieve.Candidate
+	Metrics    semanticMetrics
+}
 
 func semanticCandidates(
 	ctx context.Context,
@@ -22,30 +37,94 @@ func semanticCandidates(
 	limit int,
 	queryOptions embedding.QueryOptions,
 ) ([]retrieve.Candidate, error) {
+	result, err := semanticCandidatesForEvaluation(
+		ctx, snapshot, statePath, query, endpoint, enginePath, limit, 0, queryOptions,
+	)
+	return result.Candidates, err
+}
+
+func semanticCandidatesForEvaluation(
+	ctx context.Context,
+	snapshot index.Snapshot,
+	statePath string,
+	query string,
+	endpoint string,
+	enginePath string,
+	limit int,
+	probeLimit int,
+	queryOptions embedding.QueryOptions,
+) (semanticEvaluationResult, error) {
+	var result semanticEvaluationResult
+	validationStart := time.Now()
 	paths := resolveVectorPaths(statePath)
 	chunks := snapshot.AllChunks()
 	manifest, err := validateVectorSnapshotManifest(paths.Manifest, snapshot, len(chunks))
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	library, err := vectorstore.Load(enginePath)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	defer library.Close()
 	engine, err := library.OpenSnapshot(paths.Snapshot)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	defer engine.Close()
 	info, err := engine.Info()
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if err := validateVectorEngineInfo(manifest, info); err != nil {
-		return nil, err
+		return result, err
 	}
-	return queryVectorCandidates(ctx, engine, info, chunks, query, endpoint, limit, queryOptions)
+	result.Metrics.SnapshotValidation = time.Since(validationStart)
+
+	plan, err := embedding.PlanQuery(query, queryOptions)
+	if err != nil {
+		return result, err
+	}
+	embeddingStart := time.Now()
+	vectors, err := embedding.NewClient(endpoint).EmbedQueryPlan(ctx, plan, queryOptions)
+	result.Metrics.Embedding = time.Since(embeddingStart)
+	if err != nil {
+		return result, err
+	}
+	for _, vector := range vectors {
+		if info.Dimensions != len(vector) {
+			return result, fmt.Errorf("vector snapshot has %d dimensions, query has %d", info.Dimensions, len(vector))
+		}
+	}
+
+	searchStart := time.Now()
+	hits, err := searchQueryVectors(engine, vectors, limit)
+	result.Metrics.VectorSearch = time.Since(searchStart)
+	if err != nil {
+		return result, err
+	}
+	mergeStart := time.Now()
+	result.Candidates, err = mergeSemanticHits(chunks, plan, hits, limit)
+	result.Metrics.CandidateMerge = time.Since(mergeStart)
+	if err != nil {
+		return result, err
+	}
+
+	if probeLimit > limit {
+		probeStart := time.Now()
+		probeHits, probeErr := searchQueryVectors(engine, vectors, probeLimit)
+		if probeErr != nil {
+			return result, probeErr
+		}
+		result.BroadProbe, probeErr = mergeSemanticHits(chunks, plan, probeHits, probeLimit)
+		result.Metrics.DiagnosticProbe = time.Since(probeStart)
+		if probeErr != nil {
+			return result, probeErr
+		}
+	} else {
+		result.BroadProbe = append([]retrieve.Candidate(nil), result.Candidates...)
+	}
+	return result, nil
 }
 
 func queryVectorCandidates(

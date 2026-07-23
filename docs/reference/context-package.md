@@ -2,57 +2,155 @@
 
 ## Purpose
 
-`grimoire context` emits a versioned, agent-independent JSON package containing selected repository chunks and an inspectable record of how they were retrieved.
+`grimoire context` emits a versioned, agent-independent JSON package containing selected repository source plus bounded structural evidence from Lexicon and Arcana when their repository state is available.
 
-The current package version is `3`.
+The current package version is `4`.
 
 ## Example
 
 ```json
 {
-  "version": 3,
-  "query": "where is player damage resolved",
+  "version": 4,
+  "query": "trace player damage resolution",
   "budget": 2000,
   "tokenizer": "o200k_base",
-  "token_count": 241,
+  "token_count": 1184,
   "index_version": 2,
   "retrieval_sources": [
     "vector"
+  ],
+  "structural_sources": [
+    "lexicon",
+    "arcana"
+  ],
+  "structural_state": [
+    {
+      "provider": "lexicon",
+      "snapshot": "sha256:..."
+    },
+    {
+      "provider": "arcana",
+      "snapshot": "sha256:..."
+    }
+  ],
+  "structural_evidence": [
+    {
+      "provider": "lexicon",
+      "kind": "symbol",
+      "rank": 1,
+      "score": 41,
+      "reasons": [
+        "query names Lexicon symbol ResolveDamage"
+      ],
+      "node": {
+        "identity": "sha256:...",
+        "kind": "function",
+        "name": "ResolveDamage",
+        "qualified_name": "damage.ResolveDamage",
+        "path": "internal/game/damage/resolver.go",
+        "span": {
+          "path": "internal/game/damage/resolver.go",
+          "start_line": 18,
+          "end_line": 61
+        }
+      },
+      "relationships": [
+        {
+          "direction": "outgoing",
+          "relation": "calls",
+          "certainty": "definite",
+          "node": {
+            "identity": "sha256:...",
+            "kind": "function",
+            "name": "ApplyShield",
+            "path": "internal/game/damage/shield.go"
+          }
+        }
+      ]
+    },
+    {
+      "provider": "arcana",
+      "kind": "operational_role",
+      "rank": 1,
+      "node": {
+        "identity": "sha256:...",
+        "node_id": 148,
+        "kind": "function",
+        "name": "ResolveDamage",
+        "path": "internal/game/damage/resolver.go"
+      },
+      "summary": "ResolveDamage has 3 definite caller(s), 0 possible caller(s), 4 definite callee(s), 0 possible target(s), and 2 incoming reference(s)."
+    }
   ],
   "selections": [
     {
       "path": "internal/game/damage/resolver.go",
       "start_line": 1,
-      "end_line": 42,
+      "end_line": 72,
       "score": 0.8125,
       "retrieval_source": "vector",
       "retrieval_rank": 1,
       "reasons": [
         "semantic vector similarity from split window 1/1"
       ],
-      "token_count": 126,
+      "token_count": 214,
       "content": "..."
     }
   ],
+  "omitted_structural_for_budget": 0,
   "omitted_for_budget": 0
 }
 ```
 
-The values above illustrate the schema. The recorded `token_count` in real output is calculated from the complete emitted JSON document, including indentation and its trailing newline.
+The values illustrate the schema. A real `token_count` is calculated from the complete indented JSON document, including its trailing newline.
 
 ## Package fields
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `version` | integer | Context-package schema version; currently `3` |
+| `version` | integer | Context-package schema version; currently `4` |
 | `query` | string | Original query supplied by the caller |
 | `budget` | integer | Maximum `o200k_base` tokens permitted in the emitted package |
 | `tokenizer` | string | Tokenizer used for chunk and package accounting; currently `o200k_base` |
 | `token_count` | integer | Exact token count of the complete emitted JSON package |
 | `index_version` | integer | Prepared-index format version |
-| `retrieval_sources` | string array | Candidate sources involved in construction, ordered by first curated use; may include `exact`, `vector`, `lexical`, and `adjacent` |
-| `selections` | object array | Ranked chunks retained under the complete package budget |
-| `omitted_for_budget` | integer | Ranked candidates rejected because adding the complete chunk would exceed the package budget |
+| `retrieval_sources` | string array | Source-chunk providers involved in construction, ordered by first curated use |
+| `structural_sources` | string array | Structural providers retained in the package, ordered by first retained evidence |
+| `structural_state` | object array | Immutable provider snapshot identities for retained structural evidence |
+| `structural_evidence` | object array | Bounded Lexicon and Arcana facts retained under the package budget |
+| `selections` | object array | Ranked source chunks retained under the package budget |
+| `omitted_structural_for_budget` | integer | Structural facts rejected because the complete fact did not fit |
+| `omitted_for_budget` | integer | Source selections rejected because the complete chunk did not fit |
+
+`structural_sources`, `structural_state`, and `structural_evidence` are omitted when no structural evidence is available or retained. A state entry is omitted when an explicit legacy export has no recoverable immutable snapshot identity.
+
+## Structural evidence
+
+Every structural item includes:
+
+| Field | Meaning |
+| --- | --- |
+| `provider` | `lexicon` or `arcana` |
+| `kind` | Concrete evidence shape |
+| `rank` | One-based provider-local order before cross-provider interleaving |
+| `score` | Optional provider-native relevance score |
+| `reasons` | Inspectable explanation for inclusion |
+| `node` | Subject symbol, when the evidence has one |
+| `truncated` | Whether the provider bounded a larger result |
+
+Current evidence kinds are:
+
+| Kind | Provider | Payload |
+| --- | --- | --- |
+| `symbol` | Lexicon | Durable symbol identity, kind, qualified name, source span, and immediate incoming/outgoing relationships |
+| `operational_role` | Arcana | Graph summary plus bounded callers and callees |
+| `impact` | Arcana | Bounded transitive dependents with graph depth |
+| `call_chain` | Arcana | Ordered shortest call-chain nodes and relations between matched symbols |
+| `unresolved` | Arcana | Unresolved expressions, candidate metadata, reasons, relations, and source spans owned by a matched symbol |
+
+Lexicon identities are durable across consumers. Arcana `node_id` values are snapshot-local; `structural_state` records the exact immutable snapshot that makes those IDs meaningful.
+
+Relationships record `direction`, `relation`, and `certainty`. Definite and possible call edges remain distinct rather than being collapsed.
 
 ## Selection fields
 
@@ -61,74 +159,61 @@ The values above illustrate the schema. The recorded `token_count` in real outpu
 | `path` | string | Repository-relative slash-normalized source path |
 | `start_line` | integer | One-based inclusive source start line |
 | `end_line` | integer | One-based inclusive source end line |
-| `score` | number | Provider-native ranking score; vector candidates use their best similarity across query inputs, while adjacent expansion uses zero |
-| `retrieval_source` | string | Source that produced the candidate: `exact`, `vector`, `lexical`, or `adjacent` |
-| `retrieval_rank` | integer | One-based provider rank after deterministic same-provider query-vector merging and before curation; adjacent expansion uses zero |
+| `score` | number | Provider-native ranking score |
+| `retrieval_source` | string | Source that produced the candidate, such as `exact`, `vector`, `lexical`, `lexicon`, or `adjacent` |
+| `retrieval_rank` | integer | One-based provider rank before curation; adjacent expansion uses zero |
 | `reasons` | string array | Inspectable provider explanation |
 | `token_count` | integer | Exact `o200k_base` count of the prepared chunk text |
 | `content` | string | Exact prepared chunk text |
 
-Scores from different providers are not declared comparable. Consumers should use `retrieval_source` and `retrieval_rank` when interpreting provider-native scores.
+Scores from different providers are not declared comparable. Consumers should use provider identity, rank, and reasons rather than comparing raw scores across providers.
 
-The selection-level count is useful evidence metadata, but it is not sufficient to calculate the package total. JSON syntax, escaped content, indentation, query text, paths, reasons, and all other package fields also consume tokens.
+## Structural-state resolution
 
-## Ordering
+Structural enrichment is enabled by default but remains optional.
 
-Each provider assigns its own deterministic order and rank. Exact recovery candidates are merged before vector or lexical candidates because they represent concrete literal evidence. Duplicate chunk IDs are retained once, with another-provider evidence recorded in the reasons.
+When `<root>/.lexicon/CURRENT` exists, Grimoire resolves its immutable snapshot ID and creates or reuses a cached standalone export under the Grimoire state directory. The export is produced through `lexicon export`; Grimoire does not inspect Lexicon's mutable private library.
 
-Curation then:
+When Lexicon produced matched symbols, Grimoire resolves `<root>/.arcana/CURRENT`. If Arcana is missing or does not represent the same Lexicon snapshot, Grimoire invokes one-shot `arcana sync`. It then queries the matching immutable snapshot through `arcana protocol --snapshot`.
 
-1. removes later duplicate and overlapping ranges;
-2. applies bounded soft file/subsystem diversity while preserving all unique primaries;
-3. emits the first four diversified primaries;
-4. emits their deduplicated immediate prepared neighbours; and
-5. emits the remaining primaries.
+A structural-provider failure writes a warning to stderr and does not disable standalone source retrieval. `--structure=false` explicitly skips both providers. Explicit state, executable, and exported-facts paths are available through the context command flags.
 
-Provider ranks are provenance only and are never compared across providers. Package budgeting preserves curated order but may omit a larger candidate and later retain a smaller one that still fits.
+## Ordering and budget behavior
 
-## Budget behavior
+Lexicon and Arcana evidence are interleaved while preserving provider-local order, so one provider cannot consume the entire structural section before the other is considered.
 
-Grimoire never truncates a selected chunk. For each ranked candidate:
+The compiler attempts evidence in this order:
 
-1. Append the complete selection to a tentative package.
-2. Serialize the package using the same indented JSON format used for output.
-3. Stabilize the self-referential package-level `token_count` field.
-4. Count the exact serialized bytes with `o200k_base`.
-5. Retain the selection only when the resulting package does not exceed `budget`.
+1. highest-ranked structural fact;
+2. highest-ranked source selection;
+3. remaining interleaved structural facts; and
+4. remaining curated source selections.
 
-A rejected candidate increments `omitted_for_budget`; later smaller candidates may still fit. The compiler performs a final count and removes the lowest-ranked retained selections if metadata changes would otherwise push the final package over budget.
+This guarantees that first-class structural data does not remain merely a ranking hint, while reserving an early opportunity for the implementation source itself. Complete facts and complete chunks are never truncated. An item that does not fit is omitted, and later smaller items may still be retained.
 
-A successful package always satisfies:
+For every tentative addition, Grimoire serializes the complete package, stabilizes the self-referential `token_count`, and measures the exact bytes using `o200k_base`. A successful package always satisfies:
 
 ```text
 token_count <= budget
 ```
 
-If the budget cannot fit even the package metadata with no selections, the command returns an error and emits no package.
+If the budget cannot fit package metadata with no evidence or selections, the command returns an error and emits no package.
 
-## Retrieval behavior
+## Source retrieval behavior
 
-The normal path uses the configured embedding endpoint and exact vector snapshot. Before query embedding, Grimoire requires the persistent vector manifest's prepared identity to exactly match the current content-addressed prepared-index root. It then validates model identity, dimensions, vector count, and returned chunk IDs.
+The normal source path uses the configured embedding endpoint and exact vector snapshot. Before query embedding, Grimoire requires the vector manifest's prepared identity to match the current content-addressed prepared-index root. It then validates model identity, dimensions, vector count, and returned chunk IDs.
 
-Fast mode retains the complete query, divides it into non-overlapping 16-token windows, groups windows into requests containing at most 64 query tokens, and runs at most two embedding requests concurrently. Full mode submits the complete query once. Quality mode submits the full query plus the bounded split-window requests. A nonzero `--query-max-tokens` value is an explicit optional limit; zero leaves the query untruncated. Duplicate vector hits retain the best similarity, record every matching query input in `reasons`, and receive one deterministic merged vector rank.
+Fast mode divides the complete query into non-overlapping windows and sends bounded requests. Full mode submits the complete query once. Quality mode submits both forms. Concrete repository literals also activate targeted exact recovery. Exact, semantic or fallback, and Lexicon-derived source candidates are merged before deterministic curation.
 
-Concrete query signals—such as quoted phrases, paths, filenames, identifiers, configuration keys, error codes, and versions—also activate targeted exact recovery. Exact and semantic candidates are merged before deterministic curation and exact-budget fitting.
-
-When semantic retrieval is unavailable or incompatible, `context` writes a warning to stderr and substitutes the deterministic lexical fallback. Targeted exact recovery and candidate curation still run. The output identifies actual candidate sources through `retrieval_sources` and each selection's provenance fields.
-
-## Budget boundary
-
-The budget covers exactly the JSON bytes emitted by Grimoire, including the trailing newline. It does not cover system prompts, chat-message framing, tool schemas, transport envelopes, or any other content added by a consumer after emission.
-
-The count is exact for `o200k_base`. Models using another tokenizer may count the same package differently.
+When semantic retrieval is unavailable or incompatible, `context` writes a warning to stderr and substitutes deterministic lexical retrieval. Structural enrichment can still run independently.
 
 ## Compatibility
 
-Version 3 changes selection scores from integer-only lexical values to provider-native numbers and adds `retrieval_source` and `retrieval_rank` to every selection.
+Version 4 adds first-class structural evidence, structural-provider provenance, and separate structural budget omissions. It also changes runtime behavior by automatically using matching Lexicon and Arcana repository state when available.
 
-Version 2 introduced exact `token_count` fields and the fixed tokenizer name. Consumers should use `version` to select a package decoder and tolerate additional fields in future compatible revisions.
+Version 3 introduced provider-native selection scores and source provenance. Version 2 introduced exact token-count fields and the fixed tokenizer name. Consumers should select a decoder using `version` and tolerate additional fields in future compatible revisions.
 
-The schema is pre-release and may change before a stable Grimoire release.
+The schema remains pre-release.
 
 ## Related documentation
 

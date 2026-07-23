@@ -28,6 +28,38 @@ func TestMergeContextCandidatesPrefersExactAndKeepsProviderEvidence(t *testing.T
 	}
 }
 
+func TestMergeContextProvidersBoundsLexiconWithoutReplacingBaseFront(t *testing.T) {
+	candidate := func(id, source string, rank int) retrieve.Candidate {
+		return retrieve.Candidate{Chunk: index.Chunk{ID: id}, Source: source, Rank: rank}
+	}
+	base := make([]retrieve.Candidate, 40)
+	for index := range base {
+		base[index] = candidate("base-"+string(rune('a'+index)), "vector", index+1)
+	}
+	lexicon := make([]retrieve.Candidate, 40)
+	for index := range lexicon {
+		lexicon[index] = candidate("lexicon-"+string(rune('a'+index)), "lexicon", index+1)
+	}
+
+	merged := mergeContextProviders(60, nil, base, lexicon)
+	if len(merged) != 60 {
+		t.Fatalf("merged %d candidates, want 60", len(merged))
+	}
+	for index := 0; index < baseFrontCandidates; index++ {
+		if merged[index].Source != "vector" || merged[index].Chunk.ID != base[index].Chunk.ID {
+			t.Fatalf("base front displaced at %d: %+v", index, merged[index])
+		}
+	}
+	for index := baseFrontCandidates; index < baseFrontCandidates+maxLexiconCandidates; index++ {
+		if merged[index].Source != "lexicon" {
+			t.Fatalf("Lexicon supplement missing at %d: %+v", index, merged[index])
+		}
+	}
+	if merged[baseFrontCandidates+maxLexiconCandidates].Chunk.ID != base[baseFrontCandidates].Chunk.ID {
+		t.Fatalf("remaining base candidates did not resume: %+v", merged)
+	}
+}
+
 func TestContextCandidateSourcesPreservesFirstUseOrder(t *testing.T) {
 	candidates := []retrieve.Candidate{
 		{Source: "exact"}, {Source: "adjacent"}, {Source: "vector"}, {Source: "exact"},

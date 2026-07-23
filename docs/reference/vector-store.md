@@ -76,7 +76,7 @@ grimoire vector search --root /path/to/repository --query "where is damage resol
 grimoire vector info --root /path/to/repository
 ```
 
-`vector build` requires a prepared source index, a running embedding endpoint, and the Rust library. Repeated builds embed only missing source-content identities.
+`vector build` requires a prepared source index, a running embedding endpoint, and the Rust library. Repeated builds embed only missing source-content identities. Grimoire first checks for the DLL beside its executable, then searches `native/vector-engine/target/{release,debug}` below ancestors of both the executable and current working directory.
 
 ## Platform coverage
 

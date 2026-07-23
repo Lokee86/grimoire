@@ -59,7 +59,7 @@ func TestCurateDoesNotCompareProviderRanks(t *testing.T) {
 	}
 }
 
-func TestCurateBoundsNeighborsAndPlacesRemainingPrimariesLast(t *testing.T) {
+func TestCurateBoundsNeighborsBeforeRemainingPrimaries(t *testing.T) {
 	path := "internal/alpha.go"
 	primaryIDs := []string{"p1", "p2", "p3", "p4", "p5", "p6"}
 	neighborIDs := []string{"n1", "n2", "n3", "n4", "n5", "n6"}
@@ -77,6 +77,35 @@ func TestCurateBoundsNeighborsAndPlacesRemainingPrimariesLast(t *testing.T) {
 	want := []string{"p1", "p2", "p3", "p4", "n1", "n2", "n3", "n4", "p5", "p6"}
 	if got := chunkIDs(curated); !reflect.DeepEqual(got, want) {
 		t.Fatalf("unexpected bounded ordering: got %v want %v", got, want)
+	}
+}
+
+func TestCuratePromotesExistingRetrievedNeighbor(t *testing.T) {
+	snapshot := index.Snapshot{Files: []index.FileRecord{{
+		Path: "internal/alpha.go",
+		Chunks: []index.Chunk{
+			chunk("primary", "internal/alpha.go", 1, 4),
+			chunk("required-neighbor", "internal/alpha.go", 5, 8),
+		},
+	}}}
+	candidates := []retrieve.Candidate{
+		candidate("internal/alpha.go", "primary", 1, 4, 1, "vector"),
+		candidate("internal/beta.go", "beta", 1, 4, 2, "vector"),
+		candidate("internal/gamma.go", "gamma", 1, 4, 3, "vector"),
+		candidate("internal/delta.go", "delta", 1, 4, 4, "vector"),
+		candidate("internal/epsilon.go", "epsilon", 1, 4, 5, "vector"),
+		candidate("internal/zeta.go", "zeta", 1, 4, 6, "vector"),
+		candidate("internal/alpha.go", "required-neighbor", 5, 8, 7, "vector"),
+	}
+
+	curated := Curate(snapshot, candidates)
+	if got := chunkIDs(curated); !reflect.DeepEqual(got, []string{
+		"primary", "beta", "gamma", "delta", "required-neighbor", "epsilon", "zeta",
+	}) {
+		t.Fatalf("retrieved neighbor was not promoted: %v", got)
+	}
+	if curated[4].Source != "vector" || curated[4].Rank != 7 {
+		t.Fatalf("promoted neighbor lost provider provenance: %+v", curated[4])
 	}
 }
 

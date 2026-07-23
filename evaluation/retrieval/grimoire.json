@@ -1,0 +1,734 @@
+{
+  "version": 1,
+  "repository": "Grimoire",
+  "cases": [
+    {
+      "id": "grimoire-dl-01",
+      "query": "Where is vector snapshot freshness validated against the prepared index and embedding engine metadata?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "internal/app/vector_manifest.go",
+          "symbols": [
+            "validateVectorSnapshotManifest",
+            "validateVectorEngineInfo",
+            "validateVectorSnapshotManifestFields"
+          ],
+          "reason": "These functions validate manifest identity, engine metadata, dimensions, and chunk count.",
+          "minimum": "Evidence must locate the freshness and compatibility checks that prevent an old vector snapshot from being used."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/app/vector_paths.go",
+          "symbols": [
+            "resolveVectorPaths",
+            "vectorSource"
+          ],
+          "reason": "These helpers identify the vector state files and the stable source identity used by the snapshot.",
+          "minimum": "Supporting evidence may connect validation to the paths and source identity it protects."
+        }
+      ],
+      "forbidden": [],
+      "notes": "A focused location query for vector snapshot compatibility rather than general vector search."
+    },
+    {
+      "id": "grimoire-dl-02",
+      "query": "Where does exact retrieval recognize paths, configuration keys, identifiers, and terminal signals?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "internal/retrieve/exact_signals.go",
+          "symbols": [
+            "exactSignals",
+            "classifySignal",
+            "isPath",
+            "isConfigKey",
+            "isIdentifier",
+            "addTerminalSignal"
+          ],
+          "reason": "This file owns the signal extraction and classification rules used by exact recovery.",
+          "minimum": "Evidence must identify the implementation that turns query text into exact path, config, identifier, and terminal-key signals."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/retrieve/exact.go",
+          "symbols": [
+            "Exact"
+          ],
+          "reason": "Exact is the retrieval entry point that consumes the extracted signals.",
+          "minimum": "Supporting evidence may connect signal recognition to exact candidate recovery."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Tests whether retrieval can find the signal classifier and its public exact-recovery boundary."
+    },
+    {
+      "id": "grimoire-dl-03",
+      "query": "Where is the retrieval evaluation command dispatched, its modes parsed, and its concise summary written?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "internal/app/eval_retrieval.go",
+          "symbols": [
+            "runEval",
+            "parseEvaluationModes",
+            "defaultEvaluationPrefix",
+            "writeEvaluationSummary"
+          ],
+          "reason": "These functions implement evaluation command execution, mode validation, result naming, and terminal reporting.",
+          "minimum": "Evidence must locate the runner and the code that accepts the four modes and emits the concise table."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/app/run.go",
+          "symbols": [
+            "Run"
+          ],
+          "reason": "Run owns top-level command dispatch into the evaluation command.",
+          "minimum": "Supporting evidence may show how the evaluation runner is reached from the CLI."
+        }
+      ],
+      "forbidden": [],
+      "notes": "A direct-location case grounded in the repository-owned evaluation command."
+    },
+    {
+      "id": "grimoire-me-01",
+      "query": "How do fast, full, and quality query modes turn a long task into embedding windows and bounded concurrent batches?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "internal/embedding/query.go",
+          "symbols": [
+            "ParseQueryMode",
+            "PlanQuery",
+            "queryWindows",
+            "Validate"
+          ],
+          "reason": "These functions validate mode options, tokenize the query, and construct full or split query inputs.",
+          "minimum": "Evidence must explain the differences among fast, full, and quality plans and the validation constraints."
+        },
+        {
+          "path": "internal/embedding/query_batch.go",
+          "symbols": [
+            "EmbedQueryPlan",
+            "queryBatches",
+            "embedQueryBatch"
+          ],
+          "reason": "These functions partition a query plan into provider batches and execute them with bounded concurrency.",
+          "minimum": "Evidence must carry the mechanism from planned windows through batching and ordered vector results."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/app/context_semantic.go",
+          "symbols": [
+            "semanticCandidatesForEvaluation",
+            "searchQueryVectors",
+            "mergeSemanticHits"
+          ],
+          "reason": "The evaluation semantic path consumes query vectors, searches the snapshot, and merges window hits.",
+          "minimum": "Supporting evidence may connect query batching to candidate retrieval and deterministic hit merging."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Requires evidence across query planning, provider batching, and semantic candidate construction."
+    },
+    {
+      "id": "grimoire-me-02",
+      "query": "How does a context request combine semantic and exact candidates, curate them, and compile a package within the token budget?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "internal/app/context_evaluation.go",
+          "symbols": [
+            "evaluateContext",
+            "chunksToEvaluation",
+            "candidatesToEvaluation",
+            "selectionsToEvaluation"
+          ],
+          "reason": "The evaluation context path records the retrieval stages from indexed chunks through included selections.",
+          "minimum": "Evidence must explain how the stages needed for usefulness scoring are assembled."
+        },
+        {
+          "path": "internal/app/context_candidates.go",
+          "symbols": [
+            "mergeContextCandidates",
+            "contextCandidateSources"
+          ],
+          "reason": "These helpers merge exact and semantic candidates while preserving source provenance.",
+          "minimum": "Evidence must explain deduplication, candidate limits, and retrieval-source tracking."
+        },
+        {
+          "path": "internal/selection/selection.go",
+          "symbols": [
+            "Curate",
+            "uniqueNonOverlapping",
+            "diversify"
+          ],
+          "reason": "Curate removes overlap and diversifies the candidate set before compilation.",
+          "minimum": "Evidence must identify the curation behaviors that can preserve or remove useful evidence."
+        },
+        {
+          "path": "internal/compiler/compiler.go",
+          "symbols": [
+            "Compile",
+            "stabilizeTokenCount",
+            "Marshal"
+          ],
+          "reason": "The compiler serializes selected chunks and enforces the final package token budget.",
+          "minimum": "Evidence must explain token-count stabilization, omission for budget, and final package serialization."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/retrieve/exact.go",
+          "symbols": [
+            "Exact"
+          ],
+          "reason": "Exact recovery supplies path and symbol evidence before candidate merging.",
+          "minimum": "Supporting evidence may show the exact-recovery input to the combined pipeline."
+        },
+        {
+          "path": "internal/retrieve/search.go",
+          "symbols": [
+            "Search",
+            "scoreChunk"
+          ],
+          "reason": "Lexical search supplies the fallback or lexical-mode candidate ranking.",
+          "minimum": "Supporting evidence may distinguish lexical candidates from exact and semantic candidates."
+        }
+      ],
+      "forbidden": [],
+      "notes": "This is the core package-usefulness mechanism, spanning retrieval, merge, curation, and budget fitting."
+    },
+    {
+      "id": "grimoire-me-03",
+      "query": "How does vector build reuse existing embeddings, ingest only missing batches, materialize a complete snapshot, and publish its manifest?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "internal/app/vector_build.go",
+          "symbols": [
+            "runVectorBuild",
+            "embedMissing",
+            "writeVectorRecords"
+          ],
+          "reason": "These functions orchestrate reuse checks, missing-document embedding, and the complete snapshot record stream.",
+          "minimum": "Evidence must explain how the build distinguishes embedded from reused chunks and prepares materialization."
+        },
+        {
+          "path": "internal/app/vector_ingest.go",
+          "symbols": [
+            "ingestVectorBatch"
+          ],
+          "reason": "This function writes vectors for one batch and verifies the vector engine ingested the expected count.",
+          "minimum": "Evidence must include the batch ingestion and count verification step."
+        },
+        {
+          "path": "internal/app/vector_manifest.go",
+          "symbols": [
+            "writeVectorSnapshotManifest",
+            "readVectorSnapshotManifest"
+          ],
+          "reason": "The manifest writer publishes the snapshot identity and the reader validates the persisted metadata.",
+          "minimum": "Evidence must carry the mechanism through manifest publication and later validation."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/app/vector_paths.go",
+          "symbols": [
+            "resolveVectorPaths"
+          ],
+          "reason": "Vector state paths determine where ingest records, snapshots, and manifests are staged.",
+          "minimum": "Supporting evidence may clarify the build's on-disk boundaries."
+        },
+        {
+          "path": "internal/vectorstore/library_windows.go",
+          "symbols": [
+            "ObjectExists",
+            "IngestJSONL",
+            "MaterializeJSONL"
+          ],
+          "reason": "The vector-store library provides reuse detection, batch ingestion, and snapshot materialization.",
+          "minimum": "Supporting evidence may identify the native-engine operations called by the Go build flow."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Covers resumable embedding reuse and publication without relying on test-only fixtures."
+    },
+    {
+      "id": "grimoire-ao-01",
+      "query": "Which package owns the public context command, semantic retrieval, candidate curation, and token-budgeted package compilation?",
+      "category": "architecture-ownership",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "internal/app/context.go",
+          "symbols": [
+            "runContext"
+          ],
+          "reason": "The app package owns the context command's flags, state loading, fallback behavior, and output boundary.",
+          "minimum": "Evidence must identify the command-level owner and its handoffs."
+        },
+        {
+          "path": "internal/app/context_semantic.go",
+          "symbols": [
+            "semanticCandidates",
+            "queryVectorCandidates"
+          ],
+          "reason": "The app package owns semantic candidate retrieval and vector-query orchestration.",
+          "minimum": "Evidence must distinguish semantic retrieval ownership from the lower-level embedding client."
+        },
+        {
+          "path": "internal/selection/selection.go",
+          "symbols": [
+            "Curate"
+          ],
+          "reason": "The selection package owns overlap removal and diversity curation.",
+          "minimum": "Evidence must attribute curation to the selection package rather than the command or compiler."
+        },
+        {
+          "path": "internal/compiler/compiler.go",
+          "symbols": [
+            "Compile"
+          ],
+          "reason": "The compiler package owns final context-package assembly and token-budget enforcement.",
+          "minimum": "Evidence must identify the package responsible for the final budgeted artifact."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/embedding/query.go",
+          "symbols": [
+            "PlanQuery"
+          ],
+          "reason": "The embedding package owns query planning used by semantic retrieval.",
+          "minimum": "Supporting evidence may show the boundary between query planning and app-level retrieval."
+        }
+      ],
+      "forbidden": [],
+      "notes": "An ownership map for the context path across app, embedding, selection, and compiler packages."
+    },
+    {
+      "id": "grimoire-ao-02",
+      "query": "Which components own corpus loading, evaluation execution, evidence scoring, aggregate metrics, and JSON/Markdown reporting?",
+      "category": "architecture-ownership",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "internal/app/eval_retrieval.go",
+          "symbols": [
+            "runEval",
+            "validateEvaluationCase"
+          ],
+          "reason": "The app package owns command flags, per-case execution, mode iteration, and repository expectation validation.",
+          "minimum": "Evidence must distinguish evaluation orchestration from reusable evaluation data and scoring."
+        },
+        {
+          "path": "internal/evaluation/corpus.go",
+          "symbols": [
+            "LoadCorpus"
+          ],
+          "reason": "The evaluation package owns decoding and validating the repository-owned corpus format.",
+          "minimum": "Evidence must locate the corpus-loading boundary."
+        },
+        {
+          "path": "internal/evaluation/score.go",
+          "symbols": [
+            "ScoreCase",
+            "AggregateRuns"
+          ],
+          "reason": "The evaluation package owns evidence-stage scoring, failure classification, recall, and aggregate calculations.",
+          "minimum": "Evidence must identify the scoring owner and separate it from command orchestration."
+        },
+        {
+          "path": "internal/evaluation/report.go",
+          "symbols": [
+            "BuildAggregates",
+            "Write",
+            "Markdown"
+          ],
+          "reason": "The evaluation package owns aggregate report construction and machine-readable plus concise Markdown output.",
+          "minimum": "Evidence must identify where reporting formats and grouped results are produced."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/evaluation/model.go",
+          "symbols": [
+            "Case",
+            "CaseRun",
+            "Report"
+          ],
+          "reason": "The model definitions form the shared data contract between the runner, scorer, and reporter.",
+          "minimum": "Supporting evidence may explain the ownership-neutral data flow across evaluation components."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Tests the architecture of the new evaluation implementation rather than retrieval ranking itself."
+    },
+    {
+      "id": "grimoire-cc-01",
+      "query": "Trace `grimoire context` from CLI entry through command dispatch, query planning, semantic search, exact recovery, curation, and package serialization.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "cmd/grimoire/main.go",
+          "symbols": [
+            "main"
+          ],
+          "reason": "The executable entry point starts the command call chain.",
+          "minimum": "Evidence must begin at the CLI process entry."
+        },
+        {
+          "path": "internal/app/run.go",
+          "symbols": [
+            "Run"
+          ],
+          "reason": "Run dispatches the top-level context command.",
+          "minimum": "Evidence must show the transition from the executable to the app command router."
+        },
+        {
+          "path": "internal/app/context.go",
+          "symbols": [
+            "runContext"
+          ],
+          "reason": "runContext parses the context request and coordinates retrieval and compilation.",
+          "minimum": "Evidence must identify the context command's orchestration function."
+        },
+        {
+          "path": "internal/app/context_semantic.go",
+          "symbols": [
+            "semanticCandidates",
+            "queryVectorCandidates"
+          ],
+          "reason": "These functions take the context query through semantic candidate retrieval.",
+          "minimum": "Evidence must include the semantic-search handoff."
+        },
+        {
+          "path": "internal/app/context_candidates.go",
+          "symbols": [
+            "curateContextCandidates"
+          ],
+          "reason": "This function adds exact recovery, merges sources, and invokes curation.",
+          "minimum": "Evidence must show where exact and semantic candidates become the curated input."
+        },
+        {
+          "path": "internal/compiler/compiler.go",
+          "symbols": [
+            "Compile",
+            "Marshal"
+          ],
+          "reason": "Compile creates the budgeted package and Marshal emits the serialized artifact.",
+          "minimum": "Evidence must complete the chain at package construction and output."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/embedding/query.go",
+          "symbols": [
+            "PlanQuery"
+          ],
+          "reason": "PlanQuery is the query-planning step used within semantic retrieval.",
+          "minimum": "Supporting evidence may show how the original task becomes embedding inputs."
+        },
+        {
+          "path": "internal/retrieve/exact.go",
+          "symbols": [
+            "Exact"
+          ],
+          "reason": "Exact is the secondary recovery call used before curation.",
+          "minimum": "Supporting evidence may identify the exact-recovery branch in the chain."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Requires ordered call-chain evidence across executable, app, retrieval, and compiler boundaries."
+    },
+    {
+      "id": "grimoire-cc-02",
+      "query": "Trace `grimoire eval retrieval` from top-level dispatch through corpus validation, per-mode context evaluation, stage scoring, aggregate construction, and result-file writing.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "internal/app/run.go",
+          "symbols": [
+            "Run"
+          ],
+          "reason": "Run routes the eval command from the top-level CLI dispatcher.",
+          "minimum": "Evidence must begin at the application command boundary."
+        },
+        {
+          "path": "internal/app/eval_retrieval.go",
+          "symbols": [
+            "runEval",
+            "parseEvaluationModes",
+            "packageSelections"
+          ],
+          "reason": "runEval iterates cases and modes while helpers convert and validate run data.",
+          "minimum": "Evidence must show evaluation orchestration and selection conversion."
+        },
+        {
+          "path": "internal/evaluation/corpus.go",
+          "symbols": [
+            "LoadCorpus"
+          ],
+          "reason": "LoadCorpus decodes and validates the judged corpus before execution.",
+          "minimum": "Evidence must include corpus loading before per-case runs."
+        },
+        {
+          "path": "internal/app/context_evaluation.go",
+          "symbols": [
+            "evaluateContext"
+          ],
+          "reason": "evaluateContext executes retrieval, exact recovery, curation, compilation, and stage capture for a case.",
+          "minimum": "Evidence must include the retrieval-to-package execution step."
+        },
+        {
+          "path": "internal/evaluation/score.go",
+          "symbols": [
+            "ScoreCase"
+          ],
+          "reason": "ScoreCase compares required and supporting evidence across pipeline stages.",
+          "minimum": "Evidence must show where each run becomes judged evidence and failure classifications."
+        },
+        {
+          "path": "internal/evaluation/report.go",
+          "symbols": [
+            "BuildAggregates",
+            "Write"
+          ],
+          "reason": "These functions group the completed runs and write JSON plus Markdown results.",
+          "minimum": "Evidence must complete the chain at aggregate reporting and file output."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/app/eval_retrieval.go",
+          "symbols": [
+            "validateEvaluationCase",
+            "writeEvaluationSummary"
+          ],
+          "reason": "These helpers guard expectations and print the concise command summary after writing files.",
+          "minimum": "Supporting evidence may clarify validation and terminal reporting side effects."
+        }
+      ],
+      "forbidden": [],
+      "notes": "A complete evaluation-runner call chain from command dispatch to durable result artifacts."
+    },
+    {
+      "id": "grimoire-lm-01",
+      "query": "## Goal\n\nDetermine whether Grimoire produces context packages that are actually useful for repository work—not merely fast, deterministic, or technically correct.\n\nThe evaluation must answer:\n\n* Does the package contain the evidence needed to complete the task?\n* Does useful evidence survive the final token budget?\n* How much irrelevant material is included?\n* Which query mode performs best?\n* Where do failures occur: embedding, ranking, merging, curation, or package fitting?\n\n## Phase 1 — Define the evaluation contract\n\nAdd a repository-owned evaluation format, separate from unit-test fixtures.\n\nSuggested location:\n\n```text\nevaluation/retrieval/\n  grimoire.json\n  lexicon.json\n  space-rocks.json\n```\n\nEach case should contain:\n\n```json\n{\n  \"id\": \"grimoire-vector-freshness\",\n  \"query\": \"Where is vector snapshot freshness validated?\",\n  \"category\": \"direct-location\",\n  \"budget\": 2000,\n  \"required\": [\n    {\n      \"path\": \"internal/app/vector_manifest.go\",\n      \"symbols\": [\"validateVectorSnapshotManifest\"]\n    }\n  ],\n  \"supporting\": [\n    {\n      \"path\": \"internal/app/context_semantic.go\"\n    }\n  ],\n  \"forbidden\": [],\n  \"notes\": \"The validation implementation must survive package compilation.\"\n}\n```\n\nRequired evidence is objectively scored. Supporting evidence contributes to quality but is not necessary for passing. Forbidden entries identify known distractors only when there is a clear reason they should not appear.\n\n### Initial categories\n\nUse five query categories:\n\n1. **Direct location**\n   Find one implementation, type, constant, or configuration point.\n\n2. **Mechanism explanation**\n   Explain how a subsystem works across several functions or files.\n\n3. **Architecture ownership**\n   Identify which package owns a responsibility and how callers interact with it.\n\n4. **Call-chain investigation**\n   Follow behaviour through multiple functions or packages.\n\n5. **Long mixed query**\n   A realistic verbose task containing several related requirements.\n\n## Phase 2 — Build the first judged corpus\n\nCreate approximately 24 cases:\n\n* 12 Grimoire cases.\n* 12 Lexicon cases.\n\nFor each repository:\n\n* 3 direct-location questions.\n* 3 mechanism questions.\n* 2 architecture-ownership questions.\n* 2 call-chain questions.\n* 2 long mixed queries.\n\nQuestions should come from actual work already performed on the repositories, not invented trivia.\n\nEach case must be judged by inspecting the repository first and recording:\n\n* required paths;\n* required symbols when applicable;\n* useful supporting files;\n* the reason those files matter;\n* the expected minimum evidence needed to answer correctly.\n\nDo not tune Grimoire while constructing this initial corpus. The first run must represent the current baseline.\n\n## Phase 3 — Add the evaluation runner\n\nAdd a command such as:\n\n```bash\ngrimoire eval retrieval \\\n  --cases evaluation/retrieval/grimoire.json \\\n  --root .\n```\n\nThe runner should execute every case in these modes:\n\n```text\nfast\nfull\nquality\nlexical\n```\n\nFor each run, record:\n\n* total latency;\n* embedding latency;\n* vector-search latency;\n* selection and compilation latency;\n* selected paths;\n* selected symbols where detectable;\n* retrieval source;\n* provider rank;\n* final package token count;\n* required evidence recovered;\n* required evidence lost during curation;\n* required evidence retrieved but omitted for budget;\n* supporting evidence recovered;\n* irrelevant selections.\n\nResults should be written as machine-readable JSON plus a concise table.\n\nSuggested output:\n\n```text\nevaluation/results/\n  grimoire-2026-07-22.json\n  grimoire-2026-07-22.md\n```\n\n## Phase 4 — Define scoring\n\nDo not use one opaque combined score initially. Report the components separately.\n\n### Primary metrics\n\n**Required evidence recall**\n\n```text\nrequired items included / total required items\n```\n\nThis is the main usefulness metric.\n\n**Case pass rate**\n\nA case passes when every required item appears in the final context package.\n\n**Budget survival**\n\nDistinguish between:\n\n* never retrieved;\n* retrieved but removed during curation;\n* selected but omitted during package fitting.\n\nThis identifies which subsystem caused the failure.\n\n**Supporting evidence recall**\n\nMeasures whether the package contains enough context around the required implementation.\n\n**Irrelevant selection rate**\n\n```text\nselected chunks with no required or supporting relationship / total selected chunks\n```\n\nThis can initially require human judgement for disputed cases.\n\n**Latency**\n\nReport median and p95 by mode and category.\n\n### Comparison rule\n\nThe default `fast` mode is acceptable when it:\n\n* matches or nearly matches `quality` on required-evidence recall;\n* substantially outperforms `full` and `quality` on latency;\n* does not materially increase irrelevant selections.\n\nDo not declare a winner from latency alone.\n\n## Phase 5 — Establish the baseline\n\nRun the full corpus without changing retrieval behaviour.\n\nProduce:\n\n* per-case results;\n* aggregate results by repository;\n* aggregate results by category;\n* mode comparisons;\n* a list of concrete failures.\n\nClassify every failure as one of:\n\n```text\nembedding miss\nvector ranking miss\nexact recovery miss\ncandidate merge loss\ncuration loss\nbudget-fitting loss\nstale or incomplete index\nincorrect evaluation expectation\n```\n\nDo not fix failures during the baseline run.\n\n## Phase 6 — Convert failures into regression fixtures\n\nFor every confirmed failure:\n\n1. Reduce it to the smallest reproducible repository fixture.\n2. Add it to the deterministic retrieval-quality tests.\n3. Confirm the fixture fails before changing behaviour.\n4. Modify only the responsible retrieval stage.\n5. Confirm:\n\n   * the reduced fixture passes;\n   * the full judged corpus improves or remains stable;\n   * unrelated categories do not regress;\n   * latency remains acceptable.\n\nThis prevents tuning the system to individual live repositories without durable coverage.\n\n## Phase 7 — Build the Space Rocks snapshot\n\nAfter the Grimoire/Lexicon harness is stable:\n\n1. Refresh the Space Rocks prepared index.\n2. Build the complete vector snapshot for its approximately 8,000-plus chunks.\n3. Verify resumable embedding reuse.\n4. Record total build time, embedded/reused counts, snapshot size, and peak memory.\n5. Confirm normal context queries remain within their timeout target.\n\nThe snapshot build should happen only once the evaluation runner is ready, so the expensive corpus can immediately produce useful evidence.\n\n## Phase 8 — Build the Space Rocks corpus\n\nCreate 30–40 judged cases covering:\n\n* Go server call chains;\n* Godot client behaviour;\n* Rails API ownership;\n* cross-language contracts;\n* networking and protocol flow;\n* room and participant lifecycle;\n* damage, objectives, teams, and match results;\n* observability;\n* long implementation requests spanning several subsystems.\n\nAt least ten cases should require evidence from multiple files. At least five should require evidence across language boundaries.\n\nThis corpus becomes the meaningful product test because it is large, heterogeneous, and based on real development tasks.\n\n## Phase 9 — Run the serious comparison\n\nRun all modes against Space Rocks and compare:\n\n```text\nfast\nfull\nquality\nlexical\n```\n\nThe decision criteria for retaining `fast` as the default:\n\n* at least 90% of `quality` mode’s required-evidence recall;\n* no significant increase in failed cases;\n* materially lower median latency;\n* acceptable p95 latency for long queries;\n* no systematic loss of evidence from later query windows;\n* no category where `fast` consistently fails while `full` succeeds.\n\nIf `fast` fails a specific category, change the query planner by category or signal rather than making `quality` the universal default.\n\n## Deliverables\n\nThe completed work should leave:\n\n```text\nevaluation/retrieval/*.json\nevaluation/results/*.json\nevaluation/results/*.md\ninternal/evaluation/...\ngrimoire eval retrieval\ndeterministic regression fixtures for confirmed failures\ndocumented Grimoire/Lexicon baseline\ndocumented Space Rocks baseline\n```\n\n## Completion criteria\n\nThe usefulness test is complete when:\n\n* at least 50 judged cases exist across the three repositories;\n* every case has explicit required evidence;\n* all four retrieval modes can be compared automatically;\n* failures identify the responsible pipeline stage;\n* confirmed failures become deterministic regression tests;\n* Space Rocks has a complete vector snapshot;\n* the default query mode is selected using measured retrieval quality and latency rather than intuition.",
+      "category": "long-mixed-query",
+      "budget": 12000,
+      "required": [
+        {
+          "path": "internal/app/eval_retrieval.go",
+          "symbols": [
+            "runEval",
+            "validateEvaluationCase",
+            "parseEvaluationModes",
+            "packageSelections",
+            "writeEvaluationSummary"
+          ],
+          "reason": "This is the evaluation runner that executes cases in all four modes, records stage data, and prints the summary.",
+          "minimum": "Evidence must identify the new retrieval evaluation runner and its mode, validation, selection, and summary responsibilities."
+        },
+        {
+          "path": "internal/evaluation/model.go",
+          "symbols": [
+            "FormatVersion",
+            "Evidence",
+            "Case",
+            "Corpus",
+            "CaseRun",
+            "Report"
+          ],
+          "reason": "These types define the repository-owned corpus, per-run metrics, evidence statuses, and report contract.",
+          "minimum": "Evidence must show the explicit evaluation data model rather than relying on unit-test fixtures."
+        },
+        {
+          "path": "internal/evaluation/corpus.go",
+          "symbols": [
+            "LoadCorpus",
+            "validateEvidence"
+          ],
+          "reason": "Corpus loading enforces the version, categories, positive budgets, explicit required evidence, and safe relative paths.",
+          "minimum": "Evidence must explain how the judged corpus is decoded and validated before a baseline run."
+        },
+        {
+          "path": "internal/evaluation/score.go",
+          "symbols": [
+            "ScoreCase",
+            "classifyEvidenceFailure",
+            "AggregateRuns"
+          ],
+          "reason": "Scoring records required/supporting recall, pass status, irrelevance, stage-specific losses, and latency aggregates.",
+          "minimum": "Evidence must identify separate scoring components and the pipeline-stage failure classification."
+        },
+        {
+          "path": "internal/evaluation/report.go",
+          "symbols": [
+            "BuildAggregates",
+            "Write",
+            "Markdown"
+          ],
+          "reason": "Reporting builds mode/category aggregates and writes machine-readable JSON plus a concise Markdown table.",
+          "minimum": "Evidence must include the reporting implementation and its per-case, aggregate, and failure outputs."
+        },
+        {
+          "path": "internal/app/context_evaluation.go",
+          "symbols": [
+            "evaluateContext",
+            "chunksToEvaluation",
+            "candidatesToEvaluation",
+            "selectionsToEvaluation"
+          ],
+          "reason": "The runner depends on this implementation to expose indexed, retrieved, merged, curated, and included stages.",
+          "minimum": "Evidence must connect the scoring contract to the retrieval and package-fitting stages it measures."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/embedding/query.go",
+          "symbols": [
+            "ParseQueryMode",
+            "PlanQuery"
+          ],
+          "reason": "These functions implement the fast/full/quality query-mode behavior whose results must be compared.",
+          "minimum": "Supporting evidence may connect mode comparison to actual query planning."
+        },
+        {
+          "path": "internal/app/context_candidates.go",
+          "symbols": [
+            "mergeContextCandidates"
+          ],
+          "reason": "Candidate merging is one of the explicitly measured failure stages.",
+          "minimum": "Supporting evidence may show where merge loss can occur before curation."
+        },
+        {
+          "path": "internal/selection/selection.go",
+          "symbols": [
+            "Curate"
+          ],
+          "reason": "Curation is separately measured as a possible source of lost required evidence and irrelevant selections.",
+          "minimum": "Supporting evidence may locate the curation stage used by the runner."
+        },
+        {
+          "path": "internal/compiler/compiler.go",
+          "symbols": [
+            "Compile"
+          ],
+          "reason": "Compilation applies the final token budget and can omit selected evidence during package fitting.",
+          "minimum": "Supporting evidence may connect budget survival metrics to final package construction."
+        }
+      ],
+      "forbidden": [],
+      "notes": "The exact requested long mixed query. It requires the current evaluation runner, model, scoring, reporting, and measured retrieval/package stages."
+    },
+    {
+      "id": "grimoire-lm-02",
+      "query": "For a long repository task that names several files and asks for both implementation context and retrieval-quality evidence, follow how Grimoire plans every query window, searches semantic and lexical candidates, recovers exact path or symbol matches, merges and curates candidates, fits the final package budget, and exposes enough stage data for a mode-by-category baseline report.",
+      "category": "long-mixed-query",
+      "budget": 12000,
+      "required": [
+        {
+          "path": "internal/embedding/query.go",
+          "symbols": [
+            "PlanQuery",
+            "queryWindows"
+          ],
+          "reason": "Query planning determines whether the long task is represented by a full query, split windows, or both.",
+          "minimum": "Evidence must include the first stage that protects later requirements from being lost in a long query."
+        },
+        {
+          "path": "internal/app/context_semantic.go",
+          "symbols": [
+            "semanticCandidatesForEvaluation",
+            "searchQueryVectors",
+            "mergeSemanticHits"
+          ],
+          "reason": "The semantic evaluation path searches each planned query input and merges its hits.",
+          "minimum": "Evidence must explain semantic retrieval and multi-window hit merging."
+        },
+        {
+          "path": "internal/retrieve/exact.go",
+          "symbols": [
+            "Exact"
+          ],
+          "reason": "Exact recovery provides a deterministic path and symbol recovery path for named implementation details.",
+          "minimum": "Evidence must include exact recovery as a distinct source alongside semantic retrieval."
+        },
+        {
+          "path": "internal/app/context_candidates.go",
+          "symbols": [
+            "mergeContextCandidates",
+            "contextCandidateSources"
+          ],
+          "reason": "The app merges retrieval sources and preserves the provenance needed for evaluation reporting.",
+          "minimum": "Evidence must show source-aware candidate merging before curation."
+        },
+        {
+          "path": "internal/selection/selection.go",
+          "symbols": [
+            "Curate",
+            "uniqueNonOverlapping",
+            "diversify"
+          ],
+          "reason": "Curation determines which related chunks survive duplicate, overlap, and diversity constraints.",
+          "minimum": "Evidence must explain the stage where useful or irrelevant candidates are selected."
+        },
+        {
+          "path": "internal/compiler/compiler.go",
+          "symbols": [
+            "Compile",
+            "stabilizeTokenCount"
+          ],
+          "reason": "The compiler fits the final selections to the serialized token budget and counts omissions.",
+          "minimum": "Evidence must explain final budget survival and package fitting."
+        },
+        {
+          "path": "internal/evaluation/report.go",
+          "symbols": [
+            "BuildAggregates",
+            "Markdown"
+          ],
+          "reason": "The report layer groups results by mode and category and presents the baseline comparison.",
+          "minimum": "Evidence must identify how the long-task results become comparable aggregate output."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/evaluation/score.go",
+          "symbols": [
+            "ScoreCase",
+            "classifyEvidenceFailure"
+          ],
+          "reason": "Scoring distinguishes embedding, ranking, merge, curation, and budget-fitting losses.",
+          "minimum": "Supporting evidence may connect observed package contents to a responsible pipeline stage."
+        },
+        {
+          "path": "internal/app/context_evaluation.go",
+          "symbols": [
+            "evaluateContext"
+          ],
+          "reason": "evaluateContext is the integration point that captures every retrieval stage for the report.",
+          "minimum": "Supporting evidence may show how the mixed query is executed as one measured case."
+        }
+      ],
+      "forbidden": [],
+      "notes": "A second realistic long mixed task, focused on evidence survival across the complete retrieval pipeline."
+    }
+  ]
+}

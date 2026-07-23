@@ -7,7 +7,7 @@ import (
 
 func TestServeArgsForLlamaServer(t *testing.T) {
 	got := ServeArgs("llama-server.exe", ServeOptions{
-		Host: "127.0.0.1", Port: 9090, ContextSize: 4096, UbatchSize: 1024,
+		Host: "127.0.0.1", Port: 9090, ContextSize: 4096, UbatchSize: 1024, Parallel: 8,
 	})
 	want := []string{
 		"-hf", ModelReference,
@@ -17,6 +17,7 @@ func TestServeArgsForLlamaServer(t *testing.T) {
 		"--port", "9090",
 		"--ctx-size", "4096",
 		"--ubatch-size", "1024",
+		"--parallel", "8",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unexpected args:\n got: %v\nwant: %v", got, want)

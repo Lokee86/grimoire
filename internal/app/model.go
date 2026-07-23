@@ -105,19 +105,20 @@ func runModelServe(args []string, stdout, stderr io.Writer) error {
 	port := flags.Int("port", embedding.DefaultPort, "embedding service port")
 	contextSize := flags.Int("context-size", 8192, "llama.cpp context size")
 	ubatchSize := flags.Int("ubatch-size", 2048, "llama.cpp physical batch size")
+	parallel := flags.Int("parallel", 4, "llama.cpp server slots")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if *port <= 0 || *port > 65535 {
 		return errors.New("--port must be between 1 and 65535")
 	}
-	if *contextSize <= 0 || *ubatchSize <= 0 {
-		return errors.New("--context-size and --ubatch-size must be positive")
+	if *contextSize <= 0 || *ubatchSize <= 0 || *parallel <= 0 {
+		return errors.New("--context-size, --ubatch-size, and --parallel must be positive")
 	}
 
 	return embedding.Serve(embedding.ServeOptions{
 		RuntimePath: *runtimePath, ModelPath: *modelPath,
-		Host: *host, Port: *port, ContextSize: *contextSize, UbatchSize: *ubatchSize,
+		Host: *host, Port: *port, ContextSize: *contextSize, UbatchSize: *ubatchSize, Parallel: *parallel,
 		Stdin: os.Stdin, Stdout: stdout, Stderr: stderr,
 	})
 }

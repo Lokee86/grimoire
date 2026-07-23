@@ -1,0 +1,178 @@
+{
+  "version": 1,
+  "repository": "Gum",
+  "source_url": "https://github.com/charmbracelet/gum",
+  "revision": "716d8b5d0221558f944b5a078dbbcca8572534fb",
+  "scope": ".",
+  "judged_at": "2026-07-23",
+  "cases": [
+    {
+      "id": "gum-dl-01",
+      "query": "Where are Gum's top-level subcommands declared and connected to the Kong parser that executes them?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "gum.go",
+          "symbols": ["Gum"],
+          "reason": "The Gum command struct declares every top-level subcommand and binds it to the owning options type.",
+          "minimum": "Evidence must locate the command registry rather than only command-specific implementations."
+        },
+        {
+          "path": "main.go",
+          "symbols": ["main"],
+          "reason": "main constructs the Gum value, gives it to Kong, and executes the selected command.",
+          "minimum": "Evidence must connect the command registry to the executable parser and runner."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Clean direct-location control for command ownership and executable wiring."
+    },
+    {
+      "id": "gum-me-01",
+      "query": "How does gum filter choose options from arguments, stdin, or the filesystem, apply initial and live fuzzy or exact matching, and print the submitted selection?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "filter/command.go",
+          "symbols": ["Run", "checkSelected"],
+          "reason": "Options.Run resolves candidate input, performs initial matching, builds the Bubble Tea model, and emits the submitted result.",
+          "minimum": "Evidence must explain input precedence, initial match selection, program execution, and output."
+        },
+        {
+          "path": "filter/filter.go",
+          "symbols": ["Update", "exactMatches", "matchAll", "ToggleSelection"],
+          "reason": "The model owns live query updates, exact and all-item matching, cursor movement, and multi-selection behavior.",
+          "minimum": "Evidence must show how user input changes matches and selection state after the program starts."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/stdin/stdin.go",
+          "symbols": ["Read"],
+          "reason": "The shared stdin helper detects and reads piped input with optional ANSI stripping."
+        },
+        {
+          "path": "internal/files/files.go",
+          "symbols": ["List"],
+          "reason": "The filesystem fallback recursively supplies options when neither arguments nor stdin provide them."
+        },
+        {
+          "path": "filter/filter_test.go",
+          "symbols": ["TestMatchedRanges", "TestByteToChar"],
+          "reason": "Tests cover conversion of fuzzy match positions into rendered highlight ranges."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Clean multi-file mechanism case with implementation, shared helpers, and focused tests."
+    },
+    {
+      "id": "gum-ao-01",
+      "query": "Which components own interactive-command timeouts and shell exit statuses, and how does the executable translate Bubble Tea failures into process exit codes?",
+      "category": "architecture-ownership",
+      "budget": 5000,
+      "required": [
+        {
+          "path": "internal/timeout/context.go",
+          "symbols": ["Context"],
+          "reason": "The timeout package owns creation of cancellable contexts for interactive commands."
+        },
+        {
+          "path": "internal/exit/exit.go",
+          "symbols": ["StatusTimeout", "StatusAborted", "ErrExit"],
+          "reason": "The exit package owns Gum's explicit timeout, abort, and command-status contract."
+        },
+        {
+          "path": "main.go",
+          "symbols": ["main"],
+          "reason": "The executable maps ErrExit and Bubble Tea interruption or kill errors to shell-visible statuses."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "spin/command.go",
+          "symbols": ["Run"],
+          "reason": "The spin command demonstrates a consumer that installs the timeout context and returns ErrExit."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ownership case for a small cross-cutting concern with clear package boundaries."
+    },
+    {
+      "id": "gum-cc-01",
+      "query": "Trace gum spin from command setup through Bubble Tea initialization, child-process execution, PTY handling, completion or abort messages, output forwarding, and final exit status.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "spin/command.go",
+          "symbols": ["Run"],
+          "reason": "Options.Run configures the spinner model, starts Bubble Tea, forwards captured output, and returns the child status."
+        },
+        {
+          "path": "spin/spin.go",
+          "symbols": ["Init", "commandStart", "Update", "commandAbort"],
+          "reason": "The model starts the command, chooses execution behavior, receives completion, handles Ctrl-C, and terminates the UI."
+        },
+        {
+          "path": "spin/pty.go",
+          "symbols": ["openPty"],
+          "reason": "PTY creation is isolated behind the terminal-size-aware openPty helper."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/timeout/context.go",
+          "symbols": ["Context"],
+          "reason": "The command-level Bubble Tea program receives the shared timeout context."
+        },
+        {
+          "path": "internal/exit/exit.go",
+          "symbols": ["ErrExit"],
+          "reason": "The child process status is returned through Gum's shell-exit error type."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Clean call-chain control spanning command orchestration, model lifecycle, process execution, and terminal adaptation."
+    },
+    {
+      "id": "gum-lm-01",
+      "query": "Explain how gum file validates file-versus-directory selection, resolves the starting path, maps flags and styles into the Bubbles file picker, resizes the interface, handles abort, quit, and successful selection, applies the timeout, and prints the chosen path.",
+      "category": "long-mixed-query",
+      "budget": 9000,
+      "required": [
+        {
+          "path": "file/options.go",
+          "symbols": ["Options"],
+          "reason": "The options contract defines path, selection permissions, display flags, timeout, dimensions, and styles."
+        },
+        {
+          "path": "file/command.go",
+          "symbols": ["Run"],
+          "reason": "Options.Run validates flags, resolves the path, maps options to filepicker state, runs Bubble Tea, and prints the result."
+        },
+        {
+          "path": "file/file.go",
+          "symbols": ["Update", "View", "helpView"],
+          "reason": "The model owns resizing, key handling, successful selection, rendering, and help output."
+        },
+        {
+          "path": "internal/timeout/context.go",
+          "symbols": ["Context"],
+          "reason": "The shared helper determines whether the file picker has an unlimited or deadline-bound context."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "gum.go",
+          "symbols": ["Gum"],
+          "reason": "The top-level command registry exposes file.Options as the file subcommand."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Realistic mixed task covering CLI contract, model construction, event handling, timeout, styling, and output."
+    }
+  ]
+}

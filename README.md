@@ -2,7 +2,7 @@
 
 Grimoire is a standalone local repository RAG and context compiler in the [Warlock Toolchain](https://github.com/Lokee86/warlock-toolchain). It prepares repository evidence, performs lexical and semantic retrieval, and emits exact-budget context packages without owning an agent or generation step.
 
-The current implementation has incremental source preparation, a working local Qwen3 embedding provider, a custom content-addressed Rust vector engine, exact semantic retrieval, targeted literal recovery, deterministic candidate curation, lexical failure fallback, and exact package budgeting. Automatic maintenance and optional structural enrichment remain next.
+The current implementation has incremental source preparation, a working local Qwen3 embedding provider, a custom content-addressed Rust vector engine, exact semantic retrieval, targeted literal recovery, deterministic candidate curation, lexical failure fallback, exact package budgeting, and optional first-class Lexicon and Arcana structural evidence. Automatic maintenance remains next.
 
 ## Current capabilities
 
@@ -21,7 +21,9 @@ The current implementation has incremental source preparation, a working local Q
 - Conditional recovery for identifiers, paths, filenames, quoted phrases, configuration keys, error codes, and versions.
 - Candidate deduplication, overlap removal, file/subsystem diversity, and bounded adjacent-chunk expansion.
 - Selection-level retrieval source, rank, score, and inspectable reasons.
-- Exact whole-chunk package fitting.
+- Automatic immutable Lexicon snapshot export with symbols, spans, and immediate relationships retained as package evidence.
+- Automatic Arcana catch-up to the same Lexicon snapshot and bounded graph evidence for roles, impact, unresolved references, and call chains.
+- Exact whole-item budgeting across structural evidence and source chunks.
 
 ## Build
 
@@ -83,7 +85,7 @@ grimoire context \
   --budget 2000
 ```
 
-The default state location is `<repository>/.grimoire`. `context` uses the exact vector snapshot when available and emits a warning before falling back to the lexical baseline when semantic retrieval is unavailable or incompatible. Query embedding defaults to `fast`, which retains the complete query, divides it into deterministic 16-token windows, groups those windows into 64-token requests, and runs at most two requests concurrently. Use `--query-embedding-mode full` for one complete-query embedding or `--query-embedding-mode quality` for both approaches.
+The default state location is `<repository>/.grimoire`. `context` uses the exact vector snapshot when available and emits a warning before falling back to the lexical baseline when semantic retrieval is unavailable or incompatible. When `.lexicon/CURRENT` exists, it also exports that immutable snapshot into a local cache and includes matched symbol facts. If Arcana is available, it synchronizes `.arcana` to the same Lexicon snapshot and includes bounded graph evidence. Both integrations are optional; `--structure=false` skips them. Query embedding defaults to `fast`, which retains the complete query, divides it into deterministic 16-token windows, groups those windows into 64-token requests, and runs at most two requests concurrently. Use `--query-embedding-mode full` for one complete-query embedding or `--query-embedding-mode quality` for both approaches.
 
 ## Commands
 
@@ -96,7 +98,7 @@ grimoire index          Prepare or incrementally update source state.
 grimoire vector build   Embed missing chunks and publish a packed snapshot.
 grimoire vector search  Run exact semantic search over the snapshot.
 grimoire vector info    Report native library and snapshot availability.
-grimoire context        Retrieve semantic candidates and emit bounded JSON.
+grimoire context        Retrieve source and structural evidence and emit bounded JSON.
 grimoire version        Print the development version.
 ```
 
@@ -117,12 +119,14 @@ repository files
                                                                   │
 query ──► configurable full/split batch embedding ─► concurrent searches ─┤
 query literals ──► conditional exact recovery ────────────────────────────┤
+Lexicon snapshot ──► symbols, spans, immediate relationships ─────────────┤
+Arcana snapshot ──► roles, impact, unresolved refs, call chains ──────────┤
                                                                            ▼
                                                     merge and candidate curation
                                                                   ▼
-                                                     exact-budget package
+                                          exact-budget source + structural package
 
-If the semantic path is unavailable, the prepared source objects feed the deterministic lexical fallback before the same merge and curation stage.
+If the semantic path is unavailable, the prepared source objects feed the deterministic lexical fallback before the same merge and curation stage. Structural providers remain independently optional.
 ```
 
 Lexicon is optional structural enrichment. Grimoire remains independently usable without Lexicon, Arcana, Demon Docs, Warlock, remote embeddings, or hosted vector storage.
@@ -152,4 +156,4 @@ go vet ./...
 
 ## Status
 
-The local embedding provider, persistent vector objects, packed snapshot, native ABI, exact semantic search, targeted exact recovery, deterministic candidate curation, and vector-backed context compilation are implemented and verified. Automatic maintenance, optional Lexicon enrichment, and stable external contracts remain unfinished.
+The local embedding provider, persistent vector objects, packed snapshot, native ABI, exact semantic search, targeted exact recovery, deterministic candidate curation, vector-backed context compilation, immutable Lexicon enrichment, and Arcana graph evidence are implemented and verified. Automatic maintenance, structural retrieval-quality evaluation, additional evidence providers, and stable external contracts remain unfinished.

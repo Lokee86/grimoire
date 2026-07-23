@@ -58,7 +58,8 @@ func TestVectorBuildResumesAfterFailedBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	args := []string{
-		"vector", "build", "--root", root, "--endpoint", server.URL, "--batch-size", "1",
+		"vector", "build", "--root", root, "--endpoint", server.URL,
+		"--batch-size", "1", "--batch-concurrency", "1",
 	}
 	if err := Run(args, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
 		t.Fatal("expected the planned second-batch failure")

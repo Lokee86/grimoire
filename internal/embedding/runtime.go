@@ -18,6 +18,7 @@ type ServeOptions struct {
 	Port        int
 	ContextSize int
 	UbatchSize  int
+	Parallel    int
 	Stdin       io.Reader
 	Stdout      io.Writer
 	Stderr      io.Writer
@@ -83,6 +84,10 @@ func ServeArgs(runtimePath string, options ServeOptions) []string {
 	if ubatchSize <= 0 {
 		ubatchSize = 2048
 	}
+	parallel := options.Parallel
+	if parallel <= 0 {
+		parallel = 4
+	}
 
 	args := make([]string, 0, 20)
 	base := strings.TrimSuffix(strings.ToLower(filepath.Base(runtimePath)), ".exe")
@@ -101,5 +106,6 @@ func ServeArgs(runtimePath string, options ServeOptions) []string {
 		"--port", strconv.Itoa(port),
 		"--ctx-size", strconv.Itoa(contextSize),
 		"--ubatch-size", strconv.Itoa(ubatchSize),
+		"--parallel", strconv.Itoa(parallel),
 	)
 }

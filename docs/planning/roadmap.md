@@ -24,8 +24,12 @@ Implemented:
 - vector-backed `grimoire context` retrieval;
 - a persistent vector-snapshot manifest bound to the exact prepared-index identity;
 - conditional exact recovery for concrete repository literals;
-- deterministic candidate deduplication, overlap removal, diversity, and neighbour expansion; and
-- deterministic lexical fallback when semantic retrieval is unavailable.
+- deterministic candidate deduplication, overlap removal, diversity, and neighbour expansion;
+- deterministic lexical fallback when semantic retrieval is unavailable;
+- automatic immutable Lexicon snapshot export and first-class symbol evidence;
+- Arcana synchronization to the matching Lexicon snapshot;
+- bounded Arcana operational-role, impact, unresolved-reference, and call-chain evidence; and
+- exact package budgeting across structural facts and source chunks.
 
 The normal context path now performs exact full-vector retrieval. BM25 or another general lexical engine is not a prerequisite and should only be added if measured retrieval failures justify its cost.
 
@@ -64,13 +68,33 @@ One-shot `index` and `vector build` commands must remain supported.
 
 ## 4. Optional structural enrichment
 
-Consume Lexicon structural ranges and symbol facts when available while retaining the fallback chunker.
+Implemented:
 
-Lexicon may improve chunk boundaries, symbol metadata, exact lookup, and replacement identity. It is not a prerequisite for embeddings, vector search, context compilation, or fallback operation.
+- resolve `.lexicon/CURRENT` and cache a verified standalone export;
+- preserve matched symbols, durable identities, source spans, and immediate relationships as first-class context evidence;
+- retain Lexicon-derived source candidates without making Lexicon a prerequisite; and
+- keep the language-agnostic fallback path fully operational.
+
+Remaining work:
+
+- use Lexicon ranges for optional structural source-chunk preparation;
+- improve symbol matching through measured task-shaped query planning; and
+- add judged structural-evidence evaluation rather than measuring only selected source files and symbols.
 
 ## 5. Optional evidence providers
 
-Add bounded provider interfaces for Arcana graph evidence, Demon Docs documentation evidence, Git-change evidence, and other Warlock facts.
+Implemented for Arcana:
+
+- resolve or synchronize the graph snapshot matching the Lexicon snapshot used by the package;
+- query Arcana through its standalone JSONL process protocol; and
+- retain bounded operational roles, transitive impact, unresolved references, and shortest call chains with provider provenance.
+
+Remaining work:
+
+- reduce real graph-evidence misses into deterministic provider fixtures;
+- decide when reachability, dead-symbol, general path, or snapshot-diff operations belong in task-shaped context;
+- add Demon Docs documentation evidence, Git-change evidence, and other measured Warlock providers; and
+- define a stable external provider contract after the concrete integrations settle.
 
 Grimoire remains responsible for retrieval, context selection, budgeting, provenance, and the final package.
 

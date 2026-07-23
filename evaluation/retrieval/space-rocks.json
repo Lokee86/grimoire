@@ -1,0 +1,1856 @@
+{
+  "version": 1,
+  "repository": "Space Rocks",
+  "cases": [
+    {
+      "id": "space-rocks-dl-01",
+      "query": "Where does the Go server decide whether a match is over and classify each player's active, pending-respawn, or eliminated status?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "services/game-server/internal/game/match.go",
+          "symbols": [
+            "MatchDecision",
+            "matchDecisionLocked",
+            "matchSnapshot"
+          ],
+          "reason": "Game exposes the locked match-decision boundary and builds the player snapshot consumed by rules.",
+          "minimum": "Evidence must locate the game-level decision path and its active-ship/lives snapshot inputs."
+        },
+        {
+          "path": "services/game-server/internal/game/rules/match.go",
+          "symbols": [
+            "EvaluateMatch",
+            "classifyPlayer",
+            "PlayerActive",
+            "PlayerPendingRespawn",
+            "PlayerEliminated"
+          ],
+          "reason": "The rules package owns the actual terminal and participation classification policy.",
+          "minimum": "Evidence must identify the rule that makes a match terminal only when all players are eliminated."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Direct location with a deliberately small cross-file rule boundary."
+    },
+    {
+      "id": "space-rocks-dl-02",
+      "query": "Where does the Godot client validate packet envelopes and expand compact realtime packets before handing them to readers?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "client/scripts/networking/packets/packet_codec.gd",
+          "symbols": [
+            "encode",
+            "decode",
+            "CompactLanePacket",
+            "PacketCodec owns wire parsing and envelope checks only"
+          ],
+          "reason": "PacketCodec owns JSON parsing, type/payload envelope checks, and compact-lane expansion.",
+          "minimum": "Evidence must locate both encode/decode validation and the compact packet expansion boundary."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "client/scripts/networking/inbound/server_packet_dispatcher.gd",
+          "symbols": [
+            "dispatch",
+            "unknown_packet_received"
+          ],
+          "reason": "The dispatcher is the next client boundary after codec success or failure.",
+          "minimum": "Supporting evidence may connect codec output to packet routing."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Targets the client wire boundary, not generated packet constructors."
+    },
+    {
+      "id": "space-rocks-dl-03",
+      "query": "Where is the Rails internal match-results endpoint routed and where does its controller entry point live?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "services/api-server/config/routes.rb",
+          "symbols": [
+            "match-results",
+            "match_results#create"
+          ],
+          "reason": "Rails routes owns the internal POST endpoint mapping.",
+          "minimum": "Evidence must identify the exact internal player-data match-results route."
+        },
+        {
+          "path": "services/api-server/app/controllers/internal/player_data/match_results_controller.rb",
+          "symbols": [
+            "MatchResultsController",
+            "create",
+            "required_params_present?"
+          ],
+          "reason": "The controller owns request validation and the endpoint's orchestration entry point.",
+          "minimum": "Evidence must locate the controller action and its required identifier check."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "A Rails ownership location query grounded in route and controller source."
+    },
+    {
+      "id": "space-rocks-dl-04",
+      "query": "Where are damage-applied and damage-over-time event names, damage fields, and lives-after fields declared in the realtime wire contract?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "shared/packets/realtime_wire.toml",
+          "symbols": [
+            "damage_applied",
+            "damage_over_time_started",
+            "damage_over_time_tick",
+            "damage_type",
+            "damage_cause",
+            "lives_after"
+          ],
+          "reason": "The realtime wire source declares the readable event identities and payload field names.",
+          "minimum": "Evidence must locate the canonical contract entries rather than only a generated consumer."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "client/scripts/generated/networking/realtime_wire_generated.gd",
+          "symbols": [
+            "damage_applied",
+            "lives_after"
+          ],
+          "reason": "Generated Godot metadata shows the client projection of the shared wire source.",
+          "minimum": "Supporting evidence may connect the source contract to generated client identifiers."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Direct contract location; the source file is authoritative."
+    },
+    {
+      "id": "space-rocks-dl-05",
+      "query": "Where does the server normalize and validate room IDs and room codes before room-manager operations use them?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "services/game-server/internal/rooms/code.go",
+          "symbols": [
+            "NormalizeRoomID",
+            "NormalizeRoomCode",
+            "IsValidRoomCode",
+            "GenerateRoomCode"
+          ],
+          "reason": "The rooms package owns room identifier normalization, validation, and generation.",
+          "minimum": "Evidence must identify all four room-code helpers and their role at the room boundary."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/game-server/internal/networking/rooms.go",
+          "symbols": [
+            "NewRoomManager",
+            "NewRoomManagerWithCleanupDelay"
+          ],
+          "reason": "Networking constructs the room manager that consumes room-domain behavior.",
+          "minimum": "Supporting evidence may show the networking-to-rooms ownership boundary."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Focused room-code location case."
+    },
+    {
+      "id": "space-rocks-dl-06",
+      "query": "Where does the Godot observability emitter normalize context, sanitize fields, emit canonical events, and expose status?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "client/scripts/logging/observability_emitter.gd",
+          "symbols": [
+            "emit",
+            "emit_legacy",
+            "_emit_definition",
+            "_normalize_context",
+            "_sanitize_fields",
+            "status"
+          ],
+          "reason": "This client emitter owns canonical and legacy event emission, validation, redaction, and runtime status.",
+          "minimum": "Evidence must locate the public emission boundary plus normalization/sanitization and status behavior."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "shared/go/observabilityevent/emitter.go",
+          "symbols": [
+            "New",
+            "Emit",
+            "sanitizeFields",
+            "Status"
+          ],
+          "reason": "The shared Go emitter is the server-side analogue of the client contract boundary.",
+          "minimum": "Supporting evidence may compare the client emitter with the shared server implementation."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Observability location case spanning the client and shared runtime implementation."
+    },
+    {
+      "id": "space-rocks-dl-07",
+      "query": "Where does the Godot client show match results, configure mode/replay behavior, and apply player score rows?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "client/scripts/ui/match_results/match_results_flow.gd",
+          "symbols": [
+            "show_results",
+            "set_replay_available",
+            "clear"
+          ],
+          "reason": "MatchResultsFlow owns mounting and clearing the match-results window and its navigation signals.",
+          "minimum": "Evidence must locate the flow methods that show results and control replay availability."
+        },
+        {
+          "path": "client/scripts/ui/match_results/match_result_window.gd",
+          "symbols": [
+            "configure_for_mode",
+            "apply_rows",
+            "clear_rows"
+          ],
+          "reason": "The window owns mode-specific presentation and row population.",
+          "minimum": "Evidence must identify the concrete UI method that applies result rows."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Client presentation ownership is split between flow and window."
+    },
+    {
+      "id": "space-rocks-me-01",
+      "query": "How does authoritative Go combat turn a projectile-asteroid or ship-asteroid collision into damage, score/death consequences, and entity state changes?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "services/game-server/internal/game/combat.go",
+          "symbols": [
+            "handleBulletAsteroidCollisions",
+            "recordProjectileAsteroidHit",
+            "applyProjectileAsteroidHitConsequences",
+            "handleShipAsteroidCollisions",
+            "applyFatalPlayerDamage"
+          ],
+          "reason": "Combat owns collision traversal, hit recording, consequences, and fatal player transitions.",
+          "minimum": "Evidence must explain the collision-to-consequence orchestration for both projectile and ship hazards."
+        },
+        {
+          "path": "services/game-server/internal/game/damage/resolve.go",
+          "symbols": [
+            "ResolveSingle"
+          ],
+          "reason": "The damage package owns single-target damage resolution.",
+          "minimum": "Evidence must include the policy resolution step rather than treating collision detection as damage."
+        },
+        {
+          "path": "services/game-server/internal/game/combat_damage_application.go",
+          "symbols": [
+            "applyDamageResultToAsteroid",
+            "applyDamageResultToPlayer",
+            "applyDamageResultToEnemy"
+          ],
+          "reason": "These helpers apply resolved damage to runtime entity state.",
+          "minimum": "Evidence must carry the mechanism through mutation of the affected entity."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/game-server/internal/game/scoring/scoring.go",
+          "symbols": [
+            "Policy",
+            "Evaluate",
+            "evaluateAsteroidDestroyed"
+          ],
+          "reason": "Scoring policy turns destruction facts into awards.",
+          "minimum": "Supporting evidence may connect destruction consequences to score awards."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Requires several Go files and distinguishes collision, damage policy, application, and scoring."
+    },
+    {
+      "id": "space-rocks-me-02",
+      "query": "How does the Godot client receive a server ship-death event, update the local HUD/lifecycle state, and decide whether to request or await respawn?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "client/scripts/gameplay/events/gameplay_event_controller.gd",
+          "symbols": [
+            "apply_server_events",
+            "apply_ship_death"
+          ],
+          "reason": "The event controller routes server event records and applies ship-death presentation effects.",
+          "minimum": "Evidence must show the server-event dispatch into ship-death handling."
+        },
+        {
+          "path": "client/scripts/gameplay/events/gameplay_death_flow.gd",
+          "symbols": [
+            "apply_self_death_event"
+          ],
+          "reason": "GameplayDeathFlow owns local-player death interpretation and counter/lifecycle updates.",
+          "minimum": "Evidence must identify the local-player death handoff."
+        },
+        {
+          "path": "client/scripts/gameplay/respawn/gameplay_respawn_flow.gd",
+          "symbols": [
+            "request_respawn",
+            "mark_awaiting_confirmation",
+            "should_restore_alive_hud"
+          ],
+          "reason": "GameplayRespawnFlow owns the readiness-gated respawn request and HUD restoration policy.",
+          "minimum": "Evidence must explain how respawn is gated and how awaiting confirmation is represented."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "client/scripts/gameplay/match_end/match_end_flow.gd",
+          "symbols": [
+            "handle_local_player_eliminated",
+            "handle_room_match_over"
+          ],
+          "reason": "Match-end flow consumes elimination and room match-over outcomes after death.",
+          "minimum": "Supporting evidence may distinguish respawn from terminal match presentation."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Client lifecycle mechanism, grounded in event, death, respawn, and match-end owners."
+    },
+    {
+      "id": "space-rocks-me-03",
+      "query": "How does the server build realtime lane packets on each tick, enforce WebRTC transport readiness, and let the client dispatch the resulting full/delta/event packets?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "services/game-server/internal/networking/websocket_write.go",
+          "symbols": [
+            "writeServerMessages",
+            "writeGameplayLaneProtocolMessage",
+            "resetRealtimeStateForContext",
+            "drainActiveEventBatchAfterWrite"
+          ],
+          "reason": "The websocket writer schedules realtime builds, checks lane/transport state, writes packets, and advances baselines.",
+          "minimum": "Evidence must explain the tick-to-transport path and successful-write state advancement."
+        },
+        {
+          "path": "services/game-server/internal/protocol/realtime/active.go",
+          "symbols": [
+            "BuildActiveRealtimeResultForGame"
+          ],
+          "reason": "The realtime protocol package builds the active game's lane candidates and encoded packets.",
+          "minimum": "Evidence must include the protocol builder called by the websocket tick."
+        },
+        {
+          "path": "client/scripts/networking/inbound/server_packet_dispatcher.gd",
+          "symbols": [
+            "dispatch",
+            "world_full_received",
+            "world_delta_received",
+            "event_batch_received"
+          ],
+          "reason": "The Godot dispatcher exposes the server packet families to downstream client systems.",
+          "minimum": "Evidence must connect the server's packet families to client dispatch signals."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "shared/packets/outputs.toml",
+          "symbols": [
+            "world_full",
+            "world_delta",
+            "event_batch",
+            "resync_required"
+          ],
+          "reason": "The shared output routing source declares the packet families used by both sides.",
+          "minimum": "Supporting evidence may confirm the cross-language packet family contract."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Cross-language mechanism case for networking/protocol flow."
+    },
+    {
+      "id": "space-rocks-me-04",
+      "query": "How does a room start a game, transition through starting and in-game states, capture a completed match, and preserve a resolved summary?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "services/game-server/internal/rooms/room_lifecycle.go",
+          "symbols": [
+            "StartGameForMember",
+            "reserveStartLocked",
+            "finishStart",
+            "MarkGameOver",
+            "MarkGameOverIfComplete",
+            "captureGameOverLocked",
+            "ResetToLobby"
+          ],
+          "reason": "Room lifecycle owns state transitions, race-safe start completion, game-over capture, and reset.",
+          "minimum": "Evidence must explain both start and game-over paths, including capture validation and reset."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_match_summary.go",
+          "symbols": [
+            "buildMatchResultSummary"
+          ],
+          "reason": "This helper maps captured game facts and room members into the resolved summary.",
+          "minimum": "Evidence must include summary construction as part of game-over handling."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_match.go",
+          "symbols": [
+            "BeginNextMatch",
+            "SetResolvedSummary",
+            "ResolvedSummary",
+            "ClearResolvedSummary"
+          ],
+          "reason": "roomMatch owns match identity, trace identity, active-session reset, and summary persistence.",
+          "minimum": "Evidence must identify where match identity and resolved results live after the state transition."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/game-server/internal/game/match.go",
+          "symbols": [
+            "MatchDecision",
+            "PlayerMatchFacts"
+          ],
+          "reason": "Game supplies terminal evaluation and historical score/death facts to the room.",
+          "minimum": "Supporting evidence may connect game simulation outputs to room lifecycle policy."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Room and match-result lifecycle mechanism."
+    },
+    {
+      "id": "space-rocks-me-05",
+      "query": "How does the Rails API apply a match result exactly once, update aggregate player stats, serialize the response, and distinguish duplicate, invalid, and transactional failures?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "services/api-server/app/controllers/internal/player_data/match_results_controller.rb",
+          "symbols": [
+            "create",
+            "emit_match_result_event",
+            "render_unknown_user",
+            "render_invalid_input",
+            "normalized_won"
+          ],
+          "reason": "The controller validates identifiers, invokes the service, emits outcome events, and renders API responses.",
+          "minimum": "Evidence must explain the controller's validation, normalization, and response/error branches."
+        },
+        {
+          "path": "services/api-server/app/services/player_stats/apply_match_result.rb",
+          "symbols": [
+            "ApplyMatchResult",
+            "call",
+            "success?"
+          ],
+          "reason": "The service owns the transaction, idempotent result lookup, result creation, and stat mutation.",
+          "minimum": "Evidence must include the transaction and duplicate-by-result_id behavior."
+        },
+        {
+          "path": "services/api-server/app/services/player_stats/serialize_stats.rb",
+          "symbols": [
+            "SerializeStats",
+            "call"
+          ],
+          "reason": "Serialization owns the response shape for updated stats.",
+          "minimum": "Evidence must identify response serialization as a separate service boundary."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/api-server/app/models/player_match_result.rb",
+          "symbols": [
+            "PlayerMatchResult",
+            "result_id",
+            "won"
+          ],
+          "reason": "The model constraints support idempotent result storage and boolean outcome validation.",
+          "minimum": "Supporting evidence may connect service behavior to model invariants."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Rails transaction and duplicate suppression mechanism."
+    },
+    {
+      "id": "space-rocks-me-06",
+      "query": "How does a Go match summary become per-player player-data commands and cross the runtime protocol boundary into the Rails match-results endpoint?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "services/game-server/internal/playerdata/summary.go",
+          "symbols": [
+            "BuildMatchResultSummary",
+            "PlayerDataPlayMode"
+          ],
+          "reason": "The server playerdata package builds the logical result summary and maps mode to player-data play mode.",
+          "minimum": "Evidence must identify the logical summary boundary before transport encoding."
+        },
+        {
+          "path": "services/game-server/internal/matchreporting/mapper.go",
+          "symbols": [
+            "BuildRecordMatchResultCommands"
+          ],
+          "reason": "The mapper chooses account/local/guest identity and maps scores, deaths, wins, trace, and IDs into protocol commands.",
+          "minimum": "Evidence must explain per-player command construction and identity selection."
+        },
+        {
+          "path": "services/player-data/playerdata/rails_store.go",
+          "symbols": [
+            "RecordMatchResult",
+            "newJSONRequest",
+            "RailsStore"
+          ],
+          "reason": "RailsStore validates the command, sends the internal JSON request, and decodes accepted/duplicate/stats.",
+          "minimum": "Evidence must carry the command across HTTP to the internal Rails path."
+        },
+        {
+          "path": "services/api-server/app/controllers/internal/player_data/match_results_controller.rb",
+          "symbols": [
+            "create",
+            "ApplyMatchResult",
+            "serialized_stats"
+          ],
+          "reason": "Rails receives and applies the result through the controller and service.",
+          "minimum": "Evidence must complete the mechanism at the Rails application boundary."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/player-data/protocol/packets.go",
+          "symbols": [
+            "PlayerDataRecordMatchResult",
+            "PlayerDataRecordMatchResultResult"
+          ],
+          "reason": "Generated player-data packet structs define the Go wire shape used by the mapper and runtime.",
+          "minimum": "Supporting evidence may identify the explicit cross-service packet contract."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Cross-language result-reporting mechanism with a deliberately large budget."
+    },
+    {
+      "id": "space-rocks-me-07",
+      "query": "How does Godot apply authoritative world lane state, keep entity sync owners separate, interpolate remote visuals, and expose camera/targeting helpers?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "client/scripts/world/world_sync.gd",
+          "symbols": [
+            "apply_world_lane_state",
+            "apply_state",
+            "interpolate",
+            "get_remote_player_visual_positions",
+            "focus_camera_on_player",
+            "target_source"
+          ],
+          "reason": "WorldSync owns application of server world state and presentation-time interpolation/camera access.",
+          "minimum": "Evidence must explain the authoritative-state-to-visual-update mechanism and its public readouts."
+        },
+        {
+          "path": "client/scripts/world/asteroid_sync.gd",
+          "symbols": [
+            "apply_asteroid",
+            "apply",
+            "interpolate"
+          ],
+          "reason": "AsteroidSync owns asteroid-specific lifecycle and interpolation behavior.",
+          "minimum": "Evidence must distinguish world orchestration from asteroid entity synchronization."
+        },
+        {
+          "path": "client/scripts/world/projectile_sync.gd",
+          "symbols": [
+            "apply_projectile",
+            "apply",
+            "interpolate"
+          ],
+          "reason": "ProjectileSync owns projectile-specific state and interpolation behavior.",
+          "minimum": "Evidence must include a second entity sync owner to establish the mechanism boundary."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Godot world presentation mechanism."
+    },
+    {
+      "id": "space-rocks-ao-01",
+      "query": "Which components own authoritative simulation outcomes versus Godot presentation for movement, damage, lifecycle, and visual interpolation?",
+      "category": "architecture-ownership",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "services/game-server/internal/game/simulation.go",
+          "symbols": [
+            "Step",
+            "runSimulation"
+          ],
+          "reason": "The Go game package owns the simulation tick and authoritative gameplay progression.",
+          "minimum": "Evidence must identify the server simulation owner."
+        },
+        {
+          "path": "services/game-server/internal/game/combat.go",
+          "symbols": [
+            "handleBulletAsteroidCollisions",
+            "applyFatalPlayerDamage"
+          ],
+          "reason": "Go combat owns authoritative collision and fatal damage consequences.",
+          "minimum": "Evidence must attribute damage outcomes to the server."
+        },
+        {
+          "path": "client/scripts/world/world_sync.gd",
+          "symbols": [
+            "apply_state",
+            "interpolate"
+          ],
+          "reason": "Godot WorldSync owns applying server state to visual entities and interpolating presentation.",
+          "minimum": "Evidence must distinguish client presentation from server outcome ownership."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "client/scripts/entities/player.gd",
+          "symbols": [
+            "get_input_packet",
+            "set_afterburner_active"
+          ],
+          "reason": "The player entity exposes presentation-side state application and interpolation.",
+          "minimum": "Supporting evidence may show the entity-level client boundary."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ownership case for the server-authoritative/client-presentational architecture."
+    },
+    {
+      "id": "space-rocks-ao-02",
+      "query": "Which Rails layers own authenticated player-stat reads, internal player-data reads, match-result writes, and aggregate stat mutation?",
+      "category": "architecture-ownership",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "services/api-server/config/routes.rb",
+          "symbols": [
+            "namespace :player",
+            "player-data",
+            "match-results"
+          ],
+          "reason": "Routes separates public player reads from internal player-data operations.",
+          "minimum": "Evidence must identify the endpoint ownership split."
+        },
+        {
+          "path": "services/api-server/app/controllers/api/player/stats_controller.rb",
+          "symbols": [
+            "StatsController",
+            "show"
+          ],
+          "reason": "The public API controller owns the authenticated player stats response.",
+          "minimum": "Evidence must locate the public read owner."
+        },
+        {
+          "path": "services/api-server/app/controllers/api/internal/player_data/stats_controller.rb",
+          "symbols": [
+            "StatsController",
+            "create"
+          ],
+          "reason": "The internal API controller owns server-to-Rails stats loading.",
+          "minimum": "Evidence must distinguish the internal read controller from the public controller."
+        },
+        {
+          "path": "services/api-server/app/services/player_stats/apply_match_result.rb",
+          "symbols": [
+            "ApplyMatchResult",
+            "call"
+          ],
+          "reason": "The service layer, not the controller, owns match-result transaction and stat mutation.",
+          "minimum": "Evidence must assign aggregate mutation to the domain service."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/api-server/app/models/player_stat.rb",
+          "symbols": [
+            "PlayerStat",
+            "total_score",
+            "wins"
+          ],
+          "reason": "The model owns persistence constraints for aggregate stats.",
+          "minimum": "Supporting evidence may connect service mutation to the persisted stats model."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Rails API ownership case with public/internal separation."
+    },
+    {
+      "id": "space-rocks-ao-03",
+      "query": "Which package owns room membership, player-slot assignment, owner succession, active-session counts, and networking adaptation?",
+      "category": "architecture-ownership",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "services/game-server/internal/rooms/room_membership.go",
+          "symbols": [
+            "addMember",
+            "removeMember",
+            "playerIDForSession",
+            "nextOwnerID",
+            "nextAvailablePlayerID"
+          ],
+          "reason": "roomMembership owns member storage, readable Player IDs, and owner succession.",
+          "minimum": "Evidence must identify membership policy rather than just a networking caller."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_membership_mutations.go",
+          "symbols": [
+            "ActivateMemberPlayer",
+            "DeactivateMemberPlayer",
+            "RemoveMemberForSession",
+            "Population"
+          ],
+          "reason": "Room methods own active participation and population mutations.",
+          "minimum": "Evidence must include activation/deactivation ownership."
+        },
+        {
+          "path": "services/game-server/internal/networking/inbound_adapter.go",
+          "symbols": [
+            "HandleJoinRoomRequest",
+            "HandleLeaveRoomRequest",
+            "HandleStartGameRequest"
+          ],
+          "reason": "Networking adapts wire requests into room operations without owning room policy.",
+          "minimum": "Evidence must show the thin networking adapter boundary."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/game-server/internal/rooms/room.go",
+          "symbols": [
+            "Room",
+            "NewRoom"
+          ],
+          "reason": "Room composes membership and match state into the domain aggregate.",
+          "minimum": "Supporting evidence may locate the aggregate owner."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Room/participant lifecycle ownership map."
+    },
+    {
+      "id": "space-rocks-ao-04",
+      "query": "Where is the packet contract ownership split between shared source TOML, generated Go packet types, generated Godot packet constructors, and runtime codec boundaries?",
+      "category": "architecture-ownership",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "shared/packets/gameplay.toml",
+          "symbols": [
+            "input",
+            "respawn",
+            "ship_death",
+            "lives_after"
+          ],
+          "reason": "The gameplay TOML source declares the canonical gameplay packet fields and records.",
+          "minimum": "Evidence must identify the source-of-truth contract."
+        },
+        {
+          "path": "services/game-server/internal/game/packets.go",
+          "symbols": [
+            "ClientPacket",
+            "RoomSnapshot",
+            "PacketTypeInput",
+            "PacketTypeRespawn"
+          ],
+          "reason": "Generated/server packet types expose the Go runtime contract.",
+          "minimum": "Evidence must identify the generated Go representation."
+        },
+        {
+          "path": "client/scripts/generated/networking/packets/packets.gd",
+          "symbols": [
+            "input_packet",
+            "respawn_packet",
+            "TYPE_INPUT",
+            "TYPE_RESPAWN"
+          ],
+          "reason": "Generated Godot packet constructors and type constants expose the client contract.",
+          "minimum": "Evidence must identify the generated client representation."
+        },
+        {
+          "path": "services/game-server/internal/protocol/packetcodec/codec.go",
+          "symbols": [
+            "Encode",
+            "Decode"
+          ],
+          "reason": "The server codec owns JSON wire serialization at runtime.",
+          "minimum": "Evidence must distinguish source/generated contract ownership from runtime serialization."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "client/scripts/networking/packets/packet_codec.gd",
+          "symbols": [
+            "encode",
+            "decode"
+          ],
+          "reason": "The Godot codec is the client runtime serialization boundary.",
+          "minimum": "Supporting evidence may complete the two-sided codec ownership picture."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Cross-language architecture case; generated files are inspected as consumers of the shared source."
+    },
+    {
+      "id": "space-rocks-ao-05",
+      "query": "Which layers own match-end facts, winner resolution, per-player report commands, and persistence of account statistics?",
+      "category": "architecture-ownership",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "services/game-server/internal/game/match.go",
+          "symbols": [
+            "PlayerMatchFacts",
+            "MatchDecision"
+          ],
+          "reason": "Game owns authoritative match terminal state and historical score/death facts.",
+          "minimum": "Evidence must identify the gameplay fact producer."
+        },
+        {
+          "path": "services/game-server/internal/playerdata/summary.go",
+          "symbols": [
+            "BuildMatchResultSummary"
+          ],
+          "reason": "Server playerdata owns logical summary construction and winner resolution delegation.",
+          "minimum": "Evidence must identify the summary owner between gameplay and reporting."
+        },
+        {
+          "path": "services/game-server/internal/matchreporting/mapper.go",
+          "symbols": [
+            "BuildRecordMatchResultCommands"
+          ],
+          "reason": "Match reporting owns mapping summaries to per-identity player-data commands.",
+          "minimum": "Evidence must assign command mapping to the reporting boundary."
+        },
+        {
+          "path": "services/api-server/app/services/player_stats/apply_match_result.rb",
+          "symbols": [
+            "ApplyMatchResult",
+            "call"
+          ],
+          "reason": "Rails owns durable idempotent stat mutation after receiving a result.",
+          "minimum": "Evidence must distinguish persistence ownership from server match ownership."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/game-server/internal/rooms/room_match_summary.go",
+          "symbols": [
+            "buildMatchResultSummary"
+          ],
+          "reason": "Rooms attach member identities and match context before the reporting handoff.",
+          "minimum": "Supporting evidence may locate room-specific summary enrichment."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Cross-language match-results ownership case."
+    },
+    {
+      "id": "space-rocks-ao-06",
+      "query": "Which runtimes own canonical observability validation and emission for the Go server, Godot client, and Rails API while sharing event definitions?",
+      "category": "architecture-ownership",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "shared/go/observabilityevent/emitter.go",
+          "symbols": [
+            "New",
+            "Emit",
+            "sanitizeFields",
+            "Status"
+          ],
+          "reason": "Shared Go observability owns server-side validation, redaction, emission, and status.",
+          "minimum": "Evidence must identify the Go emitter boundary."
+        },
+        {
+          "path": "client/scripts/logging/observability_emitter.gd",
+          "symbols": [
+            "emit",
+            "_sanitize_fields",
+            "status"
+          ],
+          "reason": "Godot owns the client-side implementation of the same semantic emission boundary.",
+          "minimum": "Evidence must identify the client emitter rather than only client call sites."
+        },
+        {
+          "path": "services/api-server/app/lib/observability/emitter.rb",
+          "symbols": [
+            "Emitter",
+            "emit",
+            "sanitize_fields",
+            "validate_identity!"
+          ],
+          "reason": "Rails owns API-side observability emission and input safety.",
+          "minimum": "Evidence must identify the Rails emitter boundary."
+        },
+        {
+          "path": "shared/contracts/observability/events.toml",
+          "symbols": [
+            "match_result_report_started",
+            "match_result_report_succeeded",
+            "match_result_report_failed"
+          ],
+          "reason": "The shared observability contract defines event names consumed by all runtimes.",
+          "minimum": "Evidence must connect runtime emitters to the shared event source."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Cross-language observability ownership case."
+    },
+    {
+      "id": "space-rocks-cc-01",
+      "query": "Trace one client gameplay packet from websocket read through envelope decoding, auth/lobby/gameplay routing, and the authoritative Go Game handler.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "services/game-server/internal/networking/websocket_read.go",
+          "symbols": [
+            "readClientInput"
+          ],
+          "reason": "The websocket read loop receives raw messages and decodes inbound envelopes.",
+          "minimum": "Evidence must begin at the server read loop."
+        },
+        {
+          "path": "services/game-server/internal/networking/inbound/client_packet_envelope.go",
+          "symbols": [
+            "DecodeClientPacketEnvelope",
+            "ClientPacketEnvelope"
+          ],
+          "reason": "The inbound package owns envelope decoding before packet routing.",
+          "minimum": "Evidence must include envelope decoding."
+        },
+        {
+          "path": "services/game-server/internal/networking/client_packet_router.go",
+          "symbols": [
+            "handleClientPacket"
+          ],
+          "reason": "The networking adapter routes the decoded envelope through inbound handlers.",
+          "minimum": "Evidence must show the transition from read/decode to route."
+        },
+        {
+          "path": "services/game-server/internal/networking/inbound/router.go",
+          "symbols": [
+            "RouteClientPacket",
+            "ClientPacketRouter"
+          ],
+          "reason": "Inbound router orders WebRTC, decode, auth, lobby, and gameplay handling.",
+          "minimum": "Evidence must include the ordered handler chain."
+        },
+        {
+          "path": "services/game-server/internal/networking/inbound/gameplay.go",
+          "symbols": [
+            "HandleGameplayPacket"
+          ],
+          "reason": "Gameplay handler applies the packet to the room's authoritative Game.",
+          "minimum": "Evidence must complete the chain at gameplay dispatch and room context checks."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/game-server/internal/game/input.go",
+          "symbols": [
+            "HandlePacket"
+          ],
+          "reason": "Game owns the final authoritative packet interpretation boundary.",
+          "minimum": "Supporting evidence may identify the final simulation owner."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Go server call-chain case across five files."
+    },
+    {
+      "id": "space-rocks-cc-02",
+      "query": "Trace a server packet through the Godot NetworkClient poll loop, PacketCodec decode, packet-type router, and ServerPacketDispatcher signal emission.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "client/scripts/networking/network_client.gd",
+          "symbols": [
+            "poll",
+            "packet_received",
+            "_emit_packet_failure"
+          ],
+          "reason": "NetworkClient polls the websocket and exposes parsed packet/error boundaries.",
+          "minimum": "Evidence must begin at client transport polling."
+        },
+        {
+          "path": "client/scripts/networking/packets/packet_codec.gd",
+          "symbols": [
+            "decode"
+          ],
+          "reason": "PacketCodec converts raw text into validated dictionaries.",
+          "minimum": "Evidence must include JSON/envelope decoding."
+        },
+        {
+          "path": "client/scripts/networking/inbound/server_packet_router.gd",
+          "symbols": [
+            "packet_type",
+            "is_world_full",
+            "is_event_batch"
+          ],
+          "reason": "The router classifies packet dictionaries into server packet families.",
+          "minimum": "Evidence must show packet family classification before dispatch."
+        },
+        {
+          "path": "client/scripts/networking/inbound/server_packet_dispatcher.gd",
+          "symbols": [
+            "dispatch",
+            "world_full_received",
+            "event_batch_received"
+          ],
+          "reason": "Dispatcher emits typed signals for downstream client systems.",
+          "minimum": "Evidence must complete the client call chain at signal emission."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Godot networking call chain."
+    },
+    {
+      "id": "space-rocks-cc-03",
+      "query": "Trace a multiplayer lobby start request from the inbound adapter through the room handler, readiness/start validation, game start, and room state transition.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "services/game-server/internal/networking/inbound_adapter.go",
+          "symbols": [
+            "HandleStartGameRequest"
+          ],
+          "reason": "The inbound adapter receives the decoded start request and calls the session handler.",
+          "minimum": "Evidence must begin at the network-to-session adapter."
+        },
+        {
+          "path": "services/game-server/internal/networking/room_handlers.go",
+          "symbols": [
+            "handleStartGameRequest"
+          ],
+          "reason": "The room handler resolves session/player context and invokes room start policy.",
+          "minimum": "Evidence must show the session-facing room start handoff."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_lobby.go",
+          "symbols": [
+            "ValidateStart",
+            "validateStartLocked",
+            "validateStartPreconditionsLocked"
+          ],
+          "reason": "Room lobby owns owner/readiness/state precondition validation.",
+          "minimum": "Evidence must include the policy checks before starting."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_lifecycle.go",
+          "symbols": [
+            "StartGameForMember",
+            "reserveStartLocked",
+            "finishStart",
+            "MarkInGame"
+          ],
+          "reason": "Room lifecycle reserves, creates/starts, and commits the game transition.",
+          "minimum": "Evidence must complete the chain through the in-game state."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/game-server/internal/rooms/room_match.go",
+          "symbols": [
+            "BeginNextMatch"
+          ],
+          "reason": "Starting a match initializes match identity and active-session state.",
+          "minimum": "Supporting evidence may include the match-context side effect."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Room and participant lifecycle call chain."
+    },
+    {
+      "id": "space-rocks-cc-04",
+      "query": "Trace realtime state from a Go websocket tick into active lane planning and WebRTC send, then into the Godot dispatcher for world/session/event consumers.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "services/game-server/internal/networking/websocket_write.go",
+          "symbols": [
+            "writeGameplayLaneProtocolMessage",
+            "transport.SendEncodedLaneJSON",
+            "observePacketWrite"
+          ],
+          "reason": "The websocket write path builds and sends lane packets over the ready transport.",
+          "minimum": "Evidence must identify the server tick, transport send, and packet observation steps."
+        },
+        {
+          "path": "services/game-server/internal/protocol/realtime/active.go",
+          "symbols": [
+            "BuildActiveRealtimeResultForGame"
+          ],
+          "reason": "Active realtime builds the encoded candidate sequence consumed by networking.",
+          "minimum": "Evidence must include the protocol call inside the chain."
+        },
+        {
+          "path": "services/game-server/internal/protocol/realtime/planner.go",
+          "symbols": [
+            "Plan"
+          ],
+          "reason": "Planner orders candidate lane packets and baseline/resync decisions.",
+          "minimum": "Evidence must identify planning as distinct from transport."
+        },
+        {
+          "path": "client/scripts/networking/inbound/server_packet_dispatcher.gd",
+          "symbols": [
+            "dispatch",
+            "world_full_received",
+            "session_delta_received",
+            "event_batch_received"
+          ],
+          "reason": "Godot dispatches the received packet families to client-side consumers.",
+          "minimum": "Evidence must complete the cross-language path at client dispatch."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "shared/packets/outputs.toml",
+          "symbols": [
+            "world_full",
+            "session_delta",
+            "event_batch"
+          ],
+          "reason": "Shared output routing names the packet families crossing the transport.",
+          "minimum": "Supporting evidence may verify the wire-family names."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Cross-language networking call chain with a large evidence budget."
+    },
+    {
+      "id": "space-rocks-cc-05",
+      "query": "Trace a bullet/asteroid damage event from Go collision handling through realtime event projection and the Godot gameplay event controller.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "services/game-server/internal/game/combat.go",
+          "symbols": [
+            "handleBulletAsteroidCollisions",
+            "recordProjectileAsteroidHit",
+            "applyProjectileAsteroidHitConsequences"
+          ],
+          "reason": "Combat detects and resolves projectile/asteroid collisions into authoritative consequences.",
+          "minimum": "Evidence must begin at collision handling and show consequence application."
+        },
+        {
+          "path": "services/game-server/internal/game/damage_events.go",
+          "symbols": [
+            "damageAppliedEventForResult",
+            "damageOverTimeTickEvent"
+          ],
+          "reason": "The game event layer records presentation events emitted from authoritative outcomes.",
+          "minimum": "Evidence must identify event creation after damage/death."
+        },
+        {
+          "path": "services/game-server/internal/protocol/realtime/event_projection.go",
+          "symbols": [
+            "ProjectEventLane",
+            "BuildEventBatchPacket"
+          ],
+          "reason": "Realtime projection turns pending game events into wire event-batch records.",
+          "minimum": "Evidence must include event projection into the protocol."
+        },
+        {
+          "path": "client/scripts/gameplay/events/gameplay_event_controller.gd",
+          "symbols": [
+            "apply_server_events",
+            "apply_bullet_blast",
+            "apply_ship_death"
+          ],
+          "reason": "Godot consumes the projected event batch and applies presentation effects.",
+          "minimum": "Evidence must complete the cross-language chain at the client event consumer."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "shared/packets/realtime_wire.toml",
+          "symbols": [
+            "damage_applied",
+            "ship_death"
+          ],
+          "reason": "The shared wire source names the event records crossing the boundary.",
+          "minimum": "Supporting evidence may confirm the event contract names."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Damage/event presentation call chain across Go, shared wire, and Godot."
+    },
+    {
+      "id": "space-rocks-cc-06",
+      "query": "Trace completed-match state from Go room game-over capture through the room snapshot, Godot room-session result cache, match-end flow, and match-results UI.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "services/game-server/internal/rooms/room_lifecycle.go",
+          "symbols": [
+            "MarkGameOver",
+            "captureGameOverLocked"
+          ],
+          "reason": "Room lifecycle captures the coherent completed-game context and commits game-over.",
+          "minimum": "Evidence must begin at server game-over capture."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_projections.go",
+          "symbols": [
+            "SnapshotForSession",
+            "RoomSnapshot",
+            "ResolvedSummary"
+          ],
+          "reason": "Room projections expose the resolved summary and member/session view to networking.",
+          "minimum": "Evidence must include the server snapshot projection."
+        },
+        {
+          "path": "client/scripts/session/room_session_controller.gd",
+          "symbols": [
+            "handle_room_snapshot",
+            "current_match_result",
+            "_cache_match_result_from_snapshot"
+          ],
+          "reason": "RoomSessionController caches the match result from the server snapshot.",
+          "minimum": "Evidence must show the client session cache boundary."
+        },
+        {
+          "path": "client/scripts/gameplay/match_end/match_end_flow.gd",
+          "symbols": [
+            "handle_room_match_over",
+            "_current_match_result_rows"
+          ],
+          "reason": "MatchEndFlow turns room completion and cached results into UI rows.",
+          "minimum": "Evidence must connect cached server state to match-end presentation."
+        },
+        {
+          "path": "client/scripts/ui/match_results/match_results_flow.gd",
+          "symbols": [
+            "show_results"
+          ],
+          "reason": "MatchResultsFlow mounts the final results window.",
+          "minimum": "Evidence must complete the chain at results display."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Cross-language match result presentation chain."
+    },
+    {
+      "id": "space-rocks-lm-01",
+      "query": "Implement an end-to-end persistent match-result path: when a Go room reaches game over, preserve match identity and player facts, map account/local/guest identities into player-data commands, cross the generated protocol, POST the Rails internal endpoint, apply the result idempotently, and keep the Godot snapshot/results UI consistent. Identify the owning code and contracts before changing behavior.",
+      "category": "long-mixed-query",
+      "budget": 12000,
+      "required": [
+        {
+          "path": "services/game-server/internal/rooms/room_lifecycle.go",
+          "symbols": [
+            "MarkGameOver",
+            "captureGameOverLocked",
+            "gameOverCaptureMatchesLocked"
+          ],
+          "reason": "Room lifecycle owns coherent game-over capture and race-safe commit.",
+          "minimum": "Evidence must explain where the result source is frozen before reporting."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_match_summary.go",
+          "symbols": [
+            "buildMatchResultSummary"
+          ],
+          "reason": "Room summary construction attaches room member identities to game facts.",
+          "minimum": "Evidence must show the room-to-logical-summary handoff."
+        },
+        {
+          "path": "services/game-server/internal/matchreporting/mapper.go",
+          "symbols": [
+            "BuildRecordMatchResultCommands"
+          ],
+          "reason": "The mapper produces one command per player and selects identity kind.",
+          "minimum": "Evidence must include account/local/guest mapping and result IDs."
+        },
+        {
+          "path": "services/player-data/protocol/packets.go",
+          "symbols": [
+            "PlayerDataRecordMatchResult",
+            "PlayerDataRecordMatchResultResult"
+          ],
+          "reason": "Generated protocol structs define the command and accepted/duplicate response.",
+          "minimum": "Evidence must identify the cross-service data contract."
+        },
+        {
+          "path": "services/player-data/playerdata/rails_store.go",
+          "symbols": [
+            "RecordMatchResult",
+            "newJSONRequest"
+          ],
+          "reason": "RailsStore owns internal-token HTTP construction, validation, response decoding, and duplicate return.",
+          "minimum": "Evidence must trace the player-data command into HTTP."
+        },
+        {
+          "path": "services/api-server/app/controllers/internal/player_data/match_results_controller.rb",
+          "symbols": [
+            "create",
+            "required_params_present?",
+            "emit_match_result_event"
+          ],
+          "reason": "Rails controller owns endpoint validation, event branches, and service invocation.",
+          "minimum": "Evidence must include Rails request/error/observability behavior."
+        },
+        {
+          "path": "services/api-server/app/services/player_stats/apply_match_result.rb",
+          "symbols": [
+            "call",
+            "ActiveRecord::Base.transaction",
+            "existing_match_result",
+            "duplicate"
+          ],
+          "reason": "ApplyMatchResult owns exactly-once persistence and aggregate stat updates.",
+          "minimum": "Evidence must explain duplicate suppression and transaction scope."
+        },
+        {
+          "path": "client/scripts/session/room_session_controller.gd",
+          "symbols": [
+            "_cache_match_result_from_snapshot",
+            "current_match_result"
+          ],
+          "reason": "Godot caches the server-resolved result for the presentation flow.",
+          "minimum": "Evidence must preserve the client-side result consumer contract."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "shared/contracts/http/openapi.yaml",
+          "symbols": [
+            "/internal/player-data/match-results",
+            "MatchResultRequest",
+            "MatchResultAcceptedResponse"
+          ],
+          "reason": "OpenAPI records the public HTTP method, request fields, and accepted response shape.",
+          "minimum": "Supporting evidence may validate the Rails HTTP contract against Go serialization."
+        },
+        {
+          "path": "client/scripts/ui/match_results/match_results_flow.gd",
+          "symbols": [
+            "show_results"
+          ],
+          "reason": "The final client UI flow consumes the cached result rows.",
+          "minimum": "Supporting evidence may connect persistence completion to display."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Long cross-language implementation request spanning room lifecycle, player-data, Rails, HTTP contract, and Godot presentation."
+    },
+    {
+      "id": "space-rocks-lm-02",
+      "query": "Implement or audit an authoritative damage event path: server collision and damage resolution must create typed damage/death presentation events, the shared realtime wire must carry their fields and lifecycle, the server must project them into event batches, and Godot must apply the event while keeping lives, HUD, and match-end behavior correct. Follow ownership and packet generation boundaries.",
+      "category": "long-mixed-query",
+      "budget": 12000,
+      "required": [
+        {
+          "path": "services/game-server/internal/game/combat.go",
+          "symbols": [
+            "handleBulletAsteroidCollisions",
+            "handleShipAsteroidCollisions",
+            "applyFatalPlayerDamage"
+          ],
+          "reason": "Combat owns authoritative collision and fatal damage transitions.",
+          "minimum": "Evidence must identify the server outcome owner."
+        },
+        {
+          "path": "services/game-server/internal/game/damage/resolve.go",
+          "symbols": [
+            "ResolveSingle"
+          ],
+          "reason": "Damage policy resolution is separate from collision traversal.",
+          "minimum": "Evidence must include the damage policy boundary."
+        },
+        {
+          "path": "services/game-server/internal/game/damage_events.go",
+          "symbols": [
+            "damageAppliedEventForResult",
+            "damageOverTimeTickEvent"
+          ],
+          "reason": "Game event creation translates authoritative outcomes into presentation records.",
+          "minimum": "Evidence must include typed event creation."
+        },
+        {
+          "path": "shared/packets/realtime_wire.toml",
+          "symbols": [
+            "damage_applied",
+            "damage_over_time_started",
+            "damage_over_time_tick",
+            "damage_type",
+            "damage_cause",
+            "lives_after"
+          ],
+          "reason": "The shared wire source defines damage event names and fields.",
+          "minimum": "Evidence must identify the contract fields required by both implementations."
+        },
+        {
+          "path": "services/game-server/internal/protocol/realtime/event_projection.go",
+          "symbols": [
+            "ProjectEventLane",
+            "BuildEventBatchPacket"
+          ],
+          "reason": "Realtime projection serializes pending game events into event-batch payloads.",
+          "minimum": "Evidence must include server-side wire projection."
+        },
+        {
+          "path": "client/scripts/gameplay/events/gameplay_event_controller.gd",
+          "symbols": [
+            "apply_server_events",
+            "apply_ship_death"
+          ],
+          "reason": "Godot consumes the event batch and applies visual/death behavior.",
+          "minimum": "Evidence must complete the client event path."
+        },
+        {
+          "path": "client/scripts/gameplay/events/gameplay_death_flow.gd",
+          "symbols": [
+            "apply_self_death_event"
+          ],
+          "reason": "Local death handling updates lives and terminal/respawn behavior.",
+          "minimum": "Evidence must include local death policy rather than only visual effects."
+        },
+        {
+          "path": "client/scripts/gameplay/match_end/match_end_flow.gd",
+          "symbols": [
+            "handle_local_player_eliminated",
+            "handle_room_match_over"
+          ],
+          "reason": "Match-end presentation consumes life exhaustion and room-wide completion.",
+          "minimum": "Evidence must cover terminal behavior after damage."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "client/scripts/generated/networking/realtime_wire_generated.gd",
+          "symbols": [
+            "damage_applied",
+            "lives_after"
+          ],
+          "reason": "Generated client wire metadata demonstrates the generated side of the contract.",
+          "minimum": "Supporting evidence may verify source-to-client generation."
+        },
+        {
+          "path": "services/game-server/internal/game/combat_damage_application.go",
+          "symbols": [
+            "applyDamageResultToPlayer",
+            "applyDamageResultToAsteroid"
+          ],
+          "reason": "Resolved damage must mutate runtime state before event projection.",
+          "minimum": "Supporting evidence may connect damage results to event-producing state."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Long cross-language damage request spanning authoritative outcomes, protocol, and Godot behavior."
+    },
+    {
+      "id": "space-rocks-lm-03",
+      "query": "Implement a safe room participant lifecycle change for join, readiness, activation, disconnect, cleanup, and return-to-lobby behavior. Trace how networking requests enter the room, how membership assigns readable player IDs and owners, how active sessions affect match capacity, how cleanup is versioned, and how the Godot lobby/session state reflects snapshots and errors.",
+      "category": "long-mixed-query",
+      "budget": 12000,
+      "required": [
+        {
+          "path": "services/game-server/internal/networking/room_handlers.go",
+          "symbols": [
+            "handleJoinRoomRequest",
+            "handleLeaveRoomRequest",
+            "handleSetReadyRequest",
+            "handleReturnToLobbyRequest"
+          ],
+          "reason": "Networking handlers translate lobby wire operations into room operations.",
+          "minimum": "Evidence must identify the transport-facing lifecycle entry points."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_join.go",
+          "symbols": [
+            "ValidateJoin",
+            "JoinMember"
+          ],
+          "reason": "Room join policy owns joinability and membership admission checks.",
+          "minimum": "Evidence must include join policy before mutation."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_membership.go",
+          "symbols": [
+            "addMember",
+            "removeMember",
+            "nextOwnerID",
+            "nextAvailablePlayerID"
+          ],
+          "reason": "Membership owns player-slot assignment and owner succession.",
+          "minimum": "Evidence must explain participant identity and ownership changes."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_membership_mutations.go",
+          "symbols": [
+            "ActivateMemberPlayer",
+            "DeactivateMemberPlayer",
+            "RemoveMemberForSession"
+          ],
+          "reason": "Active participation and removal mutations live in the room aggregate.",
+          "minimum": "Evidence must include active-session lifecycle effects."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_cleanup.go",
+          "symbols": [
+            "ScheduleCleanupTimer",
+            "CleanupVersionMatches",
+            "ShouldCleanup"
+          ],
+          "reason": "Cleanup owns delayed empty-room cleanup and stale timer protection.",
+          "minimum": "Evidence must explain cleanup timer/version behavior."
+        },
+        {
+          "path": "client/scripts/session/room_session_controller.gd",
+          "symbols": [
+            "handle_room_snapshot",
+            "handle_room_state_changed",
+            "handle_room_error"
+          ],
+          "reason": "Godot session state consumes server lifecycle projections and errors.",
+          "minimum": "Evidence must cover the client reflection of room lifecycle."
+        },
+        {
+          "path": "client/scripts/lobby/lobby_network_actions.gd",
+          "symbols": [
+            "send_ready_requested",
+            "send_start_game_requested",
+            "send_leave_requested"
+          ],
+          "reason": "Lobby network actions own construction/sending of client lifecycle requests.",
+          "minimum": "Evidence must complete the cross-language request path at the client."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/game-server/internal/rooms/room_lifecycle.go",
+          "symbols": [
+            "ResetToLobbyForSession",
+            "resetToLobbyLocked"
+          ],
+          "reason": "Return-to-lobby resets readiness, game, active count, and state.",
+          "minimum": "Supporting evidence may include reset semantics."
+        },
+        {
+          "path": "client/scripts/networking/outbound/lobby_client_packets.gd",
+          "symbols": [
+            "join_room_request_packet",
+            "leave_room_request_packet",
+            "set_ready_request_packet",
+            "start_game_request_packet"
+          ],
+          "reason": "Generated packet constructors are the client wire boundary for lobby actions.",
+          "minimum": "Supporting evidence may connect actions to packet shapes."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Long cross-language room/participant lifecycle request."
+    },
+    {
+      "id": "space-rocks-lm-04",
+      "query": "Implement or debug realtime resynchronization across baseline lanes: validate a client's resync request, schedule a full baseline or required response, preserve match/baseline identity, chunk oversized payloads, and make Godot assemble/apply the resulting lifecycle/world/session state without presenting stale data.",
+      "category": "long-mixed-query",
+      "budget": 12000,
+      "required": [
+        {
+          "path": "services/game-server/internal/networking/inbound/gameplay.go",
+          "symbols": [
+            "HandleGameplayPacket",
+            "PacketTypeResyncRequest",
+            "EnqueueResyncRequest"
+          ],
+          "reason": "Inbound gameplay validates resync match/lane fields and enqueues an accepted request.",
+          "minimum": "Evidence must identify request admission checks."
+        },
+        {
+          "path": "services/game-server/internal/networking/resync_write.go",
+          "symbols": [
+            "writeResyncRequiredAndApply"
+          ],
+          "reason": "Networking owns the response/write boundary for resync requests.",
+          "minimum": "Evidence must include server resync application."
+        },
+        {
+          "path": "services/game-server/internal/protocol/realtime/resync.go",
+          "symbols": [
+            "DecideResync"
+          ],
+          "reason": "Realtime protocol owns required notices and baseline candidate construction.",
+          "minimum": "Evidence must explain protocol-level resync and baseline generation."
+        },
+        {
+          "path": "services/game-server/internal/protocol/realtime/realtime_hardcap_chunker.go",
+          "symbols": [
+            "candidateEncodedSize"
+          ],
+          "reason": "Hard-cap chunking owns splitting large realtime payloads.",
+          "minimum": "Evidence must include payload-size handling."
+        },
+        {
+          "path": "client/scripts/protocol/realtime/lifecycle_chunk_assembler.gd",
+          "symbols": [
+            "accept",
+            "reset"
+          ],
+          "reason": "Godot assembles chunked lifecycle baselines before application.",
+          "minimum": "Evidence must include client chunk assembly state."
+        },
+        {
+          "path": "client/scripts/protocol/realtime/world_full_chunk_assembler.gd",
+          "symbols": [
+            "accept",
+            "reset"
+          ],
+          "reason": "World full snapshots have a dedicated client assembler.",
+          "minimum": "Evidence must include world baseline assembly."
+        },
+        {
+          "path": "client/scripts/protocol/realtime/realtime_router.gd",
+          "symbols": [
+            "route_lane_packet",
+            "_route_world_full",
+            "_route_resync"
+          ],
+          "reason": "RealtimeRouter gates and routes full/delta/resync packet behavior to lane state.",
+          "minimum": "Evidence must complete the client routing path."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "shared/packets/realtime_wire.toml",
+          "symbols": [
+            "resync_request",
+            "resync_required",
+            "world_full",
+            "world_delta"
+          ],
+          "reason": "Shared wire source defines the packets and metadata fields crossing the baseline flow.",
+          "minimum": "Supporting evidence may validate packet identity and lane contract."
+        },
+        {
+          "path": "client/scripts/protocol/realtime/gameplay_readiness.gd",
+          "symbols": [
+            "is_gameplay_ready"
+          ],
+          "reason": "Readiness controls when client gameplay can present synchronized state.",
+          "minimum": "Supporting evidence may connect assembly completion to presentation readiness."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Long cross-language protocol/resync implementation request."
+    },
+    {
+      "id": "space-rocks-lm-05",
+      "query": "Add or audit observability for a match-result report from Go room capture through player-data/Rails persistence and Godot result presentation. Preserve trace, match, account, result, failure-stage, duplicate, and status context; use the shared event definitions; and ensure each runtime's emitter sanitizes fields consistently.",
+      "category": "long-mixed-query",
+      "budget": 12000,
+      "required": [
+        {
+          "path": "services/game-server/internal/rooms/room_lifecycle.go",
+          "symbols": [
+            "MarkGameOver",
+            "captureGameOverLocked"
+          ],
+          "reason": "Room lifecycle establishes the match and trace context for completed results.",
+          "minimum": "Evidence must locate the result-origin context."
+        },
+        {
+          "path": "services/game-server/internal/matchreporting/runtime_reporter.go",
+          "symbols": [
+            "ReportMatchResult",
+            "emitPlayerDataPacketBoundaryEvent"
+          ],
+          "reason": "RuntimeReporter sends result commands and emits packet-boundary failures with context.",
+          "minimum": "Evidence must identify success/failure reporting and boundary observability."
+        },
+        {
+          "path": "services/api-server/app/controllers/internal/player_data/match_results_controller.rb",
+          "symbols": [
+            "emit_match_result_event",
+            "match_result_report_started",
+            "match_result_report_failed",
+            "match_result_duplicate_suppressed",
+            "match_result_report_succeeded"
+          ],
+          "reason": "Rails controller emits lifecycle events for validation, failure, duplicate, and success branches.",
+          "minimum": "Evidence must include API-side event coverage and failure-stage context."
+        },
+        {
+          "path": "services/api-server/app/lib/observability/emitter.rb",
+          "symbols": [
+            "Emitter",
+            "emit",
+            "sanitize_fields",
+            "validate_identity!"
+          ],
+          "reason": "Rails emitter owns canonical event validation and field safety.",
+          "minimum": "Evidence must locate Rails emitter safety behavior."
+        },
+        {
+          "path": "client/scripts/logging/observability_emitter.gd",
+          "symbols": [
+            "emit",
+            "_sanitize_fields",
+            "status"
+          ],
+          "reason": "Godot emitter owns client-side canonical event emission and health status.",
+          "minimum": "Evidence must include client observability behavior."
+        },
+        {
+          "path": "shared/contracts/observability/events.toml",
+          "symbols": [
+            "match_result_report_started",
+            "match_result_report_failed",
+            "match_result_report_succeeded",
+            "match_result_duplicate_suppressed"
+          ],
+          "reason": "The shared contract defines the event names and cross-service semantic vocabulary.",
+          "minimum": "Evidence must connect all runtime emissions to the shared event source."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "shared/go/observabilityevent/emitter.go",
+          "symbols": [
+            "Emit",
+            "sanitizeFields",
+            "Status"
+          ],
+          "reason": "The shared Go emitter provides server-side canonical validation and status semantics.",
+          "minimum": "Supporting evidence may compare server and client/API emitter behavior."
+        },
+        {
+          "path": "services/game-server/internal/observability/generated.go",
+          "symbols": [
+            "EventNameMatchResultReportStarted",
+            "EventNameMatchResultReportFailed",
+            "EventNameMatchResultReportSucceeded"
+          ],
+          "reason": "Generated Go event constants materialize the shared event contract for server calls.",
+          "minimum": "Supporting evidence may verify generated server names."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Long cross-language observability implementation request."
+    },
+    {
+      "id": "space-rocks-lm-06",
+      "query": "Before implementing team-based objectives or objective-driven match completion, map the real current foundations and the planned ownership seams: preserve Go match/lives facts and room result capture, keep teams responsible for membership/relationship facts, keep objective runtime responsible for progress, and ensure match outcomes/results consume facts without moving authority into networking or Godot. Identify what is implemented versus planning-only.",
+      "category": "long-mixed-query",
+      "budget": 12000,
+      "required": [
+        {
+          "path": "docs/planning/domains/gameplay/teams-and-team-rules.md",
+          "symbols": [
+            "# Teams And Team Rules",
+            "## Ownership Boundary",
+            "## Damage Relationships",
+            "## Aggregation, Elimination, And Forfeiture",
+            "## System Handoffs",
+            "## Core Invariants"
+          ],
+          "reason": "This planning source defines team membership, damage relationships, elimination/forfeiture, and handoff ownership.",
+          "minimum": "Evidence must use the team contract as the authority for team semantics, not invent a current runtime implementation."
+        },
+        {
+          "path": "docs/planning/domains/gameplay/objectives-and-objective-runtime.md",
+          "symbols": [
+            "# Objectives And Objective Runtime",
+            "## Ownership Boundary",
+            "## Progress, Facts, And Timers",
+            "## System Handoffs",
+            "## Core Invariants"
+          ],
+          "reason": "This planning source defines objective runtime ownership, progress facts, timers, and system boundaries.",
+          "minimum": "Evidence must identify objective behavior as a planned owner and distinguish it from current match code."
+        },
+        {
+          "path": "services/game-server/internal/game/rules/match.go",
+          "symbols": [
+            "EvaluateMatch",
+            "classifyPlayer",
+            "PlayerPendingRespawn",
+            "PlayerEliminated"
+          ],
+          "reason": "Current Go rules implement only player lifecycle-based match classification.",
+          "minimum": "Evidence must state the actual current match rule foundation."
+        },
+        {
+          "path": "services/game-server/internal/rooms/room_match_summary.go",
+          "symbols": [
+            "buildMatchResultSummary"
+          ],
+          "reason": "Current rooms convert match facts into result summaries without team/objective runtime state.",
+          "minimum": "Evidence must locate the current result handoff that a future team/objective design must preserve."
+        },
+        {
+          "path": "docs/planning/p4-team-contracts-worktree-status.md",
+          "symbols": [
+            "# P4 Team Contracts Worktree Status",
+            "## Completed Foundation",
+            "## Integration Sequence",
+            "## Next P4 Work"
+          ],
+          "reason": "This repository memory records which team foundation work is isolated and not yet integrated.",
+          "minimum": "Evidence must account for integration status before proposing implementation edits."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "services/game-server/internal/game/match.go",
+          "symbols": [
+            "PlayerMatchFacts",
+            "MatchDecision"
+          ],
+          "reason": "Game exposes the historical facts and terminal decision that future team/objective rules would consume.",
+          "minimum": "Supporting evidence may connect current gameplay facts to planned owners."
+        },
+        {
+          "path": "docs/planning/domains/gameplay/match-outcomes-and-results.md",
+          "symbols": [
+            "# Match Outcomes And Results",
+            "## Objectives And Missions",
+            "## Current Implementation Relationship",
+            "## Core Invariants"
+          ],
+          "reason": "The outcomes document defines how objectives feed results and records the current implementation relationship.",
+          "minimum": "Supporting evidence may explain the planned handoff into match results."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Long implementation-planning case covering teams, objectives, match results, and the implemented/planned distinction."
+    }
+  ]
+}

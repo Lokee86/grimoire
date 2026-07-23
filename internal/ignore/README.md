@@ -12,7 +12,7 @@
 
 ## Does not own
 
-- permanent exclusions such as `.git`, `.grimoire`, `.ddocs`, `.arcana`, `.warlock`, or worktree containers;
+- permanent exclusions such as `.git`, `.grimoire`, `.ddocs`, `.lexicon`, `.arcana`, `.warlock`, or worktree containers;
 - custom state-path exclusion;
 - supported file types;
 - size or binary filtering; or

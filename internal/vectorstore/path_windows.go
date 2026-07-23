@@ -17,28 +17,54 @@ func FindLibrary(explicit string) (string, error) {
 		return requireLibrary(configured)
 	}
 
-	candidates := make([]string, 0, 20)
-	if executable, err := os.Executable(); err == nil {
-		candidates = append(candidates, filepath.Join(filepath.Dir(executable), ABIName+".dll"))
+	executable, _ := os.Executable()
+	cwd, _ := os.Getwd()
+	for _, candidate := range libraryCandidates(executable, cwd) {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return filepath.Abs(candidate)
+		}
 	}
-	if cwd, err := os.Getwd(); err == nil {
-		for directory := filepath.Clean(cwd); ; directory = filepath.Dir(directory) {
-			candidates = append(candidates,
-				filepath.Join(directory, "native", "vector-engine", "target", "release", ABIName+".dll"),
-				filepath.Join(directory, "native", "vector-engine", "target", "debug", ABIName+".dll"),
-			)
+	return "", fmt.Errorf("%w: set GRIMOIRE_VECTOR_ENGINE or build native/vector-engine", ErrUnavailable)
+}
+
+func libraryCandidates(executable, cwd string) []string {
+	candidates := make([]string, 0, 32)
+	seen := map[string]struct{}{}
+	appendCandidate := func(path string) {
+		if path == "" {
+			return
+		}
+		path = filepath.Clean(path)
+		if _, exists := seen[path]; exists {
+			return
+		}
+		seen[path] = struct{}{}
+		candidates = append(candidates, path)
+	}
+	appendDevelopmentCandidates := func(start string) {
+		if start == "" {
+			return
+		}
+		for directory := filepath.Clean(start); ; directory = filepath.Dir(directory) {
+			appendCandidate(filepath.Join(directory, "native", "vector-engine", "target", "release", ABIName+".dll"))
+			appendCandidate(filepath.Join(directory, "native", "vector-engine", "target", "debug", ABIName+".dll"))
 			parent := filepath.Dir(directory)
 			if parent == directory {
 				break
 			}
 		}
 	}
-	for _, candidate := range candidates {
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return filepath.Abs(candidate)
-		}
+
+	if executable != "" {
+		executableDirectory := filepath.Dir(executable)
+		appendCandidate(filepath.Join(executableDirectory, ABIName+".dll"))
+		appendDevelopmentCandidates(executableDirectory)
 	}
-	return "", fmt.Errorf("%w: set GRIMOIRE_VECTOR_ENGINE or build native/vector-engine", ErrUnavailable)
+	if cwd != "" {
+		appendCandidate(filepath.Join(cwd, ABIName+".dll"))
+		appendDevelopmentCandidates(cwd)
+	}
+	return candidates
 }
 
 func requireLibrary(path string) (string, error) {

@@ -1,0 +1,673 @@
+{
+  "version": 1,
+  "repository": "Lexicon",
+  "cases": [
+    {
+      "id": "lexicon-dl-01",
+      "query": "Where is adapter output validated before it is ingested into the object store?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "internal/objectstore/ingest_parse.go",
+          "symbols": [
+            "ValidateOutput",
+            "parseOutput",
+            "validateHeader",
+            "validateFullHeader"
+          ],
+          "reason": "These functions own parsing and validation of adapter output before ingestion.",
+          "minimum": "Evidence must identify the output-validation implementation and its parsing/header checks."
+        },
+        {
+          "path": "internal/objectstore/ingest.go",
+          "symbols": [
+            "IngestLanguage"
+          ],
+          "reason": "This is the ingestion entry point that consumes validated adapter output.",
+          "minimum": "Evidence must connect validation to language-specific object-store ingestion."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/objectstore/ingest_parse.go",
+          "symbols": [
+            "nodeOwners",
+            "recordOwner",
+            "normalizeOwner"
+          ],
+          "reason": "These helpers provide ownership normalization relevant to interpreting parsed records.",
+          "minimum": "Supporting evidence may explain ownership handling around parsed output."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Tests whether retrieval finds the validation implementation and the ingestion boundary."
+    },
+    {
+      "id": "lexicon-dl-02",
+      "query": "Where is the current immutable snapshot published and later resolved?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "internal/objectstore/store.go",
+          "symbols": [
+            "Publish",
+            "Current",
+            "Load"
+          ],
+          "reason": "These methods own snapshot publication, current-snapshot resolution, and loading.",
+          "minimum": "Evidence must locate both publication and subsequent snapshot lookup/loading behavior."
+        },
+        {
+          "path": "internal/objectstore/manifest.go",
+          "symbols": [
+            "BuildManifest"
+          ],
+          "reason": "Manifest construction defines the immutable snapshot contents being published.",
+          "minimum": "Evidence must identify how the published snapshot manifest is built."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/objectstore/store_write.go",
+          "symbols": [
+            "writeImmutable",
+            "writeAtomic"
+          ],
+          "reason": "These helpers show the write mechanics that make snapshot publication immutable and atomic.",
+          "minimum": "Supporting evidence may explain the storage guarantees behind publication."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Targets the distinction between snapshot API methods and the lower-level immutable write helpers."
+    },
+    {
+      "id": "lexicon-dl-03",
+      "query": "Where does Lexicon compute transitive impacted files from dependency facts?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "internal/objectstore/dependencies.go",
+          "symbols": [
+            "ImpactedFiles",
+            "DependencyScope",
+            "closure",
+            "addRelation"
+          ],
+          "reason": "This file owns dependency-fact relation construction and transitive impact closure.",
+          "minimum": "Evidence must locate the public impact computation and the relation/closure implementation."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/objectstore/topology.go",
+          "symbols": [
+            "RequiresFullAnalysis",
+            "DirectChangesRequireFull"
+          ],
+          "reason": "Topology policy consumes dependency impact when deciding analysis breadth.",
+          "minimum": "Supporting evidence may connect impacted-file computation to full-analysis decisions."
+        }
+      ],
+      "forbidden": [],
+      "notes": "A focused location query for dependency closure rather than general scan planning."
+    },
+    {
+      "id": "lexicon-me-01",
+      "query": "How does an incremental scan turn source changes and adapter drift into language-specific analysis plans?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "internal/scan/languages.go",
+          "symbols": [
+            "languagesForChanges",
+            "libraryDriftLanguagesFor",
+            "mergeLanguages"
+          ],
+          "reason": "These functions derive and combine the languages affected by source changes and adapter drift.",
+          "minimum": "Evidence must explain affected-language selection for both change sources and their merge."
+        },
+        {
+          "path": "internal/scan/plan.go",
+          "symbols": [
+            "plansFor",
+            "structuralChange",
+            "languageOwnsSource"
+          ],
+          "reason": "This file converts affected languages and change shape into analysis plans.",
+          "minimum": "Evidence must explain plan construction, structural-change handling, and source ownership."
+        },
+        {
+          "path": "internal/scan/analysis.go",
+          "symbols": [
+            "analyzePlans",
+            "analyzePlan",
+            "analysisRequest"
+          ],
+          "reason": "These functions execute the generated plans as analysis requests.",
+          "minimum": "Evidence must carry the mechanism through plan execution into adapter analysis requests."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/objectstore/topology.go",
+          "symbols": [
+            "RequiresFullAnalysis",
+            "DirectChangesRequireFull"
+          ],
+          "reason": "Topology rules constrain when incremental planning must become full analysis.",
+          "minimum": "Supporting evidence may explain the full-analysis escalation decision."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Requires a mechanism spanning change detection, planning, and execution."
+    },
+    {
+      "id": "lexicon-me-02",
+      "query": "How does partial-language merging preserve complete shared facts while replacing selected owners?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "internal/library/merge.go",
+          "symbols": [
+            "Merge"
+          ],
+          "reason": "Merge is the library-level entry point for combining partial-language results.",
+          "minimum": "Evidence must identify the merge orchestration and its replacement semantics."
+        },
+        {
+          "path": "internal/library/merge_stream.go",
+          "symbols": [
+            "readStream",
+            "nodeOwners",
+            "recordOwner",
+            "directOwner",
+            "normalize",
+            "sortRecords"
+          ],
+          "reason": "These stream helpers classify ownership, normalize records, and produce deterministic merged output.",
+          "minimum": "Evidence must explain how shared facts are retained while selected owners are replaced."
+        },
+        {
+          "path": "internal/library/header.go",
+          "symbols": [
+            "SetSharedComplete"
+          ],
+          "reason": "The header records completeness of shared facts after a partial merge.",
+          "minimum": "Evidence must include the completeness state update that preserves shared-fact correctness."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/library/merge_stream.go",
+          "symbols": [
+            "stringSet",
+            "cloneRecord",
+            "writeStream"
+          ],
+          "reason": "These helpers support set tracking, record isolation, and merged stream output.",
+          "minimum": "Supporting evidence may clarify implementation details of the merge stream."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Tests ownership-aware merge behavior and completeness bookkeeping together."
+    },
+    {
+      "id": "lexicon-me-03",
+      "query": "How does garbage collection preserve current and consumer-pinned snapshots while rejecting unsafe deletion plans?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "internal/objectstore/gc.go",
+          "symbols": [
+            "PlanGC",
+            "GarbageCollect"
+          ],
+          "reason": "These functions provide the garbage-collection planning and orchestration entry points.",
+          "minimum": "Evidence must explain the lifecycle from GC planning through collection."
+        },
+        {
+          "path": "internal/objectstore/gc_storage.go",
+          "symbols": [
+            "listSnapshots",
+            "readConsumerPins",
+            "listObjects"
+          ],
+          "reason": "These functions discover snapshots, pins, and stored objects that constrain deletion.",
+          "minimum": "Evidence must show how current and consumer-pinned state enters the retention decision."
+        },
+        {
+          "path": "internal/objectstore/gc_validate.go",
+          "symbols": [
+            "validateGCPlan",
+            "rejectOverlap"
+          ],
+          "reason": "Validation rejects deletion plans that overlap protected or unsafe objects.",
+          "minimum": "Evidence must explain the safety validation and overlap rejection behavior."
+        },
+        {
+          "path": "internal/objectstore/gc_execute.go",
+          "symbols": [
+            "ExecuteGC",
+            "canonicalGCPlan"
+          ],
+          "reason": "These functions canonicalize and execute the validated deletion plan.",
+          "minimum": "Evidence must carry the mechanism through canonical plan execution."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/objectstore/gc_validate.go",
+          "symbols": [
+            "addManifestObjects",
+            "validGCIDs"
+          ],
+          "reason": "These helpers build protected-object sets and validate deletion identifiers.",
+          "minimum": "Supporting evidence may detail manifest protection and plan-ID validation."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Covers retention discovery, safety validation, and deletion execution as one mechanism."
+    },
+    {
+      "id": "lexicon-ao-01",
+      "query": "Which components own repository state transitions, snapshot publication, scanning, and consumer notification?",
+      "category": "architecture-ownership",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "internal/state/git.go",
+          "symbols": [
+            "Ensure",
+            "Open",
+            "SourceChanges",
+            "CommitState",
+            "RestoreLibrary"
+          ],
+          "reason": "The state component owns repository state initialization, change detection, commits, and restoration.",
+          "minimum": "Evidence must distinguish repository-state responsibilities from scan and storage responsibilities."
+        },
+        {
+          "path": "internal/scan/scanner.go",
+          "symbols": [
+            "Scan",
+            "scan",
+            "notifyConsumers"
+          ],
+          "reason": "The scanner owns scan orchestration and post-scan consumer notification.",
+          "minimum": "Evidence must identify scan ownership and where consumer notification is initiated."
+        },
+        {
+          "path": "internal/objectstore/store.go",
+          "symbols": [
+            "Publish",
+            "Current"
+          ],
+          "reason": "The object store owns snapshot publication and current-snapshot access.",
+          "minimum": "Evidence must identify storage ownership of snapshot state rather than attributing it to the scanner."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/scan/snapshot.go",
+          "symbols": [
+            "ensureSnapshot",
+            "publishSnapshot"
+          ],
+          "reason": "These scan-layer helpers bridge scan orchestration and object-store snapshot publication.",
+          "minimum": "Supporting evidence may explain the boundary between scan and storage components."
+        }
+      ],
+      "forbidden": [],
+      "notes": "An ownership map across state, scanning, storage, and notification boundaries."
+    },
+    {
+      "id": "lexicon-ao-02",
+      "query": "Where is source ownership defined for overlapping languages such as TypeScript and JavaScript, and how does scoped analysis honor it?",
+      "category": "architecture-ownership",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "internal/languages/registry.go",
+          "symbols": [
+            "ForPath",
+            "OwnsSource",
+            "SourceExtension"
+          ],
+          "reason": "The language registry defines path matching, source ownership, and extension behavior.",
+          "minimum": "Evidence must locate the authoritative ownership rules for overlapping languages."
+        },
+        {
+          "path": "internal/scan/plan.go",
+          "symbols": [
+            "languageOwnsSource",
+            "plansFor"
+          ],
+          "reason": "Scan planning applies language ownership when selecting work.",
+          "minimum": "Evidence must explain how ownership rules affect scoped plan selection."
+        },
+        {
+          "path": "internal/scope/repository.go",
+          "symbols": [
+            "Build",
+            "expandSemanticUnits",
+            "languageConfig"
+          ],
+          "reason": "Repository scoping builds the analysis scope and language-specific semantic units.",
+          "minimum": "Evidence must connect ownership to the scope constructed for analysis."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/languages/registry.go",
+          "symbols": [
+            "Definitions",
+            "Lookup"
+          ],
+          "reason": "Registry enumeration and lookup support the ownership configuration used by planning and scope.",
+          "minimum": "Supporting evidence may show how language definitions are retrieved."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Tests architectural ownership across registry policy, scan planning, and scope construction."
+    },
+    {
+      "id": "lexicon-cc-01",
+      "query": "Trace a GDScript call from token parsing through semantic resolution to emitted resolved or possible-target facts.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "adapters/gdscript/call_parser.go",
+          "symbols": [
+            "findCalls",
+            "findCallsInTokens",
+            "terminalCall"
+          ],
+          "reason": "These parser functions discover calls and identify their terminal call expressions.",
+          "minimum": "Evidence must begin at token-level call discovery."
+        },
+        {
+          "path": "adapters/gdscript/call_resolution.go",
+          "symbols": [
+            "resolveCall",
+            "resolveMethods",
+            "methodTargets"
+          ],
+          "reason": "These functions resolve discovered calls to methods and candidate targets.",
+          "minimum": "Evidence must show the semantic-resolution stage and target selection."
+        },
+        {
+          "path": "adapters/gdscript/call_emission.go",
+          "symbols": [
+            "processCalls",
+            "emitResolvedCall",
+            "emitPossibleTargets"
+          ],
+          "reason": "These functions turn resolved or ambiguous calls into emitted facts.",
+          "minimum": "Evidence must complete the chain through resolved and possible-target emission."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "adapters/gdscript/model.go",
+          "symbols": [
+            "addEdge",
+            "addUnresolved"
+          ],
+          "reason": "The model helpers receive emitted edge and unresolved-call facts.",
+          "minimum": "Supporting evidence may show the final model mutations."
+        },
+        {
+          "path": "adapters/gdscript/call_emission.go",
+          "symbols": [
+            "emitCallbackEdges"
+          ],
+          "reason": "Callback edge emission is an adjacent call-fact output path.",
+          "minimum": "Supporting evidence may cover callback-specific edges."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Requires ordered evidence across parser, resolver, and emitter rather than a single definition."
+    },
+    {
+      "id": "lexicon-cc-02",
+      "query": "Trace `lexicon scan` from CLI dispatch through analysis execution, adapter invocation, snapshot publication, and consumer notification.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "internal/cli/cli.go",
+          "symbols": [
+            "Run",
+            "runScan"
+          ],
+          "reason": "CLI dispatch and scan command handling start the requested call chain.",
+          "minimum": "Evidence must begin at command dispatch and scan subcommand handling."
+        },
+        {
+          "path": "internal/scan/scanner.go",
+          "symbols": [
+            "Scan",
+            "scan",
+            "notifyConsumers"
+          ],
+          "reason": "The scanner coordinates analysis, publication, and consumer notification.",
+          "minimum": "Evidence must show the orchestration points and notification handoff."
+        },
+        {
+          "path": "internal/scan/analysis.go",
+          "symbols": [
+            "analyzePlans",
+            "analyzePlan",
+            "analysisRequest"
+          ],
+          "reason": "These functions execute selected analysis plans and form adapter requests.",
+          "minimum": "Evidence must include plan execution before adapter invocation."
+        },
+        {
+          "path": "internal/adapters/runner.go",
+          "symbols": [
+            "Run",
+            "command"
+          ],
+          "reason": "The adapter runner invokes the external or configured adapter command.",
+          "minimum": "Evidence must identify the adapter invocation boundary."
+        },
+        {
+          "path": "internal/scan/snapshot.go",
+          "symbols": [
+            "publishSnapshot"
+          ],
+          "reason": "The scan snapshot layer prepares publication after analysis.",
+          "minimum": "Evidence must show the scan-to-publication handoff."
+        },
+        {
+          "path": "internal/objectstore/store.go",
+          "symbols": [
+            "Publish"
+          ],
+          "reason": "The object store performs the final snapshot publication.",
+          "minimum": "Evidence must complete the chain at the storage publication method."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/scan/scanner.go",
+          "symbols": [
+            "ScanPaths"
+          ],
+          "reason": "Path-scoped scan entry is an adjacent dispatch surface for the scanner.",
+          "minimum": "Supporting evidence may clarify alternate scan input handling."
+        }
+      ],
+      "forbidden": [],
+      "notes": "A full command-to-side-effect chain with explicit adapter and consumer boundaries."
+    },
+    {
+      "id": "lexicon-lm-01",
+      "query": "A tracked Go file changes while an adapter fingerprint drifts: how does Lexicon detect both conditions, select affected languages, scope analysis, merge cached facts, publish the new snapshot, and notify consumers?",
+      "category": "long-mixed-query",
+      "budget": 12000,
+      "required": [
+        {
+          "path": "internal/state/git.go",
+          "symbols": [
+            "SourceChanges"
+          ],
+          "reason": "SourceChanges detects tracked repository changes that trigger incremental work.",
+          "minimum": "Evidence must identify source-change detection."
+        },
+        {
+          "path": "internal/scan/languages.go",
+          "symbols": [
+            "languagesForChanges",
+            "libraryDriftLanguagesFor"
+          ],
+          "reason": "These functions select languages affected by source changes and library or adapter drift.",
+          "minimum": "Evidence must cover both change inputs and affected-language selection."
+        },
+        {
+          "path": "internal/scan/snapshot.go",
+          "symbols": [
+            "adapterDriftLanguages",
+            "publishSnapshot"
+          ],
+          "reason": "The snapshot layer detects adapter drift and publishes the resulting snapshot.",
+          "minimum": "Evidence must connect drift detection to eventual publication."
+        },
+        {
+          "path": "internal/scan/plan.go",
+          "symbols": [
+            "plansFor"
+          ],
+          "reason": "plansFor turns the affected languages and changes into analysis work.",
+          "minimum": "Evidence must include plan selection before scoped analysis."
+        },
+        {
+          "path": "internal/scope/repository.go",
+          "symbols": [
+            "Build"
+          ],
+          "reason": "Build constructs the repository analysis scope.",
+          "minimum": "Evidence must identify the scope-construction stage."
+        },
+        {
+          "path": "internal/library/merge.go",
+          "symbols": [
+            "Merge"
+          ],
+          "reason": "Merge combines newly analyzed facts with cached library facts.",
+          "minimum": "Evidence must include cached-fact merging."
+        },
+        {
+          "path": "internal/scan/scanner.go",
+          "symbols": [
+            "notifyConsumers"
+          ],
+          "reason": "notifyConsumers handles downstream notification after the new snapshot is ready.",
+          "minimum": "Evidence must complete the flow through consumer notification."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/objectstore/store.go",
+          "symbols": [
+            "Publish",
+            "Current"
+          ],
+          "reason": "Object-store methods provide publication and current-snapshot access around the flow.",
+          "minimum": "Supporting evidence may explain snapshot state access."
+        },
+        {
+          "path": "internal/adapters/registry.go",
+          "symbols": [
+            "FingerprintWithVersions"
+          ],
+          "reason": "Adapter fingerprinting supplies the version-aware drift signal.",
+          "minimum": "Supporting evidence may identify the fingerprint source."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Combines repository change detection, drift, planning, scope, merge, publication, and notification."
+    },
+    {
+      "id": "lexicon-lm-02",
+      "query": "After a scan publishes a snapshot, how does `consumer run` validate registered definitions, invoke each consumer, aggregate failures, and persist successful snapshot state?",
+      "category": "long-mixed-query",
+      "budget": 12000,
+      "required": [
+        {
+          "path": "internal/scan/scanner.go",
+          "symbols": [
+            "notifyConsumers"
+          ],
+          "reason": "notifyConsumers is the post-scan entry point into consumer execution.",
+          "minimum": "Evidence must establish how the published snapshot reaches consumer handling."
+        },
+        {
+          "path": "internal/cli/consumers.go",
+          "symbols": [
+            "runConsumer",
+            "runConsumerOne"
+          ],
+          "reason": "These CLI functions dispatch consumer-run requests and individual consumers.",
+          "minimum": "Evidence must locate the consumer command dispatch layer."
+        },
+        {
+          "path": "internal/consumer/registry.go",
+          "symbols": [
+            "RunOne",
+            "validateDefinition"
+          ],
+          "reason": "The registry validates registered consumer definitions and selects one to run.",
+          "minimum": "Evidence must cover definition validation and registry dispatch."
+        },
+        {
+          "path": "internal/consumer/runner.go",
+          "symbols": [
+            "Run",
+            "runOne",
+            "Validate",
+            "invoke"
+          ],
+          "reason": "The runner validates and invokes consumers while coordinating per-consumer execution and failures.",
+          "minimum": "Evidence must explain invocation and failure aggregation across consumers."
+        },
+        {
+          "path": "internal/consumer/state.go",
+          "symbols": [
+            "saveSnapshot"
+          ],
+          "reason": "saveSnapshot persists successful consumer snapshot state.",
+          "minimum": "Evidence must complete the flow with successful-state persistence."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "internal/objectstore/store.go",
+          "symbols": [
+            "Current"
+          ],
+          "reason": "Current resolves the snapshot that consumer execution operates on.",
+          "minimum": "Supporting evidence may clarify snapshot selection."
+        },
+        {
+          "path": "internal/cli/consumers.go",
+          "symbols": [
+            "consumerFileName"
+          ],
+          "reason": "This helper supports consumer definition/file resolution at the CLI boundary.",
+          "minimum": "Supporting evidence may explain how registered definitions are located."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Requires following both automatic post-scan notification and explicit consumer-run execution concerns."
+    }
+  ]
+}

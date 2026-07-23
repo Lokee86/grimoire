@@ -8,7 +8,11 @@ import (
 	"github.com/Lokee86/grimoire/internal/selection"
 )
 
-const maxExactCandidates = 32
+const (
+	maxExactCandidates   = 32
+	maxLexiconCandidates = 24
+	baseFrontCandidates  = 32
+)
 
 func curateContextCandidates(
 	snapshot index.Snapshot,
@@ -45,6 +49,21 @@ func mergeContextCandidates(limit int, groups ...[]retrieve.Candidate) []retriev
 		}
 	}
 	return merged
+}
+
+func mergeContextProviders(
+	limit int,
+	exact, base, lexicon []retrieve.Candidate,
+) []retrieve.Candidate {
+	frontCount := min(baseFrontCandidates, len(base))
+	lexiconCount := min(maxLexiconCandidates, len(lexicon))
+	return mergeContextCandidates(
+		limit,
+		exact,
+		base[:frontCount],
+		lexicon[:lexiconCount],
+		base[frontCount:],
+	)
 }
 
 func contextCandidateKey(candidate retrieve.Candidate) string {
