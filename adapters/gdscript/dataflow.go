@@ -49,7 +49,7 @@ func emitGDScriptStatement(facts *factSet, model *semanticModel, context analysi
 		if target, receiver, name := gdscriptTarget(left); name != "" {
 			if receiver != nil {
 				emitGDScriptMemberTarget(facts, model, context, source, pf, target, receiver, name, compound)
-			} else if id := gdscriptLocalTarget(facts, context.functionID, name); id != "" {
+			} else if id := gdscriptLocalTarget(facts, context.functionID, name, left[0]); id != "" {
 				if compound {
 					facts.addDataflowEdge(edge(source, id, "reads", spanFromTokens(pf.path, left[0], left[len(left)-1])))
 				}
@@ -66,7 +66,7 @@ func emitGDScriptStatement(facts *factSet, model *semanticModel, context analysi
 		}
 		if left, receiver, name := gdscriptTarget(target); name != "" {
 			if receiver == nil {
-				if id := gdscriptLocalTarget(facts, context.functionID, name); id != "" {
+				if id := gdscriptLocalTarget(facts, context.functionID, name, left[0]); id != "" {
 					span := spanFromTokens(pf.path, left[0], left[len(left)-1])
 					facts.addDataflowEdge(edge(source, id, "reads", span))
 					facts.addDataflowEdge(edge(source, id, "writes", span))
@@ -95,7 +95,7 @@ func emitGDScriptReads(facts *factSet, model *semanticModel, context analysisCon
 			}
 			continue
 		}
-		if id := gdscriptLocalTarget(facts, context.functionID, current.text); id != "" {
+		if id := gdscriptLocalTarget(facts, context.functionID, current.text, current); id != "" {
 			facts.addDataflowEdge(edge(source, id, "reads", spanFromTokens(pf.path, current, current)))
 		}
 	}
@@ -113,30 +113,57 @@ func emitGDScriptMemberTarget(facts *factSet, model *semanticModel, context anal
 	facts.addDataflowEdge(edge(source, id, "writes", span))
 }
 
-func gdscriptLocalTarget(facts *factSet, functionID, name string) string {
+func gdscriptLocalTarget(facts *factSet, functionID, name string, reference token) string {
 	if functionID == "" {
 		return ""
 	}
+	bestID := ""
+	bestLine, bestColumn := -1, -1
+	ambiguous := false
 	for id, decl := range facts.declarationByID {
-		if decl.ownerFunction == functionID && decl.name == name && (decl.kind == "variable" || decl.kind == "constant") {
-			return id
+		if decl.ownerFunction != functionID || decl.name != name || (decl.kind != "variable" && decl.kind != "constant") {
+			continue
+		}
+		line := spanInt(decl.span, "start_line")
+		column := spanInt(decl.span, "start_column")
+		if declarationContainsToken(decl, reference) || line > reference.line || line == reference.line && column >= reference.column {
+			continue
+		}
+		if line > bestLine || line == bestLine && column > bestColumn {
+			bestID, bestLine, bestColumn, ambiguous = id, line, column, false
+			continue
+		}
+		if line == bestLine && column == bestColumn && id != bestID {
+			ambiguous = true
 		}
 	}
-	for id, decl := range facts.declarationByID {
-		if decl.ownerFunction == functionID && decl.name == name {
-			return id
-		}
+	if bestID != "" && !ambiguous {
+		return bestID
 	}
-	for _, decl := range facts.declarationByID {
-		if decl.nodeID == functionID {
-			for _, parameter := range decl.parameterNames {
-				if parameter == name {
-					return nodeID("parameter", decl.key+"::parameter::"+name)
-				}
-			}
+	function := facts.declarationByID[functionID]
+	if function == nil {
+		return ""
+	}
+	for _, parameter := range function.parameterNames {
+		if parameter == name {
+			return nodeID("parameter", function.key+"::parameter::"+name)
 		}
 	}
 	return ""
+}
+
+func declarationContainsToken(decl *declaration, reference token) bool {
+	startLine := spanInt(decl.span, "start_line")
+	startColumn := spanInt(decl.span, "start_column")
+	endLine := spanInt(decl.span, "end_line")
+	endColumn := spanInt(decl.span, "end_column")
+	if reference.line < startLine || reference.line > endLine {
+		return false
+	}
+	if reference.line == startLine && reference.column < startColumn {
+		return false
+	}
+	return reference.line != endLine || reference.column < endColumn
 }
 
 func gdscriptMemberTargetID(model *semanticModel, context analysisContext, receiver []token, name string) string {
@@ -148,12 +175,19 @@ func gdscriptMemberTargetID(model *semanticModel, context analysisContext, recei
 	} else if len(receiver) > 0 {
 		owners = model.inferExpressionOwners(context, receiver)
 	}
+	candidates := make(map[string]struct{})
 	for owner := range owners {
 		for id, decl := range model.facts.declarationByID {
 			if decl.ownerID == owner && decl.name == name && (decl.kind == "variable" || decl.kind == "constant") {
-				return id
+				candidates[id] = struct{}{}
 			}
 		}
+	}
+	if len(candidates) != 1 {
+		return ""
+	}
+	for id := range candidates {
+		return id
 	}
 	return ""
 }

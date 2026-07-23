@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "python-doc-ledger",
+      "adapter": "python",
+      "split": "calibration",
+      "repository": "corpus/doc-ledger-python",
+      "revision": "7fbdb81307ff7c6b1ba28886c3a40b8837ebf785",
+      "required_relations": ["calls", "reads", "writes", "depends-on"]
+    },
+    {
+      "id": "python-space-rocks-tools",
+      "adapter": "python",
+      "split": "validation",
+      "repository": "space-rocks/tools",
+      "required_relations": ["calls", "reads", "writes"]
+    },
+    {
+      "id": "ruby-lexicon-adapter",
+      "adapter": "ruby",
+      "split": "calibration",
+      "repository": "lexicon/adapters/ruby",
+      "required_relations": ["calls", "reads", "writes"]
+    },
+    {
+      "id": "ruby-space-rocks-api",
+      "adapter": "ruby",
+      "split": "validation",
+      "repository": "space-rocks/services/api-server",
+      "required_relations": ["calls", "reads", "writes", "depends-on"]
+    },
+    {
+      "id": "typescript-workspace-mcp",
+      "adapter": "typescript",
+      "split": "calibration",
+      "repository": "workspace-mcp",
+      "required_relations": ["calls", "reads", "writes", "depends-on"]
+    },
+    {
+      "id": "typescript-lexicanter-svelte",
+      "adapter": "typescript",
+      "split": "validation",
+      "repository": "corpus/lexicanter",
+      "revision": "eac754788b3cf18a930c085c1c49f8f353e18107",
+      "required_relations": ["calls", "reads", "writes", "depends-on"]
+    },
+    {
+      "id": "typescript-space-rocks-web",
+      "adapter": "typescript",
+      "split": "holdout",
+      "repository": "space-rocks/web-astro",
+      "required_relations": ["calls", "reads", "writes", "depends-on"]
+    },
+    {
+      "id": "gdscript-alienattack",
+      "adapter": "gdscript",
+      "split": "calibration",
+      "repository": "alienattack",
+      "required_relations": ["calls", "reads", "writes"]
+    },
+    {
+      "id": "gdscript-space-rocks-client",
+      "adapter": "gdscript",
+      "split": "validation",
+      "repository": "space-rocks/client",
+      "required_relations": ["calls", "reads", "writes", "depends-on"]
+    },
+    {
+      "id": "gdscript-speedysaucer",
+      "adapter": "gdscript",
+      "split": "holdout",
+      "repository": "speedysaucer",
+      "required_relations": ["reads", "writes", "depends-on"],
+      "expected_zero_relations": ["calls", "possible-calls"]
+    },
+    {
+      "id": "rust-grimoire-vector",
+      "adapter": "rust",
+      "split": "calibration",
+      "repository": "grimoire/native/vector-engine",
+      "required_relations": ["calls", "reads", "writes", "depends-on"]
+    },
+    {
+      "id": "rust-arcana",
+      "adapter": "rust",
+      "split": "validation",
+      "repository": "arcana",
+      "required_relations": ["calls", "reads", "writes", "depends-on"]
+    }
+  ]
+}

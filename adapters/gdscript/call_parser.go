@@ -26,8 +26,8 @@ func findCallsInTokens(tokens []token, path string) []callReference {
 			continue
 		}
 		close := matchingParen(tokens, i+1)
-		if close < 0 {
-			close = i + 1
+		if close <= i+1 {
+			continue
 		}
 		start := i
 		var receiver []token

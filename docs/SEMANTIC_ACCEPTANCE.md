@@ -43,3 +43,5 @@ Before merging a semantic stream:
 6. inspect unresolved counts and explicitly document unsupported forms.
 
 A stream is incomplete when its promised relation count is zero for its acceptance fixtures, even when its tests otherwise pass.
+
+The repeatable real-repository implementation of these gates lives under `evaluation/`. Run `python evaluation/bootstrap_corpus.py`, `python evaluation/run_tests.py`, and `python evaluation/run_validation.py --jobs 3`. A successful complete validation replaces the tracked `evaluation/validation/baseline.json`; details and current results are documented in `SEMANTIC_CORPUS_VALIDATION.md`.

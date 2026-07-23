@@ -12,6 +12,9 @@
 
 # Generated facts and temporary files
 .lexicon/
+/evaluation/bin/
+/evaluation/validation/generated/
+/evaluation/corpus_state.json
 *.facts.jsonl
 *.tmp
 

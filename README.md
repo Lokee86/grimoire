@@ -89,6 +89,8 @@ Lexicon now has a version-one fact contract, a complete Go semantic adapter, run
 
 The non-Go adapters are functional foundations rather than complete semantic analyzers. Go includes type-aware internal and external calls, SSA/VTA possible dispatch, interfaces, closures, captures, conversions, and build-tag variants. Unsupported or ambiguous relationships remain unresolved rather than guessed.
 
+Cross-adapter real-repository acceptance is tracked by the corpus harness in [`evaluation/`](evaluation/README.md). The current non-Go baseline covers 12 calibration, validation, and holdout cases with contract validation, required-relation gates, expected-negative gates, audit samples, and byte-for-byte repeat-run determinism. See [`docs/SEMANTIC_CORPUS_VALIDATION.md`](docs/SEMANTIC_CORPUS_VALIDATION.md).
+
 ## License
 
 Apache License 2.0.
