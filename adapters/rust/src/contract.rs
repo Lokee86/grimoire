@@ -8,6 +8,7 @@ pub(crate) struct Facts {
     pub(crate) nodes: BTreeMap<String, Value>,
     pub(crate) edges: BTreeMap<String, Value>,
     pub(crate) unresolved: BTreeMap<String, Value>,
+    pub(crate) dataflow_edges: std::collections::BTreeSet<String>,
 }
 
 impl Facts {
@@ -16,6 +17,7 @@ impl Facts {
             nodes: BTreeMap::new(),
             edges: BTreeMap::new(),
             unresolved: BTreeMap::new(),
+            dataflow_edges: std::collections::BTreeSet::new(),
         }
     }
 
@@ -122,6 +124,12 @@ impl Facts {
             span_key(&span)
         );
         self.unresolved.entry(key).or_insert(Value::Object(record));
+    }
+
+    pub(crate) fn add_dataflow_edge(&mut self, source: &str, target: &str, relation: &str, span: Option<Value>) {
+        let key = format!("{source}\0{target}\0{relation}");
+        if !self.dataflow_edges.insert(key) { return; }
+        self.add_edge(source, target, relation, span);
     }
 }
 

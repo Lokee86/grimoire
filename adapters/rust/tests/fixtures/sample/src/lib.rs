@@ -50,6 +50,32 @@ pub enum Kind {
     Data(Service),
 }
 
+pub const FLOW_CONST: i32 = 1;
+
+pub struct FlowBox {
+    pub field: i32,
+}
+
+impl FlowBox {
+    pub fn update(&mut self, value: i32) -> i32 {
+        self.field = value;
+        self.field += FLOW_CONST;
+        self.field
+    }
+}
+
+pub fn flow(value: i32, mut box_value: FlowBox) -> i32 {
+    let mut local = value;
+    local += FLOW_CONST;
+    local = local + 1;
+    box_value.field = local;
+    local + value
+}
+
+pub fn inner(value: i32) -> i32 {
+    value
+}
+
 pub fn helper() {}
 
 pub fn invoke<F: Fn()>(callback: F) {

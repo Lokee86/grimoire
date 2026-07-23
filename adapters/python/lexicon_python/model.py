@@ -138,6 +138,7 @@ class Facts:
     module_bindings: dict[tuple[str, str], tuple[str | None, str]] = field(default_factory=dict)
     scope_bindings: dict[tuple[str, str], tuple[str | None, str]] = field(default_factory=dict)
     scope_parents: dict[str, str] = field(default_factory=dict)
+    dataflow_edges: set[tuple[str, str, str]] = field(default_factory=set)
 
     def add_node(
         self,
@@ -191,6 +192,20 @@ class Facts:
             record["span"] = record_span
         key = json.dumps(record, sort_keys=True, separators=(",", ":"))
         self.edges[key] = record
+
+    def add_dataflow_edge(
+        self,
+        source: str,
+        target: str,
+        relation: str,
+        *,
+        record_span: dict[str, Any] | None = None,
+    ) -> None:
+        key = (source, target, relation)
+        if key in self.dataflow_edges:
+            return
+        self.dataflow_edges.add(key)
+        self.add_edge(source, target, relation, record_span=record_span)
 
     def add_unresolved(
         self,

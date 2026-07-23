@@ -41,6 +41,7 @@ pub(crate) fn generate(
         trait_method_ids: Default::default(),
         type_traits: BTreeMap::new(),
         fields: BTreeMap::new(),
+        field_ids: BTreeMap::new(),
         pending_impls: Vec::new(),
         pending_imports: Vec::new(),
         imports: BTreeMap::new(),
@@ -54,5 +55,6 @@ pub(crate) fn generate(
     discovery::add_crates(&mut context, &metadata);
     crate::dependencies::add_dependencies(&mut context, &metadata);
     extractor::extract(&mut context);
+    crate::dataflow::emit(&mut context);
     emit::render(&context, &repository, changed_files, removed_files)
 }

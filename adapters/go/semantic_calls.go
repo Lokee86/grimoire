@@ -28,6 +28,7 @@ func (s *scanner) collectSemanticCalls(pkg *packages.Package, targets semanticTa
 				continue
 			}
 			s.collectCallableSemanticCalls(pkg, rel, source, function.Body, targets)
+			s.collectSemanticDataflow(pkg, rel, source, function.Body)
 		}
 	}
 }

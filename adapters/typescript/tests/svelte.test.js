@@ -28,6 +28,17 @@ function writeFixture() {
       "<h1>function fakeMarkupFunction() {}</h1>",
       '<script lang="ts">',
       '  import { helper } from "./helper";',
+      "  const FLOW = 1;",
+      "  class Box { field = 0; }",
+      "  export function flow(value: number): number {",
+      "    let local = value;",
+      "    local += FLOW;",
+      "    local++;",
+      "    const box = new Box();",
+      "    box.field = local;",
+      "    return local + value;",
+      "  }",
+      "  export function inner(value: number): number { return value; }",
       "  export let name: string;",
       "  export function greet(): string {",
       "    helper();",
@@ -108,16 +119,25 @@ test("analyzes Svelte scripts through the TypeScript adapter", () => {
   const appModule = node("src/App");
   const helper = node("src/helper.helper");
   const greet = node("src/Widget.greet");
+  const flow = node("src/Widget.flow");
+  const inner = node("src/Widget.inner");
   const moduleValue = node("src/Widget.moduleValue");
   const legacy = node("src/Legacy.legacy");
-  assert.ok(widgetModule && appModule && helper && greet && moduleValue && legacy);
+  assert.ok(widgetModule && appModule && helper && greet && flow && inner && moduleValue && legacy);
   assert.ok(!nodes.some((record) => record.qualified_name?.includes("fakeMarkupFunction")));
   assert.ok(!nodes.some((record) => record.qualified_name?.includes("fakeStyleFunction")));
   assert.ok(!nodes.some((record) => record.qualified_name?.includes("fakeUnsupported")));
   assert.ok(edges.some((record) => record.source === greet.id && record.target === helper.id && record.relation === "calls"));
+  const byId = new Map(nodes.map((record) => [record.id, record]));
+  const flowEdges = edges.filter((record) => record.source === flow.id && ["reads", "writes"].includes(record.relation));
+  assert.ok(flowEdges.some((record) => byId.get(record.target)?.name === "FLOW"));
+  assert.ok(flowEdges.some((record) => byId.get(record.target)?.name === "field"));
+  assert.ok(flowEdges.some((record) => byId.get(record.target)?.name === "local" && record.relation === "reads"));
+  assert.ok(flowEdges.some((record) => byId.get(record.target)?.name === "local" && record.relation === "writes"));
+  assert.ok(edges.filter((record) => ["reads", "writes"].includes(record.relation)).every((record) => byId.has(record.target)));
   assert.ok(edges.some((record) => record.source === appModule.id && record.target === widgetModule.id && record.relation === "imports"));
   assert.equal(greet.span.path, "src/Widget.svelte");
-  assert.equal(greet.span.start_line, 8);
+  assert.equal(greet.span.start_line, 19);
   assert.ok(!unresolved.some((record) => record.candidate_name === "syntax-diagnostics" && record.expression === "src/Widget.svelte"));
 
   const file = nodes.find((record) => record.kind === "file" && record.path === "src/Widget.svelte");

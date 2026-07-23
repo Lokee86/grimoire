@@ -45,6 +45,33 @@ fn edge_count(records: &[Value], source: &str, target: &str, relation: &str) -> 
 
 
 #[test]
+fn emits_conservative_dataflow_for_rust_locals_parameters_fields_constants_and_shadowing() {
+    let records = records();
+    let flow = node_id(&records, "lexicon_fixture::lexicon_fixture::flow");
+    let inner = node_id(&records, "lexicon_fixture::lexicon_fixture::inner");
+    let update = node_id(&records, "lexicon_fixture::lexicon_fixture::FlowBox::update");
+    let field = node_id(&records, "lexicon_fixture::lexicon_fixture::FlowBox::field");
+    let constant = node_id(&records, "lexicon_fixture::lexicon_fixture::FLOW_CONST");
+    let targets = |source: &str, relation: &str| {
+        records.iter().filter_map(|record| {
+            (record["record"] == "edge" && record["source"] == source && record["relation"] == relation)
+                .then(|| record["target"].as_str().unwrap())
+        }).collect::<std::collections::BTreeSet<_>>()
+    };
+    let flow_reads = targets(flow, "reads");
+    let flow_writes = targets(flow, "writes");
+    assert!(flow_reads.contains(constant));
+    assert!(flow_writes.contains(field));
+    assert!(flow_reads.iter().any(|target| records.iter().any(|node| node["record"] == "node" && node["id"] == *target && node["name"] == "local")));
+    assert!(flow_writes.iter().any(|target| records.iter().any(|node| node["record"] == "node" && node["id"] == *target && node["name"] == "local")));
+    assert!(targets(update, "reads").contains(field));
+    assert!(targets(update, "writes").contains(field));
+    assert!(targets(inner, "reads").iter().any(|target| records.iter().any(|node| node["record"] == "node" && node["id"] == *target && node["name"] == "value")));
+    let node_ids: std::collections::BTreeSet<_> = records.iter().filter_map(|record| (record["record"] == "node").then(|| record["id"].as_str().unwrap())).collect();
+    assert!(records.iter().filter(|record| record["record"] == "edge" && ["reads", "writes"].contains(&record["relation"].as_str().unwrap())).all(|record| node_ids.contains(record["target"].as_str().unwrap())));
+}
+
+#[test]
 fn indexes_rust_declarations_imports_traits_and_local_macros() {
     let records = records();
     assert!(records.iter().any(|record| {

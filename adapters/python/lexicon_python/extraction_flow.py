@@ -21,6 +21,8 @@ class LocalFlow:
         name = target_name(target)
         if name is None:
             return
+        kind = "field" if self.class_qname and not self.function_stack else "variable"
+        self._declare_data_symbol(name, kind, node)
         self.facts.local_assignments.append(
             LocalAssignmentInfo(
                 module_name=self.context.module_name,
@@ -37,19 +39,50 @@ class LocalFlow:
     def visit_Assign(self, node: ast.Assign) -> None:
         for target in node.targets:
             self._record_local_write(target, node, node.value)
-        self.generic_visit(node)
+            self._emit_target_dataflow(target, False)
+        self.visit(node.value)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         self._record_local_write(node.target, node, node.value, node.annotation)
-        self.generic_visit(node)
+        self._emit_target_dataflow(node.target, False)
+        if node.value is not None:
+            self.visit(node.value)
 
     def visit_AugAssign(self, node: ast.AugAssign) -> None:
         self._record_local_write(node.target, node)
-        self.generic_visit(node)
+        self._emit_target_dataflow(node.target, True)
+        self.visit(node.value)
 
     def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
         self._record_local_write(node.target, node, node.value)
-        self.generic_visit(node)
+        self._emit_target_dataflow(node.target, False)
+        self.visit(node.value)
+
+    def _emit_target_dataflow(self, target: ast.AST, compound: bool) -> None:
+        if isinstance(target, ast.Name):
+            if compound:
+                self._emit_dataflow(target, "reads", target.id)
+            self._emit_dataflow(target, "writes", target.id)
+        elif isinstance(target, ast.Attribute):
+            self.visit(target.value)
+            if isinstance(target.value, ast.Name) and target.value.id == "self":
+                if compound:
+                    self._emit_dataflow(target, "reads", target.attr)
+                self._emit_dataflow(target, "writes", target.attr)
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for item in target.elts:
+                self._emit_target_dataflow(item, compound)
+        else:
+            self.visit(target)
+
+    def visit_Name(self, node: ast.Name) -> None:
+        if isinstance(node.ctx, ast.Load):
+            self._emit_dataflow(node, "reads", node.id)
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        self.visit(node.value)
+        if isinstance(node.value, ast.Name) and node.value.id == "self":
+            self._emit_dataflow(node, "reads", node.attr)
 
     def _record_loop_targets(self, node: ast.For | ast.AsyncFor, branch_dependent: bool) -> None:
         if self.scope_id is None:
@@ -67,6 +100,8 @@ class LocalFlow:
                     element_index,
                 )
             )
+            self._declare_data_symbol(name, node=node.target)
+            self._emit_dataflow(node.target, "writes", name)
 
     def _visit_branch(self, nodes: list[ast.stmt]) -> None:
         self.control_flow_depth += 1

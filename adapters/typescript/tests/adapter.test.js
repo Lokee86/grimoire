@@ -30,6 +30,19 @@ function makeFixture() {
       "let mutable = 2;",
       "",
     ].join("\n"),
+    "src/dataflow.ts": [
+      "export const FLOW_CONST = 2;",
+      "export class DataBox { field = 0; }",
+      "export function flow({ value }: { value: number }, box: DataBox): number {",
+      "  let local = value;",
+      "  local += FLOW_CONST;",
+      "  local++;",
+      "  box.field = local;",
+      "  return local + value;",
+      "}",
+      "export function inner(value: number): number { let local = value; return local; }",
+      "",
+    ].join("\n"),
     "src/child.ts": [
       'import { AliasTarget } from "@/alias-target";',
       'import { ExactTarget } from "@exact";',
@@ -330,6 +343,27 @@ test("resolves compiler-backed methods, dispatch, callbacks, JSX, wrappers, and 
   assert.ok(edges.some((record) => record.source === renderDefault.id && record.target === assigned.id && record.relation === "calls"));
   assert.ok(edges.some((record) => record.source === assigned.id && record.target === inner.id && record.relation === "calls" && record.attributes?.wrapper === true));
   assert.ok(!unresolved.some((record) => [invokeRunner.id, exactRunner.id, higherOrder.id, invokeCallback.id, methodCalls.id, arrowCaller.id, taggedCaller.id, renderDefault.id].includes(record.source) && record.relation === "calls" && record.reason === "missing-target"));
+});
+
+test("emits conservative reads and writes for TypeScript locals, members, updates, and shadowing", () => {
+  const repo = makeFixture();
+  const records = runAdapter(repo, path.join(repo, "facts.jsonl"));
+  const nodes = recordsOf(records, "node");
+  const edges = recordsOf(records, "edge");
+  const nodeById = new Map(nodes.map((record) => [record.id, record]));
+  const flow = nodes.find((record) => record.qualified_name === "src/dataflow.flow");
+  const inner = nodes.find((record) => record.qualified_name === "src/dataflow.inner");
+  assert.ok(flow && inner);
+  const flowEdges = edges.filter((record) => record.source === flow.id && ["reads", "writes"].includes(record.relation));
+  const innerEdges = edges.filter((record) => record.source === inner.id && ["reads", "writes"].includes(record.relation));
+  assert.ok(flowEdges.some((record) => nodeById.get(record.target)?.name === "FLOW_CONST"));
+  assert.ok(flowEdges.some((record) => nodeById.get(record.target)?.name === "field"));
+  assert.ok(flowEdges.some((record) => nodeById.get(record.target)?.name === "local" && record.relation === "reads"));
+  assert.ok(flowEdges.some((record) => nodeById.get(record.target)?.name === "local" && record.relation === "writes"));
+  assert.ok(flowEdges.some((record) => nodeById.get(record.target)?.name === "value"));
+  assert.ok(innerEdges.some((record) => nodeById.get(record.target)?.name === "value"));
+  assert.notDeepEqual(new Set(flowEdges.map((record) => record.target)), new Set(innerEdges.map((record) => record.target)));
+  assert.ok(edges.filter((record) => ["reads", "writes"].includes(record.relation)).every((record) => nodeById.has(record.target)));
 });
 
 test("uses contract IDs, canonical ordering, and stable repeat runs", () => {

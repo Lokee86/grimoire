@@ -5,6 +5,7 @@ import { createTypeScriptProgram, readPathMappings, scanRepository } from "./dis
 import { emitFacts, writeJsonl } from "./emission";
 import { resolveCalls } from "./call-resolution";
 import { resolveImports, resolveRelationships } from "./resolution";
+import { emitDataflow } from "./dataflow";
 import { FactStore, type Fact } from "./model";
 import { addDependencyFacts } from "./dependencies";
 
@@ -37,6 +38,8 @@ export function buildFacts(repositoryPath: string, changedFiles?: string[], remo
   addDependencyFacts(facts, root);
   resolveCalls(facts, checker);
   resolveRelationships(facts, checker);
+  emitDataflow(facts, checker);
+  resolveRelationships(facts);
   return emitFacts(facts, changedFiles, removedFiles);
 }
 

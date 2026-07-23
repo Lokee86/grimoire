@@ -21,6 +21,20 @@ function makeJavaScriptFixture() {
         target: "ES2022",
       },
     }),
+    "src/dataflow.js": [
+      "const GLOBAL = 1;",
+      "class Box { field = 0; }",
+      "export function flow({ value }) {",
+      "  let local = value;",
+      "  local += GLOBAL;",
+      "  local++;",
+      "  const box = new Box();",
+      "  box.field = local;",
+      "  return local + value;",
+      "}",
+      "export function inner(value) { return value; }",
+      "",
+    ].join("\n"),
     "src/esm-target.js": [
       "export function esmHelper() {}",
       "export class EsmWorker { run() {} }",
@@ -186,4 +200,21 @@ test("scans and resolves JavaScript ESM, JSX, CommonJS, and JSDoc call flow", ()
     "ambiguous-target",
     "unsupported-form",
   ].includes(record.reason)));
+});
+
+test("emits conservative JavaScript reads and writes for updates, members, and destructured shadowing", () => {
+  const records = runAdapter(makeJavaScriptFixture());
+  const nodes = records.filter((record) => record.record === "node");
+  const edges = records.filter((record) => record.record === "edge");
+  const byId = new Map(nodes.map((record) => [record.id, record]));
+  const flow = findNode(nodes, "src/dataflow.flow");
+  const inner = findNode(nodes, "src/dataflow.inner");
+  const data = (source) => edges.filter((record) => record.source === source.id && ["reads", "writes"].includes(record.relation));
+  assert.ok(data(flow).some((record) => byId.get(record.target)?.name === "GLOBAL"));
+  assert.ok(data(flow).some((record) => byId.get(record.target)?.name === "field"));
+  assert.ok(data(flow).some((record) => byId.get(record.target)?.name === "local" && record.relation === "reads"));
+  assert.ok(data(flow).some((record) => byId.get(record.target)?.name === "local" && record.relation === "writes"));
+  assert.ok(data(flow).some((record) => byId.get(record.target)?.name === "value"));
+  assert.ok(data(inner).some((record) => byId.get(record.target)?.name === "value"));
+  assert.ok(data(flow).every((record) => byId.has(record.target)));
 });

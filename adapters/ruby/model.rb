@@ -58,6 +58,8 @@ class LexiconRubyAdapter
     @method_returns = {}
     @parameter_shapes = {}
     @assignments = []
+    @data_symbols = {}
+    @dataflow_edges = Set.new
     @constant_assignments = {}
     @constant_type_assignments = {}
     @lambda_ids = {}
@@ -86,6 +88,58 @@ class LexiconRubyAdapter
       attributes: attributes,
       span: span_for(token)
     )
+  end
+
+  def data_symbol_id(kind, name, context, token = nil)
+    normalized_kind = kind.to_sym
+    node_kind = normalized_kind == :constant ? "constant" : (normalized_kind == :parameter ? "parameter" : "variable")
+    scope = %i[instance class_variable].include?(normalized_kind) ? context[:owner].to_s : context[:scope_id].to_s
+    return nil if scope.empty? || name.to_s.empty?
+
+    key = [scope, normalized_kind, name.to_s]
+    return @data_symbols[key] if @data_symbols[key]
+
+    owner_name = @nodes[scope]&.fetch("qualified_name", context[:owner].to_s) || @current_path
+    qualified_name = "#{owner_name}.#{name}"
+    id = add_node(
+      kind: node_kind,
+      name: name.to_s,
+      path: @current_path,
+      qualified_name: qualified_name,
+      canonical: "data\0#{scope}\0#{normalized_kind}\0#{name}",
+      span: span_for(token)
+    )
+    @data_symbols[key] = id
+    add_edge(scope, id, "defines", span_for(token)) if @nodes[scope]
+    id
+  end
+
+  def resolve_data_symbol(kind, name, context)
+    normalized_kind = kind.to_sym
+    scopes = if %i[instance class_variable].include?(normalized_kind)
+               [context[:owner].to_s]
+             else
+               result = []
+               current = context[:scope_id].to_s
+               while !current.empty?
+                 result << current
+                 current = @scope_parents[current].to_s
+               end
+               result
+             end
+    found = scopes.filter_map do |scope|
+      @data_symbols[[scope, normalized_kind, name.to_s]] ||
+        (normalized_kind == :local ? @data_symbols[[scope, :parameter, name.to_s]] : nil)
+    end.first
+    return found if found || normalized_kind != :constant
+
+    @data_symbols.each do |(scope, kind, symbol_name), symbol_id|
+      next unless kind == :constant && symbol_name == name.to_s
+      qualified = @nodes[symbol_id]&.fetch("qualified_name", "").to_s
+      owner_qname = @nodes[context[:owner].to_s]&.fetch("qualified_name", "").to_s
+      return symbol_id if owner_qname.empty? || qualified.start_with?("#{owner_qname}::")
+    end
+    nil
   end
 
   def add_node(kind:, name:, path:, qualified_name:, canonical:, attributes: nil, span: nil, content_id: nil)

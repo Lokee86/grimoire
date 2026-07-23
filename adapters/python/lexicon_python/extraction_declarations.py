@@ -101,12 +101,37 @@ class DeclarationFlow:
         self.owner_stack.append(identifier)
         previous_control_flow_depth = self.control_flow_depth
         self.control_flow_depth = 0
+        for name in parameters:
+            self._declare_data_symbol(name, "parameter", node)
+        self._predeclare_function_locals(node)
         for statement in node.body:
             self.visit(statement)
         self.control_flow_depth = previous_control_flow_depth
         self.owner_stack.pop()
         self.lexical_stack.pop()
         self.function_stack.pop()
+
+    def _predeclare_function_locals(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        def visit_scope(current: ast.AST) -> None:
+            for child in ast.iter_child_nodes(current):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+                    continue
+                inspect_node(child)
+                visit_scope(child)
+
+        def inspect_node(child: ast.AST) -> None:
+            if isinstance(child, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.NamedExpr)):
+                targets = child.targets if isinstance(child, ast.Assign) else [child.target]
+                for target in targets:
+                    for value in ast.walk(target):
+                        if isinstance(value, ast.Name):
+                            self._declare_data_symbol(value.id, node=value)
+            elif isinstance(child, (ast.For, ast.AsyncFor)):
+                for value in ast.walk(child.target):
+                    if isinstance(value, ast.Name):
+                        self._declare_data_symbol(value.id, node=value)
+
+        visit_scope(node)
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
         owner_qname = self.facts.node_qnames.get(self.owner_id, self.context.module_name)
@@ -152,6 +177,8 @@ class DeclarationFlow:
         self.function_stack.append((qname, name))
         self.lexical_stack.append((name, "function"))
         self.owner_stack.append(identifier)
+        for name in parameters:
+            self._declare_data_symbol(name, "parameter", node)
         self.visit(node.body)
         self.owner_stack.pop()
         self.lexical_stack.pop()

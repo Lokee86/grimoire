@@ -5,6 +5,7 @@ mod cli;
 mod contract;
 mod declarations;
 mod dependencies;
+mod dataflow;
 mod discovery;
 mod emit;
 mod expr_eval;

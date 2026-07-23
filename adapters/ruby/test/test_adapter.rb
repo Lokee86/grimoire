@@ -5,6 +5,7 @@ require "json"
 require "minitest/autorun"
 require "open3"
 require "rbconfig"
+require "set"
 require "tmpdir"
 
 class RubyAdapterTest < Minitest::Test
@@ -353,6 +354,45 @@ class RubyAdapterTest < Minitest::Test
         record["record"] == "unresolved" && record["reason"] == "missing-target" &&
           record.dig("span", "path") == "semantic.rb" && record["expression"] != "value.execute"
       end)
+    end
+  end
+
+  def test_emits_conservative_dataflow_for_reads_writes_compound_members_and_shadowing
+    source = <<~RUBY
+      class Box
+        VERSION = 3
+        def run(value)
+          @field = value
+          local = value
+          local += VERSION
+          local += 1
+          @field = local
+          return local + value
+        end
+        def inner(value)
+          local = value
+          local
+        end
+      end
+    RUBY
+    with_repository("dataflow.rb" => source) do |records|
+      nodes = node_index(records)
+      edges = records.select { |record| record["record"] == "edge" && %w[reads writes].include?(record["relation"]) }
+      run_id = id_for(nodes, "Box#run")
+      inner_id = id_for(nodes, "Box#inner")
+      assert run_id
+      assert inner_id
+      run_targets = edges.select { |edge| edge["source"] == run_id }.map { |edge| nodes[edge["target"]] }.compact
+      inner_targets = edges.select { |edge| edge["source"] == inner_id }.map { |edge| nodes[edge["target"]] }.compact
+      assert run_targets.any? { |node| node["name"] == "local" && node["kind"] == "variable" }
+      assert run_targets.any? { |node| node["name"] == "VERSION" && node["kind"] == "constant" }
+      assert run_targets.any? { |node| node["name"] == "@field" }
+      assert inner_targets.any? { |node| node["name"] == "value" }
+      refute_equal run_targets.map { |node| node["id"] }.to_set, inner_targets.map { |node| node["id"] }.to_set
+      assert edges.any? { |edge| edge["source"] == run_id && edge["relation"] == "reads" }
+      assert edges.any? { |edge| edge["source"] == run_id && edge["relation"] == "writes" }
+      assert edges.all? { |edge| nodes.key?(edge["target"]) }
+      refute records.any? { |record| record["record"] == "unresolved" && %w[reads writes].include?(record["relation"]) }
     end
   end
 

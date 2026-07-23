@@ -25,10 +25,10 @@ pub(crate) fn process_items(
             }
             syn::Item::Type(value) => declarations::alias(context, value, owner, module, source),
             syn::Item::Const(value) => {
-                declarations::value_type(context, &value.ident, &value.ty, module)
+                declarations::value_type(context, &value.ident, &value.ty, owner, module, source)
             }
             syn::Item::Static(value) => {
-                declarations::value_type(context, &value.ident, &value.ty, module)
+                declarations::value_type(context, &value.ident, &value.ty, owner, module, source)
             }
             syn::Item::Trait(value) => {
                 declarations::trait_decl(context, value, owner, module, &crate_context.qn, source)

@@ -17,7 +17,11 @@ module LexiconRuby
         constant_id = add_symbol("constant", qualified_name.split("::").last, qualified_name, node[1], {})
         connect_declaration(context[:parent_id], constant_id, span_for(first_token(node[1])))
         @constant_assignments[qualified_name] = value
+        symbol = data_symbol_id(:constant, target[:constant] || target[:name], context, node[1])
+        add_dataflow_edge(context[:source_id], symbol, "writes", span_for_expression(node[1])) if symbol
       elsif target && %i[local instance class_variable].include?(target[:kind])
+        symbol = data_symbol_id(target[:kind], target[:name], context, node[1])
+        add_dataflow_edge(context[:source_id], symbol, "writes", span_for_expression(node[1])) if symbol
         @assignments << AssignmentInfo.new(
           scope: context[:scope_id],
           owner: context[:owner],
@@ -68,6 +72,11 @@ module LexiconRuby
                    target
                  end
       register_operator_call(node, context, receiver, operator.delete_suffix("="), [value])
+      if target_info = variable_target(target)
+        symbol = resolve_data_symbol(target_info[:kind], target_info[:name], context) || data_symbol_id(target_info[:kind], target_info[:name], context, target)
+        add_dataflow_edge(context[:source_id], symbol, "reads", span_for_expression(target)) if symbol
+        add_dataflow_edge(context[:source_id], symbol, "writes", span_for_expression(target)) if symbol
+      end
       visit(target, context)
       visit(value, context)
     end

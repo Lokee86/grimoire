@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"path/filepath"
 )
 
@@ -19,6 +20,7 @@ type factSet struct {
 	unresolved                  []map[string]any
 	nodeByID                    map[string]map[string]any
 	edgeKeys                    map[string]struct{}
+	dataflowKeys                map[string]struct{}
 	edgeOrderKeys               []string
 	unresolvedKeys              map[string]struct{}
 	unresolvedOrderKeys         []string
@@ -105,6 +107,15 @@ func (f *factSet) addEdge(record map[string]any) {
 	f.edgeOrderKeys = append(f.edgeOrderKeys, key)
 	f.indexClassMethod(record)
 	f.indexStaticFunction(record)
+}
+
+func (f *factSet) addDataflowEdge(record map[string]any) {
+	key := fmt.Sprintf("%s\x00%s\x00%s", record["source"], record["target"], record["relation"])
+	if _, exists := f.dataflowKeys[key]; exists {
+		return
+	}
+	f.dataflowKeys[key] = struct{}{}
+	f.addEdge(record)
 }
 
 func (f *factSet) indexClassMethod(record map[string]any) {

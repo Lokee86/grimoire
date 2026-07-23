@@ -46,6 +46,8 @@ module LexiconRuby
         visit_alias(node, context)
       when :undef
         visit_undef(node, context)
+      when :var_ref, :const_ref, :top_const_ref
+        visit_variable_reference(node, context)
       when :binary
         operator = node[2].to_s
         register_operator_call(node, context, node[1], operator, [node[3]]) unless %w[&& || and or].include?(operator)
@@ -75,6 +77,22 @@ module LexiconRuby
       else
         visit(body, context)
       end
+    end
+
+    def visit_variable_reference(node, context)
+      token = first_token(node)
+      return unless token
+
+      kind = case token[0]
+             when :@ident then :local
+             when :@ivar then :instance
+             when :@cvar then :class_variable
+             when :@const then :constant
+             end
+      return unless kind
+
+      symbol = resolve_data_symbol(kind, token[1], context)
+      add_dataflow_edge(context[:source_id], symbol, "reads", span_for(token)) if symbol
     end
   end
 end

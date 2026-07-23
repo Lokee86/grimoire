@@ -163,7 +163,7 @@ func lex(source string) ([]token, error) {
 		if i+1 < len(source) {
 			candidate := source[i : i+2]
 			switch candidate {
-			case "->", ":=", "==", "!=", "<=", ">=", "&&", "||", "+=", "-=", "*=", "/=":
+			case "->", ":=", "==", "!=", "<=", ">=", "&&", "||", "+=", "-=", "*=", "/=", "++", "--":
 				symbol = candidate
 			}
 		}

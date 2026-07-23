@@ -166,6 +166,7 @@ pub(crate) struct Context {
     pub(crate) trait_method_ids: BTreeSet<String>,
     pub(crate) type_traits: BTreeMap<String, BTreeSet<String>>,
     pub(crate) fields: BTreeMap<(String, String), FieldInfo>,
+    pub(crate) field_ids: BTreeMap<(String, String), String>,
     pub(crate) pending_impls: Vec<PendingImpl>,
     pub(crate) pending_imports: Vec<PendingImport>,
     pub(crate) imports: BTreeMap<String, ImportScope>,

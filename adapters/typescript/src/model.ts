@@ -91,6 +91,7 @@ export class FactStore {
   readonly defaultExports = new Map<string, ts.Expression>();
   readonly defaultExportIds = new Map<string, string>();
   readonly commonJsExports = new Map<string, Map<string, ts.Expression>>();
+  readonly dataflowEdges = new Set<string>();
 
   constructor(readonly repository: string, readonly root: string) {}
 
@@ -126,6 +127,13 @@ export class FactStore {
     if (attributes && Object.keys(attributes).length > 0) record.attributes = attributes;
     if (span) record.span = span;
     this.edges.set(JSON.stringify(record), record);
+  }
+
+  addDataflowEdge(source: string, target: string, relation: "reads" | "writes", span?: Span): void {
+    const key = `${source}\0${target}\0${relation}`;
+    if (this.dataflowEdges.has(key)) return;
+    this.dataflowEdges.add(key);
+    this.addEdge(source, target, relation, span);
   }
 
   addUnresolved(source: string, relation: string, expression: string, reason: string, span?: Span, candidateName?: string): void {

@@ -15,6 +15,14 @@ module LexiconRuby
       @edges[[source, target, relation, span_key, attribute_key]] ||= record
     end
 
+    def add_dataflow_edge(source, target, relation, span = nil)
+      key = [source, target, relation]
+      return if @dataflow_edges.include?(key)
+
+      @dataflow_edges << key
+      add_edge(source, target, relation, span)
+    end
+
     def add_unresolved(source:, relation:, expression:, reason:, span: nil, attributes: nil)
       return unless source
 

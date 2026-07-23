@@ -61,3 +61,6 @@ Compiler-generated wrappers and external closures use deterministic `ssa-functio
 The adapter emits repository `depends-on` edges for literal `go.mod` `require` directives, both single-line and parenthesized forms, and for literal `replace` directives. Each target is a facts-v1 `module` node using `dependency:go:<normalized-target>` identity; its synthetic path is `.lexicon/dependencies/go/...`. Edges carry deterministic `category`, `constraint`, `source`, `optional`, `dev`, `build`, `peer`, and `path` attributes. Repository-local Go imports additionally emit module-to-module `depends-on` edges when the imported package is uniquely scanned, while preserving `imports`.
 
 Malformed directives, dynamic module construction, and unresolved external package contents are not inferred. The adapter does not execute `go.mod` or install dependencies.
+## Dataflow facts
+
+The adapter emits conservative `reads` and `writes` edges from the containing callable to repository-local parameters, variables, constants, and fields. Assignments write, compound assignments and increment/decrement read and write, and initializer, argument, and return expressions contribute reads. Lexical shadowing is respected. Unresolved selectors, built-ins, external package values, reflection, and unsafe aliasing are omitted rather than guessed.

@@ -112,3 +112,6 @@ The suite covers declarations, imports, exclusions, stable IDs, class/static cal
 Literal `res://` paths in `project.godot` emit repository `depends-on` facts for enabled editor plugins, autoload scripts, and explicit local resources/scripts. Literal local `preload()` and `load()` references emit module-to-module dependencies when the `.gd` target is scanned, while preserving existing import/reference facts. Dependency targets use facts-v1 `module` nodes and deterministic `.lexicon/dependencies/godot/...` paths for synthetic resources; attributes classify `plugin`, `autoload`, or `local` sources and set `path: true`.
 
 Computed `res://` paths, dynamic project values, runtime script replacement, scene-tree inference, and external/computed autoloads are unsupported. The adapter does not execute Godot projects or manifests.
+## Dataflow facts
+
+The adapter emits conservative `reads` and `writes` edges from functions to repository-local parameters, locals, constants, properties, and resolved members. Assignments write, compound assignments read and write, and initializer, argument, and return expressions contribute reads. Lexical shadowing is respected. Dynamic properties, dictionary-style access, engine-provided values, reflection, and unresolved members are omitted rather than guessed.

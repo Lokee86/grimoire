@@ -171,6 +171,43 @@ class PythonAdapterTest(unittest.TestCase):
             )
         )
 
+    def test_dataflow_reads_writes_compound_members_shadowing_and_lambda_parameters(self) -> None:
+        self._write(
+            "dataflow.py",
+            "outer = 3\n"
+            "class Box:\n"
+            "    field = 0\n"
+            "    def run(self, value):\n"
+            "        local = value\n"
+            "        local += outer\n"
+            "        local += 1\n"
+            "        self.field = local\n"
+            "        def inner(value):\n"
+            "            shadow = value\n"
+            "            return shadow\n"
+            "        callback = lambda item: item\n"
+            "        return local + value + inner(value) + callback(value)\n",
+        )
+        records = self._run(self.repo / "facts.jsonl")
+        nodes = [record for record in records if record["record"] == "node"]
+        edges = [record for record in records if record["record"] == "edge"]
+        data_edges = [record for record in edges if record["relation"] in {"reads", "writes"}]
+        node_by_id = {record["id"]: record for record in nodes}
+        run = next(record for record in nodes if record.get("qualified_name") == "dataflow.Box.run")
+        inner = next(record for record in nodes if record.get("qualified_name") == "dataflow.Box.run.inner")
+        run_targets = {record["target"] for record in data_edges if record["source"] == run["id"]}
+        inner_targets = {record["target"] for record in data_edges if record["source"] == inner["id"]}
+        assert any(node_by_id[target]["name"] == "outer" for target in run_targets)
+        assert any(node_by_id[target]["name"] == "field" for target in run_targets)
+        assert any(node_by_id[target]["name"] == "value" for target in run_targets)
+        assert any(node_by_id[target]["name"] == "value" for target in inner_targets)
+        assert run_targets.isdisjoint(inner_targets)
+        assert any(record["relation"] == "reads" and node_by_id[record["target"]]["name"] == "local" for record in data_edges if record["source"] == run["id"])
+        assert any(record["relation"] == "writes" and node_by_id[record["target"]]["name"] == "local" for record in data_edges if record["source"] == run["id"])
+        assert any(record["kind"] == "parameter" and record["name"] == "item" for record in nodes)
+        assert all(record["target"] in node_by_id for record in data_edges)
+        assert not any(record["record"] == "unresolved" and record["relation"] in {"reads", "writes"} for record in records)
+
     def test_local_constructor_calls_are_precise_and_conservative(self) -> None:
         self._write("left/config.py", "class Worker:\n    def run(self): pass\n")
         self._write("right/config.py", "class Worker:\n    def run(self): pass\n")

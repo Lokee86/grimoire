@@ -107,6 +107,29 @@ function addSymbol(kind: string, name: string, scope: string[], node: ts.Node, o
   return id;
 }
 
+function addParameters(node: ts.SignatureDeclarationBase, ownerId: string, scope: string[], context: FileContext, facts: FactStore): void {
+  for (const parameter of node.parameters) {
+    for (const binding of parameterBindings(parameter.name)) {
+      const name = binding.name;
+      const qualifiedName = `${context.moduleKey}.${[...scope, name].join(".")}`;
+      const span = spanFor(binding.node, context.sourceFile, context.relativePath);
+      const id = facts.addNode("parameter", name, context.relativePath, qualifiedName, qualifiedName, span);
+      facts.addEdge(ownerId, id, "defines", span);
+      facts.registerDeclaration(parameter, id);
+      facts.registerDeclaration(binding.node, id);
+    }
+  }
+}
+
+function parameterBindings(name: ts.BindingName): { name: string; node: ts.Node }[] {
+  if (ts.isIdentifier(name)) return [{ name: name.text, node: name }];
+  const result: { name: string; node: ts.Node }[] = [];
+  for (const element of name.elements) {
+    if (ts.isBindingElement(element)) result.push(...parameterBindings(element.name));
+  }
+  return result;
+}
+
 function visitClass(
   node: ts.ClassDeclaration | ts.ClassExpression,
   ownerId: string,
@@ -152,6 +175,7 @@ function visitTypeAlias(node: ts.TypeAliasDeclaration, ownerId: string, scope: s
 function visitFunction(node: ts.FunctionDeclaration, ownerId: string, scope: string[], context: FileContext, facts: FactStore): void {
   const name = declarationName(node.name) ?? anonymousName("function", node, context.sourceFile);
   const id = addSymbol("function", name, scope, node, ownerId, context, facts);
+  addParameters(node, id, [...scope, name], context, facts);
   if (hasModifier(node, ts.SyntaxKind.ExportKeyword)) recordExportedDeclaration(ownerId, node, name, id, context, facts);
   if (hasModifier(node, ts.SyntaxKind.DefaultKeyword)) facts.defaultExportIds.set(context.moduleKey, id);
   node.forEachChild((child) => visit(child, id, [...scope, name], context, facts));
@@ -160,6 +184,7 @@ function visitFunction(node: ts.FunctionDeclaration, ownerId: string, scope: str
 function visitFunctionExpression(node: ts.FunctionExpression | ts.ArrowFunction, ownerId: string, scope: string[], context: FileContext, facts: FactStore, preferredName?: string): string {
   const name = preferredName ?? functionExpressionName(node, context.sourceFile);
   const id = addSymbol("function", name, scope, node, ownerId, context, facts);
+  addParameters(node, id, [...scope, name], context, facts);
   node.forEachChild((child) => visit(child, id, [...scope, name], context, facts));
   return id;
 }
@@ -174,6 +199,7 @@ function visitMethod(
 ): void {
   const name = constructor ? "constructor" : declarationName(node.name) ?? "<computed>";
   const id = addSymbol(constructor ? "constructor" : "method", name, scope, node, ownerId, context, facts);
+  addParameters(node, id, [...scope, name], context, facts);
   node.forEachChild((child) => visit(child, id, [...scope, name], context, facts));
 }
 

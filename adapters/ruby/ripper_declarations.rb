@@ -99,6 +99,9 @@ module LexiconRuby
         scope_id: method_id,
         branch_depth: 0
       )
+      parameter_names(params).each do |parameter|
+        data_symbol_id(:parameter, parameter, method_context, name_token)
+      end
       visit_parameter_defaults(spec, method_context)
       visit_body(body, method_context)
     end
