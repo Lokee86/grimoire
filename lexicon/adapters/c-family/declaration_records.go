@@ -12,7 +12,11 @@ func (extractor *extractor) handleTypedef(node *tree_sitter.Node, context extrac
 	if name != "" {
 		qualified := qualify(context.ContainerQualified, name)
 		target := nodeText(node.ChildByFieldName("type"), extractor.source)
-		extractor.addDeclaration(node, context, "type", lastQualifiedPart(name), qualified, "", false, true, map[string]any{"alias": true, "target": normalizeSpace(target)})
+		attributes := map[string]any{"alias": true, "target": normalizeSpace(target)}
+		if function := firstDescendant(declarator, "function_declarator"); function != nil {
+			attributes["function_pointer"] = true
+		}
+		extractor.addDeclaration(node, context, "type", lastQualifiedPart(name), qualified, "", false, true, attributes)
 	}
 	if typeNode := node.ChildByFieldName("type"); typeNode != nil {
 		extractor.walk(typeNode, context)
@@ -37,7 +41,17 @@ func (extractor *extractor) handleMacro(node *tree_sitter.Node, context extracti
 	if name == "" {
 		return
 	}
+	replacement, target := macroDetails(node, name, extractor.source)
 	attributes := map[string]any{"macro": true, "function_like": node.Kind() == "preproc_function_def"}
+	if context.Conditional {
+		attributes["conditional"] = true
+	}
+	if replacement != "" {
+		attributes["replacement"] = replacement
+	}
+	if target != "" {
+		attributes["target"] = target
+	}
 	extractor.addDeclaration(node, context, "symbol", name, qualify(context.ContainerQualified, name), "", false, true, attributes)
 }
 
@@ -52,11 +66,13 @@ func (extractor *extractor) addDeclaration(node *tree_sitter.Node, context extra
 	attributes["language"] = extractor.file.Language
 	fileLocal := attributes["linkage"] == "internal"
 	macroFunction, _ := attributes["function_like"].(bool)
+	macroTarget, _ := attributes["target"].(string)
 	declaration := &declaration{
 		ID: nodeID(kind, canonical), Kind: kind, Name: name, QualifiedName: qualified, Path: extractor.file.Path,
 		ContainerID: context.ContainerID, ContainerQualified: context.ContainerQualified, ParentTypeID: context.TypeID,
 		Signature: signature, FileLanguage: extractor.file.Language, Span: spanForNode(extractor.file.Path, node),
-		Attributes: attributes, Callable: callable, Definition: definition, FileLocal: fileLocal, MacroFunction: macroFunction,
+		Attributes: attributes, Callable: callable, Definition: definition, FileLocal: fileLocal,
+		MacroFunction: macroFunction, MacroTarget: macroTarget,
 	}
 	extractor.file.Declarations = append(extractor.file.Declarations, declaration)
 	return declaration

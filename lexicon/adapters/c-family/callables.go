@@ -48,7 +48,7 @@ func (extractor *extractor) handleFunction(node *tree_sitter.Node, context extra
 func (extractor *extractor) handleDeclaration(node *tree_sitter.Node, context extractionContext) {
 	for _, declarator := range topLevelDeclarators(node) {
 		if function := firstDescendant(declarator, "function_declarator"); function != nil {
-			if context.TypeID != "" && (extractor.file.Language == "c" || isFunctionPointerDeclarator(function)) {
+			if isFunctionPointerDeclarator(function) || context.TypeID != "" && extractor.file.Language == "c" {
 				extractor.handleVariableDeclarator(node, declarator, context)
 				continue
 			}

@@ -34,13 +34,15 @@ The adapter emits:
 - repository-local and unresolved include evidence;
 - class inheritance;
 - definite calls when one repository-local callable resolves;
-- `possible-calls` for multiple defensible overload or same-name targets;
-- macro-invocation `references` without pretending macro expansion is a function call;
-- `dynamic-target` evidence for calls through identified function pointers;
+- `possible-calls` for multiple defensible overload, conditional macro, and indirect function-pointer targets;
+- macro-invocation `references`, plus direct wrapper and alias resolution when the replacement has a provable callable target;
+- `dynamic-target` evidence for function-pointer calls even when bounded possible targets are also known;
 - conservative reads and writes for parameters, locals, and fields;
 - explicit unresolved call, include, inheritance, and parse evidence.
 
-Repository-local declarations are resolved across C and C++ files. Function definitions are preferred over matching prototypes. C source-file `static` declarations are translation-unit-local, while header-owned inline declarations remain available to includers. Scope-chain resolution covers namespaces, types, methods, and local callable ownership without treating same-named global declarations as interchangeable when a narrower match exists. C function-pointer members remain fields rather than becoming fabricated methods.
+Repository-local declarations are resolved across C and C++ files. Function definitions are preferred over matching prototypes. Translation-unit ownership follows repository-local include closure, so source-file `static` declarations are visible to included `.c` fragments and headers without becoming globally visible. Scope-chain resolution covers namespaces, types, methods, and local callable ownership without treating same-named global declarations as interchangeable when a narrower match exists. C function-pointer members remain fields rather than becoming fabricated methods.
+
+Function-pointer evidence is propagated through direct initializers, assignments, designated struct initializers, typedef aliases, and callback arguments. These flows produce bounded `possible-calls`; they do not convert indirect dispatch into definite calls, and the accompanying `dynamic-target` evidence remains explicit.
 
 ## Identities
 
@@ -59,9 +61,9 @@ Quoted includes resolve first relative to the including file, then by exact repo
 The adapter does not run a compiler or preprocessor. Consequently:
 
 - inactive conditional branches may still be parsed;
-- macro invocations are linked to function-like macro declarations, but expansion and token-pasting semantics are not reconstructed;
+- simple macro aliases and direct wrappers are followed, but general expansion, token pasting, argument substitution, and preprocessor branch evaluation are not reconstructed;
 - generated declarations and headers are unavailable unless present in the repository;
-- template instantiation, overload ranking, ADL, implicit conversions, virtual dispatch, and function-pointer flow remain conservative;
+- template instantiation, overload ranking, ADL, implicit conversions, virtual dispatch, and non-local function-pointer flow remain conservative;
 - member calls without a uniquely provable repository target remain unresolved or possible;
 - Objective-C and CUDA-specific semantics are outside this adapter.
 
@@ -78,8 +80,10 @@ go test ./...
 go test -race ./...
 ```
 
-The suite covers mixed C/C++ extraction, includer-driven header language inference, parser fallback, translation-unit linkage, function-pointer classification, macro references, repository-local includes, inheritance, calls, dataflow, deterministic repeated output, incremental ownership, and CLI output.
+The suite covers mixed C/C++ extraction, includer-driven header language inference, parser fallback, include-closure translation units, function-pointer typedefs and flow, macro aliases and wrappers, repository-local includes, inheritance, calls, dataflow, deterministic repeated output, incremental ownership, and CLI output.
 
 ## Calibration corpus
 
-The pinned calibration corpus includes Git at `9a0c4701dcd5725c4184599322b52933ff5005ca` and the Codebase Memory C backend at `97ce23f9827177fff3858831156e9795c6832b18`. Judged node and edge gates cover source-file static linkage, header inline calls, macro references, definition selection, and include resolution. On the accepted Git scan, the adapter emitted 62,346 definite calls, 311 possible-call edges, and 13,594 unresolved calls; 81.8% of observed call sites had one definite repository target. The CBM backend emitted 23,360 definite calls and 3,108 macro-reference edges; its remaining unresolved calls were overwhelmingly external C-library and Tree-sitter APIs.
+The pinned calibration corpus includes Git at `9a0c4701dcd5725c4184599322b52933ff5005ca` and the Codebase Memory C backend at `97ce23f9827177fff3858831156e9795c6832b18`. Judged gates cover included-C translation units, header-to-source static calls, macro aliases, function-pointer typedefs and dispatch tables, definition selection, and include resolution.
+
+On the accepted Git scan, 93,460 call-expression sites were observed. Of the 68,354 sites with repository-callable evidence, 64,651 were definite and 3,703 had bounded possible targets: 94.6% definite and 100% definite-or-possible. No call remained classified as a missing repository target. The remaining unresolved sites were external APIs, genuine dynamic dispatch, or explicit ambiguity. The CBM backend likewise had no missing repository target; its unresolved calls remained overwhelmingly external C-library and Tree-sitter APIs.

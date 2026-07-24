@@ -77,8 +77,14 @@ func (extractor *extractor) handleVariableDeclarator(node, declarator *tree_sitt
 	}
 	if firstDescendant(declarator, "function_declarator") != nil {
 		attributes["function_pointer"] = true
+		if value := declarator.ChildByFieldName("value"); value != nil {
+			if target := callableReferenceCandidate(value, extractor.source); target != "" {
+				attributes["pointer_target"] = target
+			}
+		}
 	}
 	declaration := extractor.addDeclaration(declarator, context, kind, name, qualified, signature, false, true, attributes)
+	extractor.collectDesignatedPointerBindings(declarator, context)
 	if context.CallableID != "" && declarator.Kind() == "init_declarator" {
 		extractor.file.Accesses = append(extractor.file.Accesses, accessObservation{
 			SourceID: context.CallableID, SourceScope: context.CallableScope, ParentType: context.TypeID,

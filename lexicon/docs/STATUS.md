@@ -31,7 +31,7 @@ The primary execution model remains one-shot CLI operations. Watch mode invokes 
 
 | Adapter | Version | Implemented semantic scope | Principal limits |
 | --- | ---: | --- | --- |
-| C / C++ | 0.2.0 | Shared C-family view, includer-aware header attribution, parser fallback, translation-unit linkage, types, functions, includes, inheritance, calls, macro references, function-pointer evidence, dataflow | No compiler/preprocessor replay, template instantiation, overload ranking, ADL, virtual dispatch proof, generated headers, Objective-C, or CUDA semantics |
+| C / C++ | 0.3.0 | Shared C-family view, includer-aware parsing, include-closure translation units, macro aliases/wrappers, function-pointer typedef and callback flow, definite/possible calls, dataflow | No compiler/preprocessor replay, general macro expansion, template instantiation, overload ranking, ADL, virtual dispatch proof, generated headers, Objective-C, or CUDA semantics |
 | Go | 0.1.0 | Multi-module discovery, packages, types, calls, closures, interfaces, implementations, overrides, dataflow, dependencies, SSA/VTA possible dispatch | Reflection, plugins, cgo/assembly, generated runtime behavior, and exact call-site graph retention |
 | GDScript | 0.3.0 | Godot project scoping, classes, inheritance, autoloads, callbacks, bounded type flow, calls, possible calls, dataflow, dependencies | Scene-tree-only type evidence, engine internals, runtime script replacement, computed dispatch and resource paths |
 | Python | 0.3.0 | Imports, lexical scopes, inheritance, protocols, callbacks, callable flow, C3 lookup, dataflow, dependencies | Monkey patching, metaclasses, dynamic imports/reflection, framework injection without ordinary value-flow evidence |

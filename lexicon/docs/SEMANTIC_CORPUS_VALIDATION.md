@@ -17,18 +17,20 @@ The Go adapter is covered separately by `GO_ADAPTER_VALIDATION.md`, including tw
 
 ## C-family calibration added July 24, 2026
 
-Two pinned C calibration cases now supplement the July 23 cross-adapter baseline:
+Two pinned C calibration cases supplement the July 23 cross-adapter baseline:
 
-| Case | Calls | Possible calls | Macro references | Reads | Writes | Unresolved calls |
+| Case | Definite calls | Possible-call edges | Macro references | Reads | Writes | Unresolved calls |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Git `9a0c470` | 62,346 | 311 | 17,519 | 262,278 | 56,661 | 13,594 |
-| Codebase Memory C backend `97ce23f` | 23,360 | 0 | 3,108 | 116,753 | 14,745 | 19,918 |
+| Git `9a0c470` | 64,651 | 4,572 | 18,198 | 262,277 | 56,674 | 15,120 |
+| Codebase Memory C backend `97ce23f` | 23,650 | 23 | 3,109 | 116,753 | 14,745 | 19,915 |
 
-Git moved from 60,709 definite calls, 11,277 possible-call edges, and 32,745 unresolved calls in the untouched adapter to 62,346 definite calls, 311 possible-call edges, and 13,594 unresolved calls after calibration. Definite-call coverage increased from 58.0% to 81.8%. The remaining Git misses are primarily external APIs, function-pointer dispatch, and a small compatibility/regex cluster.
+Raw edge counts are not a call-site coverage percentage: one indirect call site can emit several possible targets while retaining an unresolved dynamic record. The site-level report therefore classifies each observed call expression once. Git contained 93,460 observed call-expression sites. Of the 68,354 sites with repository-callable evidence, 64,651 were definite and 3,703 had bounded possible targets. That is 94.6% definite and 100% definite-or-possible for repository-target sites. No Git or CBM call remained classified as `missing-target`.
 
-The CBM case intentionally targets `internal/cbm`, the independently meaningful C backend, rather than mixing duplicate frontend/application definitions and generated vendored grammars into one judgment surface. Only two unresolved call names in the final audit also existed as repository callables; the dominant unresolved groups were C-library and Tree-sitter APIs.
+The second pass added include-closure translation units for included `.c` fragments and headers, simple macro alias/wrapper resolution, function-pointer typedef propagation, and bounded target flow from initializers, assignments, designated dispatch tables, and callback arguments. Conditional macro and indirect function-pointer targets remain possible rather than definite. External APIs and genuinely dynamic calls remain unresolved by design.
 
-The C cases use exact node and source-target edge judgments in addition to relation-count gates. They protect header-inline calls, source-file `static` linkage, function-like macro references, definition selection, includer-driven header attribution, and repository-local include resolution.
+The CBM case intentionally targets `internal/cbm`, the independently meaningful C backend, rather than mixing duplicate frontend/application definitions and generated vendored grammars into one judgment surface. Its unresolved groups remain dominated by C-library and Tree-sitter APIs.
+
+The C cases use exact node and source-target edge judgments, relation-count gates, and expected-zero unresolved-call-reason gates. They protect included-C translation units, header-to-source static calls, macro aliases, function-pointer typedefs and dispatch tables, definition selection, includer-driven header attribution, and repository-local include resolution.
 
 ## Corpus results
 

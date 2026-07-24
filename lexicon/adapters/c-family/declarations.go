@@ -32,6 +32,10 @@ func (extractor *extractor) walk(node *tree_sitter.Node, context extractionConte
 	case "preproc_include":
 		extractor.handleInclude(node)
 		return
+	case "preproc_if", "preproc_ifdef", "preproc_ifndef", "preproc_elif", "preproc_else":
+		if !isIncludeGuard(node, extractor.source) {
+			context.Conditional = true
+		}
 	case "preproc_def", "preproc_function_def":
 		extractor.handleMacro(node, context)
 		return

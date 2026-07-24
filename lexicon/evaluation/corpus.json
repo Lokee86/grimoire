@@ -8,6 +8,7 @@
       "repository": "corpus/codebase-memory-mcp/internal/cbm",
       "revision": "97ce23f9827177fff3858831156e9795c6832b18",
       "required_relations": ["calls", "reads", "writes", "includes", "references"],
+      "expected_zero_unresolved_call_reasons": ["missing-target"],
       "required_nodes": [
         {"kind": "function", "name": "cbm_arena_alloc", "path": "arena.c", "attributes": {"definition": true}},
         {"kind": "symbol", "name": "GROW_ARRAY", "path": "cbm.c", "attributes": {"function_like": true}},
@@ -25,15 +26,22 @@
       "split": "calibration",
       "repository": "corpus/git",
       "revision": "9a0c4701dcd5725c4184599322b52933ff5005ca",
-      "required_relations": ["calls", "reads", "writes", "includes", "references"],
+      "required_relations": ["calls", "possible-calls", "reads", "writes", "includes", "references"],
+      "expected_zero_unresolved_call_reasons": ["missing-target"],
       "required_nodes": [
         {"kind": "function", "name": "strbuf_addstr", "path": "strbuf.h", "attributes": {"definition": true, "language": "c"}},
         {"kind": "function", "name": "die", "path": "usage.c", "attributes": {"definition": true}},
-        {"kind": "symbol", "name": "N_", "path": "gettext.h", "attributes": {"function_like": true, "language": "c"}}
+        {"kind": "symbol", "name": "N_", "path": "gettext.h", "attributes": {"function_like": true, "language": "c"}},
+        {"kind": "type", "name": "get_value_fn", "path": "builtin/repo.c", "attributes": {"function_pointer": true}},
+        {"kind": "field", "name": "get_value", "path": "builtin/repo.c", "attributes": {"function_pointer": true}}
       ],
       "required_edges": [
         {"relation": "calls", "target": {"kind": "function", "name": "strbuf_addstr", "path": "strbuf.h"}},
         {"relation": "calls", "source": {"kind": "function", "name": "add_or_remove_enlistment", "path": "scalar.c"}, "target": {"kind": "function", "name": "die", "path": "usage.c"}},
+        {"relation": "calls", "source": {"kind": "function", "name": "calc_eclosure_iter", "path": "compat/regex/regcomp.c"}, "target": {"kind": "function", "name": "re_node_set_insert", "path": "compat/regex/regex_internal.c"}},
+        {"relation": "calls", "source": {"kind": "function", "name": "module_add", "path": "builtin/submodule--helper.c"}, "target": {"kind": "function", "name": "git_is_dir_sep", "path": "git-compat-util.h"}, "attributes": {"indirect": "macro"}},
+        {"relation": "calls", "source": {"kind": "function", "name": "clar_tempdir_init", "path": "t/unit-tests/clar/clar/sandbox.h"}, "target": {"kind": "function", "name": "clar_abort", "path": "t/unit-tests/clar/clar.c"}},
+        {"relation": "possible-calls", "source": {"kind": "function", "name": "refs_for_each_reflog", "path": "refs.c"}, "target": {"kind": "function", "name": "files_reflog_iterator_begin", "path": "refs/files-backend.c"}, "attributes": {"indirect": "function-pointer"}},
         {"relation": "references", "target": {"kind": "symbol", "name": "N_", "path": "gettext.h"}, "attributes": {"role": "macro-expansion"}},
         {"relation": "includes", "source": {"kind": "import", "name": "strbuf.h", "path": "prompt.c"}, "target": {"kind": "file", "path": "strbuf.h"}}
       ]

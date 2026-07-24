@@ -4,8 +4,11 @@ import "path/filepath"
 
 func emitRepositoryFacts(model *repositoryModel, changedFiles, removedFiles []string, incremental bool) *factSet {
 	facts := newFactSet(model.Repository, changedFiles, removedFiles, incremental)
-	index := buildDeclarationIndex(model.Declarations)
+	propagateFunctionPointerAliases(model.Declarations)
 	files := buildFileIndex(model.Files)
+	visibility := buildVisibilityIndex(model.Files, files)
+	index := buildDeclarationIndex(model.Declarations, visibility)
+	indirectCalls := buildIndirectCallIndex(model, index)
 
 	for _, file := range model.Files {
 		fileAttributes := map[string]any{"language": file.Language, "parser": "tree-sitter", "parser_language": file.ParserLanguage}
@@ -63,7 +66,7 @@ func emitRepositoryFacts(model *repositoryModel, changedFiles, removedFiles []st
 			resolveInheritance(facts, index, observation)
 		}
 		for _, observation := range file.Calls {
-			resolveCall(facts, index, observation)
+			resolveCall(facts, index, indirectCalls, observation)
 		}
 		for _, observation := range file.Accesses {
 			resolveAccess(facts, index, observation)

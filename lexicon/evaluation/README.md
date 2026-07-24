@@ -62,6 +62,7 @@ A case fails when:
 - a required relation has zero emitted edges;
 - a required node or source-target edge judgment is absent;
 - a relation declared as an expected negative is emitted;
+- an unresolved-call reason declared as expected-zero is emitted;
 - required output or summary artifacts are missing.
 
 A passing case establishes reproducible observable relation coverage and preserves explicitly judged nodes and edges for that repository revision. It does not prove that every edge is correct or that every unresolved record is a defect.
@@ -85,7 +86,8 @@ A successful complete validation may replace `validation/baseline.json`. Focused
 | `bootstrap_corpus.py` | Restore pinned external corpus repositories |
 | `inventory_workspace.py` | Inspect local corpus and runtime availability |
 | `run_tests.py` | Execute the application and adapter test matrix |
-| `run_validation.py` | Execute corpus scans, gates, determinism checks, summaries, and baseline publication |
+| `run_validation.py` | Execute corpus scans, gates, determinism checks, and baseline publication |
+| `validation_summary.py` | Summarize fact streams and evaluate exact node, edge, and unresolved-call gates |
 | `compare_jsonl.py` | Compare two adapter outputs and report deterministic differences |
 | `corpus.json` | Define cases, repository revisions, splits, and expected relations |
 

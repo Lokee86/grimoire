@@ -17,7 +17,8 @@ func (extractor *extractor) extractExpression(node *tree_sitter.Node, context ex
 		if candidate != "" {
 			extractor.file.Calls = append(extractor.file.Calls, callObservation{
 				SourceID: context.CallableID, SourceScope: context.CallableScope, Path: extractor.file.Path,
-				Expression: nodeText(function, extractor.source), Candidate: candidate, Member: member,
+				Expression: nodeText(function, extractor.source), Candidate: candidate,
+				Arguments: callArguments(node.ChildByFieldName("arguments"), extractor.source), Member: member,
 				Span: spanForNode(extractor.file.Path, node),
 			})
 		}
@@ -34,6 +35,7 @@ func (extractor *extractor) extractExpression(node *tree_sitter.Node, context ex
 		left := node.ChildByFieldName("left")
 		right := node.ChildByFieldName("right")
 		extractor.collectTarget(left, context, "writes")
+		extractor.collectPointerBinding(left, right, context)
 		if assignmentOperator(node, left, right, extractor.source) != "=" {
 			extractor.collectTarget(left, context, "reads")
 		}

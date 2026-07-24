@@ -3,7 +3,7 @@ package main
 import "strings"
 
 const (
-	adapterVersion = "0.2.0"
+	adapterVersion = "0.3.0"
 	streamLanguage = "c-family"
 )
 
@@ -42,6 +42,7 @@ type declaration struct {
 	Definition         bool
 	FileLocal          bool
 	MacroFunction      bool
+	MacroTarget        string
 }
 
 type includeObservation struct {
@@ -60,6 +61,17 @@ type callObservation struct {
 	Path        string
 	Expression  string
 	Candidate   string
+	Arguments   []string
+	Member      bool
+	Span        sourceSpan
+}
+
+type pointerBindingObservation struct {
+	SourceID    string
+	SourceScope string
+	Path        string
+	Candidate   string
+	Target      string
 	Member      bool
 	Span        sourceSpan
 }
@@ -86,18 +98,19 @@ type inheritanceObservation struct {
 }
 
 type sourceFile struct {
-	Path           string
-	Language       string
-	ParserLanguage string
-	Content        []byte
-	FileID         string
-	ModuleID       string
-	ParseError     bool
-	Declarations   []*declaration
-	Includes       []includeObservation
-	Calls          []callObservation
-	Accesses       []accessObservation
-	Inheritance    []inheritanceObservation
+	Path            string
+	Language        string
+	ParserLanguage  string
+	Content         []byte
+	FileID          string
+	ModuleID        string
+	ParseError      bool
+	Declarations    []*declaration
+	Includes        []includeObservation
+	Calls           []callObservation
+	PointerBindings []pointerBindingObservation
+	Accesses        []accessObservation
+	Inheritance     []inheritanceObservation
 }
 
 type repositoryModel struct {
@@ -114,6 +127,7 @@ type extractionContext struct {
 	CallableID         string
 	CallableScope      string
 	Template           bool
+	Conditional        bool
 }
 
 func qualify(scope, name string) string {

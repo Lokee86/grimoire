@@ -8,21 +8,11 @@ import shutil
 import subprocess
 import sys
 import time
-from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-SAMPLED_RELATIONS = (
-    "calls",
-    "possible-calls",
-    "reads",
-    "writes",
-    "depends-on",
-    "extends",
-    "implements",
-    "overrides",
-)
+from validation_summary import summarize
 
 
 def executable(name: str, *fallbacks: Path) -> str:
@@ -113,113 +103,6 @@ def adapter_command(root: Path, adapter: str, repository: Path, output: Path) ->
     raise ValueError(f"unsupported adapter: {adapter}")
 
 
-def describe_node(node: dict[str, Any] | None) -> dict[str, Any] | None:
-    if node is None:
-        return None
-    return {
-        "kind": node.get("kind"),
-        "name": node.get("name"),
-        "owner": node.get("owner"),
-        "path": node.get("path"),
-        "qualified_name": node.get("qualified_name"),
-        "span": node.get("span"),
-    }
-
-
-def node_matches(node: dict[str, Any] | None, expected: dict[str, Any]) -> bool:
-    if node is None:
-        return False
-    for key in ("kind", "name", "path", "qualified_name"):
-        if key in expected and node.get(key) != expected[key]:
-            return False
-    for key, value in expected.get("attributes", {}).items():
-        if node.get("attributes", {}).get(key) != value:
-            return False
-    return True
-
-
-def edge_matches(edge: dict[str, Any], nodes: dict[str, dict[str, Any]], expected: dict[str, Any]) -> bool:
-    if edge.get("relation") != expected.get("relation"):
-        return False
-    if "owner" in expected and edge.get("owner") != expected["owner"]:
-        return False
-    if not node_matches(nodes.get(edge.get("source")), expected.get("source", {})):
-        return False
-    if not node_matches(nodes.get(edge.get("target")), expected.get("target", {})):
-        return False
-    for key, value in expected.get("attributes", {}).items():
-        if edge.get("attributes", {}).get(key) != value:
-            return False
-    return True
-
-
-def summarize(path: Path, case: dict[str, Any]) -> dict[str, Any]:
-    records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
-    header = records[0]
-    nodes = {record["id"]: record for record in records[1:] if record["record"] == "node"}
-    node_counts: Counter[str] = Counter()
-    edge_counts: Counter[str] = Counter()
-    unresolved_counts: Counter[str] = Counter()
-    unresolved_reasons: Counter[str] = Counter()
-    samples: dict[str, list[dict[str, Any]]] = {relation: [] for relation in SAMPLED_RELATIONS}
-    samples["unresolved-calls"] = []
-
-    for record in records[1:]:
-        if record["record"] == "node":
-            node_counts[record["kind"]] += 1
-        elif record["record"] == "edge":
-            relation = record["relation"]
-            edge_counts[relation] += 1
-            if relation in samples and len(samples[relation]) < 12:
-                samples[relation].append(
-                    {
-                        "owner": record.get("owner"),
-                        "source": describe_node(nodes.get(record["source"])),
-                        "span": record.get("span"),
-                        "target": describe_node(nodes.get(record["target"])),
-                    }
-                )
-        else:
-            unresolved_counts[record["relation"]] += 1
-            unresolved_reasons[record["reason"]] += 1
-            if record["relation"] == "calls" and len(samples["unresolved-calls"]) < 20:
-                samples["unresolved-calls"].append(
-                    {
-                        "candidate_name": record.get("candidate_name"),
-                        "expression": record.get("expression"),
-                        "owner": record.get("owner"),
-                        "reason": record.get("reason"),
-                        "source": describe_node(nodes.get(record["source"])),
-                        "span": record.get("span"),
-                    }
-                )
-
-    node_records = list(nodes.values())
-    edge_records = [record for record in records[1:] if record["record"] == "edge"]
-    missing_required_nodes = [
-        expected
-        for expected in case.get("required_nodes", [])
-        if not any(node_matches(node, expected) for node in node_records)
-    ]
-    missing_required_edges = [
-        expected
-        for expected in case.get("required_edges", [])
-        if not any(edge_matches(edge, nodes, expected) for edge in edge_records)
-    ]
-
-    return {
-        "adapter_version": header["adapter_version"],
-        "edge_relations": dict(sorted(edge_counts.items())),
-        "language": header["language"],
-        "missing_required_edges": missing_required_edges,
-        "missing_required_nodes": missing_required_nodes,
-        "node_kinds": dict(sorted(node_counts.items())),
-        "repository": header["repository"],
-        "samples": samples,
-        "unresolved_reasons": dict(sorted(unresolved_reasons.items())),
-        "unresolved_relations": dict(sorted(unresolved_counts.items())),
-    }
-
 
 def validate_case(root: Path, workspace: Path, output_root: Path, case: dict[str, Any]) -> dict[str, Any]:
     case_dir = output_root / case["id"]
@@ -254,6 +137,11 @@ def validate_case(root: Path, workspace: Path, output_root: Path, case: dict[str
         for relation in case.get("expected_zero_relations", [])
         if semantic["edge_relations"].get(relation, 0) != 0
     ]
+    unexpected_unresolved_call_reasons = [
+        reason
+        for reason in case.get("expected_zero_unresolved_call_reasons", [])
+        if semantic["unresolved_call_reasons"].get(reason, 0) != 0
+    ]
     sample_path = case_dir / "audit_samples.json"
     sample_path.write_text(json.dumps(semantic["samples"], indent=2, sort_keys=True) + "\n", encoding="utf-8")
     del semantic["samples"]
@@ -264,6 +152,7 @@ def validate_case(root: Path, workspace: Path, output_root: Path, case: dict[str
         "id": case["id"],
         "missing_required_relations": missing,
         "unexpected_nonzero_relations": unexpected,
+        "unexpected_nonzero_unresolved_call_reasons": unexpected_unresolved_call_reasons,
         "output_bytes": len(first_bytes),
         "output_sha256": hashlib.sha256(first_bytes).hexdigest(),
         "repository": case["repository"],
@@ -327,6 +216,7 @@ def main() -> int:
         or result["missing_required_nodes"]
         or result["missing_required_relations"]
         or result["unexpected_nonzero_relations"]
+        or result["unexpected_nonzero_unresolved_call_reasons"]
         for result in results
     )
     complete_selection = not args.adapter and not args.case and len(cases) == len(manifest["cases"])
