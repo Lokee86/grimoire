@@ -36,6 +36,7 @@ def main() -> int:
 
     tests = [
         ("application-go", [go, "test", "./..."], root, None),
+        ("adapter-c-family", [go, "test", "./..."], root / "adapters" / "c-family", None),
         ("adapter-go", [go, "test", "./..."], root / "adapters" / "go", None),
         ("adapter-gdscript", [go, "test", "./..."], root / "adapters" / "gdscript", None),
         ("adapter-generic", [go, "test", "./..."], root / "adapters" / "generic", None),

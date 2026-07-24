@@ -25,6 +25,7 @@ On Windows, packaged executables use the `.exe` suffix.
 The release directory contains:
 
 - the `lexicon` application executable;
+- `adapters/c-family/lexicon-c-family`;
 - `adapters/go/lexicon-go`;
 - `adapters/gdscript/lexicon-gdscript`;
 - `adapters/generic/lexicon-generic`;
@@ -42,7 +43,7 @@ The packaged executable discovers the adjacent `adapters/` directory automatical
 
 Creating a complete distribution requires:
 
-- Go for the application, Go adapter, GDScript adapter, and generic adapter;
+- Go plus a working CGO C compiler for the application, C/C++ adapter, Go adapter, GDScript adapter, and generic adapter;
 - Rust and Cargo for the Rust adapter;
 - Node.js and npm for TypeScript compilation and production dependency installation;
 - Python to run the packaging script.
@@ -55,7 +56,7 @@ A packaged distribution does not require Go, Cargo, npm, or the TypeScript compi
 
 Runtime requirements are:
 
-- operating-system libraries required by the compiled Go and Rust binaries;
+- operating-system libraries required by the compiled Go, Tree-sitter/CGO, and Rust binaries;
 - Node.js for the compiled JavaScript, TypeScript, and Svelte adapter;
 - Python for the Python adapter;
 - Ruby for the Ruby adapter.

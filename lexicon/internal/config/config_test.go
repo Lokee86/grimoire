@@ -85,11 +85,11 @@ func TestEnabledLanguagesRejectUnknownValues(t *testing.T) {
 }
 
 func TestGenericSelectionEnablesExtensionVariants(t *testing.T) {
-	if !(Config{EnabledLanguages: []string{"generic"}}).LanguageEnabled("generic-c") {
-		t.Fatal("generic selection did not enable generic-c")
+	if !(Config{EnabledLanguages: []string{"generic"}}).LanguageEnabled("generic-java") {
+		t.Fatal("generic selection did not enable generic-java")
 	}
-	if (Config{EnabledLanguages: []string{"python"}}).LanguageEnabled("generic-c") {
-		t.Fatal("generic-c enabled without generic selection")
+	if (Config{EnabledLanguages: []string{"python"}}).LanguageEnabled("generic-java") {
+		t.Fatal("generic-java enabled without generic selection")
 	}
 }
 

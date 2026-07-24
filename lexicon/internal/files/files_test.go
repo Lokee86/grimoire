@@ -7,16 +7,19 @@ import (
 
 func TestLanguages(t *testing.T) {
 	tests := map[string][]string{
-		"main.go":       {"go"},
-		"src/app.tsx":   {"typescript"},
-		"src/feed.js":   {"typescript"},
-		"src/view.jsx":  {"typescript"},
-		"config.mjs":    {"typescript"},
-		"legacy.cjs":    {"typescript"},
-		"jsconfig.json": {"typescript"},
-		"Cargo.toml":    {"rust"},
-		"project.godot": {"gdscript"},
-		"README.md":     nil,
+		"main.c":                {"c-family"},
+		"include/api.hpp":       {"c-family"},
+		"compile_commands.json": {"c-family"},
+		"main.go":               {"go"},
+		"src/app.tsx":           {"typescript"},
+		"src/feed.js":           {"typescript"},
+		"src/view.jsx":          {"typescript"},
+		"config.mjs":            {"typescript"},
+		"legacy.cjs":            {"typescript"},
+		"jsconfig.json":         {"typescript"},
+		"Cargo.toml":            {"rust"},
+		"project.godot":         {"gdscript"},
+		"README.md":             nil,
 	}
 	for path, expected := range tests {
 		if actual := Languages(path); !reflect.DeepEqual(actual, expected) {

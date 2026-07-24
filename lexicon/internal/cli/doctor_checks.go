@@ -13,6 +13,7 @@ import (
 )
 
 var doctorRuntimeExecutables = map[string][][]string{
+	"c-family":   {{"go"}},
 	"go":         {{"go"}},
 	"gdscript":   {{"go"}},
 	"python":     {{"python", "python3"}},
@@ -121,7 +122,7 @@ func checkRuntime(adapterRoot, language string) error {
 }
 
 func packagedRuntimeAvailable(adapterRoot, language string) bool {
-	if language != "go" && language != "gdscript" && language != "rust" {
+	if language != "c-family" && language != "go" && language != "gdscript" && language != "rust" {
 		return false
 	}
 	base := filepath.Join(adapterRoot, language, "lexicon-"+language)

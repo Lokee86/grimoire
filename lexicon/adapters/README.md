@@ -31,6 +31,7 @@ Those boundaries keep one language implementation reusable by every Warlock cons
 
 | Folder | Language surface | Implementation | Primary semantic frontend |
 | --- | --- | --- | --- |
+| [c-family/](c-family/README.md) | C and C++ | Go | Official Tree-sitter C and C++ grammars |
 | [go/](go/README.md) | Go | Go | `go/parser`, `go/types`, packages, SSA, and VTA |
 | [gdscript/](gdscript/README.md) | GDScript | Go | Dedicated parser and bounded type-flow model |
 | [generic/](generic/README.md) | Curated unsupported source extensions | Go | Conservative line-oriented fallback |

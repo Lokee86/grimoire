@@ -11,7 +11,7 @@ import (
 )
 
 func TestCommandPrefersPackagedExecutables(t *testing.T) {
-	for _, language := range []string{"go", "gdscript", "rust"} {
+	for _, language := range []string{"c-family", "go", "gdscript", "rust"} {
 		t.Run(language, func(t *testing.T) {
 			root := t.TempDir()
 			executable := filepath.Join(root, language, "lexicon-"+language)
@@ -55,7 +55,7 @@ func TestCommandUsesGenericAdapterForExtensionLanguage(t *testing.T) {
 	if err := os.WriteFile(executable, []byte("packaged"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	request := Request{Language: "generic-c", Repository: "repo", Output: "facts.jsonl", ChangedFiles: []string{"src/main.c"}}
+	request := Request{Language: "generic-java", Repository: "repo", Output: "facts.jsonl", ChangedFiles: []string{"src/Main.java"}}
 	command, err := (Runner{Root: root}).command(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
@@ -63,7 +63,7 @@ func TestCommandUsesGenericAdapterForExtensionLanguage(t *testing.T) {
 	if command.Path != executable {
 		t.Fatalf("command path = %q, want %q", command.Path, executable)
 	}
-	want := []string{"--repo", "repo", "--output", "facts.jsonl", "--language", "generic-c", "--changed-file", "src/main.c"}
+	want := []string{"--repo", "repo", "--output", "facts.jsonl", "--language", "generic-java", "--changed-file", "src/Main.java"}
 	if got := command.Args[1:]; !reflect.DeepEqual(got, want) {
 		t.Fatalf("generic arguments = %#v, want %#v", got, want)
 	}

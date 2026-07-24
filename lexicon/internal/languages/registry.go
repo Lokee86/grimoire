@@ -16,6 +16,7 @@ type Definition struct {
 const genericLanguagePrefix = "generic-"
 
 var definitions = []Definition{
+	{Language: "c-family", Directory: "c-family", Extensions: []string{".c", ".cc", ".cp", ".cpp", ".cxx", ".c++", ".h", ".hh", ".hpp", ".hxx", ".h++", ".inc", ".inl", ".ipp", ".tpp"}, ConfigFiles: []string{"compile_commands.json", "CMakeLists.txt"}},
 	{Language: "gdscript", Directory: "gdscript", Extensions: []string{".gd"}, ConfigFiles: []string{"project.godot"}},
 	{Language: "go", Directory: "go", Extensions: []string{".go"}, ConfigFiles: []string{"go.mod", "go.sum"}},
 	{Language: "python", Directory: "python", Extensions: []string{".py"}, ConfigFiles: []string{"pyproject.toml", "setup.cfg", "requirements.txt"}},
@@ -26,10 +27,10 @@ var definitions = []Definition{
 }
 
 var genericSourceExtensions = map[string]struct{}{
-	".asm": {}, ".bash": {}, ".bat": {}, ".c": {}, ".cc": {}, ".clj": {}, ".cljs": {},
-	".cmd": {}, ".cpp": {}, ".cr": {}, ".cs": {}, ".dart": {}, ".elm": {}, ".erl": {},
+	".asm": {}, ".bash": {}, ".bat": {}, ".clj": {}, ".cljs": {},
+	".cmd": {}, ".cr": {}, ".cs": {}, ".dart": {}, ".elm": {}, ".erl": {},
 	".ex": {}, ".exs": {}, ".f03": {}, ".f90": {}, ".f95": {}, ".fish": {}, ".fs": {},
-	".fsx": {}, ".groovy": {}, ".h": {}, ".hh": {}, ".hpp": {}, ".hs": {}, ".java": {},
+	".fsx": {}, ".groovy": {}, ".hs": {}, ".java": {},
 	".jl": {}, ".kt": {}, ".kts": {}, ".lhs": {}, ".lua": {}, ".m": {}, ".ml": {},
 	".mli": {}, ".mm": {}, ".nim": {}, ".nims": {}, ".pas": {}, ".php": {}, ".pl": {},
 	".pm": {}, ".proto": {}, ".ps1": {}, ".r": {}, ".scala": {}, ".sc": {}, ".s": {},

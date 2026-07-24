@@ -7,9 +7,12 @@ import (
 
 func TestDedicatedAdaptersTakePrecedence(t *testing.T) {
 	for path, want := range map[string][]string{
-		"src/App.svelte": {"typescript"},
-		"src/main.go":    {"go"},
-		"src/main.py":    {"python"},
+		"include/api.hpp": {"c-family"},
+		"src/App.svelte":  {"typescript"},
+		"src/main.c":      {"c-family"},
+		"src/main.cpp":    {"c-family"},
+		"src/main.go":     {"go"},
+		"src/main.py":     {"python"},
 	} {
 		if got := ForPath(path); !reflect.DeepEqual(got, want) {
 			t.Fatalf("ForPath(%s) = %v, want %v", path, got, want)
@@ -18,14 +21,14 @@ func TestDedicatedAdaptersTakePrecedence(t *testing.T) {
 }
 
 func TestGenericFallbackUsesExtensionIdentity(t *testing.T) {
-	if got, want := ForPath("src/main.c"), []string{"generic-c"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("ForPath(main.c) = %v, want %v", got, want)
+	if got, want := ForPath("src/Main.java"), []string{"generic-java"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("ForPath(Main.java) = %v, want %v", got, want)
 	}
-	definition, ok := Lookup("generic-c")
-	if !ok || definition.Directory != "generic" || !reflect.DeepEqual(definition.Extensions, []string{".c"}) {
+	definition, ok := Lookup("generic-java")
+	if !ok || definition.Directory != "generic" || !reflect.DeepEqual(definition.Extensions, []string{".java"}) {
 		t.Fatalf("generic definition = %#v, %v", definition, ok)
 	}
-	if !OwnsSource("generic-c", "src/main.c") || OwnsSource("generic-c", "src/main.cpp") {
+	if !OwnsSource("generic-java", "src/Main.java") || OwnsSource("generic-java", "src/main.c") {
 		t.Fatal("generic extension ownership is not exact")
 	}
 }

@@ -10,7 +10,7 @@ Lexicon is primarily a one-shot CLI application. It can also run an optional fil
 
 Lexicon currently provides:
 
-- deterministic adapters for Go, GDScript, Python, Ruby, Rust, JavaScript, TypeScript, and Svelte script blocks;
+- deterministic adapters for C, C++, Go, GDScript, Python, Ruby, Rust, JavaScript, TypeScript, and Svelte script blocks;
 - conservative generic fallback coverage for curated source-code extensions without a dedicated adapter;
 - a normalized facts-v1 JSONL adapter boundary;
 - immutable content-addressed binary fact objects;
@@ -28,6 +28,7 @@ The adapters are functional semantic analyzers, not merely syntax inventories. P
 
 | Language surface | Implementation | Semantic frontend | Scope |
 | --- | --- | --- | --- |
+| C / C++ | Go | Official Tree-sitter C and C++ grammars | Mixed repositories, headers, declarations, includes, inheritance, calls, and conservative dataflow |
 | Go | Go | `go/parser`, `go/types`, packages, SSA, and VTA | Multi-module repositories, typed calls, interfaces, dataflow, dependencies |
 | GDScript | Go | Dedicated parser and bounded type-flow model | Godot projects, inheritance, callbacks, autoloads, local dispatch |
 | Python | Python | Standard-library `ast` | Imports, inheritance, protocols, higher-order flow, dataflow |

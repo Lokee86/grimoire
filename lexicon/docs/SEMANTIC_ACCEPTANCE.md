@@ -13,7 +13,7 @@ Every supported adapter family must have fixtures that prove:
 - lexical shadowing selects the nearest declaration;
 - unresolved, external, and built-in names do not receive fabricated targets.
 
-JavaScript and Svelte are covered through the TypeScript adapter but require their own fixture coverage.
+C and C++ share the C-family adapter but require fixture coverage for both grammars and cross-language header/source resolution. JavaScript and Svelte are covered through the TypeScript adapter but require their own fixture coverage.
 
 ## Dispatch
 

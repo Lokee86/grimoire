@@ -6,6 +6,21 @@ import os
 from pathlib import Path
 
 LANGUAGE_EXTENSIONS = {
+    ".c": "c-family",
+    ".c++": "c-family",
+    ".cc": "c-family",
+    ".cp": "c-family",
+    ".cpp": "c-family",
+    ".cxx": "c-family",
+    ".h": "c-family",
+    ".h++": "c-family",
+    ".hh": "c-family",
+    ".hpp": "c-family",
+    ".hxx": "c-family",
+    ".inc": "c-family",
+    ".inl": "c-family",
+    ".ipp": "c-family",
+    ".tpp": "c-family",
     ".py": "python",
     ".rb": "ruby",
     ".ts": "typescript",
@@ -49,6 +64,8 @@ IGNORED_DIRECTORIES = {
 }
 
 MANIFESTS = (
+    "compile_commands.json",
+    "CMakeLists.txt",
     "pyproject.toml",
     "requirements.txt",
     "Gemfile",

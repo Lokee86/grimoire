@@ -88,6 +88,7 @@ def main() -> int:
         (repository / "main.gd").write_text("extends Node\nfunc answer():\n    return 42\n", encoding="utf-8")
         (repository / "main.go").write_text("package smoke\n\nfunc Answer() int { return 42 }\n", encoding="utf-8")
         (repository / "go.mod").write_text("module example.com/smoke\n\ngo 1.26\n", encoding="utf-8")
+        (repository / "main.c").write_text("int answer(void) { return 42; }\n", encoding="utf-8")
         (repository / "app.ts").write_text("export function answer(): number { return 42; }\n", encoding="utf-8")
         (repository / "package.json").write_text('{"name":"lexicon-smoke","private":true}\n', encoding="utf-8")
         (repository / "src").mkdir()
@@ -103,7 +104,7 @@ def main() -> int:
             raise RuntimeError("normal initialization retained a materialized JSONL library")
         initial_id, initial_manifest = validate_snapshot(repository)
         languages = {entry["language"] for entry in initial_manifest["languages"]}
-        expected = {"gdscript", "go", "python", "ruby", "rust", "typescript"}
+        expected = {"c-family", "gdscript", "go", "python", "ruby", "rust", "typescript"}
         if languages != expected:
             raise RuntimeError(f"unexpected snapshot languages: {sorted(languages)}")
 
@@ -122,6 +123,7 @@ def main() -> int:
             raise RuntimeError("unchanged Python fact object was not reused")
 
         incremental_updates = (
+            ("c-family", repository / "main.c", "int answer(void) { return 43; }\n"),
             ("ruby", repository / "main.rb", "def answer = 43\n"),
             ("gdscript", repository / "main.gd", "extends Node\nfunc answer():\n    return 43\n"),
             ("go", repository / "main.go", "package smoke\n\nfunc Answer() int { return 43 }\n"),

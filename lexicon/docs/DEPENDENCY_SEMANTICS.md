@@ -19,6 +19,7 @@ The parsers read manifest text or JSON/TOML data only. They never execute manife
 
 ## Adapter coverage
 
+- C/C++: quoted and system include directives, with repository-local headers resolved conservatively by relative path, exact path, or unique basename. Compiler package and linker dependencies are not inferred.
 - Go: `go.mod` `require` entries, including blocks, `replace` entries, and repository-local Go imports.
 - Python: literal `[project].dependencies`, `[project.optional-dependencies]`, `requirements*.txt` fallback, editable local requirements, and repository-local Python imports.
 - Ruby: literal `Gemfile` `gem` calls, literal gemspec runtime/development dependency calls, `require_relative`, and `load`/`require` remain conservative for non-local targets.

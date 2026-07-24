@@ -60,6 +60,10 @@ def run(command: list[str], cwd: Path, env: dict[str, str] | None = None) -> str
 def build_adapters(root: Path, adapters: set[str]) -> None:
     bin_dir = root / "evaluation" / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
+    if "c-family" in adapters:
+        output = bin_dir / ("lexicon-c-family.exe" if os.name == "nt" else "lexicon-c-family")
+        go = executable("go.exe", Path("C:/Program Files/Go/bin/go.exe"))
+        run([go, "build", "-o", str(output), "."], root / "adapters" / "c-family")
     if "typescript" in adapters:
         run(npm_command("run", "build"), root / "adapters" / "typescript")
     if "gdscript" in adapters:
@@ -76,6 +80,9 @@ def build_adapters(root: Path, adapters: set[str]) -> None:
 
 def adapter_command(root: Path, adapter: str, repository: Path, output: Path) -> tuple[list[str], dict[str, str]]:
     env = os.environ.copy()
+    if adapter == "c-family":
+        binary = root / "evaluation" / "bin" / ("lexicon-c-family.exe" if os.name == "nt" else "lexicon-c-family")
+        return [str(binary), "--repo", str(repository), "--output", str(output)], env
     if adapter == "python":
         env["PYTHONPATH"] = str(root / "adapters" / "python")
         return [sys.executable, "-m", "lexicon_python", "--repo", str(repository), "--output", str(output)], env
@@ -218,7 +225,7 @@ def validate_case(root: Path, workspace: Path, output_root: Path, case: dict[str
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--adapter", action="append", choices=("python", "ruby", "typescript", "gdscript", "rust"))
+    parser.add_argument("--adapter", action="append", choices=("c-family", "python", "ruby", "typescript", "gdscript", "rust"))
     parser.add_argument("--case", action="append")
     parser.add_argument("--jobs", type=int, default=3)
     args = parser.parse_args()
