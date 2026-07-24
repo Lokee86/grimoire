@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -64,6 +65,18 @@ def executable_name(name: str) -> str:
     return name + ".exe" if os.name == "nt" else name
 
 
+def copy_installers(repo: Path, output: Path) -> None:
+    source_name, output_name = (
+        ("install.ps1", "install.ps1")
+        if os.name == "nt"
+        else ("install.sh", "install.sh")
+    )
+    destination = output / output_name
+    copy_file(repo / "packaging" / source_name, destination)
+    if output_name.endswith(".sh"):
+        destination.chmod(destination.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
 def build_go_adapter(repo: Path, output: Path, language: str) -> None:
     adapter = repo / "adapters" / language
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -96,6 +109,7 @@ def build_distribution(repo: Path, output: Path, version: str | None = None) -> 
 
     lexicon = output / executable_name("lexicon")
     run(go_build_command(lexicon, "./cmd/lexicon", version), repo)
+    copy_installers(repo, output)
     for language in ("c-family", "go", "gdscript", "generic"):
         build_go_adapter(repo, adapters / language / executable_name("lexicon-" + language), language)
 

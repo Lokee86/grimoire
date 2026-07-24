@@ -61,7 +61,7 @@ bin/lexicon scan --repo /path/to/repository
 bin/lexicon export --repo /path/to/repository --output /path/to/export
 ```
 
-A packaged release places the executable beside its adapter directory, so `--adapters` is normally unnecessary. Source checkouts can also set `LEXICON_ADAPTERS`.
+A packaged release places the executable beside its adapter directory, so `--adapters` is normally unnecessary. Run `install.ps1` on Windows or `install.sh` on Unix-like systems to install the complete extracted package for the current user. Source checkouts can also set `LEXICON_ADAPTERS`.
 
 ## Commands
 

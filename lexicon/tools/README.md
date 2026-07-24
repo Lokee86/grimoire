@@ -16,6 +16,8 @@ The scripts support development and release verification. They are not part of t
 | `package_release.py` | Build a clean application distribution containing the executable and required adapter runtimes |
 | `smoke_app.py` | Exercise initialization and core application behavior against temporary repositories |
 | `smoke_operations.py` | Exercise operational commands such as export, garbage collection, language selection, and consumers |
+| `smoke_installers.py` | Install an extracted release package into a temporary location and verify its executable, adapters, and version |
+| `test_package_release.py` | Regression test for release installer packaging |
 | `test_reconcile_runtime.py` | Regression tests for runtime-evidence reconciliation |
 | `test_semantic_report.py` | Regression tests for semantic reporting |
 
@@ -35,12 +37,15 @@ python tools/test_reconcile_runtime.py
 python tools/test_semantic_report.py
 python tools/smoke_app.py
 python tools/smoke_operations.py
+pytest tools/test_package_release.py
 ```
 
-Build a release directory:
+Build and verify a release directory:
 
 ```text
 python tools/package_release.py --output release --version <version>
+python tools/smoke_operations.py --distribution release
+python tools/smoke_installers.py --distribution release --version <version>
 ```
 
 Omit `--version` only for a local packaging test where a `dev` application version is acceptable.

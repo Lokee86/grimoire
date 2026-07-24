@@ -12,10 +12,24 @@ python tools/package_release.py --output release --version <version>
 
 Omitting `--version` leaves the application version as `dev`, which is appropriate only for local packaging tests.
 
-Initialize a repository with the packaged application:
+Install an extracted package for the current user:
 
 ```text
-release/lexicon init --repo /path/to/repository
+# Windows PowerShell
+.\install.ps1
+
+# Linux and other Unix-like systems
+./install.sh
+```
+
+The PowerShell installer defaults to `%LOCALAPPDATA%\Programs\Lexicon` and adds that directory to the user `PATH`. Use `-InstallDir PATH` to choose another location or `-NoPath` to leave `PATH` unchanged.
+
+The shell installer defaults to `${XDG_DATA_HOME:-$HOME/.local/share}/lexicon` and creates `$HOME/.local/bin/lexicon`. Pass an installation directory as its first argument, or set `LEXICON_INSTALL_DIR` and `LEXICON_BIN_DIR`.
+
+Initialize a repository with the installed application:
+
+```text
+lexicon init --repo /path/to/repository
 ```
 
 On Windows, packaged executables use the `.exe` suffix.
@@ -25,6 +39,7 @@ On Windows, packaged executables use the `.exe` suffix.
 The release directory contains:
 
 - the `lexicon` application executable;
+- the platform current-user installer: `install.ps1` on Windows or `install.sh` on Unix-like systems;
 - `adapters/c-family/lexicon-c-family`;
 - `adapters/go/lexicon-go`;
 - `adapters/gdscript/lexicon-gdscript`;
@@ -72,9 +87,10 @@ Before publishing a release:
 3. build the release into a clean output directory;
 4. initialize a temporary mixed-language repository with the packaged executable;
 5. run `status`, `doctor`, `scan`, and `export` from the package;
-6. verify exported JSONL with `tools/validate_jsonl.py`;
-7. confirm the package contains no tests, fixtures, caches, generated evaluation output, or build trees;
-8. confirm the application reports the intended release version rather than `dev`.
+6. run `python tools/smoke_installers.py --distribution PATH --version VERSION` to verify the platform installer;
+7. verify exported JSONL with `tools/validate_jsonl.py`;
+8. confirm the package contains no tests, fixtures, caches, generated evaluation output, or build trees;
+9. confirm the application reports the intended release version rather than `dev`.
 
 The smoke utilities in `tools/` cover application operations, but the final packaged path must also be exercised because adapter discovery and runtime contents differ from source execution.
 

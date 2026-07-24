@@ -12,9 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def run(binary: Path, *arguments: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    environment = os.environ.copy()
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
     result = subprocess.run(
         [str(binary), *arguments],
         cwd=cwd,
+        env=environment,
         check=False,
         capture_output=True,
         text=True,
