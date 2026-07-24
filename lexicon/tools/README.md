@@ -12,6 +12,7 @@ The scripts support development and release verification. They are not part of t
 | --- | --- |
 | `validate_jsonl.py` | Validate facts-v1 JSONL structure, identities, ownership, references, and canonical ordering |
 | `semantic_report.py` | Summarize emitted node, relation, unresolved, and ownership counts |
+| `call_resolution_metrics.py` | Aggregate C-family call sites by source path and span, preserving definite and possible resolution semantics |
 | `reconcile_runtime.py` | Validate runtime-evidence streams and classify observations against a static facts stream |
 | `package_release.py` | Build a clean application distribution containing the executable and required adapter runtimes |
 | `smoke_app.py` | Exercise initialization and core application behavior against temporary repositories |
@@ -28,7 +29,10 @@ Validate and summarize an adapter stream:
 ```text
 python tools/validate_jsonl.py /path/to/facts.jsonl
 python tools/semantic_report.py /path/to/facts.jsonl
+python tools/call_resolution_metrics.py /path/to/c-family-facts.jsonl
 ```
+
+`call_resolution_metrics.py` parses facts-v1 records without depending on an adapter implementation; it is intended for C and C++ adapter output. It counts unique call sites, not raw call edges. The stable JSON object contains `call_sites` (`total`, `definite_only`, `possible_only`, `definite_plus_possible`, and `unresolved_only`), `unresolved_reason_counts`, `possible_target_fanout` (site count and nearest-rank `p50`, `p75`, `p90`, `p95`, and `p99` percentiles), and `highest_fanout_call_sites`. Highest-fanout output defaults to 10 sites and can be bounded with `--limit N`; use `--output PATH` to write the JSON file.
 
 Run tooling regressions and application smoke coverage:
 
