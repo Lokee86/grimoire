@@ -48,29 +48,30 @@ func evaluateContext(
 	totalStart := time.Now()
 	var base []retrieve.Candidate
 	var broad []retrieve.Candidate
+	intents := activeRetrievalIntents(options.Query)
 
 	switch options.Mode {
 	case "lexical":
 		searchStart := time.Now()
-		base = retrieve.Search(snapshot, options.Query, options.Limit)
+		base = intentLexicalCandidates(snapshot, intents, options.Limit)
 		result.Timings.LexicalSearchMS = durationMS(time.Since(searchStart))
 		probeLimit := options.ProbeLimit
 		if probeLimit <= 0 {
 			probeLimit = options.Limit
 		}
 		probeStart := time.Now()
-		broad = retrieve.Search(snapshot, options.Query, probeLimit)
+		broad = intentLexicalCandidates(snapshot, intents, probeLimit)
 		result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
 	case "hybrid":
 		searchStart := time.Now()
-		lexical := retrieve.Search(snapshot, options.Query, options.Limit)
+		lexical := intentLexicalCandidates(snapshot, intents, options.Limit)
 		result.Timings.LexicalSearchMS = durationMS(time.Since(searchStart))
 		probeLimit := options.ProbeLimit
 		if probeLimit <= 0 {
 			probeLimit = options.Limit
 		}
 		probeStart := time.Now()
-		lexicalBroad := retrieve.Search(snapshot, options.Query, probeLimit)
+		lexicalBroad := intentLexicalCandidates(snapshot, intents, probeLimit)
 		result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
 
 		semantic, err := semanticCandidatesForEvaluation(
@@ -81,6 +82,8 @@ func evaluateContext(
 			return result, err
 		}
 		mergeStart := time.Now()
+		semantic.Candidates = rankCandidatesForIntent(semantic.Candidates, intents[0], false)
+		semantic.BroadProbe = rankCandidatesForIntent(semantic.BroadProbe, intents[0], false)
 		base = mergeRankedProviders(options.Limit, lexical, semantic.Candidates)
 		broad = mergeRankedProviders(probeLimit, lexicalBroad, semantic.BroadProbe)
 		result.Timings.SnapshotValidationMS = durationMS(semantic.Metrics.SnapshotValidation)
@@ -96,8 +99,8 @@ func evaluateContext(
 		if err != nil {
 			return result, err
 		}
-		base = semantic.Candidates
-		broad = semantic.BroadProbe
+		base = rankCandidatesForIntent(semantic.Candidates, intents[0], false)
+		broad = rankCandidatesForIntent(semantic.BroadProbe, intents[0], false)
 		result.Timings.SnapshotValidationMS = durationMS(semantic.Metrics.SnapshotValidation)
 		result.Timings.EmbeddingMS = durationMS(semantic.Metrics.Embedding)
 		result.Timings.VectorSearchMS = durationMS(semantic.Metrics.VectorSearch)
@@ -105,14 +108,16 @@ func evaluateContext(
 		result.Timings.DiagnosticProbeMS = durationMS(semantic.Metrics.DiagnosticProbe)
 	}
 
-	structural := collectStructuralContext(context.Background(), snapshot, options.Query, options.Structural)
+	structuralIntent := structuralRetrievalIntent(options.Query, intents)
+	structural := collectStructuralContext(context.Background(), snapshot, structuralIntent.Query, options.Structural)
+	structural = annotateStructuralIntent(structural, structuralIntent)
 	result.Warnings = append(result.Warnings, structural.Warnings...)
 	result.Timings.LexiconSearchMS = durationMS(structural.LexiconTime)
 	result.Timings.ArcanaSearchMS = durationMS(structural.ArcanaTime)
 	result.Timings.StructuralProviderMS = durationMS(structural.TotalTime)
 
 	exactStart := time.Now()
-	exact := retrieve.Exact(snapshot, options.Query, min(options.Limit, maxExactCandidates))
+	exact := intentExactCandidates(snapshot, intents, min(options.Limit, maxExactCandidates))
 	result.Timings.ExactRecoveryMS = durationMS(time.Since(exactStart))
 
 	mergeStart := time.Now()

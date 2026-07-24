@@ -14,7 +14,6 @@ import (
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/queryshape"
-	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/selection"
 )
 
@@ -77,28 +76,35 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("load prepared index: %w", err)
 	}
 
+	intents := activeRetrievalIntents(*query)
+	lexicalCandidates := intentLexicalCandidates(snapshot, intents, *limit)
 	semanticContext, cancelSemantic := context.WithTimeout(context.Background(), *timeout)
-	baseCandidates, err := semanticCandidates(
+	semanticCandidates, err := semanticCandidates(
 		semanticContext, snapshot, statePath, *query, *endpoint, *enginePath, *limit, queryOptions,
 	)
 	cancelSemantic()
+	baseCandidates := lexicalCandidates
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "warning: semantic retrieval unavailable; using lexical fallback: %v\n", err)
-		baseCandidates = retrieve.Search(snapshot, *query, *limit)
+		_, _ = fmt.Fprintf(stderr, "warning: semantic retrieval unavailable; using lexical fallback (BM25): %v\n", err)
+	} else {
+		semanticCandidates = rankCandidatesForIntent(semanticCandidates, intents[0], false)
+		baseCandidates = mergeRankedProviders(*limit, lexicalCandidates, semanticCandidates)
 	}
 
-	structural := collectStructuralContext(context.Background(), snapshot, *query, structuralContextOptions{
+	structuralIntent := structuralRetrievalIntent(*query, intents)
+	structural := collectStructuralContext(context.Background(), snapshot, structuralIntent.Query, structuralContextOptions{
 		Enabled: emitLexicon || arcanaEnabled, ArcanaEnabled: arcanaEnabled, EmitLexicon: emitLexicon,
 		Root: *root, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
 		LexiconState: *lexiconState, LexiconCommand: *lexiconCommand,
 		ArcanaState: *arcanaState, ArcanaCommand: *arcanaCommand,
 		Limit: *limit, Timeout: *structureTimeout,
 	})
+	structural = annotateStructuralIntent(structural, structuralIntent)
 	for _, warning := range structural.Warnings {
 		_, _ = fmt.Fprintf(stderr, "warning: %s\n", warning)
 	}
 
-	exact := retrieve.Exact(snapshot, *query, min(*limit, maxExactCandidates))
+	exact := intentExactCandidates(snapshot, intents, min(*limit, maxExactCandidates))
 	lexiconCandidates := structural.Lexicon.Candidates
 	if !emitLexicon {
 		lexiconCandidates = nil

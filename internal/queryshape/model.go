@@ -67,8 +67,9 @@ type RetrievalIntent struct {
 	Weight float64         `json:"weight"`
 }
 
-// RetrievalPolicy is the non-authoritative policy recommendation derived from
-// a Profile. Shadow remains true until assembly consumes this contract.
+// RetrievalPolicy is the policy recommendation derived from a Profile.
+// Query-only intents may already guide retrieval; Shadow governs whether the
+// scope and budget recommendation is authoritative for adaptive assembly.
 type RetrievalPolicy struct {
 	Shadow               bool              `json:"shadow"`
 	Scope                Scope             `json:"scope"`
