@@ -9,6 +9,10 @@ import (
 	"github.com/Lokee86/grimoire/internal/retrieve"
 )
 
+type facetRankingSignals struct {
+	weightedCoverage float64
+}
+
 func candidateIntentBoost(candidate retrieve.Candidate, planned queryshape.RetrievalIntent) (string, float64) {
 	normalizedPath := strings.ToLower(filepath.ToSlash(candidate.Chunk.Path))
 	base := strings.ToLower(filepath.Base(normalizedPath))
@@ -21,24 +25,19 @@ func candidateIntentBoost(candidate retrieve.Candidate, planned queryshape.Retri
 
 	switch planned.Intent {
 	case evidence.IntentDirectLocation:
-		value := artifactPenalty
-		for _, detail := range candidate.ScoreDetails {
-			switch {
-			case strings.HasPrefix(detail.Name, "filename matches"):
-				value += 10
-			case strings.HasPrefix(detail.Name, "path matches"):
-				value += 6
-			case strings.HasPrefix(detail.Name, "leading line matches"):
-				value += 3
-			}
+		if planned.Weight < 0.999 || !explicitLocationQuery(planned.Query) {
+			return "direct-location implementation and declaration priority", legacyDirectLocationBoost(candidate, normalizedPath, text, artifactPenalty)
 		}
+		signals := candidateFacetRankingSignals(candidate)
+		value := artifactPenalty + boundedCoverageBoost(signals.weightedCoverage, 4, 20)
 		if implementationSourcePath(normalizedPath) {
-			value += 16
 			if containsDeclaration(text) {
+				value += 18
+			} else {
 				value += 8
 			}
 		}
-		return "direct-location implementation and declaration priority", value
+		return "direct-location facet specificity", value
 	case evidence.IntentCallChain:
 		value := artifactPenalty
 		if implementationSourcePath(normalizedPath) && containsDeclaration(text) {
@@ -89,6 +88,86 @@ func candidateIntentBoost(candidate retrieve.Candidate, planned queryshape.Retri
 		return "generated evaluation artifact penalty", artifactPenalty
 	}
 	return "", 0
+}
+
+func explicitLocationQuery(query string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(query))
+	for _, prefix := range []string{
+		"where ", "find ", "locate ", "which file ", "which function ",
+		"which method ", "which type ", "which constant ",
+	} {
+		if strings.HasPrefix(normalized, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func legacyDirectLocationBoost(candidate retrieve.Candidate, path, text string, artifactPenalty float64) float64 {
+	value := artifactPenalty
+	for _, detail := range candidate.ScoreDetails {
+		switch {
+		case strings.HasPrefix(detail.Name, "filename matches"):
+			value += 10
+		case strings.HasPrefix(detail.Name, "path matches"):
+			value += 6
+		case strings.HasPrefix(detail.Name, "leading line matches"):
+			value += 3
+		}
+	}
+	if implementationSourcePath(path) {
+		value += 16
+		if containsDeclaration(text) {
+			value += 8
+		}
+	}
+	return value
+}
+
+func candidateFacetRankingSignals(candidate retrieve.Candidate) facetRankingSignals {
+	termWeights := make(map[string]float64)
+	signals := facetRankingSignals{}
+	for _, detail := range candidate.ScoreDetails {
+		name := detail.Name
+		var term string
+		weight := 0.0
+		switch {
+		case strings.HasPrefix(name, "BM25 content matches "):
+			term = strings.TrimPrefix(name, "BM25 content matches ")
+			weight = 1
+		case strings.HasPrefix(name, "declaration alias "):
+			term = strings.TrimPrefix(name, "declaration alias ")
+			if separator := strings.Index(term, " -> "); separator >= 0 {
+				term = term[:separator]
+			}
+			weight = 1.25
+		case strings.HasPrefix(name, "leading line matches "):
+			term = strings.TrimPrefix(name, "leading line matches ")
+			weight = 0.75
+		case strings.HasPrefix(name, "filename matches "):
+			term = strings.TrimPrefix(name, "filename matches ")
+			weight = 0.5
+		case strings.HasPrefix(name, "path matches "):
+			term = strings.TrimPrefix(name, "path matches ")
+			weight = 0.25
+		}
+		term = strings.TrimSpace(term)
+		if term != "" && weight > termWeights[term] {
+			termWeights[term] = weight
+		}
+	}
+	for _, weight := range termWeights {
+		signals.weightedCoverage += weight
+	}
+	return signals
+}
+
+func boundedCoverageBoost(coverage, multiplier, maximum float64) float64 {
+	value := coverage * multiplier
+	if value > maximum {
+		return maximum
+	}
+	return value
 }
 
 func generatedEvaluationPenalty(path, query string) float64 {

@@ -57,6 +57,97 @@ func TestIntentLexicalCandidatesPrioritizeDirectLocationPaths(t *testing.T) {
 	}
 }
 
+func TestRankCandidatesForIntentUsesWeightedFacetCoverage(t *testing.T) {
+	planned := queryshape.RetrievalIntent{
+		Intent: evidence.IntentDirectLocation,
+		Query:  "Where is vector snapshot freshness validated against the prepared index and embedding engine metadata?",
+		Weight: 1,
+	}
+	candidates := []retrieve.Candidate{
+		{
+			Chunk: index.Chunk{
+				ID: "distractor", Path: "native/vector-engine/snapshot_api.rs",
+				Text: "fn snapshot_api() {}", TokenCount: 5,
+			},
+			Source: "lexical", Score: 30, Rank: 1,
+			ScoreDetails: []retrieve.ScoreDetail{
+				{Name: "path matches vector", Value: 4},
+				{Name: "filename matches snapshot", Value: 8},
+				{Name: "path matches engine", Value: 4},
+				{Name: "BM25 content matches metadata", Value: 3},
+			},
+		},
+		{
+			Chunk: index.Chunk{
+				ID: "owner", Path: "internal/app/vector_manifest.go",
+				Text: "func validateVectorSnapshotManifest() {}", TokenCount: 6,
+			},
+			Source: "lexical", Score: 26, Rank: 2,
+			ScoreDetails: []retrieve.ScoreDetail{
+				{Name: "BM25 content matches vector", Value: 2},
+				{Name: "BM25 content matches snapshot", Value: 3},
+				{Name: "BM25 content matches prepared", Value: 6},
+				{Name: "BM25 content matches index", Value: 3},
+				{Name: "BM25 content matches embedding", Value: 3},
+			},
+		},
+	}
+	got := rankCandidatesForIntent(candidates, planned, true)
+	if got[0].Chunk.Path != "internal/app/vector_manifest.go" {
+		t.Fatalf("content-specific owner did not outrank coarse path match: %+v", got)
+	}
+}
+
+func TestCandidateIntentBoostKeepsCompositeLocationFacetOnLegacyRanking(t *testing.T) {
+	planned := queryshape.RetrievalIntent{
+		Intent: evidence.IntentDirectLocation,
+		Query:  "Where is the command-line contract declared",
+		Weight: 0.925,
+	}
+	candidate := retrieve.Candidate{
+		Chunk: index.Chunk{Path: "src/cli.rs", Text: "fn build_cli() {}"},
+		ScoreDetails: []retrieve.ScoreDetail{
+			{Name: "filename matches cli", Value: 8},
+		},
+	}
+	name, value := candidateIntentBoost(candidate, planned)
+	if name != "direct-location implementation and declaration priority" || value != 34 {
+		t.Fatalf("composite facet boost = %q %.1f, want legacy 34", name, value)
+	}
+}
+
+func TestCandidateIntentBoostKeepsGeneratedDirectFacetOnLegacyRanking(t *testing.T) {
+	planned := queryshape.RetrievalIntent{
+		Intent: evidence.IntentDirectLocation,
+		Query:  "How does a context request combine candidates retrieve signal candidate",
+		Weight: 1,
+	}
+	candidate := retrieve.Candidate{
+		Chunk: index.Chunk{Path: "internal/app/context_candidates.go", Text: "func mergeContextCandidates() {}"},
+		ScoreDetails: []retrieve.ScoreDetail{
+			{Name: "filename matches candidates", Value: 8},
+			{Name: "leading line matches candidates", Value: 4},
+		},
+	}
+	name, value := candidateIntentBoost(candidate, planned)
+	if name != "direct-location implementation and declaration priority" || value != 37 {
+		t.Fatalf("generated facet boost = %q %.1f, want legacy 37", name, value)
+	}
+}
+
+func TestCandidateFacetRankingSignalsCountsBestEvidencePerTerm(t *testing.T) {
+	candidate := retrieve.Candidate{ScoreDetails: []retrieve.ScoreDetail{
+		{Name: "path matches snapshot", Value: 4},
+		{Name: "filename matches snapshot", Value: 8},
+		{Name: "BM25 content matches snapshot", Value: 3},
+		{Name: "declaration alias validation -> validate", Value: 1},
+	}}
+	signals := candidateFacetRankingSignals(candidate)
+	if signals.weightedCoverage != 2.25 {
+		t.Fatalf("weighted coverage = %.2f, want 2.25", signals.weightedCoverage)
+	}
+}
+
 func TestRankCandidatesForIntentPrefersImplementationForDirectLocation(t *testing.T) {
 	planned := queryshape.RetrievalIntent{
 		Intent: evidence.IntentDirectLocation,

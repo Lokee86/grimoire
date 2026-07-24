@@ -79,6 +79,16 @@ Calibration macro MRR increased from `0.3510` to `0.3718` without changing R@10,
 
 The fresh-state test baseline reported 40.19% required recall versus 33.98% in the earlier reused-state run. Prepared-state freshness is therefore a benchmark invariant: reports must record whether `.grimoire/` was rebuilt, and reused-state results must not be treated as paired comparisons against fresh-state results. See [the declaration-alias ranking report](../../evaluation/results/declaration-alias-ranking-calibration-2026-07-24.md).
 
+## Standalone location-specificity calibration
+
+The next cycle isolated a duplicated intent-ranking bias in explicit source-location questions. Direct-location ranking was re-adding large bonuses for every filename, path, and leading-line match after lexical retrieval had already scored those fields. Generic path nouns could therefore outrank broader implementation evidence.
+
+The accepted correction applies only to standalone, full-weight direct-location questions beginning with an explicit location form such as `where`, `find`, `locate`, or `which function`. Each query term contributes only its strongest evidence signal, with body and declaration evidence weighted above filename and path matches. Generated direct-location sub-facets inside mechanism and mixed queries retain their previous ranking behavior.
+
+Calibration pass rate increased from 11.33% to 13.00%, required recall from 32.64% to 33.09%, R@10 from 35.78% to 37.45%, R@20 from 47.98% to 50.48%, and MRR from 0.3718 to 0.3759. Validation required recall increased from 17.01% to 19.10%, R@10 from 24.65% to 27.98%, R@20 from 39.09% to 39.61%, and MRR from 0.2450 to 0.2522. No calibration or validation repository lost pass rate, required recall, R@10, R@20, or MRR. Fresh-state GDQuest and Trilium results were neutral on every quality metric.
+
+Broader use of the same formula for call-chain, mechanism, architecture, composite location facets, or every generated direct-location facet was rejected because it regressed recall or ranking. Repository-derived declaration co-occurrence expansion was also rejected because it added latency and cross-repository regressions. See [the standalone location-specificity report](../../evaluation/results/standalone-location-specificity-calibration-2026-07-24.md).
+
 ## Calibration workflow
 
 1. Pin and record the repository revision and evaluated scope.

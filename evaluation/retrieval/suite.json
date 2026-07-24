@@ -6,6 +6,7 @@
     "internal/app/context.go",
     "internal/app/context_evaluation.go",
     "internal/app/context_intent_fusion.go",
+    "internal/app/context_intent_ranking.go",
     "internal/app/context_intent_retrieval.go",
     "internal/app/context_intent_retrieval_test.go",
     "internal/app/context_semantic.go",
