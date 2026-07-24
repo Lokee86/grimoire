@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "repository": "HTTPie",
+  "source_url": "https://github.com/httpie/cli.git",
+  "revision": "5b604c37c6c67e18e7c3e9aee6c88a8c22b98345",
+  "scope": ".",
+  "judged_at": "2026-07-24",
+  "cases": [
+    {
+      "id": "httpie-dl-01",
+      "query": "Where is HTTPie's top-level CLI parser materialized, and which entry point parses argv and dispatches the parsed namespace to the request program?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "httpie/cli/definition.py",
+          "symbols": ["options", "parser"],
+          "reason": "The CLI definition builds the ParserSpec and materializes the final argparse parser from it.",
+          "minimum": "Evidence must locate both the top-level option specification and the parser object, not merely an individual option declaration."
+        },
+        {
+          "path": "httpie/core.py",
+          "symbols": ["main", "raw_main"],
+          "reason": "core.main supplies the definition.parser to raw_main, which parses arguments and dispatches the resulting namespace to program.",
+          "minimum": "Evidence must connect parser invocation to the executable request program."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "httpie/__main__.py",
+          "symbols": ["main"],
+          "reason": "The module entry point converts the returned ExitStatus into the process exit value and handles top-level Ctrl-C."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Direct definition-and-dispatch lookup with a small entry-point wrapper as supporting context."
+    },
+    {
+      "id": "httpie-me-01",
+      "query": "How does HTTPie turn request-item syntax into headers, query parameters, data, and files, then serialize it into requests.Request kwargs for JSON, form, and multipart requests?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "httpie/cli/argparser.py",
+          "symbols": ["_parse_items"],
+          "reason": "The parser delegates request-item interpretation to RequestItems and copies its headers, data, params, files, and multipart data onto parsed arguments while validating raw file usage.",
+          "minimum": "Evidence must show the bridge from parsed CLI items to the request argument collections."
+        },
+        {
+          "path": "httpie/cli/requestitems.py",
+          "symbols": ["RequestItems", "from_args"],
+          "reason": "RequestItems.from_args dispatches separators to processors for headers, query parameters, data, nested JSON, and file uploads, preserving multipart ordering.",
+          "minimum": "Evidence must explain separator dispatch and the resulting typed collections, not just match request-item vocabulary."
+        },
+        {
+          "path": "httpie/client.py",
+          "symbols": ["make_request_kwargs", "json_dict_to_request_body"],
+          "reason": "The client serializes JSON data, finalizes and merges headers, constructs multipart bodies when needed, and returns the kwargs passed to requests.Request.",
+          "minimum": "Evidence must cover the final JSON/form/multipart conversion and the Request boundary."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "httpie/cli/argtypes.py",
+          "symbols": ["KeyValueArgType"],
+          "reason": "The argument type tokenizes request-item strings and records their key, value, and separator before RequestItems processes them."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Bounded request-construction mechanism spanning tokenization, separator dispatch, and requests kwargs assembly."
+    },
+    {
+      "id": "httpie-ao-01",
+      "query": "Which components own HTTPie's authentication plugin contract and registration, CLI credential selection, and restoration of saved session authentication?",
+      "category": "architecture-ownership",
+      "budget": 5000,
+      "required": [
+        {
+          "path": "httpie/plugins/base.py",
+          "symbols": ["AuthPlugin", "get_auth"],
+          "reason": "AuthPlugin defines the extension contract and the credential-parsing, netrc, prompting, and AuthBase-returning responsibilities implemented by auth plugins.",
+          "minimum": "Evidence must establish the owning plugin interface rather than only show a built-in authentication implementation."
+        },
+        {
+          "path": "httpie/plugins/registry.py",
+          "symbols": ["plugin_manager"],
+          "reason": "The registry creates the shared PluginManager and registers the built-in auth plugin classes alongside other plugin types.",
+          "minimum": "Evidence must locate the registration owner and its auth-plugin lookup surface."
+        },
+        {
+          "path": "httpie/cli/argparser.py",
+          "symbols": ["_process_auth"],
+          "reason": "The parser selects an auth type, optionally consults netrc, parses or prompts for credentials, stores the plugin instance, and obtains the runtime auth object.",
+          "minimum": "Evidence must show the CLI-side selection and credential-handling responsibility."
+        },
+        {
+          "path": "httpie/sessions.py",
+          "symbols": ["Session", "auth"],
+          "reason": "Session.auth owns serialization of the selected plugin type/raw credentials and rehydrates a plugin-backed auth object from persisted session data.",
+          "minimum": "Evidence must connect persisted session auth to plugin lookup and get_auth, not merely identify session storage."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "httpie/plugins/builtin.py",
+          "symbols": ["BasicAuthPlugin", "BearerAuthPlugin"],
+          "reason": "Concrete built-ins demonstrate how the AuthPlugin contract supplies auth types and runtime requests auth implementations."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Cross-package ownership case separating extension contract, registry, CLI policy, and persisted-session rehydration."
+    },
+    {
+      "id": "httpie-cc-01",
+      "query": "Trace an HTTPie request from the core program through session-aware request preparation, Requests transport mounting and sending, redirects, yielded responses, and output writing.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "httpie/core.py",
+          "symbols": ["program"],
+          "reason": "program creates processing state, invokes collect_messages, derives output options for each request/response message, and calls write_message while tracking status and downloads.",
+          "minimum": "Evidence must anchor the start and end of the user-visible request execution chain."
+        },
+        {
+          "path": "httpie/client.py",
+          "symbols": ["collect_messages", "build_requests_session"],
+          "reason": "collect_messages loads sessions, builds request kwargs, prepares a Requests request, mounts HTTPie and transport-plugin adapters, sends it, follows redirects, and yields messages; build_requests_session owns adapter mounting.",
+          "minimum": "Evidence must preserve the order from session/request preparation through transport send, redirect handling, and response yield."
+        },
+        {
+          "path": "httpie/output/writer.py",
+          "symbols": ["write_message"],
+          "reason": "write_message turns each yielded Requests message into an output stream and writes it to the environment's stdout or download stream.",
+          "minimum": "Evidence must connect yielded messages back to actual output emission."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "httpie/sessions.py",
+          "symbols": ["get_httpie_session"],
+          "reason": "The session loader supplies persisted headers, cookies, and authentication to collect_messages before request preparation."
+        },
+        {
+          "path": "httpie/adapters.py",
+          "symbols": ["HTTPieHTTPAdapter"],
+          "reason": "The HTTP adapter is the concrete HTTP transport mounted by build_requests_session."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ordered operational chain across the core orchestrator, client transport loop, and output boundary."
+    },
+    {
+      "id": "httpie-lm-01",
+      "query": "Explain how HTTPie chooses response output for TTY versus non-TTY, --stream, pretty formatting, MIME converters, binary suppression, and --download output, including where bytes are finally written.",
+      "category": "long-mixed-query",
+      "budget": 9000,
+      "required": [
+        {
+          "path": "httpie/core.py",
+          "symbols": ["program"],
+          "reason": "program derives ProcessingOptions, computes per-message OutputOptions, writes messages, and routes --download responses through Downloader."
+        },
+        {
+          "path": "httpie/output/models.py",
+          "symbols": ["ProcessingOptions", "get_prettify"],
+          "reason": "ProcessingOptions carries stream, style, prettify, MIME, charset, JSON, and formatter settings, while get_prettify resolves the TTY-sensitive default."
+        },
+        {
+          "path": "httpie/output/writer.py",
+          "symbols": ["get_stream_type_and_kwargs", "write_message", "write_stream"],
+          "reason": "The writer selects raw, encoded, pretty, or buffered-pretty streams from TTY/stream/content-type state and iterates their bytes into the output file."
+        },
+        {
+          "path": "httpie/output/streams.py",
+          "symbols": ["RawStream", "PrettyStream", "BufferedPrettyStream", "BinarySuppressedError"],
+          "reason": "These stream implementations distinguish raw chunking, line decoding, live versus buffered formatting, and terminal-safe binary suppression."
+        },
+        {
+          "path": "httpie/downloads.py",
+          "symbols": ["Downloader", "start", "finish"],
+          "reason": "Downloader owns download-file preparation, streaming the final response body to the destination, and completion or failure bookkeeping."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "httpie/output/processing.py",
+          "symbols": ["Conversion", "Formatting"],
+          "reason": "The selected pretty streams use these delegates for MIME conversion and formatter-plugin application to headers, bodies, and metadata."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Mixed output behavior case combining environment-sensitive selection, streaming, formatting, binary handling, and file download semantics."
+    }
+  ]
+}

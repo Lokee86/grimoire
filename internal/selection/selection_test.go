@@ -59,7 +59,7 @@ func TestCurateDoesNotCompareProviderRanks(t *testing.T) {
 	}
 }
 
-func TestCurateBoundsThreeNeighborAnchorsBeforeRemainingPrimaries(t *testing.T) {
+func TestCurateBoundsFourNeighborAnchorsBeforeRemainingPrimaries(t *testing.T) {
 	path := "internal/alpha.go"
 	primaryIDs := []string{"p1", "p2", "p3", "p4", "p5", "p6"}
 	neighborIDs := []string{"n1", "n2", "n3", "n4", "n5", "n6"}
@@ -74,7 +74,7 @@ func TestCurateBoundsThreeNeighborAnchorsBeforeRemainingPrimaries(t *testing.T) 
 	snapshot := index.Snapshot{Files: []index.FileRecord{{Path: path, Chunks: chunks}}}
 
 	curated := Curate(snapshot, candidates)
-	want := []string{"p1", "p2", "p3", "n1", "n2", "n3", "p4", "p5", "p6"}
+	want := []string{"p1", "p2", "p3", "p4", "n1", "n2", "n3", "n4", "p5", "p6"}
 	if got := chunkIDs(curated); !reflect.DeepEqual(got, want) {
 		t.Fatalf("unexpected bounded ordering: got %v want %v", got, want)
 	}
@@ -100,12 +100,12 @@ func TestCuratePromotesExistingRetrievedNeighbor(t *testing.T) {
 
 	curated := Curate(snapshot, candidates)
 	if got := chunkIDs(curated); !reflect.DeepEqual(got, []string{
-		"primary", "beta", "gamma", "required-neighbor", "delta", "epsilon", "zeta",
+		"primary", "beta", "gamma", "delta", "required-neighbor", "epsilon", "zeta",
 	}) {
 		t.Fatalf("retrieved neighbor was not promoted: %v", got)
 	}
-	if curated[3].Source != "vector" || curated[3].Rank != 7 {
-		t.Fatalf("promoted neighbor lost provider provenance: %+v", curated[3])
+	if curated[4].Source != "vector" || curated[4].Rank != 7 {
+		t.Fatalf("promoted neighbor lost provider provenance: %+v", curated[4])
 	}
 }
 
@@ -146,7 +146,7 @@ func TestCurateAddsPreparedNeighborsWithReasons(t *testing.T) {
 
 func TestDefaultConfigUsesCalibratedValues(t *testing.T) {
 	config := DefaultConfig()
-	if config.FileRepeatPenalty != 10 || config.SubsystemRepeatPenalty != 18 || config.AdjacentPrimaryLimit != 3 {
+	if config.FileRepeatPenalty != 10 || config.SubsystemRepeatPenalty != 18 || config.AdjacentPrimaryLimit != 4 {
 		t.Fatalf("unexpected production curation defaults: %+v", config)
 	}
 }

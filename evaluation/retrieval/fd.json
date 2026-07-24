@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "repository": "fd",
+  "source_url": "https://github.com/sharkdp/fd.git",
+  "revision": "eead1886cddbe825198d9ac02617635d2240cfaa",
+  "scope": ".",
+  "judged_at": "2026-07-24",
+  "cases": [
+    {
+      "id": "fd-dl-01",
+      "query": "Where is fd's command-line contract declared, and how does the executable turn parsed options and the search pattern into the traversal it runs?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "src/cli.rs",
+          "symbols": ["Opts", "search_paths"],
+          "reason": "The clap-derived Opts type owns fd's command-line fields and search-root normalization.",
+          "minimum": "Evidence must locate the CLI contract and root-path selection, not only an individual flag."
+        },
+        {
+          "path": "src/main.rs",
+          "symbols": ["main", "run"],
+          "reason": "The executable entrypoint parses Opts, builds regexes and Config, invokes walk::scan, and exits with the returned status.",
+          "minimum": "Evidence must connect parsed options to the executable search orchestration."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Direct location control for the CLI definition and top-level executable wiring."
+    },
+    {
+      "id": "fd-me-01",
+      "query": "How does fd turn a CLI pattern into a case-aware regex and then decide whether each walked entry matches, including full-path mode, extensions, file types, size/time/owner filters, and ignore rules?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "src/main.rs",
+          "symbols": ["build_pattern_regex", "construct_config", "build_regex"],
+          "reason": "These helpers translate glob, exact, fixed-string, case, path, and filter options into the regexes and Config passed to the walker.",
+          "minimum": "Evidence must explain pattern-mode conversion, case sensitivity, and construction of the traversal configuration."
+        },
+        {
+          "path": "src/walk.rs",
+          "symbols": ["build_walker", "spawn_senders", "search_str_for_entry"],
+          "reason": "The walker configures ignore behavior, chooses filename versus full-path matching, and applies the entry filters before delivering results.",
+          "minimum": "Evidence must show the order and ownership of matching, ignore handling, and metadata-based filters."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "src/filetypes.rs",
+          "symbols": ["FileTypes", "should_ignore"],
+          "reason": "The file-type policy used by the walker is represented and evaluated here."
+        },
+        {
+          "path": "src/filter/size.rs",
+          "symbols": ["SizeFilter", "is_within"],
+          "reason": "Size constraints are parsed and tested through this filter type."
+        },
+        {
+          "path": "src/filter/time.rs",
+          "symbols": ["TimeFilter", "applies_to"],
+          "reason": "Modification-time constraints are represented and evaluated here."
+        },
+        {
+          "path": "src/filter/owner.rs",
+          "symbols": ["OwnerFilter", "matches"],
+          "reason": "On Unix, ownership constraints are represented and checked through this filter."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Bounded matching-mechanism case spanning regex construction, ignore-aware traversal, and entry predicates."
+    },
+    {
+      "id": "fd-ao-01",
+      "query": "Which modules own fd's ignore-aware filesystem traversal, candidate filtering, result formatting, and --exec process execution, and where is the shell-visible exit-status policy defined?",
+      "category": "architecture-ownership",
+      "budget": 5000,
+      "required": [
+        {
+          "path": "src/walk.rs",
+          "symbols": ["WorkerState", "scan"],
+          "reason": "The walk module owns recursive traversal, worker coordination, candidate filtering, and result delivery."
+        },
+        {
+          "path": "src/output.rs",
+          "symbols": ["print_entry"],
+          "reason": "The output module owns formatting, color/hyperlink handling, separators, and writing a matched entry."
+        },
+        {
+          "path": "src/exec/mod.rs",
+          "symbols": ["CommandSet", "execute", "execute_batch"],
+          "reason": "The exec module owns command templates, per-result and batch execution, and collection of child-command statuses."
+        },
+        {
+          "path": "src/exit_codes.rs",
+          "symbols": ["ExitCode", "merge_exitcodes"],
+          "reason": "The exit-code module defines fd's process-status variants, integer mapping, signal handling, and status merging."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "src/exec/job.rs",
+          "symbols": ["job", "batch"],
+          "reason": "These adapters consume walker results and delegate them to CommandSet in per-result or batch mode."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ownership control for boundaries between traversal, presentation, command execution, and shell status."
+    },
+    {
+      "id": "fd-cc-01",
+      "query": "Trace fd --exec-batch from clap argument collection through pattern and Config setup, parallel walk result delivery, batch construction, placeholder expansion, child-process waits, and the final exit status.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "src/cli.rs",
+          "symbols": ["Exec", "from_arg_matches"],
+          "reason": "The custom clap integration collects --exec-batch occurrences and constructs the batch CommandSet."
+        },
+        {
+          "path": "src/main.rs",
+          "symbols": ["run", "extract_command", "construct_config"],
+          "reason": "The top-level flow extracts the command, places it in Config, builds the search regexes, and starts the scan."
+        },
+        {
+          "path": "src/walk.rs",
+          "symbols": ["scan", "receive", "WorkerState"],
+          "reason": "The worker state coordinates the parallel walk and routes matched entries to the batch receiver."
+        },
+        {
+          "path": "src/exec/job.rs",
+          "symbols": ["batch"],
+          "reason": "The batch adapter converts received entries into stripped paths and invokes CommandSet batch execution."
+        },
+        {
+          "path": "src/exec/mod.rs",
+          "symbols": ["CommandSet", "execute_batch", "CommandBuilder", "push", "finish"],
+          "reason": "The exec implementation accumulates paths, expands the format placeholder, enforces batch limits, waits for child commands, and merges their results."
+        },
+        {
+          "path": "src/fmt/mod.rs",
+          "symbols": ["FormatTemplate", "parse", "generate"],
+          "reason": "FormatTemplate parses fd placeholders such as {}, {/}, and {.} and generates their path arguments."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "src/exit_codes.rs",
+          "symbols": ["ExitCode", "merge_exitcodes"],
+          "reason": "The final child-command and scan outcomes use this shared status contract."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ordered call-chain control for the distinct --exec-batch path from CLI parsing to process completion."
+    },
+    {
+      "id": "fd-lm-01",
+      "query": "For a request like fd --full-path --glob '*.rs' --hidden --no-ignore --type f --extension rs --exclude target --changed-within 1d --format '{/}', explain how fd validates and transforms the CLI, selects the search root, applies ignore and traversal settings, matches and filters entries, and renders each result with the correct path semantics.",
+      "category": "long-mixed-query",
+      "budget": 9000,
+      "required": [
+        {
+          "path": "src/cli.rs",
+          "symbols": ["Opts", "search_paths"],
+          "reason": "The command-line schema and path helper define the requested flags and determine the normalized search roots."
+        },
+        {
+          "path": "src/main.rs",
+          "symbols": ["run", "build_pattern_regex", "construct_config"],
+          "reason": "The executable validates the input flow, converts the glob, and maps hidden/ignore/type/extension/time/format options into Config."
+        },
+        {
+          "path": "src/walk.rs",
+          "symbols": ["build_walker", "spawn_senders", "search_str_for_entry"],
+          "reason": "The walker applies ignore-file and traversal settings, matches the selected name or full path, and runs the extension/type/time filters."
+        },
+        {
+          "path": "src/output.rs",
+          "symbols": ["print_entry"],
+          "reason": "The output path owns format-template rendering and the final separator, sanitization, color, hyperlink, and output behavior."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "src/config.rs",
+          "symbols": ["Config", "is_printing"],
+          "reason": "Config is the cross-stage contract consumed by the walker and output path."
+        },
+        {
+          "path": "src/dir_entry.rs",
+          "symbols": ["DirEntry", "stripped_path"],
+          "reason": "DirEntry defines the user-facing path form used when rendering a result."
+        },
+        {
+          "path": "src/fmt/mod.rs",
+          "symbols": ["FormatTemplate", "parse", "generate"],
+          "reason": "The --format placeholder is parsed and expanded by this shared formatter."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Realistic mixed task combining CLI semantics, configuration, traversal policy, multiple filters, and formatted output."
+    }
+  ]
+}

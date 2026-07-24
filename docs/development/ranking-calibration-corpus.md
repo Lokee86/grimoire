@@ -39,6 +39,28 @@ Profile expectations may constrain intent, specificity, breadth, ambiguity, cros
 
 A mismatch is not automatically a classifier bug. First check whether the prompt is genuinely ambiguous or the expectation overstates its scope.
 
+## Frozen multi-repository suite
+
+`evaluation/retrieval/suite.json` freezes the current retrieval implementation at commit `c7cb6ee321ef9ccc630a054bb4315872137bf3d8`, the production selection configuration `10/18/3`, and three repository-level splits:
+
+| Split | Repositories | Permitted use |
+| --- | --- | --- |
+| Calibration | Grimoire, Lexicon, Gum, HTTPie, fd | Diagnose failures and tune deterministic behavior or bounded constants. |
+| Validation | Space Rocks, RuboCop, Actual `loot-core` | Choose between candidates and reject cross-repository regressions. Do not tune directly to individual cases. |
+| Test | GDQuest 2D Space Game, Trilium | One final run after implementation and constants are frozen. |
+
+The split is repository-level so closely related cases cannot leak between calibration and evaluation. Aggregate reports must include both per-repository results and an unweighted macro-average across repositories; a large corpus must not dominate merely because it contains more cases.
+
+`evaluation/run_retrieval_suite.py` verifies pinned checkout revisions and rejects a run when retrieval implementation paths differ from the recorded baseline. The manifest permits only the separately measured production-default change in `internal/selection`; all evaluation commands still pass explicit selection values. The test split is sealed unless the caller explicitly passes `--allow-test`.
+
+## July 24, 2026 calibration result
+
+The suite contains 91 cases across ten repositories: 39 calibration cases, 42 validation cases, and 10 held-out test cases. The accepted production configuration is `10/18/4`, increasing adjacent-primary coverage from three to four while retaining the existing file and subsystem penalties.
+
+Across the calibration split, required recall increased from 21.85% to 22.77% and irrelevant selection fell from 81.54% to 81.26%, with pass rate unchanged. Validation required recall increased from 11.19% to 11.47%, irrelevant selection fell slightly, and median latency decreased by 55.8 ms. On the once-consumed held-out test split, required recall increased from 32.13% to 33.98%, irrelevant selection fell from 80.06% to 78.38%, and median latency decreased by 42.8 ms.
+
+The change improves final package assembly rather than initial ranking: R@10, R@20, MRR, and held-out pass rate were unchanged. The test split produced no fully passing cases, and Trilium required recall remained 5.0%; the result is a bounded curation improvement, not evidence that retrieval quality is solved. No further tuning was performed against the held-out cases.
+
 ## Calibration workflow
 
 1. Pin and record the repository revision and evaluated scope.
@@ -50,7 +72,9 @@ A mismatch is not automatically a classifier bug. First check whether the prompt
 7. Inspect every regression at the case level.
 8. Reduce confirmed defects into deterministic fixtures.
 9. Change one responsible seam or weight family at a time.
-10. Rerun all frozen corpora and reject material cross-corpus regressions.
+10. Rerun the calibration split and reject material cross-repository regressions.
+11. Run the validation split only after a candidate survives calibration.
+12. Keep the test split sealed until the implementation and constants are frozen.
 
 ## Measured defects and sequencing
 

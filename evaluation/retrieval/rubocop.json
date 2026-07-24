@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "repository": "RuboCop",
+  "source_url": "https://github.com/rubocop/rubocop",
+  "revision": "a6a38bf3589626b31ad89d9328adad280f080cc4",
+  "scope": ".",
+  "judged_at": "2026-07-24",
+  "cases": [
+    {
+      "id": "rubocop-dl-01",
+      "query": "Where is the normal file-inspection CLI command dispatched, and where does that command construct and run the Runner?",
+      "category": "direct-location",
+      "budget": 3500,
+      "required": [
+        {
+          "path": "lib/rubocop/cli/command.rb",
+          "symbols": ["run"],
+          "reason": "Command.run resolves a command name through the registered command classes and invokes it in the environment.",
+          "minimum": "Evidence must show the dispatch seam that turns a command name into a command object."
+        },
+        {
+          "path": "lib/rubocop/cli/command/execute_runner.rb",
+          "symbols": ["run", "execute_runner"],
+          "reason": "ExecuteRunner is the ordinary inspection command and constructs Runner before invoking Runner#run.",
+          "minimum": "Evidence must locate the concrete command that owns normal inspection execution."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "lib/rubocop/cli.rb",
+          "symbols": ["run"],
+          "reason": "CLI#run parses options, creates the execution environment, and reaches the ordinary runner command path."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Direct-location control for the CLI dispatch seam and normal inspection command."
+    },
+    {
+      "id": "rubocop-me-01",
+      "query": "How does RuboCop discover target files when no paths, directories, or explicit paths are supplied, while applying configured include and exclude rules and returning normalized unique paths?",
+      "category": "mechanism-explanation",
+      "budget": 5500,
+      "required": [
+        {
+          "path": "lib/rubocop/target_finder.rb",
+          "symbols": ["find", "target_files_in_dir", "process_explicit_path"],
+          "reason": "TargetFinder#find branches between recursive discovery and explicit arguments, target_files_in_dir applies directory scanning and configuration filtering, and process_explicit_path handles globs, recognized types, and exclusions.",
+          "minimum": "Evidence must explain the no-argument, directory, and explicit-path branches plus final expansion and deduplication."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "lib/rubocop/config_store.rb",
+          "symbols": ["for", "for_dir"],
+          "reason": "ConfigStore associates directories with cached configuration objects used during target selection."
+        },
+        {
+          "path": "lib/rubocop/config.rb",
+          "symbols": ["file_to_include?", "file_to_exclude?"],
+          "reason": "Config owns the include and exclude predicates that TargetFinder consults for files."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Bounded file-discovery mechanism with a single owning implementation and the configuration lookup predicates it consumes."
+    },
+    {
+      "id": "rubocop-ao-01",
+      "query": "Which components own cop enrollment, lazy registration and loading, and qualification of configured cop names, and how do those responsibilities meet when a cop class is first needed?",
+      "category": "architecture-ownership",
+      "budget": 6500,
+      "required": [
+        {
+          "path": "lib/rubocop/cop/base.rb",
+          "symbols": ["inherited"],
+          "reason": "Cop::Base.inherited enrolls newly defined cop subclasses in the global registry, establishing the class-definition ownership boundary."
+        },
+        {
+          "path": "lib/rubocop/cop/registry.rb",
+          "symbols": ["lazy_load", "qualified_cop_name", "load_lazy_cop"],
+          "reason": "Cop::Registry owns badge-to-constant registration, namespace qualification and the autoload-time conversion from a constant name to a class."
+        },
+        {
+          "path": "lib/rubocop/config_loader.rb",
+          "symbols": ["load_file", "add_missing_namespaces"],
+          "reason": "ConfigLoader resolves configuration files and normalizes unqualified cop keys after requires and inheritance have had a chance to register additional cops."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "lib/rubocop/config.rb",
+          "symbols": ["for_cop"],
+          "reason": "Config#for_cop asks the registry to qualify the cop name before producing the effective cop configuration."
+        },
+        {
+          "path": "lib/rubocop/cop/team.rb",
+          "symbols": ["mobilize"],
+          "reason": "Team#mobilize is the consumer that instantiates enabled classes from either a filtered registry or explicit cop classes."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ownership control separating class enrollment, registry resolution, configuration normalization, and final cop instantiation."
+    },
+    {
+      "id": "rubocop-cc-01",
+      "query": "Trace a normal RuboCop inspection from CLI option parsing through command dispatch and target discovery, into Runner's per-file inspection, Team fragment investigation, Commissioner AST traversal, and the returned offenses.",
+      "category": "call-chain-investigation",
+      "budget": 8500,
+      "required": [
+        {
+          "path": "lib/rubocop/cli.rb",
+          "symbols": ["run"],
+          "reason": "CLI#run parses the command line, creates the environment, and invokes the selected execution commands."
+        },
+        {
+          "path": "lib/rubocop/cli/command/execute_runner.rb",
+          "symbols": ["execute_runner"],
+          "reason": "ExecuteRunner#execute_runner creates Runner, invokes its run method, and translates the result into a CLI status."
+        },
+        {
+          "path": "lib/rubocop/runner.rb",
+          "symbols": ["run", "process_file", "inspect_file"],
+          "reason": "Runner#run finds and iterates target files, process_file obtains each file's offenses, and inspect_file sends processed source fragments to the Team."
+        },
+        {
+          "path": "lib/rubocop/cop/team.rb",
+          "symbols": ["investigate_fragments"],
+          "reason": "Team#investigate_fragments investigates each extracted fragment, aggregates offenses and errors, and applies any collated correction."
+        },
+        {
+          "path": "lib/rubocop/cop/commissioner.rb",
+          "symbols": ["investigate"],
+          "reason": "Commissioner#investigate drives callbacks and AST traversal for the cops and returns an InvestigationReport."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "lib/rubocop/cli/environment.rb",
+          "symbols": ["run"],
+          "reason": "CLI::Environment#run forwards a named command to the command dispatcher."
+        },
+        {
+          "path": "lib/rubocop/target_finder.rb",
+          "symbols": ["find"],
+          "reason": "TargetFinder#find is the target-selection call in Runner#run."
+        },
+        {
+          "path": "lib/rubocop/cop/team.rb",
+          "symbols": ["investigate_partial"],
+          "reason": "Team#investigate_partial constructs a Commissioner and invokes Commissioner#investigate for a cop subset."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ordered call-chain control spanning the CLI, command object, file runner, team orchestration, and AST commissioner."
+    },
+    {
+      "id": "rubocop-lm-01",
+      "query": "Explain how RuboCop parses autocorrect and formatter options, selects autocorrecting cops, repeats inspection until corrections stabilize, collates and applies corrections to files or stdin, and reports the resulting offenses through configured formatters.",
+      "category": "long-mixed-query",
+      "budget": 9500,
+      "required": [
+        {
+          "path": "lib/rubocop/options.rb",
+          "symbols": ["parse", "add_autocorrection_options", "add_output_options"],
+          "reason": "Options#parse combines argument sources and parses the command line, while the option builders define autocorrect modes, stdin, formatter selection, and output paths."
+        },
+        {
+          "path": "lib/rubocop/runner.rb",
+          "symbols": ["do_inspection_loop", "inspect_iteration", "inspect_file", "formatter_set"],
+          "reason": "Runner owns the repeated correction loop, mobilizes and inspects each iteration, extracts fragments, and creates the formatter set used to report results."
+        },
+        {
+          "path": "lib/rubocop/cop/team.rb",
+          "symbols": ["investigate_with_corrector", "collated_corrector", "autocorrect", "apply_correction"],
+          "reason": "Team partitions autocorrecting versus other cops, collates correctors, and either writes corrections, updates stdin, or defers the corrected source."
+        },
+        {
+          "path": "lib/rubocop/formatter/formatter_set.rb",
+          "symbols": ["add_formatter", "file_finished"],
+          "reason": "FormatterSet constructs selected formatter instances and forwards completed-file offenses to every formatter."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "lib/rubocop/cli/command/execute_runner.rb",
+          "symbols": ["execute_runner"],
+          "reason": "ExecuteRunner is the outer command that invokes Runner and determines the final success or offense status after reporting."
+        },
+        {
+          "path": "lib/rubocop/cop/base.rb",
+          "symbols": ["add_offense"],
+          "reason": "Cop::Base#add_offense creates offenses and invokes the correction path for an enabled offense."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Mixed control combining CLI contract, correction scheduling, iterative state, stdin/file side effects, and formatter fan-out."
+    }
+  ]
+}

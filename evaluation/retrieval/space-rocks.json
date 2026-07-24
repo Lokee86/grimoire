@@ -1,6 +1,10 @@
 {
   "version": 1,
   "repository": "Space Rocks",
+  "source_url": "https://github.com/Lokee86/space-rocks",
+  "revision": "de06b9cd59f40733fcae80231bd00421995dea57",
+  "scope": ".",
+  "judged_at": "2026-07-23",
   "cases": [
     {
       "id": "space-rocks-dl-01",

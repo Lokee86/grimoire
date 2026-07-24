@@ -155,6 +155,43 @@ Important report families include ranking calibration baselines/current runs, qu
 
 Do not compare reports from different repository contents, prepared snapshots, corpora, modes, provider sets, or hardware as though they were paired experiments.
 
+## Multi-repository retrieval suite
+
+The suite runner builds Grimoire once, verifies pinned repository revisions, prepares each selected repository, runs adaptive lexical evaluation, and writes per-repository plus macro-averaged reports under the ignored `evaluation/validation/` directory.
+
+Calibration run:
+
+```bash
+python evaluation/run_retrieval_suite.py \
+  --workspace-root C:/!bin/workspace \
+  --grimoire-root . \
+  --split calibration \
+  --variant frozen-baseline
+```
+
+Validation run:
+
+```bash
+python evaluation/run_retrieval_suite.py \
+  --workspace-root C:/!bin/workspace \
+  --grimoire-root . \
+  --split validation \
+  --variant candidate-name
+```
+
+The test split is deliberately sealed. Run it only after the implementation and constants are frozen:
+
+```bash
+python evaluation/run_retrieval_suite.py \
+  --workspace-root C:/!bin/workspace \
+  --grimoire-root . \
+  --split test \
+  --variant final \
+  --allow-test
+```
+
+Use `--skip-index` only when the prepared state for every selected checkout is known to match its pinned revision. The runner refuses revision drift and refuses changes under the baseline implementation paths. Bounded calibration runs may override the frozen selection values with `--selection-file-penalty`, `--selection-subsystem-penalty`, and `--selection-adjacent-primaries`; every report records the effective values.
+
 ## Candidate-selection calibration
 
 The evaluator can vary the production curation configuration without changing the normal context CLI:

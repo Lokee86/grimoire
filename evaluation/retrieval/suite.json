@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "baseline_revision": "c7cb6ee321ef9ccc630a054bb4315872137bf3d8",
+  "baseline_paths": ["cmd", "internal", "native"],
+  "allowed_baseline_drift": [
+    "internal/selection/selection.go",
+    "internal/selection/selection_test.go"
+  ],
+  "selection": {
+    "file_repeat_penalty": 10,
+    "subsystem_repeat_penalty": 18,
+    "adjacent_primary_limit": 3
+  },
+  "repositories": [
+    {
+      "id": "grimoire",
+      "split": "calibration",
+      "checkout": "$GRIMOIRE",
+      "revision": "$BASELINE",
+      "scope": ".",
+      "cases": "evaluation/retrieval/grimoire.json"
+    },
+    {
+      "id": "lexicon",
+      "split": "calibration",
+      "checkout": "$GRIMOIRE",
+      "revision": "$BASELINE",
+      "scope": "lexicon",
+      "cases": "evaluation/retrieval/lexicon.json"
+    },
+    {
+      "id": "gum",
+      "split": "calibration",
+      "checkout": "grimoire-corpora/gum",
+      "revision": "716d8b5d0221558f944b5a078dbbcca8572534fb",
+      "scope": ".",
+      "cases": "evaluation/retrieval/gum.json"
+    },
+    {
+      "id": "httpie",
+      "split": "calibration",
+      "checkout": "grimoire-corpora/httpie",
+      "revision": "5b604c37c6c67e18e7c3e9aee6c88a8c22b98345",
+      "scope": ".",
+      "cases": "evaluation/retrieval/httpie.json"
+    },
+    {
+      "id": "fd",
+      "split": "calibration",
+      "checkout": "grimoire-corpora/fd",
+      "revision": "eead1886cddbe825198d9ac02617635d2240cfaa",
+      "scope": ".",
+      "cases": "evaluation/retrieval/fd.json"
+    },
+    {
+      "id": "space-rocks",
+      "split": "validation",
+      "checkout": "space-rocks",
+      "revision": "de06b9cd59f40733fcae80231bd00421995dea57",
+      "scope": ".",
+      "cases": "evaluation/retrieval/space-rocks.json"
+    },
+    {
+      "id": "rubocop",
+      "split": "validation",
+      "checkout": "grimoire-corpora/rubocop",
+      "revision": "a6a38bf3589626b31ad89d9328adad280f080cc4",
+      "scope": ".",
+      "cases": "evaluation/retrieval/rubocop.json"
+    },
+    {
+      "id": "actual-loot-core",
+      "split": "validation",
+      "checkout": "grimoire-corpora/actual",
+      "revision": "6019bf5ac6f110c8ff393b67a9f0e7e80886cded",
+      "scope": "packages/loot-core",
+      "cases": "evaluation/retrieval/actual-loot-core.json"
+    },
+    {
+      "id": "gdquest-space-game",
+      "split": "test",
+      "checkout": "grimoire-corpora/gdquest-space-game",
+      "revision": "661a101d9e4d35f42bca883fb4434986806cabe0",
+      "scope": ".",
+      "cases": "evaluation/retrieval/gdquest-space-game.json"
+    },
+    {
+      "id": "trilium",
+      "split": "test",
+      "checkout": "grimoire-corpora/trilium",
+      "revision": "f22dd7e49fbcfb087ff4d52797b78d81916bac1d",
+      "scope": ".",
+      "cases": "evaluation/retrieval/trilium.json"
+    }
+  ]
+}

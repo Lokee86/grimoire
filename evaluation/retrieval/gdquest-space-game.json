@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "repository": "GDQuest 2D Space Game",
+  "source_url": "https://github.com/gdquest-demos/godot-2d-space-game.git",
+  "revision": "661a101d9e4d35f42bca883fb4434986806cabe0",
+  "scope": ".",
+  "judged_at": "2026-07-24",
+  "cases": [
+    {
+      "id": "gdquest-dl-01",
+      "query": "Where are the player's Travel and Precision movement modes declared, and which parent state owns their shared movement integration and mode transitions?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "project/ships/player/states/move.gd",
+          "symbols": ["physics_process", "unhandled_input"],
+          "reason": "The Move parent state owns the shared velocity, drag, slide, and rotation integration and routes dock and precision input into child states.",
+          "minimum": "Evidence must locate the parent movement implementation and its transition points, not just a child state's input mapping."
+        },
+        {
+          "path": "project/ships/player/states/travel.gd",
+          "symbols": ["physics_process", "get_movement"],
+          "reason": "Travel implements orientation-relative thrust and rotation input before delegating to the parent movement state.",
+          "minimum": "Evidence must identify the Travel mode implementation and its delegation to shared movement."
+        },
+        {
+          "path": "project/ships/player/states/precision.gd",
+          "symbols": ["enter", "physics_process", "unhandled_input", "get_movement"],
+          "reason": "Precision implements screen-relative movement, mouse or stick facing, and the transition back to Travel.",
+          "minimum": "Evidence must identify the Precision mode implementation and its mode-entry and mode-exit behavior."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Clean exact-location case for a parent state plus two concrete player-control modes."
+    },
+    {
+      "id": "gdquest-me-01",
+      "query": "How does the player select a nearby dockable, steer into a dock, attach or release the ship, route a station versus an asteroid into unloading or mining, and force an undock when the target disappears or is depleted?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "project/ships/player/states/move.gd",
+          "symbols": ["unhandled_input"],
+          "reason": "The Move state selects the last live nearby dockable and transitions into Dock with its position and radius.",
+          "minimum": "Evidence must explain how the interaction begins and what docking data is passed forward."
+        },
+        {
+          "path": "project/ships/player/states/dock.gd",
+          "symbols": ["enter", "physics_process", "unhandled_input", "_on_Ship_force_undock"],
+          "reason": "The Dock state phases clearing, approach, collision-based attachment, remote-transform setup, manual release, and forced return to Travel.",
+          "minimum": "Evidence must cover both the attach path and the manual or forced release paths."
+        },
+        {
+          "path": "project/world/docking_point/docking_point.gd",
+          "symbols": ["_on_DockingArea_body_entered", "_on_DockingArea_body_exited", "set_docking_remote", "undock"],
+          "reason": "DockingPoint maintains the player's nearby dockable references and owns the remote transform that attaches or detaches the player.",
+          "minimum": "Evidence must connect docking-range membership and the attach/detach primitive to the player state."
+        },
+        {
+          "path": "project/ships/player/cargo.gd",
+          "symbols": ["_physics_process", "_on_Player_docked", "_on_Player_undocked"],
+          "reason": "Cargo converts dock events into Station unloading or Asteroid mining and requests a forced undock when its weak reference is invalid or mining returns zero.",
+          "minimum": "Evidence must distinguish the Station and Asteroid branches and their invalid-target behavior."
+        },
+        {
+          "path": "project/world/docking_point/asteroid.gd",
+          "symbols": ["mine_amount", "shrink"],
+          "reason": "Asteroid owns resource subtraction, mined emission, depletion detection, and the visual/freeing sequence that makes the dock target disappear.",
+          "minimum": "Evidence must explain how an exhausted asteroid causes the cargo loop to stop and the dock to be released."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "project/world/docking_point/station.gd",
+          "symbols": ["_set_accumulated_iron"],
+          "reason": "Station is the unloading destination and owns the threshold check that turns delivered iron into an upgrade-unlocked event."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Bounded docking-to-resource-flow mechanism with explicit live-reference and depletion behavior."
+    },
+    {
+      "id": "gdquest-ao-01",
+      "query": "Which components own minimap viewport setup, admission of spawned world objects, proxy creation and tracking, map presentation, and the input and camera behavior that toggles the map?",
+      "category": "architecture-ownership",
+      "budget": 7000,
+      "required": [
+        {
+          "path": "project/world/game_initializer.gd",
+          "symbols": ["_ready", "_on_Spawner_station_spawned", "_on_Spawner_asteroid_spawned", "_on_Spawner_pirate_spawned"],
+          "reason": "GameInitializer wires spawn signals, forwards world objects to pirates, initializes the HUD, and gives the camera the MapView and distortion setup hooks.",
+          "minimum": "Evidence must establish the scene-level coordinator rather than assigning spawn ownership to the minimap itself."
+        },
+        {
+          "path": "project/ui/minimap/map_view.gd",
+          "symbols": ["_on_Spawner_node_spawned", "register_camera", "register_map_object"],
+          "reason": "MapView owns the minimap viewport's camera and sprite container and filters spawned nodes into map proxies.",
+          "minimum": "Evidence must identify the viewport-side registration and mini-map group admission rules."
+        },
+        {
+          "path": "project/ui/minimap/map_sprite.gd",
+          "symbols": ["setup", "clear"],
+          "reason": "MapSprite owns the proxy's icon styling and RemoteTransform2D link to the source object.",
+          "minimum": "Evidence must identify proxy tracking as a separate responsibility from viewport registration."
+        },
+        {
+          "path": "project/ships/player/player_camera.gd",
+          "symbols": ["setup_camera_map", "_toggle_map"],
+          "reason": "The gameplay camera creates and registers the duplicate minimap camera and owns zoom animation in response to map events.",
+          "minimum": "Evidence must connect map events to the gameplay camera's zoom behavior."
+        },
+        {
+          "path": "project/ui/minimap/map_display.gd",
+          "symbols": ["_ready", "toggle", "is_animating"],
+          "reason": "MapDisplay owns the screen-facing ViewportTexture path, appear/disappear animations, audio, and map_toggled emission.",
+          "minimum": "Evidence must distinguish presentation and event emission from camera zoom ownership."
+        },
+        {
+          "path": "project/ui/ui.gd",
+          "symbols": ["_unhandled_input"],
+          "reason": "The UI layer owns the toggle-map input gate and prevents toggling while the display animation is running.",
+          "minimum": "Evidence must locate the input boundary that invokes the display behavior."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Ownership control for a distributed minimap feature with scene coordinator, viewport, proxy, presentation, camera, and input seams."
+    },
+    {
+      "id": "gdquest-cc-01",
+      "query": "Trace a pirate squad from spawn setup through leader arrival and rest, patrol timing, aggro into attack, firing and pursuit cutoff, and the transitions that return the squad to patrol or rest.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "project/world/spawners/pirate_spawner.gd",
+          "symbols": ["spawn_pirate_group"],
+          "reason": "The spawner instantiates the group, assigns leader, cluster, squad, and faction data, adds each ship, and emits pirate_spawned.",
+          "minimum": "Evidence must start at group construction and initialization rather than at an already-running pirate state."
+        },
+        {
+          "path": "project/ships/enemies/pirate/pirate_ship.gd",
+          "symbols": ["setup_squad", "_on_Body_entered_aggro_radius", "_on_Target_Aggroed", "_on_self_damaged"],
+          "reason": "PirateShip owns squad relationships, emits aggro on area entry or damage, and converts the leader-target event into an Attack transition.",
+          "minimum": "Evidence must connect squad-wide aggro routing to the state-machine transition."
+        },
+        {
+          "path": "project/ships/enemies/pirate/states/spawn.gd",
+          "symbols": ["physics_process", "_on_Leader_reached_cluster", "_on_Timer_timeout"],
+          "reason": "Spawn drives the leader or follows it to the cluster, emits reached_cluster, and transitions to Rest.",
+          "minimum": "Evidence must include the initial arrival handoff for both leader and squaddie behavior."
+        },
+        {
+          "path": "project/ships/enemies/pirate/states/rest.gd",
+          "symbols": ["enter", "_on_Timer_timeout", "_on_SquadLeader_begin_patrol"],
+          "reason": "Rest owns the randomized wait and begins Patrol for the leader and matching squaddies.",
+          "minimum": "Evidence must identify the timed Rest-to-Patrol handoff and its signal fan-out."
+        },
+        {
+          "path": "project/ships/enemies/pirate/states/patrol.gd",
+          "symbols": ["enter", "physics_process", "_on_Timer_timeout", "_on_SquadLeader_end_patrol"],
+          "reason": "Patrol builds or refreshes the path, applies steering, and returns the squad to Rest when the patrol timer ends.",
+          "minimum": "Evidence must cover patrol path setup and both leader and squaddie exit behavior."
+        },
+        {
+          "path": "project/ships/enemies/pirate/states/attack.gd",
+          "symbols": ["enter", "physics_process", "_on_Leader_call_off_pursuit"],
+          "reason": "Attack installs pursue, avoid, face, and separation behaviors, fires while aligned, and returns the leader or squad to Patrol after the pursuit limit.",
+          "minimum": "Evidence must connect aggro entry to combat behavior and the cutoff back to patrol."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "project/libraries/state_machine/state_machine.gd",
+          "symbols": ["transition_to", "set_state"],
+          "reason": "The generic StateMachine performs the exit, state assignment, and enter sequence used by every pirate transition."
+        },
+        {
+          "path": "project/autoload/events.gd",
+          "symbols": ["reached_cluster", "begin_patrol", "end_patrol", "target_aggroed", "call_off_pursuit"],
+          "reason": "The Events singleton carries the leader-to-squad signals used by the state handoffs."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ordered multi-state call chain spanning construction, squad signals, steering states, combat, and return transitions."
+    },
+    {
+      "id": "gdquest-lm-01",
+      "query": "Explain how mined iron reaches the station, crosses the upgrade threshold, pauses the game for a five-choice menu, routes the selected choice through the global signal bus, applies health, speed, cargo, mining, or weapon modifiers, and starts another pirate group at the largest unoccupied asteroid cluster.",
+      "category": "long-mixed-query",
+      "budget": 9000,
+      "required": [
+        {
+          "path": "project/ships/player/cargo.gd",
+          "symbols": ["_physics_process", "_on_Player_docked"],
+          "reason": "Cargo's unloading branch transfers cargo to Station.accumulated_iron while its docking handler selects unloading for stations and mining for asteroids.",
+          "minimum": "Evidence must establish the resource-delivery start of the upgrade loop."
+        },
+        {
+          "path": "project/world/docking_point/station.gd",
+          "symbols": ["_set_accumulated_iron"],
+          "reason": "Station resets the accumulated amount, emits upgrade_unlocked at the threshold, and raises the next threshold multiplier.",
+          "minimum": "Evidence must include threshold crossing and repeat-upgrade behavior."
+        },
+        {
+          "path": "project/ui/menus/upgrades/upgrade_menu.gd",
+          "symbols": ["_ready", "open", "select_upgrade"],
+          "reason": "UpgradeMenu binds each button to an enum choice, pauses and presents the menu, then unpauses and emits the selected upgrade.",
+          "minimum": "Evidence must cover choice binding, pause state, signal emission, and menu teardown."
+        },
+        {
+          "path": "project/autoload/events.gd",
+          "symbols": ["UpgradeChoices", "upgrade_unlocked", "upgrade_chosen"],
+          "reason": "Events defines the choice enum and the signals that connect Station, the menu, the player, and the world.",
+          "minimum": "Evidence must identify the shared contract that carries unlock and selection events."
+        },
+        {
+          "path": "project/ships/player/player_ship.gd",
+          "symbols": ["_on_upgrade_chosen"],
+          "reason": "PlayerShip maps the five choices to health, movement, cargo, mining, unload, damage, and cooldown stat modifiers.",
+          "minimum": "Evidence must account for each upgrade branch and its target resource or stat."
+        },
+        {
+          "path": "project/ships/stats.gd",
+          "symbols": ["add_modifier", "_update", "stat_changed"],
+          "reason": "Stats owns modifier storage, recomputation from base values, and change notification used by upgraded resources and UI.",
+          "minimum": "Evidence must explain how the selected modifier becomes a calculated stat rather than merely naming the player handler."
+        },
+        {
+          "path": "project/world/game_world.gd",
+          "symbols": ["_find_largest_inoccupied_asteroid_cluster", "_on_Events_upgrade_chosen"],
+          "reason": "GameWorld selects the largest free cluster and starts a new pirate group whenever an upgrade is chosen.",
+          "minimum": "Evidence must connect selection to cluster choice and the new pirate-spawn request."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "project/world/spawners/pirate_spawner.gd",
+          "symbols": ["spawn_pirate_group"],
+          "reason": "PirateSpawner is the world-owned implementation that materializes the group requested by GameWorld."
+        },
+        {
+          "path": "project/ships/player/stats_cargo.gd",
+          "symbols": ["get_max_cargo", "get_mining_rate", "get_unload_rate", "set_cargo"],
+          "reason": "StatsCargo exposes the cargo-specific calculated values and clamps the stored cargo quantity."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Long mixed flow combining resource accounting, UI state, event routing, typed upgrade mutation, stat recomputation, and world-side enemy spawning."
+    }
+  ]
+}

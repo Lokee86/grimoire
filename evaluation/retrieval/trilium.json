@@ -1,0 +1,203 @@
+{
+  "version": 1,
+  "repository": "TriliumNext/Trilium",
+  "source_url": "https://github.com/TriliumNext/Trilium",
+  "revision": "f22dd7e49fbcfb087ff4d52797b78d81916bac1d",
+  "scope": ".",
+  "judged_at": "2026-07-24",
+  "cases": [
+    {
+      "id": "trilium-dl-01",
+      "query": "Where does Trilium register the search-related HTTP endpoints, and where are the /api/search and /api/quick-search handlers implemented?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "packages/trilium-core/src/routes/index.ts",
+          "symbols": ["buildSharedApiRoutes"],
+          "reason": "The shared route builder is the registry that binds the search URLs to the imported search route handlers.",
+          "minimum": "Evidence must locate the route registrations for /api/search and /api/quick-search, not merely mention the search subsystem."
+        },
+        {
+          "path": "packages/trilium-core/src/routes/api/search.ts",
+          "symbols": ["search", "quickSearch"],
+          "reason": "This module contains the two handlers named by the query and maps their request parameters into search contexts.",
+          "minimum": "Evidence must identify the implementation functions for both endpoints."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Clean exact-location control for endpoint registration versus handler implementation."
+    },
+    {
+      "id": "trilium-me-01",
+      "query": "How does Trilium turn a search string containing full-text terms, operators, parentheses, labels, and order or limit clauses into note results, including exact-versus-fuzzy fallback and score ordering?",
+      "category": "mechanism-explanation",
+      "budget": 7000,
+      "required": [
+        {
+          "path": "packages/trilium-core/src/services/search/services/lex.ts",
+          "symbols": ["lex"],
+          "reason": "The lexer lowercases the query, recognizes a leading exact-match operator, and separates full-text tokens from structured-expression tokens.",
+          "minimum": "Evidence must explain token classification rather than only cite a search entry point."
+        },
+        {
+          "path": "packages/trilium-core/src/services/search/services/handle_parens.ts",
+          "symbols": ["handleParens"],
+          "reason": "Parenthesized token ranges are recursively grouped before expression parsing, with unmatched parentheses reported as errors.",
+          "minimum": "Evidence must account for how nested boolean grouping reaches the parser."
+        },
+        {
+          "path": "packages/trilium-core/src/services/search/services/parse.ts",
+          "symbols": ["getExpression", "parse"],
+          "reason": "The parser builds predicate expressions for full text, properties, labels, relations, boolean operators, orderby, and limit, then wraps the expression with global search constraints.",
+          "minimum": "Evidence must connect structured tokens to the resulting expression tree and ordering/limit wrappers."
+        },
+        {
+          "path": "packages/trilium-core/src/services/search/services/search.ts",
+          "symbols": ["parseQueryToExpression", "findResultsWithExpression", "performSearch", "mergeExactAndFuzzyResults"],
+          "reason": "The search service coordinates lexing, parenthesis handling, parsing, expression execution, score computation, exact-first progressive search, and result merging.",
+          "minimum": "Evidence must cover the end-to-end transition from parsed expression to scored results, including the exact-match threshold and fuzzy fallback."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "packages/trilium-core/src/services/search/search_context.ts",
+          "symbols": ["SearchContext", "addError"],
+          "reason": "SearchContext carries fuzzy-matching configuration, highlighted tokens, ordering state, and the first parse or execution error across the mechanism."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Bounded search-language mechanism spanning lexical, syntactic, and execution stages."
+    },
+    {
+      "id": "trilium-ao-01",
+      "query": "Which components own Trilium's complete backend note cache versus the frontend's read-only visible tree, and how are search indexing, lazy loading, and live entity changes divided between Becca and Froca?",
+      "category": "architecture-ownership",
+      "budget": 5000,
+      "required": [
+        {
+          "path": "packages/trilium-core/src/becca/becca-interface.ts",
+          "symbols": ["Becca", "getAllNoteSet", "getFlatTextIndex"],
+          "reason": "Becca is explicitly the backend cache of all notes, branches, and attributes, and it owns the all-note search set plus the incremental flat-text index.",
+          "minimum": "Evidence must establish backend ownership and the search-index responsibilities, not just find a class named Becca."
+        },
+        {
+          "path": "apps/client/src/services/froca.ts",
+          "symbols": ["FrocaImpl", "loadInitialTree", "addResp", "getNotes"],
+          "reason": "Froca is the frontend read-only cache; it loads the initial or missing subtrees from the server, materializes rows, and lazily fetches unknown notes.",
+          "minimum": "Evidence must show the frontend cache boundary and its lazy-loading/population behavior."
+        },
+        {
+          "path": "apps/client/src/services/froca_updater.ts",
+          "symbols": ["processEntityChanges"],
+          "reason": "The updater owns application of websocket entity changes to Froca and reloads missing ancestors or relation targets when the cache invariant requires it.",
+          "minimum": "Evidence must place live frontend cache maintenance in the updater rather than attributing it to the backend cache."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Ownership control with explicit backend/frontend cache boundaries and a separate live-update seam."
+    },
+    {
+      "id": "trilium-cc-01",
+      "query": "Trace Trilium's initial tree load from the browser client through the shared HTTP request, route registration, backend expanded-child traversal and row collection, and frontend cache population.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "apps/client/src/services/froca.ts",
+          "symbols": ["loadInitialTree", "addResp"],
+          "reason": "The Froca constructor starts loadInitialTree, which requests tree data and hands the response to addResp for cache materialization.",
+          "minimum": "Evidence must identify both the initiating client operation and the response-consumption step."
+        },
+        {
+          "path": "apps/client/src/services/server.ts",
+          "symbols": ["get", "call", "ajax"],
+          "reason": "The shared client transport turns the tree GET into a call and then a jQuery AJAX request with the common API headers and response handling.",
+          "minimum": "Evidence must preserve the client transport hop rather than jumping directly from Froca to the backend route."
+        },
+        {
+          "path": "packages/trilium-core/src/routes/index.ts",
+          "symbols": ["buildSharedApiRoutes"],
+          "reason": "The backend route registry binds GET /api/tree to treeApiRoute.getTree and POST /api/tree/load to its load handler.",
+          "minimum": "Evidence must locate the registration that connects the HTTP request to tree.ts."
+        },
+        {
+          "path": "packages/trilium-core/src/routes/api/tree.ts",
+          "symbols": ["getTree", "getNotesAndBranchesAndAttributes"],
+          "reason": "getTree walks the selected expanded subtree through Becca and the row collector serializes notes, branches, and attributes for the response.",
+          "minimum": "Evidence must explain both traversal and response assembly in order."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "packages/trilium-core/src/becca/becca-interface.ts",
+          "symbols": ["getBranchFromChildAndParent"],
+          "reason": "The backend tree traversal uses this Becca relationship lookup to decide which child branches can be recursively followed."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ordered cross-client/backend call chain for the initial tree request and cache fill."
+    },
+    {
+      "id": "trilium-lm-01",
+      "query": "Explain how an uploaded Markdown file travels through Trilium's note-import route: how request flags and TaskContext are created, how format and extension dispatch choose the single-file importer, how Markdown front matter becomes labels, how the body is rendered and optionally sanitized, how the note is created, and how completion plus Becca reload are handled.",
+      "category": "long-mixed-query",
+      "budget": 9000,
+      "required": [
+        {
+          "path": "packages/trilium-core/src/routes/api/import.ts",
+          "symbols": ["importNotesToBranch"],
+          "reason": "The route validates the upload, builds import options and TaskContext, disables import-time events, invokes dispatch, reports failures, schedules task completion, reloads Becca, and returns the imported note.",
+          "minimum": "Evidence must cover route-level setup, error/completion handling, and the post-import cache reload."
+        },
+        {
+          "path": "packages/trilium-core/src/services/task_context.ts",
+          "symbols": ["TaskContext", "increaseProgressCount", "reportError", "taskSucceeded"],
+          "reason": "TaskContext owns import progress messages, error reporting, and the websocket success notification used by the route and single-file importer.",
+          "minimum": "Evidence must explain the task lifecycle rather than treating taskId as an inert request field."
+        },
+        {
+          "path": "packages/trilium-core/src/services/import/dispatch.ts",
+          "symbols": ["ImportOptions", "importFile"],
+          "reason": "The dispatcher converts the uploaded filename to an extension, honors an explicit format where applicable, and falls through to the single-file importer for Markdown.",
+          "minimum": "Evidence must distinguish explicit format routing from extension-based fallback."
+        },
+        {
+          "path": "packages/trilium-core/src/services/import/single.ts",
+          "symbols": ["importSingleFile", "importMarkdown"],
+          "reason": "The single-file importer selects by MIME and import flags, then converts Markdown to a text note, applies safe-import sanitization, attaches labels, and increments progress.",
+          "minimum": "Evidence must connect MIME selection to the Markdown-specific creation path."
+        },
+        {
+          "path": "packages/trilium-core/src/services/import/frontmatter.ts",
+          "symbols": ["parseFrontmatter", "extractFrontmatter"],
+          "reason": "The frontmatter module strips a leading YAML block, handles malformed or non-mapping data, normalizes keys, and flattens scalar or list values into label attributes.",
+          "minimum": "Evidence must explain both block parsing and conversion into the attributes consumed by importMarkdown."
+        },
+        {
+          "path": "packages/trilium-core/src/services/import/markdown.ts",
+          "symbols": ["renderToHtml"],
+          "reason": "The Markdown helper delegates rendering to the shared renderer while supplying Trilium's sanitizer and task-state configuration.",
+          "minimum": "Evidence must identify the renderer seam used before the note is persisted."
+        },
+        {
+          "path": "packages/trilium-core/src/services/notes.ts",
+          "symbols": ["createNewNote"],
+          "reason": "createNewNote is the note-service persistence boundary receiving the imported parent, title, rendered content, type, MIME, and protection state.",
+          "minimum": "Evidence must locate the actual note creation operation, not only the import wrapper."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "packages/trilium-core/src/routes/index.ts",
+          "symbols": ["buildSharedApiRoutes"],
+          "reason": "The shared route registry connects POST /api/notes/:parentNoteId/notes-import to importNotesToBranch with upload and CSRF middleware."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Mixed import case covering HTTP contract, dispatch, parsing, rendering, persistence, progress, and cache refresh."
+    }
+  ]
+}

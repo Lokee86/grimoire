@@ -12,7 +12,7 @@ const (
 	adjacentSource                = "adjacent"
 	defaultFileRepeatPenalty      = 10
 	defaultSubsystemRepeatPenalty = 18
-	defaultAdjacentPrimaryLimit   = 3
+	defaultAdjacentPrimaryLimit   = 4
 )
 
 // Config controls deterministic curation pressure. It is exposed so judged

@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "repository": "Actual loot-core",
+  "source_url": "https://github.com/actualbudget/actual",
+  "revision": "6019bf5ac6f110c8ff393b67a9f0e7e80886cded",
+  "scope": "packages/loot-core",
+  "judged_at": "2026-07-24",
+  "cases": [
+    {
+      "id": "actual-dl-01",
+      "query": "Where does loot-core define its server handler registry, combine feature apps, and attach the combined handlers to the connection used by initialization?",
+      "category": "direct-location",
+      "budget": 3000,
+      "required": [
+        {
+          "path": "src/server/app.ts",
+          "symbols": ["App", "createApp", "combine"],
+          "reason": "The app abstraction owns handler-group registration and combines related app instances while checking for name conflicts.",
+          "minimum": "Evidence must locate the reusable app composition mechanism, including its combine operation."
+        },
+        {
+          "path": "src/server/main.ts",
+          "symbols": ["handlers", "app", "initApp"],
+          "reason": "The server entry point declares base handlers, combines the feature apps into the main app, and passes app.handlers to the server connection during initialization.",
+          "minimum": "Evidence must connect the handler registry and app composition to runtime connection initialization."
+        }
+      ],
+      "supporting": [],
+      "forbidden": [],
+      "notes": "Direct-location control for handler ownership and server wiring."
+    },
+    {
+      "id": "actual-me-01",
+      "query": "How does a loot-core AQL query become SQL, bind named parameters, choose a schema executor or the database, apply output types, and return data plus dependencies?",
+      "category": "mechanism-explanation",
+      "budget": 6000,
+      "required": [
+        {
+          "path": "src/server/aql/index.ts",
+          "symbols": ["aqlQuery", "aqlCompiledQuery"],
+          "reason": "The AQL facade normalizes Query instances and exposes both compile-and-run and already-compiled execution paths with schema executors.",
+          "minimum": "Evidence must identify the public entry points and their handoff into compilation and execution."
+        },
+        {
+          "path": "src/server/aql/compiler.ts",
+          "symbols": ["compileQuery", "defaultConstructQuery"],
+          "reason": "The compiler turns query state into SQL pieces and constructs the final SQL statement used by execution.",
+          "minimum": "Evidence must explain the compilation boundary rather than only database execution."
+        },
+        {
+          "path": "src/server/aql/exec.ts",
+          "symbols": ["compileAndRunAqlQuery", "runCompiledAqlQuery", "execQuery"],
+          "reason": "The execution layer converts parameters, dispatches implicit tables to custom executors or SQL to db.all, applies output conversions, and returns query results.",
+          "minimum": "Evidence must cover parameter binding, executor selection, database execution, output typing, and dependency propagation."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "src/shared/query.ts",
+          "symbols": ["Query", "q", "serialize"],
+          "reason": "The shared query builder creates the Query state that aqlQuery serializes before compilation."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Bounded mechanism case spanning the query builder, SQL compiler, execution strategy, and typed result conversion."
+    },
+    {
+      "id": "actual-ao-01",
+      "query": "Which loot-core modules own the typed client connection contract, the browser worker transport, the in-process API transport, and the Electron socket transport?",
+      "category": "architecture-ownership",
+      "budget": 5000,
+      "required": [
+        {
+          "path": "src/platform/client/connection/index-types.ts",
+          "symbols": ["Init", "Send", "Listen"],
+          "reason": "The connection type module owns the shared client transport contract and handler/event typing."
+        },
+        {
+          "path": "src/platform/client/connection/index.ts",
+          "symbols": ["init", "send", "listen", "connectWorker"],
+          "reason": "The default client connection owns Worker or MessagePort setup, queued request delivery, replies, pushes, and listeners for the browser transport."
+        },
+        {
+          "path": "src/platform/client/connection/index.api.ts",
+          "symbols": ["send"],
+          "reason": "The API variant owns the in-process implementation that delegates requests to server/main lib.send and optionally catches errors."
+        },
+        {
+          "path": "src/platform/client/connection/index.electron.ts",
+          "symbols": ["init", "send", "connectSocket"],
+          "reason": "The Electron variant owns IPC socket connection setup, queued socket messages, and serialized reply handling."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "src/platform/server/connection/index.ts",
+          "symbols": ["init", "send"],
+          "reason": "The server-side connection module is the corresponding backend message and push endpoint for the client transports."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ownership control distinguishing a shared contract from browser, API, Electron, and backend implementations."
+    },
+    {
+      "id": "actual-cc-01",
+      "query": "Trace a browser backend request from the client send call through worker connection setup, server message dispatch and handler execution, reply construction, and client promise resolution.",
+      "category": "call-chain-investigation",
+      "budget": 8000,
+      "required": [
+        {
+          "path": "src/platform/client/connection/index.ts",
+          "symbols": ["send", "connectWorker", "handleMessage"],
+          "reason": "The browser client creates request ids and messages, connects the Worker or MessagePort, and resolves or rejects promises when replies arrive."
+        },
+        {
+          "path": "src/platform/server/connection/index.ts",
+          "symbols": ["init", "send"],
+          "reason": "The backend listener receives client messages, finds the named handler, runs it, and posts replies or push events back over the channel."
+        },
+        {
+          "path": "src/server/mutators.ts",
+          "symbols": ["runHandler", "isMutating"],
+          "reason": "The handler runner supplies the execution and mutation classification used by server connection dispatch when constructing a reply."
+        },
+        {
+          "path": "src/server/main.ts",
+          "symbols": ["handlers", "initApp"],
+          "reason": "Server initialization installs the combined handler registry into the connection that receives the request."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "src/platform/client/backend-worker.ts",
+          "symbols": ["startBackendWorker"],
+          "reason": "The worker bootstrap initializes the connection and sends the browser backend initialization request."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Ordered runtime call-chain control from transport request to handler dispatch and reply completion."
+    },
+    {
+      "id": "actual-lm-01",
+      "query": "Explain how loot-core creates schedules from date, account, payee, and amount conditions linked to transaction rules, computes and skips next dates, classifies paid or due or missed status, detects posted occurrences, previews future recurring transactions, auto-posts due schedules, advances recurring schedules, completes one-time schedules, and emits refresh or offline events.",
+      "category": "long-mixed-query",
+      "budget": 9000,
+      "required": [
+        {
+          "path": "src/server/schedules/app.ts",
+          "symbols": ["createSchedule", "setNextDate", "postTransactionForSchedule", "advanceSchedulesService"],
+          "reason": "The schedules app creates and updates schedule rows and linked rules, computes next dates, posts transactions, advances recurring schedules, completes one-time schedules, and emits schedule-related events."
+        },
+        {
+          "path": "src/shared/schedules.ts",
+          "symbols": ["getNextDate", "getStatus", "getHasTransactionsQuery", "computeSchedulePreviewTransactions"],
+          "reason": "The shared schedule logic owns recurrence date calculation, status classification, posted-transaction matching queries, and preview transaction generation."
+        },
+        {
+          "path": "src/server/transactions/transaction-rules.ts",
+          "symbols": ["ruleModel", "insertRule", "applyActions"],
+          "reason": "The transaction-rules module owns validation and persistence of the rule linked by a schedule and the action application used when scheduled transactions are posted."
+        }
+      ],
+      "supporting": [
+        {
+          "path": "src/server/accounts/sync.ts",
+          "symbols": ["addTransactions"],
+          "reason": "The account sync layer is the transaction insertion boundary called by schedule auto-posting."
+        }
+      ],
+      "forbidden": [],
+      "notes": "Mixed schedule case covering data creation, rule linkage, recurrence, matching, preview, posting, state advancement, and event notification."
+    }
+  ]
+}
