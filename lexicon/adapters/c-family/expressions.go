@@ -13,12 +13,17 @@ func (extractor *extractor) extractExpression(node *tree_sitter.Node, context ex
 	switch node.Kind() {
 	case "call_expression":
 		function := node.ChildByFieldName("function")
-		candidate, member := callCandidate(function, extractor.source)
+		candidate, member, receiver := callCandidate(function, extractor.source)
 		if candidate != "" {
+			receiverTypeID := ""
+			if context.TypeID != "" && (!member || receiver == "this" || receiver == "self") {
+				receiverTypeID = context.TypeID
+			}
 			extractor.file.Calls = append(extractor.file.Calls, callObservation{
 				SourceID: context.CallableID, SourceScope: context.CallableScope, Path: extractor.file.Path,
 				Expression: nodeText(function, extractor.source), Candidate: candidate,
 				Arguments: callArguments(node.ChildByFieldName("arguments"), extractor.source), Member: member,
+				Receiver: receiver, ReceiverTypeID: receiverTypeID,
 				Span: spanForNode(extractor.file.Path, node),
 			})
 		}
@@ -111,22 +116,23 @@ func (extractor *extractor) addAccess(node *tree_sitter.Node, context extraction
 	})
 }
 
-func callCandidate(node *tree_sitter.Node, source []byte) (string, bool) {
+func callCandidate(node *tree_sitter.Node, source []byte) (string, bool, string) {
 	if node == nil {
-		return "", false
+		return "", false, ""
 	}
 	switch node.Kind() {
 	case "identifier", "type_identifier", "qualified_identifier", "scoped_identifier", "operator_name":
-		return normalizeQualified(nodeText(node, source)), false
+		return normalizeQualified(nodeText(node, source)), false, ""
 	case "field_expression":
 		field := node.ChildByFieldName("field")
-		return lastQualifiedPart(nodeText(field, source)), true
+		receiver := node.ChildByFieldName("argument")
+		return lastQualifiedPart(nodeText(field, source)), true, normalizeQualified(nodeText(receiver, source))
 	case "template_function":
 		if name := node.ChildByFieldName("name"); name != nil {
-			return normalizeQualified(nodeText(name, source)), false
+			return normalizeQualified(nodeText(name, source)), false, ""
 		}
 	}
-	return "", false
+	return "", false, ""
 }
 
 func assignmentOperator(node, left, right *tree_sitter.Node, source []byte) string {

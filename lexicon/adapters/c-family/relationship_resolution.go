@@ -22,9 +22,7 @@ func resolveCall(facts *factSet, index declarationIndex, indirectCalls indirectC
 		return
 	}
 
-	candidates := resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, func(declaration *declaration) bool {
-		return declaration.Callable
-	})
+	candidates := resolveCallCandidates(index, observation)
 	if len(candidates) == 1 {
 		addCallEdge(facts, observation, candidates[0], "calls", nil)
 		return
@@ -59,6 +57,24 @@ func resolveCall(facts *factSet, index declarationIndex, indirectCalls indirectC
 		reason = "external-target"
 	}
 	facts.addUnresolved(observation.Path, unresolvedRecord(observation.SourceID, "calls", observation.Expression, reason, observation.Path, observation.Span))
+}
+
+func resolveCallCandidates(index declarationIndex, observation callObservation) []*declaration {
+	accept := func(declaration *declaration) bool {
+		return declaration.Callable
+	}
+	if observation.ReceiverTypeID != "" {
+		candidates := resolveUnscopedDeclarations(index, observation.Candidate, observation.Path, accept)
+		owned := selectDeclarations(index, index.byContainerName[observation.ReceiverTypeID+"\x00"+lastQualifiedPart(observation.Candidate)], observation.Path, accept)
+		if len(owned) > 0 {
+			return owned
+		}
+		return candidates
+	}
+	if observation.Member {
+		return resolveUnscopedDeclarations(index, observation.Candidate, observation.Path, accept)
+	}
+	return resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
 }
 
 func resolveMacroCall(facts *factSet, index declarationIndex, observation callObservation, macros []*declaration) {

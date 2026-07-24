@@ -56,14 +56,16 @@ type includeObservation struct {
 }
 
 type callObservation struct {
-	SourceID    string
-	SourceScope string
-	Path        string
-	Expression  string
-	Candidate   string
-	Arguments   []string
-	Member      bool
-	Span        sourceSpan
+	SourceID       string
+	SourceScope    string
+	Path           string
+	Expression     string
+	Candidate      string
+	Arguments      []string
+	Member         bool
+	Receiver       string
+	ReceiverTypeID string
+	Span           sourceSpan
 }
 
 type pointerBindingObservation struct {
