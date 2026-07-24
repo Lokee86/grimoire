@@ -10,6 +10,14 @@ LEXICANTER_URL = "https://github.com/Saturnine-Softworks/Lexicanter.git"
 LEXICANTER_COMMIT = "eac754788b3cf18a930c085c1c49f8f353e18107"
 GIT_URL = "https://github.com/git/git.git"
 GIT_COMMIT = "9a0c4701dcd5725c4184599322b52933ff5005ca"
+LEVELDB_URL = "https://github.com/google/leveldb.git"
+LEVELDB_COMMIT = "99b3c03b3284f5886f9ef9a4ef703d57373e61be"
+FMT_URL = "https://github.com/fmtlib/fmt.git"
+FMT_COMMIT = "407c905e45ad75fc29bf0f9bb7c5c2fd3475976f"
+CATCH2_URL = "https://github.com/catchorg/Catch2.git"
+CATCH2_COMMIT = "191fa38c9b1596cd2576ab531d4ab4d5e8e05190"
+NLOHMANN_JSON_URL = "https://github.com/nlohmann/json.git"
+NLOHMANN_JSON_COMMIT = "55f93686c01528224f448c19128836e7df245f72"
 
 
 def run(*args: str, cwd: Path | None = None) -> str:
@@ -89,6 +97,14 @@ def main() -> None:
             LEXICANTER_COMMIT,
         ),
         "git": ensure_clone(corpus_root / "git", GIT_URL, GIT_COMMIT),
+        "leveldb": ensure_clone(corpus_root / "leveldb", LEVELDB_URL, LEVELDB_COMMIT),
+        "fmt": ensure_clone(corpus_root / "fmt", FMT_URL, FMT_COMMIT),
+        "catch2": ensure_clone(corpus_root / "catch2", CATCH2_URL, CATCH2_COMMIT),
+        "nlohmann-json": ensure_clone(
+            corpus_root / "nlohmann-json",
+            NLOHMANN_JSON_URL,
+            NLOHMANN_JSON_COMMIT,
+        ),
     }
     state = {
         name: {"path": path.as_posix(), "revision": revision(path)}

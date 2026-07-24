@@ -41,7 +41,7 @@ python evaluation/compare_jsonl.py LEFT.jsonl RIGHT.jsonl
 
 | Adapter | Calibration | Validation | Holdout |
 | --- | --- | --- | --- |
-| C / C++ | Pinned Git and Codebase Memory C backend snapshots | — | — |
+| C / C++ | Pinned Git, Codebase Memory C backend, LevelDB, and fmt snapshots | Pinned Catch2 `src/` snapshot | Pinned nlohmann/json `include/nlohmann/` snapshot |
 | Python | Pinned doc-ledger snapshot | Space Rocks tools | — |
 | Ruby | Lexicon Ruby adapter | Space Rocks API | — |
 | JavaScript / TypeScript / Svelte | workspace-mcp | Pinned Lexicanter snapshot | Space Rocks Astro site |

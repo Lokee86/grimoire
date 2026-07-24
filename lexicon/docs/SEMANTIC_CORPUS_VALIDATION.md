@@ -32,6 +32,21 @@ The CBM case intentionally targets `internal/cbm`, the independently meaningful 
 
 The C cases use exact node and source-target edge judgments, relation-count gates, and expected-zero unresolved-call-reason gates. They protect included-C translation units, header-to-source static calls, macro aliases, function-pointer typedefs and dispatch tables, definition selection, includer-driven header attribution, and repository-local include resolution.
 
+## C++ corpus added July 24, 2026
+
+Four pinned C++ cases add distinct semantic pressure without tuning against the holdout:
+
+| Case | Split | Definite calls | Possible-call edges | Extends | Reads | Writes | Unresolved calls |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| LevelDB `99b3c03` | Calibration | 4,623 | 8,453 | 13 | 13,255 | 3,224 | 4,564 |
+| fmt `407c905` | Calibration | 6,088 | 76,205 | 232 | 17,892 | 4,176 | 7,612 |
+| Catch2 `src/` `191fa38` | Validation | 1,890 | 4,790 | 87 | 7,401 | 1,360 | 2,163 |
+| nlohmann/json `include/nlohmann/` `55f9368` | Holdout | 1,737 | 4,079 | 34 | 5,638 | 841 | 2,082 |
+
+LevelDB represents conventional production C++ with classes, virtual interfaces, callbacks, and separate headers and implementations. fmt provides concentrated template, constexpr, specialization, and overload pressure; its high possible-call edge count makes current overload ambiguity visible rather than hiding it as a single aggregate failure. Catch2 exercises macro-heavy framework code and reporter, matcher, generator, and session hierarchies. nlohmann/json remains a header-only holdout so future template calibration can be checked against code that was not used to select changes.
+
+Each case runs twice and is byte-identical. Exact gates protect representative class and function nodes plus concrete call and inheritance edges. LevelDB additionally requires zero unresolved call `missing-target` records. Catch2 is scoped to `src/` to exclude the generated amalgamation in `extras/`; nlohmann/json is scoped to `include/nlohmann/` to isolate the distributed library surface.
+
 ## Corpus results
 
 | Case | Split | Calls | Possible calls | Reads | Writes | Dependencies | Unresolved calls | Output |
