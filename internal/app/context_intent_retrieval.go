@@ -75,8 +75,8 @@ func rankCandidatesForIntent(candidates []retrieve.Candidate, planned queryshape
 		if !boost {
 			continue
 		}
-		name, value := candidateIntentBoost(result[index], planned.Intent)
-		if value > 0 {
+		name, value := candidateIntentBoost(result[index], planned)
+		if value != 0 {
 			result[index].Score += value
 			result[index].Reasons = appendUniqueReason(result[index].Reasons, name)
 			result[index].ScoreDetails = append(result[index].ScoreDetails, retrieve.ScoreDetail{Name: name, Value: value})

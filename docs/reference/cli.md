@@ -277,6 +277,9 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | `--adaptive` | `false` | Replace case budgets with query-shape targets and evidence-coverage assembly |
 | `--candidate-limit <n>` | `200` | Normal ranked candidate limit |
 | `--probe-limit <n>` | `800` | Broader diagnostic ranking probe used only for failure attribution |
+| `--selection-file-penalty <n>` | `10` | Evaluation-only curation penalty for each previously selected chunk from the same file |
+| `--selection-subsystem-penalty <n>` | `18` | Evaluation-only curation penalty for each previously selected chunk from the same subsystem |
+| `--selection-adjacent-primaries <n>` | `3` | Evaluation-only number of diversified primaries whose immediate prepared neighbors are promoted |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--structural-providers <list>` | `none` | `none`, `lexicon`, or `lexicon,arcana` |
@@ -298,6 +301,8 @@ Structural expectations require `provider` and `kind`. Optional assertions inclu
 `--structural-providers none` runs the source-only baseline. `lexicon` executes immutable Lexicon export and symbol matching. `lexicon,arcana` additionally synchronizes and queries Arcana against the same snapshot. Arcana cannot be enabled without Lexicon because Lexicon-matched symbols are its bounded graph-query seeds.
 
 For each case and mode the runner records source and structural timings, provider warnings, selected source chunks, retained structural facts, immutable provider snapshots, final serialized package tokens, separate source and structural recall, separate irrelevant-evidence rates, and failure attribution. `--adaptive` also records the selected automatic budget, curated and assembled candidate counts, represented evidence coverage, and the assembly stop reason. Source and structural failures distinguish adaptive assembly loss from later budget-fitting loss. `--adaptive` cannot be combined with a fixed `--budget` override. The broad source-ranking probe does not contribute to reported context latency.
+
+The three `--selection-*` flags substitute explicit values into the production curation implementation for judged experiments. They do not exist on `grimoire context`, and omitting them evaluates the current production defaults. This keeps calibration on the real algorithm rather than a parallel evaluator-only implementation.
 
 Outputs are a machine-readable JSON report and a concise Markdown comparison grouped by mode and category. Package comparison includes median and p95 tokens, median selected chunks, and median budget utilization. A case passes only when every required source and structural expectation survives into the final context package.
 

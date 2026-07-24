@@ -26,17 +26,18 @@ type evaluatedContext struct {
 }
 
 type evaluatedContextOptions struct {
-	Mode         string
-	Query        string
-	Budget       int
-	Adaptive     bool
-	Limit        int
-	ProbeLimit   int
-	StatePath    string
-	Endpoint     string
-	EnginePath   string
-	Structural   structuralContextOptions
-	QueryOptions embedding.QueryOptions
+	Mode            string
+	Query           string
+	Budget          int
+	Adaptive        bool
+	Limit           int
+	ProbeLimit      int
+	StatePath       string
+	Endpoint        string
+	EnginePath      string
+	Structural      structuralContextOptions
+	QueryOptions    embedding.QueryOptions
+	SelectionConfig *selection.Config
 }
 
 func evaluateContext(
@@ -133,7 +134,12 @@ func evaluateContext(
 	})
 
 	curationStart := time.Now()
-	curated := selection.Curate(snapshot, merged)
+	var curated []retrieve.Candidate
+	if options.SelectionConfig != nil {
+		curated = selection.CurateWithConfig(snapshot, merged, *options.SelectionConfig)
+	} else {
+		curated = selection.Curate(snapshot, merged)
+	}
 	result.Timings.CurationMS = durationMS(time.Since(curationStart))
 	assembledCandidates := curated
 	assembledEvidence := structural.Combined

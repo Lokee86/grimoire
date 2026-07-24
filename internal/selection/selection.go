@@ -9,17 +9,47 @@ import (
 )
 
 const (
-	adjacentSource       = "adjacent"
-	maxAdjacentPrimaries = 4
+	adjacentSource                = "adjacent"
+	defaultFileRepeatPenalty      = 10
+	defaultSubsystemRepeatPenalty = 18
+	defaultAdjacentPrimaryLimit   = 3
 )
 
-// Curate removes redundant candidates, applies stable soft diversity, and
-// appends neighbors around the first four diversified primary candidates.
-func Curate(snapshot index.Snapshot, candidates []retrieve.Candidate) []retrieve.Candidate {
-	primaries := uniqueNonOverlapping(candidates)
-	primaries = diversify(primaries)
+// Config controls deterministic curation pressure. It is exposed so judged
+// evaluation can calibrate the algorithm without maintaining alternate
+// selection implementations.
+type Config struct {
+	FileRepeatPenalty      int
+	SubsystemRepeatPenalty int
+	AdjacentPrimaryLimit   int
+}
 
-	frontCount := min(maxAdjacentPrimaries, len(primaries))
+func DefaultConfig() Config {
+	return Config{
+		FileRepeatPenalty:      defaultFileRepeatPenalty,
+		SubsystemRepeatPenalty: defaultSubsystemRepeatPenalty,
+		AdjacentPrimaryLimit:   defaultAdjacentPrimaryLimit,
+	}
+}
+
+// Curate applies the production curation configuration.
+func Curate(snapshot index.Snapshot, candidates []retrieve.Candidate) []retrieve.Candidate {
+	return CurateWithConfig(snapshot, candidates, DefaultConfig())
+}
+
+// CurateWithConfig removes redundant candidates, applies stable soft
+// diversity, and promotes prepared neighbors around the configured number of
+// diversified primary candidates.
+func CurateWithConfig(
+	snapshot index.Snapshot,
+	candidates []retrieve.Candidate,
+	config Config,
+) []retrieve.Candidate {
+	config = normalizedConfig(config)
+	primaries := uniqueNonOverlapping(candidates)
+	primaries = diversify(primaries, config)
+
+	frontCount := min(config.AdjacentPrimaryLimit, len(primaries))
 	front := primaries[:frontCount]
 	adjacent, promoted := adjacentCandidates(snapshot, front, primaries)
 	curated := append([]retrieve.Candidate(nil), front...)
@@ -59,7 +89,7 @@ func uniqueNonOverlapping(candidates []retrieve.Candidate) []retrieve.Candidate 
 	return kept
 }
 
-func diversify(candidates []retrieve.Candidate) []retrieve.Candidate {
+func diversify(candidates []retrieve.Candidate, config Config) []retrieve.Candidate {
 	remaining := append([]retrieve.Candidate(nil), candidates...)
 	ordered := make([]retrieve.Candidate, 0, len(remaining))
 	fileCounts := make(map[string]int)
@@ -67,9 +97,9 @@ func diversify(candidates []retrieve.Candidate) []retrieve.Candidate {
 
 	for len(remaining) > 0 {
 		best := 0
-		bestPenalty := diversityPenalty(remaining[0], 0, fileCounts, subsystemCounts)
+		bestPenalty := diversityPenalty(remaining[0], 0, fileCounts, subsystemCounts, config)
 		for candidateIndex := 1; candidateIndex < len(remaining); candidateIndex++ {
-			penalty := diversityPenalty(remaining[candidateIndex], candidateIndex, fileCounts, subsystemCounts)
+			penalty := diversityPenalty(remaining[candidateIndex], candidateIndex, fileCounts, subsystemCounts, config)
 			if penalty < bestPenalty {
 				best, bestPenalty = candidateIndex, penalty
 			}
@@ -87,9 +117,23 @@ func diversityPenalty(
 	candidate retrieve.Candidate,
 	position int,
 	files, subsystems map[string]int,
+	config Config,
 ) int {
-	return position + files[fileKey(candidate.Chunk.Path)]*4 +
-		subsystems[subsystemKey(candidate.Chunk.Path)]*2
+	return position + files[fileKey(candidate.Chunk.Path)]*config.FileRepeatPenalty +
+		subsystems[subsystemKey(candidate.Chunk.Path)]*config.SubsystemRepeatPenalty
+}
+
+func normalizedConfig(config Config) Config {
+	if config.FileRepeatPenalty < 0 {
+		config.FileRepeatPenalty = 0
+	}
+	if config.SubsystemRepeatPenalty < 0 {
+		config.SubsystemRepeatPenalty = 0
+	}
+	if config.AdjacentPrimaryLimit < 0 {
+		config.AdjacentPrimaryLimit = 0
+	}
+	return config
 }
 
 func adjacentCandidates(

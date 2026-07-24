@@ -155,6 +155,24 @@ Important report families include ranking calibration baselines/current runs, qu
 
 Do not compare reports from different repository contents, prepared snapshots, corpora, modes, provider sets, or hardware as though they were paired experiments.
 
+## Candidate-selection calibration
+
+The evaluator can vary the production curation configuration without changing the normal context CLI:
+
+```bash
+grimoire eval retrieval \
+  --root . \
+  --cases evaluation/retrieval/grimoire.json \
+  --modes lexical \
+  --adaptive \
+  --selection-file-penalty 10 \
+  --selection-subsystem-penalty 18 \
+  --selection-adjacent-primaries 3 \
+  --variant selection-calibrated
+```
+
+The current defaults—file penalty 10, subsystem penalty 18, and three neighbor anchors—were selected from a bounded grid after intent-driven BM25, query decomposition, and Arcana semantic vectors were active. The earlier `4/10/2` and intermediate `10/10/3` configurations underperformed on the final 716-file candidate stream. Together with implementation-priority ranking and per-phase reservation, the selected configuration raised adaptive required-evidence recall from 8.9% to 26.7% and complete-case pass rate from 8.3% to 16.7%. This 12-case corpus does not establish a universal optimum; semantic modes, structural providers, and additional repositories remain separate validation gates. See [the calibration comparison](../../evaluation/results/selection-calibration-comparison-2026-07-23.md).
+
 ## Calibration discipline
 
 1. Rebuild prepared and vector state after implementation changes that affect indexed content or embedding identity.

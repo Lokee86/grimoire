@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	intentFrontSeed       = 4
+	intentFrontSeed       = 2
 	intentReservedPerPass = 2
 )
 
@@ -127,15 +127,32 @@ func reserveIntentCoverage(
 		seen[item.key] = struct{}{}
 		ordered = append(ordered, candidate)
 	}
+	cursors := make([]int, len(groups))
+	appendNextGroupCandidate := func(groupIndex int) {
+		group := groups[groupIndex]
+		if group.Intent.Intent == evidence.IntentMixed {
+			return
+		}
+		for cursors[groupIndex] < len(group.Candidates) {
+			candidate := group.Candidates[cursors[groupIndex]]
+			cursors[groupIndex]++
+			before := len(ordered)
+			appendCandidate(byKey[contextCandidateKey(candidate)])
+			if len(ordered) > before {
+				return
+			}
+		}
+	}
+
+	for groupIndex := range groups {
+		appendNextGroupCandidate(groupIndex)
+	}
 	for index := 0; index < min(intentFrontSeed, len(fused)); index++ {
 		appendCandidate(fused[index])
 	}
-	for round := 0; round < intentReservedPerPass; round++ {
-		for _, group := range groups {
-			if group.Intent.Intent == evidence.IntentMixed || round >= len(group.Candidates) {
-				continue
-			}
-			appendCandidate(byKey[contextCandidateKey(group.Candidates[round])])
+	for round := 1; round < intentReservedPerPass; round++ {
+		for groupIndex := range groups {
+			appendNextGroupCandidate(groupIndex)
 		}
 	}
 	for _, item := range fused {

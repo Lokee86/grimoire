@@ -6,7 +6,7 @@ import (
 	"github.com/Lokee86/grimoire/internal/evidence"
 )
 
-const maxRetrievalIntentEntries = 6
+const maxRetrievalIntentEntries = 7
 
 // PlanRetrievalIntents derives the bounded query-only retrieval plan used
 // before candidate generation. It intentionally depends only on the request

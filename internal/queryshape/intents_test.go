@@ -58,6 +58,59 @@ func TestPlanRetrievalIntentsIgnoresFencedExamplesAndPrioritizesImplementationSe
 	}
 }
 
+func TestPlanRetrievalIntentsSplitsOwnershipResponsibilities(t *testing.T) {
+	query := "Which package owns the public context command, semantic retrieval, candidate curation, and token-budgeted package compilation?"
+	intents := PlanRetrievalIntents(query)
+	if len(intents) != 5 {
+		t.Fatalf("ownership intent count = %d, want 5: %+v", len(intents), intents)
+	}
+	for _, fragment := range []string{
+		"owns the public context command",
+		"owns semantic retrieval",
+		"owns candidate curation",
+		"owns token-budgeted package compilation",
+	} {
+		if !intentQueriesContain(intents[1:], fragment) {
+			t.Errorf("missing ownership responsibility %q: %+v", fragment, intents)
+		}
+	}
+}
+
+func TestPlanRetrievalIntentsSplitsCallChainPhases(t *testing.T) {
+	query := "Trace `grimoire context` from CLI entry through command dispatch, query planning, semantic search, exact recovery, curation, and package serialization."
+	intents := PlanRetrievalIntents(query)
+	if len(intents) != maxRetrievalIntentEntries {
+		t.Fatalf("call-chain intent count = %d, want %d: %+v", len(intents), maxRetrievalIntentEntries, intents)
+	}
+	for _, fragment := range []string{
+		"through command dispatch",
+		"through query planning",
+		"through semantic search",
+		"through exact recovery",
+		"through curation",
+		"through package serialization",
+	} {
+		if !intentQueriesContain(intents[1:], fragment) {
+			t.Errorf("missing call-chain phase %q: %+v", fragment, intents)
+		}
+	}
+}
+
+func TestPlanRetrievalIntentsKeepsDistinctMechanismActions(t *testing.T) {
+	query := "How does vector build reuse existing embeddings, ingest only missing batches, materialize a complete snapshot, and publish its manifest?"
+	intents := PlanRetrievalIntents(query)
+	for _, fragment := range []string{
+		"reuse existing embeddings",
+		"ingest only missing batches",
+		"materialize a complete snapshot",
+		"publish its manifest",
+	} {
+		if !intentQueriesContain(intents[1:], fragment) {
+			t.Errorf("missing mechanism action %q: %+v", fragment, intents)
+		}
+	}
+}
+
 func TestPlanRetrievalIntentsPreservesFocusedQuery(t *testing.T) {
 	query := "Where is vector snapshot freshness validated?"
 	intents := PlanRetrievalIntents(query)

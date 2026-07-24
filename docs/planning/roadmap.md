@@ -10,7 +10,7 @@ This page contains work that is not yet complete. Implemented behavior is docume
 - Content-addressed vector objects and packed exact-search snapshots.
 - Incremental vector reuse and concurrent embedding requests with serialized deterministic ingestion.
 - Semantic, lexical, and concrete exact retrieval.
-- Deterministic ranking, curation, and prepared-neighbour expansion.
+- Deterministic ranking, judged curation calibration, and prepared-neighbour expansion.
 - Lexicon facts and Arcana graph evidence as optional query-time enrichment.
 - Source and structural judged evaluation with pipeline-loss attribution.
 - Deterministic query-shape profiling and automatic budgets.

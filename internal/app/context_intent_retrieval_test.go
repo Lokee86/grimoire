@@ -57,6 +57,50 @@ func TestIntentLexicalCandidatesPrioritizeDirectLocationPaths(t *testing.T) {
 	}
 }
 
+func TestRankCandidatesForIntentPrefersImplementationForDirectLocation(t *testing.T) {
+	planned := queryshape.RetrievalIntent{
+		Intent: evidence.IntentDirectLocation,
+		Query:  "Where is snapshot freshness validated?",
+		Weight: 1,
+	}
+	candidates := []retrieve.Candidate{
+		{
+			Chunk:  index.Chunk{ID: "docs", Path: "docs/architecture/prepared-index.md", Text: "snapshot freshness validated", TokenCount: 5},
+			Source: "lexical", Score: 55, Rank: 1,
+		},
+		{
+			Chunk:  index.Chunk{ID: "source", Path: "internal/app/vector_manifest.go", Text: "func validateVectorSnapshotManifest() {}", TokenCount: 6},
+			Source: "lexical", Score: 38, Rank: 2,
+		},
+	}
+	got := rankCandidatesForIntent(candidates, planned, true)
+	if got[0].Chunk.Path != "internal/app/vector_manifest.go" {
+		t.Fatalf("implementation did not outrank documentation: %+v", got)
+	}
+}
+
+func TestRankCandidatesForIntentPenalizesGeneratedEvaluationResults(t *testing.T) {
+	planned := queryshape.RetrievalIntent{
+		Intent: evidence.IntentMechanism,
+		Query:  "explain evaluation reporting",
+		Weight: 1,
+	}
+	candidates := []retrieve.Candidate{
+		{
+			Chunk:  index.Chunk{ID: "result", Path: "evaluation/results/old-report.json", Text: "evaluation reporting", TokenCount: 5},
+			Source: "lexical", Score: 50, Rank: 1,
+		},
+		{
+			Chunk:  index.Chunk{ID: "source", Path: "internal/evaluation/report.go", Text: "func Write() {}", TokenCount: 5},
+			Source: "lexical", Score: 35, Rank: 2,
+		},
+	}
+	got := rankCandidatesForIntent(candidates, planned, true)
+	if got[0].Chunk.Path != "internal/evaluation/report.go" {
+		t.Fatalf("generated evaluation result remained ahead of implementation: %+v", got)
+	}
+}
+
 func TestMergeIntentCandidateGroupsReservesSpecificCoverage(t *testing.T) {
 	mixed := queryshape.RetrievalIntent{Intent: evidence.IntentMixed, Query: "mixed", Weight: 1}
 	callChain := queryshape.RetrievalIntent{Intent: evidence.IntentCallChain, Query: "trace calls", Weight: 0.5}
@@ -82,6 +126,25 @@ func TestMergeIntentCandidateGroupsReservesSpecificCoverage(t *testing.T) {
 	})
 	if !pathAppearsWithin(result, "call/entry.go", 8) || !pathAppearsWithin(result, "architecture/owner.go", 8) {
 		t.Fatalf("specific intent coverage was not reserved near the front: %+v", result)
+	}
+}
+
+func TestMergeIntentCandidateGroupsUsesUnseenAnchorPerPass(t *testing.T) {
+	shared := intentTestCandidate("docs/shared.md", 1)
+	first := queryshape.RetrievalIntent{Intent: evidence.IntentCallChain, Query: "first phase", Weight: 1}
+	second := queryshape.RetrievalIntent{Intent: evidence.IntentCallChain, Query: "second phase", Weight: 1}
+	result := mergeIntentCandidateGroups(10, []intentCandidateGroup{
+		{Intent: first, Candidates: []retrieve.Candidate{
+			annotateCandidateIntent(shared, first),
+			annotateCandidateIntent(intentTestCandidate("internal/first.go", 2), first),
+		}},
+		{Intent: second, Candidates: []retrieve.Candidate{
+			annotateCandidateIntent(shared, second),
+			annotateCandidateIntent(intentTestCandidate("internal/second.go", 2), second),
+		}},
+	})
+	if !pathAppearsWithin(result, "internal/second.go", 3) {
+		t.Fatalf("duplicate shared candidate prevented a replacement phase anchor: %+v", result)
 	}
 }
 

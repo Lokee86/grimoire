@@ -26,7 +26,7 @@ var actionCueWords = map[string]struct{}{
 	"fit": {}, "fits": {}, "follow": {}, "how": {}, "identify": {},
 	"implement": {}, "implements": {}, "ingest": {}, "ingests": {}, "load": {},
 	"loads": {}, "locate": {}, "materialize": {}, "materializes": {}, "merge": {},
-	"merges": {}, "parse": {}, "parses": {}, "plan": {}, "plans": {},
+	"merges": {}, "own": {}, "owns": {}, "parse": {}, "parses": {}, "plan": {}, "plans": {},
 	"publish": {}, "publishes": {}, "record": {}, "records": {}, "recover": {},
 	"recovers": {}, "report": {}, "reports": {}, "reuse": {}, "reuses": {},
 	"route": {}, "routes": {}, "run": {}, "runs": {}, "score": {}, "scores": {},
@@ -45,6 +45,9 @@ func decomposeRetrievalQuery(query string) []retrievalClause {
 }
 
 func proseRetrievalClauses(query string) []retrievalClause {
+	if enumerated := enumeratedRetrievalClauses(query); len(enumerated) > 1 {
+		return enumerated
+	}
 	var result []retrievalClause
 	order := 0
 	for _, sentence := range splitStrongPunctuation(query) {
@@ -62,14 +65,75 @@ func proseRetrievalClauses(query string) []retrievalClause {
 			if len(strings.Fields(part)) < 3 {
 				continue
 			}
+			intent := classifyClauseIntent(part)
+			part = expandRetrievalClause(part, intent)
 			result = append(result, retrievalClause{
-				Query: part, Intent: classifyClauseIntent(part), Topic: clauseTopic(part),
+				Query: part, Intent: intent, Topic: clauseTopic(part),
 				Score: scoreRetrievalClause(part), Order: order,
 			})
 			order++
 		}
 	}
-	return mergeAdjacentClauseTopics(result)
+	return result
+}
+
+func enumeratedRetrievalClauses(query string) []retrievalClause {
+	trimmed := strings.TrimSpace(query)
+	lower := strings.ToLower(trimmed)
+	if strings.HasPrefix(lower, "trace ") {
+		if through := strings.Index(lower, " through "); through >= 0 {
+			return enumeratedClauses(
+				strings.TrimSpace(trimmed[:through]), " through ", trimmed[through+len(" through "):],
+				evidence.IntentCallChain, "flow",
+			)
+		}
+	}
+	if strings.HasPrefix(lower, "which ") {
+		for _, marker := range []string{" owns ", " own "} {
+			if ownership := strings.Index(lower, marker); ownership >= 0 {
+				return enumeratedClauses(
+					strings.TrimSpace(trimmed[:ownership+len(marker)-1]), " ", trimmed[ownership+len(marker):],
+					evidence.IntentArchitecture, "architecture",
+				)
+			}
+		}
+	}
+	return nil
+}
+
+func enumeratedClauses(prefix, connector, tail string, intent evidence.Intent, topic string) []retrievalClause {
+	items := splitEnumeratedItems(tail)
+	if len(items) < 2 {
+		return nil
+	}
+	result := make([]retrievalClause, 0, len(items))
+	for order, item := range items {
+		query := cleanClauseText(prefix + connector + item)
+		query = expandRetrievalClause(query, intent)
+		result = append(result, retrievalClause{
+			Query: query, Intent: intent, Topic: topic + ":" + normalizedQuery(item),
+			Score: scoreRetrievalClause(query) + 6, Order: order,
+		})
+	}
+	return result
+}
+
+func splitEnumeratedItems(value string) []string {
+	value = strings.TrimSpace(strings.Trim(value, " .;:!?"))
+	value = strings.ReplaceAll(value, ", and ", ", ")
+	value = strings.ReplaceAll(value, ", then ", ", ")
+	parts := strings.Split(value, ",")
+	if len(parts) == 1 {
+		parts = strings.Split(value, " and ")
+	}
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = cleanClauseText(part)
+		if part != "" {
+			result = append(result, part)
+		}
+	}
+	return result
 }
 
 func splitStrongPunctuation(query string) []string {

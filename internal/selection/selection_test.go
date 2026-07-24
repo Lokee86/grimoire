@@ -59,7 +59,7 @@ func TestCurateDoesNotCompareProviderRanks(t *testing.T) {
 	}
 }
 
-func TestCurateBoundsNeighborsBeforeRemainingPrimaries(t *testing.T) {
+func TestCurateBoundsThreeNeighborAnchorsBeforeRemainingPrimaries(t *testing.T) {
 	path := "internal/alpha.go"
 	primaryIDs := []string{"p1", "p2", "p3", "p4", "p5", "p6"}
 	neighborIDs := []string{"n1", "n2", "n3", "n4", "n5", "n6"}
@@ -74,7 +74,7 @@ func TestCurateBoundsNeighborsBeforeRemainingPrimaries(t *testing.T) {
 	snapshot := index.Snapshot{Files: []index.FileRecord{{Path: path, Chunks: chunks}}}
 
 	curated := Curate(snapshot, candidates)
-	want := []string{"p1", "p2", "p3", "p4", "n1", "n2", "n3", "n4", "p5", "p6"}
+	want := []string{"p1", "p2", "p3", "n1", "n2", "n3", "p4", "p5", "p6"}
 	if got := chunkIDs(curated); !reflect.DeepEqual(got, want) {
 		t.Fatalf("unexpected bounded ordering: got %v want %v", got, want)
 	}
@@ -100,12 +100,12 @@ func TestCuratePromotesExistingRetrievedNeighbor(t *testing.T) {
 
 	curated := Curate(snapshot, candidates)
 	if got := chunkIDs(curated); !reflect.DeepEqual(got, []string{
-		"primary", "beta", "gamma", "delta", "required-neighbor", "epsilon", "zeta",
+		"primary", "beta", "gamma", "required-neighbor", "delta", "epsilon", "zeta",
 	}) {
 		t.Fatalf("retrieved neighbor was not promoted: %v", got)
 	}
-	if curated[4].Source != "vector" || curated[4].Rank != 7 {
-		t.Fatalf("promoted neighbor lost provider provenance: %+v", curated[4])
+	if curated[3].Source != "vector" || curated[3].Rank != 7 {
+		t.Fatalf("promoted neighbor lost provider provenance: %+v", curated[3])
 	}
 }
 
@@ -141,6 +141,48 @@ func TestCurateAddsPreparedNeighborsWithReasons(t *testing.T) {
 	}
 	if curated[0].Chunk.ID != "primary" || curated[1].Chunk.ID != "after" || neighbor.Chunk.ID != "before" {
 		t.Fatalf("neighbors were not ordered around primary: %v", chunkIDs(curated))
+	}
+}
+
+func TestDefaultConfigUsesCalibratedValues(t *testing.T) {
+	config := DefaultConfig()
+	if config.FileRepeatPenalty != 10 || config.SubsystemRepeatPenalty != 18 || config.AdjacentPrimaryLimit != 3 {
+		t.Fatalf("unexpected production curation defaults: %+v", config)
+	}
+}
+
+func TestCurateWithConfigAppliesStrongerSubsystemPressure(t *testing.T) {
+	candidates := []retrieve.Candidate{
+		candidate("internal/alpha/one.go", "one", 1, 2, 1, "vector"),
+		candidate("internal/alpha/two.go", "two", 1, 2, 2, "vector"),
+		candidate("internal/alpha/three.go", "three", 1, 2, 3, "vector"),
+		candidate("internal/beta/four.go", "four", 1, 2, 4, "vector"),
+	}
+	config := Config{SubsystemRepeatPenalty: 10}
+
+	curated := CurateWithConfig(index.Snapshot{}, candidates, config)
+	if got := chunkIDs(curated); !reflect.DeepEqual(got, []string{"one", "four", "two", "three"}) {
+		t.Fatalf("strong subsystem pressure did not promote a new subsystem: %v", got)
+	}
+}
+
+func TestCurateWithConfigCanDisableAdjacentPromotion(t *testing.T) {
+	snapshot := index.Snapshot{Files: []index.FileRecord{{
+		Path: "internal/alpha.go",
+		Chunks: []index.Chunk{
+			chunk("before", "internal/alpha.go", 1, 4),
+			chunk("primary", "internal/alpha.go", 5, 8),
+			chunk("after", "internal/alpha.go", 9, 12),
+		},
+	}}}
+	config := DefaultConfig()
+	config.AdjacentPrimaryLimit = 0
+
+	curated := CurateWithConfig(snapshot, []retrieve.Candidate{
+		candidate("internal/alpha.go", "primary", 5, 8, 1, "vector"),
+	}, config)
+	if got := chunkIDs(curated); !reflect.DeepEqual(got, []string{"primary"}) {
+		t.Fatalf("adjacent promotion was not disabled: %v", got)
 	}
 }
 
