@@ -1,0 +1,5 @@
+# Rust build artifacts
+target/
+
+# Arcana local state and generated data
+.arcana/

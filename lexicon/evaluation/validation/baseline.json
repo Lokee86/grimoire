@@ -1,0 +1,589 @@
+{
+  "results": [
+    {
+      "adapter": "gdscript",
+      "adapter_version": "0.3.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 3,
+        "contains": 67,
+        "defines": 61,
+        "depends-on": 2,
+        "imports": 3,
+        "reads": 17,
+        "writes": 25
+      },
+      "id": "gdscript-alienattack",
+      "language": "gdscript",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "directory": 2,
+        "file": 8,
+        "function": 21,
+        "import": 3,
+        "module": 10,
+        "parameter": 12,
+        "repository": 1,
+        "signal": 3,
+        "variable": 25
+      },
+      "output_bytes": 100199,
+      "output_sha256": "db14019c2fd29c4f889e11bef4523976f5039dc4345e8dfe87b0d9f3b9b1f2c7",
+      "repository": "alienattack",
+      "revision": null,
+      "split": "calibration",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "builtin-target": 22,
+        "dynamic-target": 20,
+        "external-target": 20
+      },
+      "unresolved_relations": {
+        "calls": 51,
+        "extends": 8,
+        "imports": 3
+      }
+    },
+    {
+      "adapter": "gdscript",
+      "adapter_version": "0.3.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 14434,
+        "contains": 17265,
+        "defines": 20838,
+        "depends-on": 735,
+        "extends": 245,
+        "imports": 819,
+        "overrides": 139,
+        "possible-calls": 2167,
+        "reads": 10343,
+        "references": 729,
+        "writes": 9726
+      },
+      "id": "gdscript-space-rocks-client",
+      "language": "gdscript",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "constant": 1686,
+        "directory": 111,
+        "file": 506,
+        "function": 5735,
+        "import": 819,
+        "module": 511,
+        "parameter": 4696,
+        "repository": 1,
+        "signal": 257,
+        "type": 416,
+        "variable": 8048
+      },
+      "output_bytes": 40179302,
+      "output_sha256": "bc91f069f6811270d3728bc1be41315305a3d0005ec02a290ccc6bb648559550",
+      "repository": "client",
+      "revision": null,
+      "split": "validation",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "builtin-target": 5018,
+        "dynamic-target": 5901,
+        "external-target": 1143
+      },
+      "unresolved_relations": {
+        "calls": 11588,
+        "extends": 384,
+        "imports": 90
+      }
+    },
+    {
+      "adapter": "gdscript",
+      "adapter_version": "0.3.0",
+      "deterministic": true,
+      "edge_relations": {
+        "contains": 11,
+        "defines": 9,
+        "depends-on": 2,
+        "reads": 2,
+        "writes": 2
+      },
+      "id": "gdscript-speedysaucer",
+      "language": "gdscript",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "directory": 1,
+        "file": 2,
+        "function": 4,
+        "module": 4,
+        "parameter": 3,
+        "repository": 1,
+        "variable": 2
+      },
+      "output_bytes": 15122,
+      "output_sha256": "686a31e451d7d3bbae1e0ed584dc424e2f673741750e2e9a42f112005227e09b",
+      "repository": "speedysaucer",
+      "revision": null,
+      "split": "holdout",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "builtin-target": 5,
+        "dynamic-target": 2,
+        "external-target": 2
+      },
+      "unresolved_relations": {
+        "calls": 7,
+        "extends": 2
+      }
+    },
+    {
+      "adapter": "python",
+      "adapter_version": "0.3.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 633,
+        "contains": 53,
+        "defines": 2154,
+        "depends-on": 44,
+        "imports": 103,
+        "possible-calls": 39,
+        "reads": 1420,
+        "writes": 955
+      },
+      "id": "python-doc-ledger",
+      "language": "python",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "directory": 3,
+        "field": 54,
+        "file": 25,
+        "function": 377,
+        "import": 192,
+        "method": 23,
+        "module": 28,
+        "parameter": 554,
+        "repository": 1,
+        "type": 23,
+        "variable": 930
+      },
+      "output_bytes": 2997380,
+      "output_sha256": "6c2e7756799a54049b6b2ada9973dccf6453c8abad07014d7d90465084c40881",
+      "repository": "doc-ledger-python",
+      "revision": "7fbdb81307ff7c6b1ba28886c3a40b8837ebf785",
+      "split": "calibration",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "builtin-target": 434,
+        "dynamic-target": 89,
+        "external-target": 921,
+        "missing-target": 3
+      },
+      "unresolved_relations": {
+        "calls": 1356,
+        "extends": 2,
+        "imports": 89
+      }
+    },
+    {
+      "adapter": "python",
+      "adapter_version": "0.3.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 2176,
+        "contains": 227,
+        "defines": 4641,
+        "depends-on": 191,
+        "imports": 349,
+        "possible-calls": 37,
+        "reads": 2788,
+        "writes": 1988
+      },
+      "id": "python-space-rocks-tools",
+      "language": "python",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "directory": 25,
+        "field": 314,
+        "file": 101,
+        "function": 753,
+        "import": 717,
+        "interface": 1,
+        "method": 52,
+        "module": 104,
+        "parameter": 1048,
+        "repository": 1,
+        "type": 88,
+        "variable": 1668
+      },
+      "output_bytes": 7251380,
+      "output_sha256": "e75d9e6bf1e863be050e7a71abef279c0d5fccad3c8a0e86276e077dbc56c292",
+      "repository": "tools",
+      "revision": null,
+      "split": "validation",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "builtin-target": 1757,
+        "dynamic-target": 161,
+        "external-target": 1209,
+        "missing-target": 18
+      },
+      "unresolved_relations": {
+        "calls": 2750,
+        "extends": 27,
+        "imports": 368
+      }
+    },
+    {
+      "adapter": "ruby",
+      "adapter_version": "0.3.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 626,
+        "contains": 662,
+        "defines": 1336,
+        "depends-on": 1,
+        "extends": 3,
+        "imports": 35,
+        "includes": 16,
+        "possible-calls": 216,
+        "reads": 705,
+        "writes": 477
+      },
+      "id": "ruby-lexicon-adapter",
+      "language": "ruby",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "constant": 42,
+        "constructor": 11,
+        "directory": 5,
+        "file": 23,
+        "function": 216,
+        "import": 35,
+        "method": 279,
+        "module": 61,
+        "parameter": 318,
+        "repository": 1,
+        "type": 12,
+        "variable": 453
+      },
+      "output_bytes": 2335079,
+      "output_sha256": "8fc680a49ef8a78db95d6fa453e3a8b6e3b105362b0698b0a0bd199a13d8bbb1",
+      "repository": "ruby",
+      "revision": null,
+      "split": "calibration",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "builtin-target": 944,
+        "dynamic-target": 793,
+        "external-target": 167
+      },
+      "unresolved_relations": {
+        "calls": 1903,
+        "imports": 1
+      }
+    },
+    {
+      "adapter": "ruby",
+      "adapter_version": "0.3.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 876,
+        "contains": 1810,
+        "defines": 2532,
+        "depends-on": 31,
+        "extends": 72,
+        "imports": 111,
+        "includes": 14,
+        "possible-calls": 453,
+        "reads": 1083,
+        "writes": 912
+      },
+      "id": "ruby-space-rocks-api",
+      "language": "ruby",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "constant": 667,
+        "constructor": 113,
+        "directory": 44,
+        "file": 121,
+        "function": 436,
+        "import": 111,
+        "method": 349,
+        "module": 205,
+        "parameter": 224,
+        "repository": 1,
+        "type": 121,
+        "variable": 552
+      },
+      "output_bytes": 5214294,
+      "output_sha256": "ef1f03236021221743234527016e72c7463bfd4e903d506e1aaecee88f098e73",
+      "repository": "api-server",
+      "revision": null,
+      "split": "validation",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "builtin-target": 1178,
+        "dynamic-target": 915,
+        "external-target": 1438
+      },
+      "unresolved_relations": {
+        "calls": 3509,
+        "defines": 22
+      }
+    },
+    {
+      "adapter": "rust",
+      "adapter_version": "0.3.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 1636,
+        "contains": 2548,
+        "defines": 5109,
+        "depends-on": 6,
+        "imports": 742,
+        "possible-calls": 147,
+        "reads": 2499,
+        "writes": 1222
+      },
+      "id": "rust-arcana",
+      "language": "rust",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "constant": 80,
+        "directory": 9,
+        "field": 296,
+        "file": 102,
+        "function": 997,
+        "import": 482,
+        "method": 264,
+        "module": 114,
+        "parameter": 1289,
+        "repository": 1,
+        "type": 119,
+        "variable": 1196
+      },
+      "output_bytes": 7363083,
+      "output_sha256": "4a5797f0f11ea0284f1a362090e27855ba327b8811aa8c81ee75fd2fbfc87a0c",
+      "repository": "arcana",
+      "revision": null,
+      "split": "validation",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "builtin-target": 3757,
+        "dynamic-target": 1,
+        "external-target": 183,
+        "generated-target": 37,
+        "missing-target": 48
+      },
+      "unresolved_relations": {
+        "calls": 3885,
+        "defines": 5,
+        "implements": 111,
+        "imports": 25
+      }
+    },
+    {
+      "adapter": "rust",
+      "adapter_version": "0.3.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 190,
+        "contains": 316,
+        "defines": 651,
+        "depends-on": 15,
+        "imports": 80,
+        "possible-calls": 5,
+        "reads": 383,
+        "writes": 160
+      },
+      "id": "rust-grimoire-vector",
+      "language": "rust",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "constant": 17,
+        "directory": 7,
+        "field": 39,
+        "file": 16,
+        "function": 130,
+        "import": 45,
+        "method": 15,
+        "module": 27,
+        "parameter": 196,
+        "repository": 1,
+        "type": 14,
+        "variable": 160
+      },
+      "output_bytes": 1004326,
+      "output_sha256": "63c6b43400df1d38791a74236f4f218652b6943c945b55703f04d6ea8ded6a2b",
+      "repository": "vector-engine",
+      "revision": null,
+      "split": "calibration",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "builtin-target": 576,
+        "dynamic-target": 3,
+        "external-target": 74,
+        "generated-target": 1,
+        "missing-target": 2
+      },
+      "unresolved_relations": {
+        "calls": 643,
+        "defines": 1,
+        "implements": 8,
+        "imports": 4
+      }
+    },
+    {
+      "adapter": "typescript",
+      "adapter_version": "0.4.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 16513,
+        "contains": 112,
+        "defines": 29752,
+        "depends-on": 191,
+        "extends": 132,
+        "imports": 244,
+        "overrides": 12,
+        "possible-calls": 3872,
+        "reads": 22924,
+        "uses-trait": 1,
+        "writes": 10845
+      },
+      "id": "typescript-lexicanter-svelte",
+      "language": "typescript",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "constant": 3710,
+        "constructor": 209,
+        "directory": 22,
+        "export": 76,
+        "field": 48,
+        "file": 45,
+        "function": 6104,
+        "import": 267,
+        "interface": 1,
+        "method": 2728,
+        "module": 95,
+        "parameter": 9094,
+        "repository": 1,
+        "type": 287,
+        "variable": 7084
+      },
+      "output_bytes": 41520048,
+      "output_sha256": "6ce50aa47685e62eac6d1167a687d7a4ae2a045cc8a9d32e5b7cbb7e1483aad7",
+      "repository": "lexicanter",
+      "revision": "eac754788b3cf18a930c085c1c49f8f353e18107",
+      "split": "validation",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "ambiguous-target": 687,
+        "dynamic-target": 5687,
+        "external-target": 7590,
+        "missing-target": 64,
+        "unsupported-form": 1
+      },
+      "unresolved_relations": {
+        "calls": 13885,
+        "extends": 8,
+        "imports": 136
+      }
+    },
+    {
+      "adapter": "typescript",
+      "adapter_version": "0.4.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 186,
+        "contains": 76,
+        "defines": 838,
+        "depends-on": 34,
+        "imports": 37,
+        "possible-calls": 19,
+        "reads": 494,
+        "writes": 148
+      },
+      "id": "typescript-space-rocks-web",
+      "language": "typescript",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "constant": 179,
+        "directory": 24,
+        "export": 73,
+        "field": 15,
+        "file": 26,
+        "function": 122,
+        "import": 67,
+        "interface": 5,
+        "method": 4,
+        "module": 36,
+        "parameter": 253,
+        "repository": 1,
+        "type": 55,
+        "variable": 8
+      },
+      "output_bytes": 1469934,
+      "output_sha256": "d5ef6db0496e3e83b40a24ac97bdd4d4b14550f903bb74cbbff9e0380621636d",
+      "repository": "web-astro",
+      "revision": null,
+      "split": "holdout",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "builtin-target": 152,
+        "dynamic-target": 373,
+        "external-target": 267,
+        "missing-target": 83
+      },
+      "unresolved_relations": {
+        "calls": 757,
+        "imports": 118
+      }
+    },
+    {
+      "adapter": "typescript",
+      "adapter_version": "0.4.0",
+      "deterministic": true,
+      "edge_relations": {
+        "calls": 1250,
+        "contains": 108,
+        "defines": 3387,
+        "depends-on": 132,
+        "imports": 191,
+        "possible-calls": 169,
+        "reads": 2033,
+        "writes": 834
+      },
+      "id": "typescript-workspace-mcp",
+      "language": "typescript",
+      "missing_required_relations": [],
+      "node_kinds": {
+        "constant": 958,
+        "constructor": 13,
+        "directory": 4,
+        "export": 88,
+        "file": 52,
+        "function": 673,
+        "import": 254,
+        "method": 157,
+        "module": 60,
+        "parameter": 1072,
+        "repository": 1,
+        "type": 13,
+        "variable": 71
+      },
+      "output_bytes": 5116660,
+      "output_sha256": "9de4be96c58f80b175ea3c0d723de82ede0a5b1c2ab1b2972943e12bfe15904e",
+      "repository": "workspace-mcp",
+      "revision": null,
+      "split": "calibration",
+      "unexpected_nonzero_relations": [],
+      "unresolved_reasons": {
+        "dynamic-target": 659,
+        "external-target": 2360
+      },
+      "unresolved_relations": {
+        "calls": 2875,
+        "extends": 5,
+        "imports": 139
+      }
+    }
+  ],
+  "version": 1
+}

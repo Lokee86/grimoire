@@ -1,10 +1,12 @@
 # Testing and benchmarks
 
-Grimoire uses unit and integration tests for deterministic contracts and repository-owned judged corpora for retrieval behavior.
+Grimoire uses component-owned unit and integration suites for deterministic contracts and repository-owned judged corpora for context-retrieval behavior.
 
 ## Required checks
 
-Run from the repository root:
+The repository contains multiple build roots. A root Go or Cargo command does not verify Lexicon or Arcana automatically.
+
+Grimoire Context and native vector engine, from the repository root:
 
 ```bash
 cargo fmt --manifest-path native/vector-engine/Cargo.toml --all --check
@@ -16,9 +18,27 @@ go test ./...
 go vet ./...
 ```
 
+Lexicon:
+
+```bash
+cd lexicon
+python evaluation/run_tests.py
+```
+
+Arcana:
+
+```bash
+cd arcana
+cargo fmt -- --check
+cargo check --all-targets
+cargo test --all-targets
+```
+
 Formatting should produce no diff after the final run.
 
 ## Test ownership
+
+Lexicon adapter and snapshot coverage is documented in [`lexicon/docs/DEVELOPMENT.md`](../../lexicon/docs/DEVELOPMENT.md). Arcana graph coverage is documented in [`arcana/README.md`](../../arcana/README.md). The table below covers Grimoire Context.
 
 | Area | Primary coverage |
 | --- | --- |
