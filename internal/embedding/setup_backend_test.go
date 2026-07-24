@@ -66,3 +66,25 @@ func TestSelectRuntimeBackendHonorsExplicitSelection(t *testing.T) {
 		}
 	}
 }
+
+func TestSelectRuntimeBackendHonorsEnvironmentForDefaultAuto(t *testing.T) {
+	t.Setenv("GRIMOIRE_LLAMA_BACKEND", RuntimeBackendCPU)
+	got, err := selectRuntimeBackend(RuntimeBackendAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != RuntimeBackendCPU {
+		t.Fatalf("selected backend = %q, want %q", got, RuntimeBackendCPU)
+	}
+}
+
+func TestSelectRuntimeBackendExplicitSelectionOverridesEnvironment(t *testing.T) {
+	t.Setenv("GRIMOIRE_LLAMA_BACKEND", RuntimeBackendCPU)
+	got, err := selectRuntimeBackend(RuntimeBackendVulkan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != RuntimeBackendVulkan {
+		t.Fatalf("selected backend = %q, want %q", got, RuntimeBackendVulkan)
+	}
+}

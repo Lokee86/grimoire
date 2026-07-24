@@ -20,6 +20,7 @@ grimoire model setup [flags]
 | --- | --- | --- |
 | `--cache <path>` | operating-system user cache plus `grimoire` | Managed runtime and model directory |
 | `--backend <name>` | `auto` | `auto`, `cuda`, `vulkan`, or `cpu` llama.cpp runtime |
+| `--force` | `false` | Revalidate and atomically reinstall the selected runtime |
 | `--timeout <duration>` | `45m` | Complete download and installation timeout |
 
 On Windows x64 the command downloads a pinned `llama.cpp` runtime and `Qwen3-Embedding-0.6B-Q8_0.gguf`, verifies fixed SHA-256 digests, and publishes them atomically into the cache. `auto` selects CUDA when a compatible NVIDIA driver is present, otherwise Vulkan when available, then CPU. Set `GRIMOIRE_LLAMA_BACKEND` or pass `--backend` to override detection. Repeated setup reuses verified files.
@@ -48,13 +49,46 @@ grimoire model serve [flags]
 | --- | --- | --- |
 | `--runtime <path>` | discovered runtime | `llama-server` or `llama` executable |
 | `--model-file <path>` | managed model, then fixed remote model reference | Local GGUF file |
+| `--backend <name>` | `auto` | Runtime backend contract |
 | `--host <address>` | `127.0.0.1` | Bind address |
 | `--port <n>` | `9876` | Bind port |
 | `--context-size <n>` | `8192` | Runtime context size |
 | `--ubatch-size <n>` | `2048` | Runtime physical batch size |
 | `--parallel <n>` | `4` | Concurrent llama.cpp server slots |
+| `--gpu-layers <n>` | `-1` | Automatic all-GPU placement for CUDA/Vulkan, zero for CPU, or explicit layer count |
 
 The command enables embedding mode and last-token pooling. Grimoire performs final 512-dimensional truncation and L2 normalization in its client.
+
+## Managed runtime lifecycle
+
+Start a detached supervised service:
+
+```bash
+grimoire model start [flags]
+```
+
+`model start` accepts the same runtime, model, backend, host, port, context, ubatch, parallel, and GPU-layer settings as `model serve`, plus:
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--cache <path>` | user cache plus `grimoire` | Runtime config, state, stop marker, and default log root |
+| `--startup-timeout <duration>` | `2m` | Time allowed for a verified embedding probe |
+| `--restart-limit <n>` | `5` | Child crashes restarted before failure; zero disables restart |
+| `--restart-delay <duration>` | `2s` | Delay before a crash restart |
+| `--health-interval <duration>` | `15s` | Health-probe interval |
+| `--log <path>` | managed log path | Combined supervisor and llama.cpp log |
+| `--log-max-bytes <n>` | `16777216` | Rotation threshold |
+| `--log-backups <n>` | `3` | Rotated log files retained |
+
+The supervisor rejects duplicate live instances, verifies CUDA/Vulkan initialization from the runtime log, and writes an atomic state file containing process IDs, backend, model/runtime paths, context values, maximum accepted input tokens, readiness, restart count, and last error.
+
+```bash
+grimoire model status [--cache <path>] [--timeout 10s]
+grimoire model stop [--cache <path>] [--timeout 30s]
+grimoire model restart [start flags]
+```
+
+`model status` performs a real embedding probe and includes NVIDIA utilization, memory, temperature, power, graphics clock, and available thermal/power slowdown reasons. `model stop` uses the supervisor stop marker first and forcibly terminates stale managed processes only after the timeout.
 
 ## `grimoire model probe`
 
@@ -262,6 +296,7 @@ Current value: `0.1.0-dev`.
 | `GRIMOIRE_LLAMA_BACKEND` | Managed setup backend: `auto`, `cuda`, `vulkan`, or `cpu` |
 | `GRIMOIRE_LLAMA_SERVER` | Explicit `llama.cpp` runtime executable |
 | `GRIMOIRE_EMBEDDING_MODEL` | Explicit local GGUF model file |
+| `GRIMOIRE_EMBEDDING_MAX_TOKENS` | Override client-side per-input token limit; zero disables preflight enforcement |
 | `GRIMOIRE_VECTOR_ENGINE` | Explicit Rust vector-engine DLL |
 
 ## Error behavior

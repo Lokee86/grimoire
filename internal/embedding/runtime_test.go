@@ -18,6 +18,7 @@ func TestServeArgsForLlamaServer(t *testing.T) {
 		"--ctx-size", "4096",
 		"--ubatch-size", "1024",
 		"--parallel", "8",
+		"--n-gpu-layers", "0",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unexpected args:\n got: %v\nwant: %v", got, want)

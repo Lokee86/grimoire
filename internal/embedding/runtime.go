@@ -1,10 +1,8 @@
 package embedding
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -14,40 +12,20 @@ import (
 type ServeOptions struct {
 	RuntimePath string
 	ModelPath   string
+	Backend     string
 	Host        string
 	Port        int
 	ContextSize int
 	UbatchSize  int
 	Parallel    int
+	GPULayers   int
 	Stdin       io.Reader
 	Stdout      io.Writer
 	Stderr      io.Writer
 }
 
-func FindRuntime(explicit string) (string, error) {
-	candidates := make([]string, 0, 4)
-	if strings.TrimSpace(explicit) != "" {
-		candidates = append(candidates, explicit)
-	}
-	if configured := strings.TrimSpace(os.Getenv("GRIMOIRE_LLAMA_SERVER")); configured != "" {
-		candidates = append(candidates, configured)
-	}
-	if managed, err := ManagedRuntimePath(""); err == nil {
-		candidates = append(candidates, managed)
-	}
-	candidates = append(candidates, "llama-server", "llama")
-
-	for _, candidate := range candidates {
-		path, err := exec.LookPath(candidate)
-		if err == nil {
-			return path, nil
-		}
-	}
-	return "", errors.New("llama.cpp runtime not found; install it with `winget install llama.cpp` or set GRIMOIRE_LLAMA_SERVER")
-}
-
 func Serve(options ServeOptions) error {
-	runtimePath, err := FindRuntime(options.RuntimePath)
+	candidate, err := FindRuntimeForBackend(options.RuntimePath, options.Backend, "")
 	if err != nil {
 		return err
 	}
@@ -56,8 +34,12 @@ func Serve(options ServeOptions) error {
 			options.ModelPath = managed
 		}
 	}
-	args := ServeArgs(runtimePath, options)
-	command := exec.Command(runtimePath, args...)
+	options.RuntimePath = candidate.Path
+	if options.Backend == "" || options.Backend == RuntimeBackendAuto {
+		options.Backend = candidate.Backend
+	}
+	args := ServeArgs(candidate.Path, options)
+	command := exec.Command(candidate.Path, args...)
 	command.Stdin = options.Stdin
 	command.Stdout = options.Stdout
 	command.Stderr = options.Stderr
@@ -78,18 +60,30 @@ func ServeArgs(runtimePath string, options ServeOptions) []string {
 	}
 	contextSize := options.ContextSize
 	if contextSize <= 0 {
-		contextSize = 8192
+		contextSize = DefaultContextSize
 	}
 	ubatchSize := options.UbatchSize
 	if ubatchSize <= 0 {
-		ubatchSize = 2048
+		ubatchSize = DefaultUbatchSize
 	}
 	parallel := options.Parallel
 	if parallel <= 0 {
-		parallel = 4
+		parallel = DefaultParallelSlots
+	}
+	backend := options.Backend
+	if backend == "" {
+		backend = inferRuntimeBackend(runtimePath)
+	}
+	gpuLayers := options.GPULayers
+	if gpuLayers < 0 {
+		if backend == RuntimeBackendCUDA || backend == RuntimeBackendVulkan {
+			gpuLayers = 99
+		} else {
+			gpuLayers = 0
+		}
 	}
 
-	args := make([]string, 0, 20)
+	args := make([]string, 0, 24)
 	base := strings.TrimSuffix(strings.ToLower(filepath.Base(runtimePath)), ".exe")
 	if base == "llama" {
 		args = append(args, "serve")
@@ -107,5 +101,6 @@ func ServeArgs(runtimePath string, options ServeOptions) []string {
 		"--ctx-size", strconv.Itoa(contextSize),
 		"--ubatch-size", strconv.Itoa(ubatchSize),
 		"--parallel", strconv.Itoa(parallel),
+		"--n-gpu-layers", strconv.Itoa(gpuLayers),
 	)
 }

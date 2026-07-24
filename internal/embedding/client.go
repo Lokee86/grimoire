@@ -10,11 +10,27 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/Lokee86/grimoire/internal/tokenizer"
 )
 
 type Client struct {
-	Endpoint   string
-	HTTPClient *http.Client
+	Endpoint       string
+	HTTPClient     *http.Client
+	MaxInputTokens int
+}
+
+type InputLimitError struct {
+	Index  int
+	Tokens int
+	Limit  int
+}
+
+func (err InputLimitError) Error() string {
+	return fmt.Sprintf(
+		"embedding input %d contains %d tokens; runtime limit is %d tokens; split the input or increase per-slot context",
+		err.Index+1, err.Tokens, err.Limit,
+	)
 }
 
 type ProbeResult struct {
@@ -42,11 +58,13 @@ func NewClient(endpoint string) *Client {
 	if strings.TrimSpace(endpoint) == "" {
 		endpoint = DefaultEndpoint
 	}
+	endpoint = strings.TrimRight(endpoint, "/")
 	return &Client{
-		Endpoint: strings.TrimRight(endpoint, "/"),
+		Endpoint: endpoint,
 		HTTPClient: &http.Client{
 			Timeout: 10 * time.Minute,
 		},
+		MaxInputTokens: ManagedInputLimitForEndpoint(endpoint),
 	}
 }
 
@@ -86,6 +104,9 @@ func (client *Client) Probe(ctx context.Context, query, document string) (ProbeR
 }
 
 func (client *Client) embed(ctx context.Context, input []string) ([][]float32, error) {
+	if err := client.validateInputLimits(input); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(embeddingsRequest{
 		Input: input, Model: ModelReference, EncodingFormat: "float",
 	})
@@ -135,6 +156,22 @@ func (client *Client) embed(ctx context.Context, input []string) ([][]float32, e
 		vectors[item.Index] = vector
 	}
 	return vectors, nil
+}
+
+func (client *Client) validateInputLimits(input []string) error {
+	if client.MaxInputTokens <= 0 {
+		return nil
+	}
+	for index, text := range input {
+		count, err := tokenizer.Count(text)
+		if err != nil {
+			return fmt.Errorf("count embedding input %d tokens: %w", index+1, err)
+		}
+		if count > client.MaxInputTokens {
+			return InputLimitError{Index: index, Tokens: count, Limit: client.MaxInputTokens}
+		}
+	}
+	return nil
 }
 
 func (client *Client) embeddingsURL() string {

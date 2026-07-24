@@ -2,17 +2,26 @@ package embedding
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"time"
 )
 
 type runtimeArchive struct {
 	Filename string
 	SHA256   string
+}
+
+type runtimeInstallManifest struct {
+	Version  string           `json:"version"`
+	Backend  string           `json:"backend"`
+	Archives []runtimeArchive `json:"archives"`
 }
 
 var windowsRuntimeArchives = map[string][]runtimeArchive{
@@ -28,9 +37,18 @@ var windowsRuntimeArchives = map[string][]runtimeArchive{
 	},
 }
 
-func installRuntime(ctx context.Context, client *http.Client, cacheDir, backend string, progress io.Writer) (string, error) {
-	if existing, err := managedRuntimePathForBackend(cacheDir, backend); err == nil {
-		return existing, nil
+func installRuntime(
+	ctx context.Context,
+	client *http.Client,
+	cacheDir, backend string,
+	force bool,
+	progress io.Writer,
+) (string, error) {
+	if existing, err := managedRuntimePathForBackend(cacheDir, backend); err == nil && !force {
+		if validateErr := validateRuntimeExecutable(ctx, existing); validateErr == nil {
+			return existing, nil
+		}
+		_, _ = fmt.Fprintf(progress, "existing llama.cpp %s runtime failed validation; reinstalling\n", backend)
 	}
 	archives, ok := windowsRuntimeArchives[backend]
 	if !ok {
@@ -57,11 +75,19 @@ func installRuntime(ctx context.Context, client *http.Client, cacheDir, backend 
 			return "", fmt.Errorf("extract llama.cpp %s runtime: %w", backend, err)
 		}
 	}
-	if err := os.RemoveAll(targetDir); err != nil {
+	temporaryExecutable, err := findNamedFile(temporaryDir, runtimeExecutableName())
+	if err != nil {
+		return "", fmt.Errorf("locate extracted llama.cpp runtime: %w", err)
+	}
+	if err := validateRuntimeExecutable(ctx, temporaryExecutable); err != nil {
+		return "", fmt.Errorf("validate extracted llama.cpp %s runtime: %w", backend, err)
+	}
+	manifest := runtimeInstallManifest{Version: RuntimeVersion, Backend: backend, Archives: archives}
+	if err := writeRuntimeManifest(filepath.Join(temporaryDir, "grimoire-runtime.json"), manifest); err != nil {
 		return "", err
 	}
-	if err := os.Rename(temporaryDir, targetDir); err != nil {
-		return "", fmt.Errorf("publish llama.cpp runtime: %w", err)
+	if err := publishRuntimeDirectory(targetDir, temporaryDir); err != nil {
+		return "", err
 	}
 	for _, archivePath := range downloads {
 		if err := os.Remove(archivePath); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -74,4 +100,49 @@ func installRuntime(ctx context.Context, client *http.Client, cacheDir, backend 
 		return "", fmt.Errorf("locate installed llama.cpp runtime: %w", err)
 	}
 	return runtimePath, nil
+}
+
+func validateRuntimeExecutable(parent context.Context, path string) error {
+	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
+	defer cancel()
+	command := exec.CommandContext(ctx, path, "--version")
+	configureManagedChildProcess(command)
+	if output, err := command.CombinedOutput(); err != nil {
+		return fmt.Errorf("%w: %s", err, output)
+	}
+	return nil
+}
+
+func writeRuntimeManifest(path string, manifest runtimeInstallManifest) error {
+	data, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(data, '\n'), 0o644)
+}
+
+func publishRuntimeDirectory(targetDir, temporaryDir string) error {
+	backupDir := targetDir + ".previous"
+	_ = os.RemoveAll(backupDir)
+	targetExists := false
+	if _, err := os.Stat(targetDir); err == nil {
+		targetExists = true
+		if err := os.Rename(targetDir, backupDir); err != nil {
+			return fmt.Errorf("preserve existing llama.cpp runtime: %w", err)
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := os.Rename(temporaryDir, targetDir); err != nil {
+		if targetExists {
+			_ = os.Rename(backupDir, targetDir)
+		}
+		return fmt.Errorf("publish llama.cpp runtime: %w", err)
+	}
+	if targetExists {
+		if err := os.RemoveAll(backupDir); err != nil {
+			return fmt.Errorf("remove previous llama.cpp runtime: %w", err)
+		}
+	}
+	return nil
 }

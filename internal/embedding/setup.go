@@ -29,6 +29,7 @@ const (
 type SetupOptions struct {
 	CacheDir   string
 	Backend    string
+	Force      bool
 	HTTPClient *http.Client
 	Progress   io.Writer
 }
@@ -144,7 +145,7 @@ func Setup(ctx context.Context, options SetupOptions) (SetupResult, error) {
 	}
 	_, _ = fmt.Fprintf(progress, "selected llama.cpp backend: %s\n", backend)
 
-	runtimePath, err := installRuntime(ctx, client, cacheDir, backend, progress)
+	runtimePath, err := installRuntime(ctx, client, cacheDir, backend, options.Force, progress)
 	if err != nil {
 		return SetupResult{}, err
 	}
