@@ -1,0 +1,27 @@
+# Linked worktrees
+.worktrees/
+.workingtrees/
+
+# Adapter build output
+**/node_modules/
+**/target/
+**/__pycache__/
+**/.pytest_cache/
+**/.bundle/
+**/vendor/bundle/
+
+# Generated facts and temporary files
+.lexicon/
+/evaluation/bin/
+/evaluation/validation/generated/
+/evaluation/corpus_state.json
+*.facts.jsonl
+*.tmp
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.grimoire/
+/bin/
