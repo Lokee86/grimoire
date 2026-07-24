@@ -16,15 +16,14 @@ func (extractor *extractor) extractExpression(node *tree_sitter.Node, context ex
 		candidate, member, receiver := callCandidate(function, extractor.source)
 		if candidate != "" {
 			receiverTypeID := ""
-			if context.TypeID != "" && (!member || receiver == "this" || receiver == "self") {
+			if context.TypeID != "" && (!member || receiver == "this" || receiver == "self") && !strings.Contains(candidate, "::") {
 				receiverTypeID = context.TypeID
 			}
 			extractor.file.Calls = append(extractor.file.Calls, callObservation{
 				SourceID: context.CallableID, SourceScope: context.CallableScope, Path: extractor.file.Path,
 				Expression: nodeText(function, extractor.source), Candidate: candidate,
 				Arguments: callArguments(node.ChildByFieldName("arguments"), extractor.source), Member: member,
-				ReceiverTypeID: receiverTypeID,
-				Span:           spanForNode(extractor.file.Path, node),
+				Receiver: receiver, ReceiverTypeID: receiverTypeID, Span: spanForNode(extractor.file.Path, node),
 			})
 		}
 		if function != nil && function.Kind() == "field_expression" {
@@ -126,13 +125,29 @@ func callCandidate(node *tree_sitter.Node, source []byte) (string, bool, string)
 	case "field_expression":
 		field := node.ChildByFieldName("field")
 		receiver := node.ChildByFieldName("argument")
-		return lastQualifiedPart(nodeText(field, source)), true, normalizeQualified(nodeText(receiver, source))
+		return lastQualifiedPart(nodeText(field, source)), true, directReceiverName(receiver, source)
 	case "template_function":
 		if name := node.ChildByFieldName("name"); name != nil {
 			return normalizeQualified(nodeText(name, source)), false, ""
 		}
 	}
 	return "", false, ""
+}
+
+func directReceiverName(node *tree_sitter.Node, source []byte) string {
+	if node == nil {
+		return ""
+	}
+	switch node.Kind() {
+	case "identifier", "field_identifier", "type_identifier":
+		name := normalizeQualified(nodeText(node, source))
+		if !strings.ContainsAny(name, ".->()") {
+			return name
+		}
+	case "this":
+		return "this"
+	}
+	return ""
 }
 
 func assignmentOperator(node, left, right *tree_sitter.Node, source []byte) string {
