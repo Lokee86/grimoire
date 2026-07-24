@@ -3,7 +3,7 @@ package main
 import "strings"
 
 const (
-	adapterVersion = "0.1.0"
+	adapterVersion = "0.2.0"
 	streamLanguage = "c-family"
 )
 
@@ -40,6 +40,8 @@ type declaration struct {
 	Attributes         map[string]any
 	Callable           bool
 	Definition         bool
+	FileLocal          bool
+	MacroFunction      bool
 }
 
 type includeObservation struct {
@@ -84,17 +86,18 @@ type inheritanceObservation struct {
 }
 
 type sourceFile struct {
-	Path         string
-	Language     string
-	Content      []byte
-	FileID       string
-	ModuleID     string
-	ParseError   bool
-	Declarations []*declaration
-	Includes     []includeObservation
-	Calls        []callObservation
-	Accesses     []accessObservation
-	Inheritance  []inheritanceObservation
+	Path           string
+	Language       string
+	ParserLanguage string
+	Content        []byte
+	FileID         string
+	ModuleID       string
+	ParseError     bool
+	Declarations   []*declaration
+	Includes       []includeObservation
+	Calls          []callObservation
+	Accesses       []accessObservation
+	Inheritance    []inheritanceObservation
 }
 
 type repositoryModel struct {

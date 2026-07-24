@@ -41,6 +41,7 @@ python evaluation/compare_jsonl.py LEFT.jsonl RIGHT.jsonl
 
 | Adapter | Calibration | Validation | Holdout |
 | --- | --- | --- | --- |
+| C / C++ | Pinned Git and Codebase Memory C backend snapshots | — | — |
 | Python | Pinned doc-ledger snapshot | Space Rocks tools | — |
 | Ruby | Lexicon Ruby adapter | Space Rocks API | — |
 | JavaScript / TypeScript / Svelte | workspace-mcp | Pinned Lexicanter snapshot | Space Rocks Astro site |
@@ -59,10 +60,11 @@ A case fails when:
 - facts-v1 validation fails;
 - two identical scans produce different bytes;
 - a required relation has zero emitted edges;
+- a required node or source-target edge judgment is absent;
 - a relation declared as an expected negative is emitted;
 - required output or summary artifacts are missing.
 
-A passing case establishes reproducible observable relation coverage for that repository revision. It does not prove that every edge is correct or that every unresolved record is a defect.
+A passing case establishes reproducible observable relation coverage and preserves explicitly judged nodes and edges for that repository revision. It does not prove that every edge is correct or that every unresolved record is a defect.
 
 ## Tracked and generated artifacts
 

@@ -28,8 +28,8 @@ func buildDeclarationIndex(declarations []*declaration) declarationIndex {
 		qualified := normalizeQualified(declaration.QualifiedName)
 		index.byQualified[qualified] = append(index.byQualified[qualified], declaration)
 		index.byName[declaration.Name] = append(index.byName[declaration.Name], declaration)
-		key := declaration.ContainerID + "\x00" + declaration.Name
-		index.byContainerName[key] = append(index.byContainerName[key], declaration)
+		containerKey := declaration.ContainerID + "\x00" + declaration.Name
+		index.byContainerName[containerKey] = append(index.byContainerName[containerKey], declaration)
 	}
 	return index
 }
@@ -44,26 +44,45 @@ func buildFileIndex(files []*sourceFile) fileIndex {
 	return index
 }
 
-func resolveDeclarations(index declarationIndex, candidate, scope string, accept func(*declaration) bool) []*declaration {
+func resolveDeclarations(index declarationIndex, candidate, scope, path string, accept func(*declaration) bool) []*declaration {
 	candidate = stripTemplateArguments(normalizeQualified(candidate))
 	if candidate == "" {
 		return nil
 	}
 	if strings.Contains(candidate, "::") {
-		if matches := filterDeclarations(index.byQualified[candidate], accept); len(matches) > 0 {
-			return preferDefinitions(matches)
+		if matches := selectDeclarations(index.byQualified[candidate], path, accept); len(matches) > 0 {
+			return matches
 		}
 	}
 	for current := normalizeQualified(scope); current != ""; current = parentScope(current) {
 		qualified := current + "::" + candidate
-		if matches := filterDeclarations(index.byQualified[qualified], accept); len(matches) > 0 {
-			return preferDefinitions(matches)
+		if matches := selectDeclarations(index.byQualified[qualified], path, accept); len(matches) > 0 {
+			return matches
 		}
 	}
-	if matches := filterDeclarations(index.byQualified[candidate], accept); len(matches) > 0 {
-		return preferDefinitions(matches)
+	if matches := selectDeclarations(index.byQualified[candidate], path, accept); len(matches) > 0 {
+		return matches
 	}
-	return preferDefinitions(filterDeclarations(index.byName[lastQualifiedPart(candidate)], accept))
+	return selectDeclarations(index.byName[lastQualifiedPart(candidate)], path, accept)
+}
+
+func selectDeclarations(values []*declaration, path string, accept func(*declaration) bool) []*declaration {
+	visible := filterDeclarations(values, func(value *declaration) bool {
+		return accept(value) && (!value.FileLocal || value.Path == path)
+	})
+	if len(visible) == 0 {
+		return nil
+	}
+	var sameFile []*declaration
+	for _, value := range visible {
+		if value.Path == path {
+			sameFile = append(sameFile, value)
+		}
+	}
+	if len(sameFile) > 0 {
+		return preferDefinitions(sameFile)
+	}
+	return preferDefinitions(visible)
 }
 
 func filterDeclarations(values []*declaration, accept func(*declaration) bool) []*declaration {

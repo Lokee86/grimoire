@@ -2,6 +2,43 @@
   "version": 1,
   "cases": [
     {
+      "id": "c-family-codebase-memory-mcp",
+      "adapter": "c-family",
+      "split": "calibration",
+      "repository": "corpus/codebase-memory-mcp/internal/cbm",
+      "revision": "97ce23f9827177fff3858831156e9795c6832b18",
+      "required_relations": ["calls", "reads", "writes", "includes", "references"],
+      "required_nodes": [
+        {"kind": "function", "name": "cbm_arena_alloc", "path": "arena.c", "attributes": {"definition": true}},
+        {"kind": "symbol", "name": "GROW_ARRAY", "path": "cbm.c", "attributes": {"function_like": true}},
+        {"kind": "file", "path": "arena.h", "attributes": {"language": "c"}}
+      ],
+      "required_edges": [
+        {"relation": "calls", "target": {"kind": "function", "name": "cbm_arena_alloc", "path": "arena.c"}},
+        {"relation": "references", "source": {"kind": "function", "name": "cbm_rw_push", "path": "cbm.c"}, "target": {"kind": "symbol", "name": "GROW_ARRAY", "path": "cbm.c"}, "attributes": {"role": "macro-expansion"}},
+        {"relation": "includes", "source": {"kind": "import", "name": "arena.h", "path": "cbm.c"}, "target": {"kind": "file", "path": "arena.h"}}
+      ]
+    },
+    {
+      "id": "c-family-git",
+      "adapter": "c-family",
+      "split": "calibration",
+      "repository": "corpus/git",
+      "revision": "9a0c4701dcd5725c4184599322b52933ff5005ca",
+      "required_relations": ["calls", "reads", "writes", "includes", "references"],
+      "required_nodes": [
+        {"kind": "function", "name": "strbuf_addstr", "path": "strbuf.h", "attributes": {"definition": true, "language": "c"}},
+        {"kind": "function", "name": "die", "path": "usage.c", "attributes": {"definition": true}},
+        {"kind": "symbol", "name": "N_", "path": "gettext.h", "attributes": {"function_like": true, "language": "c"}}
+      ],
+      "required_edges": [
+        {"relation": "calls", "target": {"kind": "function", "name": "strbuf_addstr", "path": "strbuf.h"}},
+        {"relation": "calls", "source": {"kind": "function", "name": "add_or_remove_enlistment", "path": "scalar.c"}, "target": {"kind": "function", "name": "die", "path": "usage.c"}},
+        {"relation": "references", "target": {"kind": "symbol", "name": "N_", "path": "gettext.h"}, "attributes": {"role": "macro-expansion"}},
+        {"relation": "includes", "source": {"kind": "import", "name": "strbuf.h", "path": "prompt.c"}, "target": {"kind": "file", "path": "strbuf.h"}}
+      ]
+    },
+    {
       "id": "python-doc-ledger",
       "adapter": "python",
       "split": "calibration",

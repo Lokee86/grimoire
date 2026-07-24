@@ -57,6 +57,16 @@ def run(command: list[str], cwd: Path, env: dict[str, str] | None = None) -> str
     return completed.stdout
 
 
+def workspace_root(root: Path) -> Path:
+    common_dir = Path(
+        run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            root,
+        ).strip()
+    )
+    return common_dir.parent.parent
+
+
 def build_adapters(root: Path, adapters: set[str]) -> None:
     bin_dir = root / "evaluation" / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
@@ -116,7 +126,34 @@ def describe_node(node: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
-def summarize(path: Path) -> dict[str, Any]:
+def node_matches(node: dict[str, Any] | None, expected: dict[str, Any]) -> bool:
+    if node is None:
+        return False
+    for key in ("kind", "name", "path", "qualified_name"):
+        if key in expected and node.get(key) != expected[key]:
+            return False
+    for key, value in expected.get("attributes", {}).items():
+        if node.get("attributes", {}).get(key) != value:
+            return False
+    return True
+
+
+def edge_matches(edge: dict[str, Any], nodes: dict[str, dict[str, Any]], expected: dict[str, Any]) -> bool:
+    if edge.get("relation") != expected.get("relation"):
+        return False
+    if "owner" in expected and edge.get("owner") != expected["owner"]:
+        return False
+    if not node_matches(nodes.get(edge.get("source")), expected.get("source", {})):
+        return False
+    if not node_matches(nodes.get(edge.get("target")), expected.get("target", {})):
+        return False
+    for key, value in expected.get("attributes", {}).items():
+        if edge.get("attributes", {}).get(key) != value:
+            return False
+    return True
+
+
+def summarize(path: Path, case: dict[str, Any]) -> dict[str, Any]:
     records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     header = records[0]
     nodes = {record["id"]: record for record in records[1:] if record["record"] == "node"}
@@ -157,10 +194,25 @@ def summarize(path: Path) -> dict[str, Any]:
                     }
                 )
 
+    node_records = list(nodes.values())
+    edge_records = [record for record in records[1:] if record["record"] == "edge"]
+    missing_required_nodes = [
+        expected
+        for expected in case.get("required_nodes", [])
+        if not any(node_matches(node, expected) for node in node_records)
+    ]
+    missing_required_edges = [
+        expected
+        for expected in case.get("required_edges", [])
+        if not any(edge_matches(edge, nodes, expected) for edge in edge_records)
+    ]
+
     return {
         "adapter_version": header["adapter_version"],
         "edge_relations": dict(sorted(edge_counts.items())),
         "language": header["language"],
+        "missing_required_edges": missing_required_edges,
+        "missing_required_nodes": missing_required_nodes,
         "node_kinds": dict(sorted(node_counts.items())),
         "repository": header["repository"],
         "samples": samples,
@@ -191,7 +243,7 @@ def validate_case(root: Path, workspace: Path, output_root: Path, case: dict[str
 
     first_bytes = outputs[0].read_bytes()
     deterministic = first_bytes == outputs[1].read_bytes()
-    semantic = summarize(outputs[0])
+    semantic = summarize(outputs[0], case)
     missing = [
         relation
         for relation in case.get("required_relations", [])
@@ -231,7 +283,7 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
-    workspace = root.parent
+    workspace = workspace_root(root)
     manifest = json.loads((Path(__file__).with_name("corpus.json")).read_text(encoding="utf-8"))
     cases = manifest["cases"]
     if args.adapter:
@@ -271,6 +323,8 @@ def main() -> int:
 
     failed_gates = failures or any(
         not result["deterministic"]
+        or result["missing_required_edges"]
+        or result["missing_required_nodes"]
         or result["missing_required_relations"]
         or result["unexpected_nonzero_relations"]
         for result in results

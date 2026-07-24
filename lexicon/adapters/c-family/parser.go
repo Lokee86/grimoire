@@ -34,6 +34,15 @@ func buildRepositoryModel(root string) (*repositoryModel, error) {
 		return nil, err
 	}
 	compileLanguages := loadCompileLanguages(absoluteRoot)
+	contents := make(map[string][]byte, len(paths))
+	for _, path := range paths {
+		content, err := os.ReadFile(filepath.Join(absoluteRoot, filepath.FromSlash(path)))
+		if err != nil {
+			return nil, fmt.Errorf("read %s: %w", path, err)
+		}
+		contents[path] = content
+	}
+	headerLanguages := inferHeaderLanguages(paths, contents, compileLanguages)
 
 	cParser := tree_sitter.NewParser()
 	defer cParser.Close()
@@ -48,21 +57,14 @@ func buildRepositoryModel(root string) (*repositoryModel, error) {
 
 	model := &repositoryModel{Repository: filepath.Base(filepath.Clean(absoluteRoot))}
 	for _, path := range paths {
-		content, err := os.ReadFile(filepath.Join(absoluteRoot, filepath.FromSlash(path)))
+		content := contents[path]
+		language := classifyLanguage(path, content, compileLanguages, headerLanguages)
+		tree, parserLanguage, err := parseSource(content, language, isAmbiguousHeaderPath(path), cParser, cppParser)
 		if err != nil {
-			return nil, fmt.Errorf("read %s: %w", path, err)
-		}
-		language := classifyLanguage(path, content, compileLanguages)
-		parser := cParser
-		if language == "cpp" {
-			parser = cppParser
-		}
-		tree := parser.Parse(content, nil)
-		if tree == nil {
-			return nil, fmt.Errorf("parse %s: tree-sitter returned no tree", path)
+			return nil, fmt.Errorf("parse %s: %w", path, err)
 		}
 		file := &sourceFile{
-			Path: path, Language: language, Content: content,
+			Path: path, Language: language, ParserLanguage: parserLanguage, Content: content,
 			FileID: nodeID("file", path), ModuleID: nodeID("module", path),
 			ParseError: tree.RootNode().HasError(),
 		}
@@ -73,4 +75,50 @@ func buildRepositoryModel(root string) (*repositoryModel, error) {
 		model.Declarations = append(model.Declarations, file.Declarations...)
 	}
 	return model, nil
+}
+
+func parseSource(content []byte, language string, allowFallback bool, cParser, cppParser *tree_sitter.Parser) (*tree_sitter.Tree, string, error) {
+	primary := cParser
+	alternate := cppParser
+	alternateLanguage := "cpp"
+	if language == "cpp" {
+		primary = cppParser
+		alternate = cParser
+		alternateLanguage = "c"
+	}
+	tree := primary.Parse(content, nil)
+	if tree == nil {
+		return nil, "", fmt.Errorf("tree-sitter returned no tree")
+	}
+	if !allowFallback || !tree.RootNode().HasError() {
+		return tree, language, nil
+	}
+
+	fallback := alternate.Parse(content, nil)
+	if fallback == nil {
+		return tree, language, nil
+	}
+	if syntaxErrorScore(fallback.RootNode()) < syntaxErrorScore(tree.RootNode()) {
+		tree.Close()
+		return fallback, alternateLanguage, nil
+	}
+	fallback.Close()
+	return tree, language, nil
+}
+
+func syntaxErrorScore(node *tree_sitter.Node) int {
+	if node == nil {
+		return 0
+	}
+	score := 0
+	if node.IsError() {
+		score += 10
+	}
+	if node.IsMissing() {
+		score++
+	}
+	for index := uint(0); index < node.ChildCount(); index++ {
+		score += syntaxErrorScore(node.Child(index))
+	}
+	return score
 }

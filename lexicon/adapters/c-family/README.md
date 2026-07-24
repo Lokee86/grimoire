@@ -11,7 +11,7 @@ The adapter owns:
 - `compile_commands.json` as a per-file language hint;
 - `CMakeLists.txt` as repository detection evidence.
 
-C++-specific header extensions are parsed as C++. Ambiguous `.h` and `.inc` files use `compile_commands.json` when available, then conservative syntax markers; otherwise they are parsed as C.
+C++-specific header extensions are parsed as C++. Ambiguous `.h` and `.inc` files use `compile_commands.json`, then language evidence propagated from repository includers, then conservative syntax markers. A header used by C remains attributed to C even when the C++ grammar provides better error recovery; file attributes record both the source language and parser language.
 
 ## Usage
 
@@ -35,10 +35,12 @@ The adapter emits:
 - class inheritance;
 - definite calls when one repository-local callable resolves;
 - `possible-calls` for multiple defensible overload or same-name targets;
+- macro-invocation `references` without pretending macro expansion is a function call;
+- `dynamic-target` evidence for calls through identified function pointers;
 - conservative reads and writes for parameters, locals, and fields;
 - explicit unresolved call, include, inheritance, and parse evidence.
 
-Repository-local declarations are resolved across C and C++ files. Function definitions are preferred over matching prototypes. Scope-chain resolution covers namespaces, types, methods, and local callable ownership without treating same-named global declarations as interchangeable when a narrower match exists.
+Repository-local declarations are resolved across C and C++ files. Function definitions are preferred over matching prototypes. C source-file `static` declarations are translation-unit-local, while header-owned inline declarations remain available to includers. Scope-chain resolution covers namespaces, types, methods, and local callable ownership without treating same-named global declarations as interchangeable when a narrower match exists. C function-pointer members remain fields rather than becoming fabricated methods.
 
 ## Identities
 
@@ -57,7 +59,7 @@ Quoted includes resolve first relative to the including file, then by exact repo
 The adapter does not run a compiler or preprocessor. Consequently:
 
 - inactive conditional branches may still be parsed;
-- macro expansion and token-pasting semantics are not reconstructed;
+- macro invocations are linked to function-like macro declarations, but expansion and token-pasting semantics are not reconstructed;
 - generated declarations and headers are unavailable unless present in the repository;
 - template instantiation, overload ranking, ADL, implicit conversions, virtual dispatch, and function-pointer flow remain conservative;
 - member calls without a uniquely provable repository target remain unresolved or possible;
@@ -76,4 +78,8 @@ go test ./...
 go test -race ./...
 ```
 
-The suite covers mixed C/C++ extraction, header language inference, repository-local includes, inheritance, calls, dataflow, deterministic repeated output, incremental ownership, and CLI output.
+The suite covers mixed C/C++ extraction, includer-driven header language inference, parser fallback, translation-unit linkage, function-pointer classification, macro references, repository-local includes, inheritance, calls, dataflow, deterministic repeated output, incremental ownership, and CLI output.
+
+## Calibration corpus
+
+The pinned calibration corpus includes Git at `9a0c4701dcd5725c4184599322b52933ff5005ca` and the Codebase Memory C backend at `97ce23f9827177fff3858831156e9795c6832b18`. Judged node and edge gates cover source-file static linkage, header inline calls, macro references, definition selection, and include resolution. On the accepted Git scan, the adapter emitted 62,346 definite calls, 311 possible-call edges, and 13,594 unresolved calls; 81.8% of observed call sites had one definite repository target. The CBM backend emitted 23,360 definite calls and 3,108 macro-reference edges; its remaining unresolved calls were overwhelmingly external C-library and Tree-sitter APIs.

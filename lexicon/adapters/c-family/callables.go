@@ -23,6 +23,9 @@ func (extractor *extractor) handleFunction(node *tree_sitter.Node, context extra
 	qualified := qualify(context.ContainerQualified, nameText)
 	signature := normalizeSpace(nodeText(declarator, extractor.source))
 	attributes := map[string]any{"definition": definition}
+	if context.CallableID == "" && context.TypeID == "" && !isHeaderPath(extractor.file.Path) && hasStorageClass(node, extractor.source, "static") {
+		attributes["linkage"] = "internal"
+	}
 	if context.Template {
 		attributes["template"] = true
 	}
@@ -45,6 +48,10 @@ func (extractor *extractor) handleFunction(node *tree_sitter.Node, context extra
 func (extractor *extractor) handleDeclaration(node *tree_sitter.Node, context extractionContext) {
 	for _, declarator := range topLevelDeclarators(node) {
 		if function := firstDescendant(declarator, "function_declarator"); function != nil {
+			if context.TypeID != "" && (extractor.file.Language == "c" || isFunctionPointerDeclarator(function)) {
+				extractor.handleVariableDeclarator(node, declarator, context)
+				continue
+			}
 			extractor.handleFunctionDeclarator(node, function, context)
 			continue
 		}
@@ -61,6 +68,9 @@ func (extractor *extractor) handleFunctionDeclarator(node, declarator *tree_sitt
 	kind := callableKind(name, context)
 	qualified := qualify(context.ContainerQualified, nameText)
 	attributes := map[string]any{"definition": false}
+	if context.CallableID == "" && context.TypeID == "" && !isHeaderPath(extractor.file.Path) && hasStorageClass(node, extractor.source, "static") {
+		attributes["linkage"] = "internal"
+	}
 	if strings.Contains(nodeText(node, extractor.source), "virtual") {
 		attributes["virtual"] = true
 	}

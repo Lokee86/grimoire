@@ -72,6 +72,12 @@ func (extractor *extractor) handleVariableDeclarator(node, declarator *tree_sitt
 		signature = fmt.Sprintf("local@%d", declarator.StartByte())
 	}
 	attributes := map[string]any{"type": declarationType(node, extractor.source)}
+	if context.CallableID == "" && context.TypeID == "" && !isHeaderPath(extractor.file.Path) && hasStorageClass(node, extractor.source, "static") {
+		attributes["linkage"] = "internal"
+	}
+	if firstDescendant(declarator, "function_declarator") != nil {
+		attributes["function_pointer"] = true
+	}
 	declaration := extractor.addDeclaration(declarator, context, kind, name, qualified, signature, false, true, attributes)
 	if context.CallableID != "" && declarator.Kind() == "init_declarator" {
 		extractor.file.Accesses = append(extractor.file.Accesses, accessObservation{
@@ -124,6 +130,9 @@ func (extractor *extractor) addParameters(declarator *tree_sitter.Node, callable
 			TypeID: callable.ParentTypeID, CallableID: callable.ID, CallableScope: callable.QualifiedName,
 		}
 		attributes := map[string]any{"index": index, "type": declarationType(child, extractor.source)}
+		if firstDescendant(child.ChildByFieldName("declarator"), "function_declarator") != nil {
+			attributes["function_pointer"] = true
+		}
 		extractor.addDeclaration(child, context, "parameter", name, callable.QualifiedName+"::"+name, fmt.Sprintf("parameter#%d", index), false, true, attributes)
 		index++
 	}
@@ -140,6 +149,23 @@ func (extractor *extractor) handleEnumerator(node *tree_sitter.Node, context ext
 		return
 	}
 	extractor.addDeclaration(node, context, "constant", name, qualify(context.ContainerQualified, name), "", false, true, map[string]any{"enum_member": true})
+}
+
+func hasStorageClass(node *tree_sitter.Node, source []byte, value string) bool {
+	for _, child := range namedChildren(node) {
+		if child.Kind() == "storage_class_specifier" && normalizeSpace(nodeText(child, source)) == value {
+			return true
+		}
+	}
+	return false
+}
+
+func isFunctionPointerDeclarator(node *tree_sitter.Node) bool {
+	if node == nil {
+		return false
+	}
+	declarator := node.ChildByFieldName("declarator")
+	return firstDescendant(declarator, "pointer_declarator", "abstract_pointer_declarator") != nil
 }
 
 func sameNode(left, right *tree_sitter.Node) bool {

@@ -15,6 +15,21 @@ All 12 non-Go corpus cases passed:
 
 The Go adapter is covered separately by `GO_ADAPTER_VALIDATION.md`, including two real repositories and repeat-run determinism.
 
+## C-family calibration added July 24, 2026
+
+Two pinned C calibration cases now supplement the July 23 cross-adapter baseline:
+
+| Case | Calls | Possible calls | Macro references | Reads | Writes | Unresolved calls |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Git `9a0c470` | 62,346 | 311 | 17,519 | 262,278 | 56,661 | 13,594 |
+| Codebase Memory C backend `97ce23f` | 23,360 | 0 | 3,108 | 116,753 | 14,745 | 19,918 |
+
+Git moved from 60,709 definite calls, 11,277 possible-call edges, and 32,745 unresolved calls in the untouched adapter to 62,346 definite calls, 311 possible-call edges, and 13,594 unresolved calls after calibration. Definite-call coverage increased from 58.0% to 81.8%. The remaining Git misses are primarily external APIs, function-pointer dispatch, and a small compatibility/regex cluster.
+
+The CBM case intentionally targets `internal/cbm`, the independently meaningful C backend, rather than mixing duplicate frontend/application definitions and generated vendored grammars into one judgment surface. Only two unresolved call names in the final audit also existed as repository callables; the dominant unresolved groups were C-library and Tree-sitter APIs.
+
+The C cases use exact node and source-target edge judgments in addition to relation-count gates. They protect header-inline calls, source-file `static` linkage, function-like macro references, definition selection, includer-driven header attribution, and repository-local include resolution.
+
 ## Corpus results
 
 | Case | Split | Calls | Possible calls | Reads | Writes | Dependencies | Unresolved calls | Output |

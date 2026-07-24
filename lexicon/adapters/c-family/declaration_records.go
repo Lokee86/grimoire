@@ -50,11 +50,13 @@ func (extractor *extractor) addDeclaration(node *tree_sitter.Node, context extra
 		attributes = map[string]any{}
 	}
 	attributes["language"] = extractor.file.Language
+	fileLocal := attributes["linkage"] == "internal"
+	macroFunction, _ := attributes["function_like"].(bool)
 	declaration := &declaration{
 		ID: nodeID(kind, canonical), Kind: kind, Name: name, QualifiedName: qualified, Path: extractor.file.Path,
 		ContainerID: context.ContainerID, ContainerQualified: context.ContainerQualified, ParentTypeID: context.TypeID,
 		Signature: signature, FileLanguage: extractor.file.Language, Span: spanForNode(extractor.file.Path, node),
-		Attributes: attributes, Callable: callable, Definition: definition,
+		Attributes: attributes, Callable: callable, Definition: definition, FileLocal: fileLocal, MacroFunction: macroFunction,
 	}
 	extractor.file.Declarations = append(extractor.file.Declarations, declaration)
 	return declaration

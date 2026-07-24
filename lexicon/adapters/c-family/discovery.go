@@ -16,7 +16,7 @@ var excludedDirectories = map[string]struct{}{
 	".next": {}, ".pitlord": {}, ".pytest_cache": {}, ".ritual": {}, ".venv": {},
 	".warlock": {}, ".workingtrees": {}, ".worktrees": {}, "__pycache__": {}, "bin": {},
 	"build": {}, "coverage": {}, "dist": {}, "node_modules": {}, "obj": {}, "target": {},
-	"tmp": {}, "vendor": {}, "venv": {},
+	"tmp": {}, "vendor": {}, "vendored": {}, "venv": {},
 }
 
 var sourceExtensions = map[string]struct{}{
@@ -69,9 +69,30 @@ func isSourcePath(path string) bool {
 	return ok
 }
 
-func classifyLanguage(path string, content []byte, compileLanguages map[string]string) string {
+func isHeaderPath(path string) bool {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".h", ".h++", ".hh", ".hpp", ".hxx", ".inc", ".inl", ".ipp", ".tpp":
+		return true
+	default:
+		return false
+	}
+}
+
+func isAmbiguousHeaderPath(path string) bool {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".h", ".inc":
+		return true
+	default:
+		return false
+	}
+}
+
+func classifyLanguage(path string, content []byte, compileLanguages, headerLanguages map[string]string) string {
 	path = filepath.ToSlash(path)
 	if language := compileLanguages[path]; language != "" {
+		return language
+	}
+	if language := headerLanguages[path]; language != "" {
 		return language
 	}
 	extension := filepath.Ext(path)

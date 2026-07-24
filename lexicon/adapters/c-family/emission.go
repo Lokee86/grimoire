@@ -8,7 +8,7 @@ func emitRepositoryFacts(model *repositoryModel, changedFiles, removedFiles []st
 	files := buildFileIndex(model.Files)
 
 	for _, file := range model.Files {
-		fileAttributes := map[string]any{"language": file.Language, "parser": "tree-sitter"}
+		fileAttributes := map[string]any{"language": file.Language, "parser": "tree-sitter", "parser_language": file.ParserLanguage}
 		if file.ParseError {
 			fileAttributes["parse_error"] = true
 		}
