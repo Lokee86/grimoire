@@ -11,7 +11,7 @@ Analysis receives:
 - exact, ranked, merged, and structural candidates; and
 - ranking confidence and path/graph dispersion derived from those candidates.
 
-Prompt semantics remain separate from candidate ranking. Retrieval evidence may refine breadth or ambiguity, but it does not silently rewrite candidate scores.
+Query-only retrieval intents are emitted before candidate generation. The app layer consumes them to run bounded BM25 and exact passes, reserve mixed-query coverage, attach candidate roles, and choose the most graph-relevant structural query. Retrieval evidence may then refine breadth or ambiguity without changing the original intent plan.
 
 ## Profile
 
@@ -29,4 +29,4 @@ When the requested budget is zero, `app` activates the policy and uses the targe
 
 ## Boundary
 
-This package owns classification and policy selection. It does not retrieve, rank, curate, assemble, or compile evidence. `internal/assembly` decides when scope-specific evidence coverage is sufficient, and `internal/compiler` enforces the final token boundary.
+This package owns classification, query-only intent planning, and policy selection. It does not execute providers, rank candidates, curate, assemble, or compile evidence. `internal/app` consumes intent plans, `internal/assembly` decides when scope-specific evidence coverage is sufficient, and `internal/compiler` enforces the final token boundary.

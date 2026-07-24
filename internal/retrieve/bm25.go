@@ -19,8 +19,7 @@ var queryStopwords = map[string]struct{}{
 }
 
 type compiledQueryTerm struct {
-	text  string
-	runes []rune
+	text string
 }
 
 type lexicalDocument struct {
@@ -30,6 +29,7 @@ type lexicalDocument struct {
 
 type bm25Corpus struct {
 	terms               []compiledQueryTerm
+	termIndexes         map[string]int
 	documents           []lexicalDocument
 	documentCount       int
 	averageLength       float64
@@ -39,9 +39,13 @@ type bm25Corpus struct {
 func newBM25Corpus(texts []string, queryTerms []string) bm25Corpus {
 	corpus := bm25Corpus{
 		terms:               compileQueryTerms(queryTerms),
+		termIndexes:         make(map[string]int, len(queryTerms)),
 		documents:           make([]lexicalDocument, 0, len(texts)),
 		documentCount:       len(texts),
 		documentFrequencies: make([]int, len(queryTerms)),
+	}
+	for index, term := range corpus.terms {
+		corpus.termIndexes[term.text] = index
 	}
 
 	totalLength := 0
@@ -49,10 +53,9 @@ func newBM25Corpus(texts []string, queryTerms []string) bm25Corpus {
 		document := lexicalDocument{frequencies: make([]int, len(corpus.terms))}
 		scanLexicalTokens(text, func(token []rune) {
 			document.length++
-			for termIndex, term := range corpus.terms {
-				if equalFoldToken(token, term.runes) {
-					document.frequencies[termIndex]++
-				}
+			termIndex, exists := corpus.termIndexes[strings.ToLower(string(token))]
+			if exists {
+				document.frequencies[termIndex]++
 			}
 		})
 		for termIndex, frequency := range document.frequencies {
@@ -94,10 +97,9 @@ func (corpus bm25Corpus) score(documentIndex, termIndex int) float64 {
 func (corpus bm25Corpus) matches(value string) []bool {
 	matches := make([]bool, len(corpus.terms))
 	scanLexicalTokens(value, func(token []rune) {
-		for termIndex, term := range corpus.terms {
-			if !matches[termIndex] && equalFoldToken(token, term.runes) {
-				matches[termIndex] = true
-			}
+		termIndex, exists := corpus.termIndexes[strings.ToLower(string(token))]
+		if exists {
+			matches[termIndex] = true
 		}
 	})
 	return matches
@@ -106,7 +108,7 @@ func (corpus bm25Corpus) matches(value string) []bool {
 func compileQueryTerms(terms []string) []compiledQueryTerm {
 	compiled := make([]compiledQueryTerm, 0, len(terms))
 	for _, term := range terms {
-		compiled = append(compiled, compiledQueryTerm{text: term, runes: []rune(term)})
+		compiled = append(compiled, compiledQueryTerm{text: term})
 	}
 	return compiled
 }
@@ -185,16 +187,4 @@ func yieldIdentifierTokens(identifier []rune, yield func([]rune)) {
 	if start > 0 {
 		yield(identifier[start:])
 	}
-}
-
-func equalFoldToken(token, normalized []rune) bool {
-	if len(token) != len(normalized) {
-		return false
-	}
-	for index, current := range token {
-		if unicode.ToLower(current) != normalized[index] {
-			return false
-		}
-	}
-	return true
 }

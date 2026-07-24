@@ -9,6 +9,17 @@ import (
 
 const maxRetrievalIntentEntries = 6
 
+// PlanRetrievalIntents derives the bounded query-only retrieval plan used
+// before candidate generation. It intentionally depends only on the request
+// text so retrieval can consume intents before full query profiling.
+func PlanRetrievalIntents(query string) []RetrievalIntent {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil
+	}
+	return retrievalIntents(query, recognizedTasks(strings.ToLower(query)))
+}
+
 // retrievalIntents preserves the complete query as the first entry for a
 // mixed request, then adds a bounded, stable set of clause queries.
 func retrievalIntents(query string, tasks []string) []RetrievalIntent {
