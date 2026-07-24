@@ -55,13 +55,23 @@ int run() { return choose(1); }
 	t.Fatal("missing known default-argument range")
 }
 
-func TestCallableArityUncertaintyPreservesAmbiguity(t *testing.T) {
+func TestCallableArityPrunesKnownIncompatibleButPreservesUnknown(t *testing.T) {
 	known := &declaration{CallableShape: &callableParameterShape{Minimum: 2, Maximum: 2}}
 	unknown := &declaration{}
 	candidates := []*declaration{known, unknown}
 	pruned := pruneCallableCandidates(candidates, 1)
-	if len(pruned) != len(candidates) || pruned[0] != known || pruned[1] != unknown {
-		t.Fatalf("uncertain candidates were pruned: %#v", pruned)
+	if len(pruned) != 1 || pruned[0] != unknown {
+		t.Fatalf("known-incompatible candidate was retained or unknown candidate was pruned: %#v", pruned)
+	}
+}
+
+func TestCallableArityNeverCollapsesAllCandidates(t *testing.T) {
+	first := &declaration{CallableShape: &callableParameterShape{Minimum: 2, Maximum: 2}}
+	second := &declaration{CallableShape: &callableParameterShape{Minimum: 3, Maximum: 3}}
+	candidates := []*declaration{first, second}
+	pruned := pruneCallableCandidates(candidates, 1)
+	if len(pruned) != len(candidates) {
+		t.Fatalf("all known-incompatible candidates were removed: %#v", pruned)
 	}
 }
 

@@ -1,6 +1,9 @@
 package main
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 func resolveInheritance(facts *factSet, index declarationIndex, observation inheritanceObservation) {
 	candidates := resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, func(declaration *declaration) bool {
@@ -68,6 +71,23 @@ func resolveCallCandidates(index declarationIndex, observation callObservation) 
 	accept := func(declaration *declaration) bool {
 		return declaration.Callable
 	}
+	if qualifier := explicitCallQualifier(observation.Candidate); qualifier != "" {
+		candidates := resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
+		if types := directQualifiedTypes(index, qualifier, observation.Path); len(types) > 0 {
+			owned := callableDeclarationsOwnedByTypes(index, types, lastQualifiedPart(observation.Candidate), observation.Path, accept)
+			if len(owned) > 0 {
+				return owned
+			}
+			return candidates
+		}
+		free := filterDeclarations(candidates, func(declaration *declaration) bool {
+			return !classOwnedCallable(index, declaration)
+		})
+		if len(free) > 0 {
+			return free
+		}
+		return candidates
+	}
 	if observation.ReceiverTypeID != "" {
 		candidates := resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
 		owned := selectDeclarations(index, index.byContainerName[observation.ReceiverTypeID+"\x00"+lastQualifiedPart(observation.Candidate)], observation.Path, accept)
@@ -79,18 +99,53 @@ func resolveCallCandidates(index declarationIndex, observation callObservation) 
 	return resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
 }
 
+func explicitCallQualifier(candidate string) string {
+	candidate = normalizeQualified(candidate)
+	separator := strings.LastIndex(candidate, "::")
+	if separator <= 0 || separator+2 >= len(candidate) {
+		return ""
+	}
+	return candidate[:separator]
+}
+
+func directQualifiedTypes(index declarationIndex, qualifier, path string) []*declaration {
+	return selectDeclarations(index, index.byQualified[normalizeQualified(qualifier)], path, func(declaration *declaration) bool {
+		return declaration.Kind == "type"
+	})
+}
+
+func callableDeclarationsOwnedByTypes(index declarationIndex, types []*declaration, name, path string, accept func(*declaration) bool) []*declaration {
+	ownedTypes := map[string]struct{}{}
+	var candidates []*declaration
+	for _, typ := range types {
+		ownedTypes[typ.ID] = struct{}{}
+		candidates = append(candidates, selectDeclarations(index, index.byContainerName[typ.ID+"\x00"+name], path, accept)...)
+	}
+	return filterDeclarations(candidates, func(declaration *declaration) bool {
+		_, owned := ownedTypes[declaration.ContainerID]
+		return owned
+	})
+}
+
+func classOwnedCallable(index declarationIndex, declaration *declaration) bool {
+	if declaration.Kind == "method" || declaration.Kind == "constructor" || declaration.ParentTypeID != "" {
+		return true
+	}
+	qualifier := explicitCallQualifier(declaration.QualifiedName)
+	return qualifier != "" && len(directQualifiedTypes(index, qualifier, declaration.Path)) > 0
+}
+
 func pruneCallableCandidates(candidates []*declaration, argumentCount int) []*declaration {
 	if len(candidates) < 2 {
 		return candidates
 	}
-	for _, candidate := range candidates {
-		if candidate.CallableShape == nil {
-			return candidates
-		}
-	}
 	compatible := make([]*declaration, 0, len(candidates))
 	for _, candidate := range candidates {
 		shape := candidate.CallableShape
+		if shape == nil {
+			compatible = append(compatible, candidate)
+			continue
+		}
 		if argumentCount < shape.Minimum || !shape.Variadic && argumentCount > shape.Maximum {
 			continue
 		}
