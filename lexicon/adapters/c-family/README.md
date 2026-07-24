@@ -40,7 +40,7 @@ The adapter emits:
 - conservative reads and writes for parameters, locals, and fields;
 - explicit unresolved call, include, inheritance, and parse evidence.
 
-Repository-local declarations are resolved across C and C++ files. Function definitions are preferred over matching prototypes. Translation-unit ownership follows repository-local include closure, so source-file `static` declarations are visible to included `.c` fragments and headers without becoming globally visible. Scope-chain resolution covers namespaces, types, methods, and local callable ownership without treating same-named global declarations as interchangeable when a narrower match exists. C function-pointer members remain fields rather than becoming fabricated methods.
+Repository-local declarations are resolved across C and C++ files. Function definitions are preferred over matching prototypes. Translation-unit ownership follows repository-local include closure, so source-file `static` declarations are visible to included `.c` fragments and headers without becoming globally visible. C++ call resolution conservatively narrows candidates by accepted argument count, explicit namespace or type qualification, proven enclosing-type ownership, and direct parameter/local/field receiver types. Unknown callable shapes, unsupported receiver forms, inherited methods, and unresolved template semantics retain the previous candidate set rather than being guessed. C function-pointer members remain fields rather than becoming fabricated methods.
 
 Function-pointer evidence is propagated through direct initializers, assignments, designated struct initializers, typedef aliases, and callback arguments. These flows produce bounded `possible-calls`; they do not convert indirect dispatch into definite calls, and the accompanying `dynamic-target` evidence remains explicit.
 
@@ -80,7 +80,7 @@ go test ./...
 go test -race ./...
 ```
 
-The suite covers mixed C/C++ extraction, includer-driven header language inference, parser fallback, include-closure translation units, function-pointer typedefs and flow, macro aliases and wrappers, repository-local includes, inheritance, calls, dataflow, deterministic repeated output, incremental ownership, and CLI output.
+The suite covers mixed C/C++ extraction, includer-driven header language inference, parser fallback, include-closure translation units, function-pointer typedefs and flow, macro aliases and wrappers, callable arity, explicit qualification, direct receiver types, repository-local includes, inheritance, calls, dataflow, deterministic repeated output, incremental ownership, and CLI output. `tools/call_resolution_metrics.py` reports call-site outcomes and possible-target fanout without confusing raw edge counts with call-site coverage.
 
 ## Calibration corpus
 
@@ -88,4 +88,6 @@ The pinned C calibration corpus includes Git at `9a0c4701dcd5725c4184599322b5293
 
 The pinned C++ corpus adds LevelDB `99b3c03b3284f5886f9ef9a4ef703d57373e61be` and fmt `407c905e45ad75fc29bf0f9bb7c5c2fd3475976f` as calibration cases, Catch2 `src/` at `191fa38c9b1596cd2576ab531d4ab4d5e8e05190` as validation, and nlohmann/json `include/nlohmann/` at `55f93686c01528224f448c19128836e7df245f72` as holdout. Exact judgments protect class and template nodes, cross-file calls, and inheritance edges without scanning Catch2's amalgamated duplicate or nlohmann/json's tests and vendored material.
 
-On the accepted Git scan, 93,460 call-expression sites were observed. Of the 68,354 sites with repository-callable evidence, 64,651 were definite and 3,703 had bounded possible targets: 94.6% definite and 100% definite-or-possible. No call remained classified as a missing repository target. The remaining unresolved sites were external APIs, genuine dynamic dispatch, or explicit ambiguity. The CBM backend and LevelDB likewise had no call classified as `missing-target`. The other C++ cases intentionally retain unresolved template, overload, and repository-target evidence for future calibration.
+On the accepted Git scan, 93,460 call-expression sites were observed. Of the 68,354 sites with repository-callable evidence, 64,651 were definite and 3,703 had bounded possible targets: 94.6% definite and 100% definite-or-possible. No call remained classified as a missing repository target. The remaining unresolved sites were external APIs, genuine dynamic dispatch, or explicit ambiguity.
+
+The C++ calibration raised definite call sites from 6,088 to 6,889 in fmt, 4,623 to 4,855 in LevelDB, and 1,890 to 2,184 in Catch2. The untouched nlohmann/json holdout improved from 1,737 to 1,857 definite sites. fmt's 90th-percentile possible-target fanout fell from 92 to 13. All four C++ cases now require zero unresolved call `missing-target` records; remaining uncertainty is explicit overload, template, dynamic-dispatch, or external-library evidence.

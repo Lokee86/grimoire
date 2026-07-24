@@ -43,9 +43,18 @@ Four pinned C++ cases add distinct semantic pressure without tuning against the 
 | Catch2 `src/` `191fa38` | Validation | 1,890 | 4,790 | 87 | 7,401 | 1,360 | 2,163 |
 | nlohmann/json `include/nlohmann/` `55f9368` | Holdout | 1,737 | 4,079 | 34 | 5,638 | 841 | 2,082 |
 
-LevelDB represents conventional production C++ with classes, virtual interfaces, callbacks, and separate headers and implementations. fmt provides concentrated template, constexpr, specialization, and overload pressure; its high possible-call edge count makes current overload ambiguity visible rather than hiding it as a single aggregate failure. Catch2 exercises macro-heavy framework code and reporter, matcher, generator, and session hierarchies. nlohmann/json remains a header-only holdout so future template calibration can be checked against code that was not used to select changes.
+LevelDB represents conventional production C++ with classes, virtual interfaces, callbacks, and separate headers and implementations. fmt provides concentrated template, constexpr, specialization, and overload pressure. Catch2 exercises macro-heavy framework code and reporter, matcher, generator, and session hierarchies. nlohmann/json remains a header-only holdout so general improvements can be checked against code that was not used to select changes.
 
-Each case runs twice and is byte-identical. Exact gates protect representative class and function nodes plus concrete call and inheritance edges. LevelDB additionally requires zero unresolved call `missing-target` records. Catch2 is scoped to `src/` to exclude the generated amalgamation in `extras/`; nlohmann/json is scoped to `include/nlohmann/` to isolate the distributed library surface.
+A second calibration pass added conservative callable-arity pruning, explicit namespace/type qualification, proven enclosing-type ownership, and direct receiver types from parameters, locals, and directly owned fields. Unsupported or ambiguous evidence falls back to the prior candidate set. Site-level results changed as follows:
+
+| Case | Definite sites | Possible sites | p90 fanout | Missing targets |
+| --- | ---: | ---: | ---: | ---: |
+| LevelDB | 4,623 → 4,855 | 1,752 → 1,520 | 10 → 10 | 0 → 0 |
+| fmt | 6,088 → 6,889 | 4,697 → 3,897 | 92 → 13 | 55 → 0 |
+| Catch2 `src/` | 1,890 → 2,184 | 1,150 → 856 | 7 → 6 | 12 → 0 |
+| nlohmann/json holdout | 1,737 → 1,857 | 1,119 → 999 | 8 → 7 | 48 → 0 |
+
+The holdout improved without repository-specific rules. Remaining unresolved calls are classified as external, dynamic, or ambiguous rather than missing repository targets. Each case runs twice and is byte-identical. Exact gates protect representative class and function nodes plus concrete call and inheritance edges, and all four C++ cases now require zero unresolved call `missing-target` records. Catch2 is scoped to `src/` to exclude the generated amalgamation in `extras/`; nlohmann/json is scoped to `include/nlohmann/` to isolate the distributed library surface.
 
 ## Corpus results
 

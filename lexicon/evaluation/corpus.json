@@ -72,6 +72,7 @@
       "repository": "corpus/fmt",
       "revision": "407c905e45ad75fc29bf0f9bb7c5c2fd3475976f",
       "required_relations": ["calls", "possible-calls", "reads", "writes", "includes", "extends", "references"],
+      "expected_zero_unresolved_call_reasons": ["missing-target"],
       "required_nodes": [
         {"kind": "type", "name": "formatter", "path": "include/fmt/base.h"},
         {"kind": "function", "name": "formatted_size", "path": "include/fmt/compile.h", "attributes": {"definition": true}},
@@ -89,6 +90,7 @@
       "repository": "corpus/catch2/src",
       "revision": "191fa38c9b1596cd2576ab531d4ab4d5e8e05190",
       "required_relations": ["calls", "possible-calls", "reads", "writes", "includes", "extends", "references"],
+      "expected_zero_unresolved_call_reasons": ["missing-target"],
       "required_nodes": [
         {"kind": "type", "name": "Session", "path": "catch2/catch_session.hpp", "qualified_name": "Catch::Session"},
         {"kind": "type", "name": "SonarQubeReporter", "path": "catch2/reporters/catch_reporter_sonarqube.hpp"},
@@ -107,6 +109,7 @@
       "repository": "corpus/nlohmann-json/include/nlohmann",
       "revision": "55f93686c01528224f448c19128836e7df245f72",
       "required_relations": ["calls", "possible-calls", "reads", "writes", "includes", "extends", "references"],
+      "expected_zero_unresolved_call_reasons": ["missing-target"],
       "required_nodes": [
         {"kind": "function", "name": "parse", "path": "json.hpp", "attributes": {"definition": true}},
         {"kind": "type", "name": "lexer", "path": "detail/input/lexer.hpp"},

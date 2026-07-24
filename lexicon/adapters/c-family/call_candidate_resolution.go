@@ -9,6 +9,9 @@ func resolveCallCandidates(index declarationIndex, observation callObservation) 
 	if qualifier := explicitCallQualifier(observation.Candidate); qualifier != "" {
 		candidates := resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
 		if types := directQualifiedTypes(index, qualifier, observation.Path); len(types) > 0 {
+			if len(candidates) == 0 {
+				candidates = resolveDeclarations(index, lastQualifiedPart(observation.Candidate), observation.SourceScope, observation.Path, accept)
+			}
 			owned := callableDeclarationsOwnedByTypes(index, types, lastQualifiedPart(observation.Candidate), observation.Path, accept)
 			if len(owned) > 0 {
 				return owned
@@ -50,7 +53,8 @@ func explicitCallQualifier(candidate string) string {
 }
 
 func directQualifiedTypes(index declarationIndex, qualifier, path string) []*declaration {
-	return selectDeclarations(index, index.byQualified[normalizeQualified(qualifier)], path, func(declaration *declaration) bool {
+	qualified := stripTemplateArguments(normalizeQualified(qualifier))
+	return selectDeclarations(index, index.byQualified[qualified], path, func(declaration *declaration) bool {
 		return declaration.Kind == "type"
 	})
 }

@@ -58,7 +58,9 @@ func resolveCall(facts *factSet, index declarationIndex, indirectCalls indirectC
 	}
 
 	reason := "missing-target"
-	if !hasCallableDeclaration(index, observation.Candidate) {
+	if qualifier := explicitCallQualifier(observation.Candidate); qualifier != "" && len(directQualifiedTypes(index, qualifier, observation.Path)) == 0 {
+		reason = "external-target"
+	} else if !hasCallableDeclaration(index, observation.Candidate) {
 		reason = "external-target"
 	}
 	facts.addUnresolved(observation.Path, unresolvedRecord(observation.SourceID, "calls", observation.Expression, reason, observation.Path, observation.Span))

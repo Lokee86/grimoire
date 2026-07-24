@@ -46,6 +46,28 @@ int caller() { return A::run(1); }
 	assertResolvedCallTarget(t, decodeRecords(t, data), "caller", "A::run")
 }
 
+func TestTemplateTypeQualifiedCallKeepsFinalMemberName(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, map[string]string{
+		"main.cpp": `template <typename T>
+class Holder {
+public:
+  static int get() { return 1; }
+};
+class Other {
+public:
+  static int get() { return 2; }
+};
+int caller() { return Holder<int>::get(); }
+`,
+	})
+	data, err := analyzeRepository(root, nil, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertResolvedCallTarget(t, decodeRecords(t, data), "caller", "Holder::get")
+}
+
 func assertResolvedCallTarget(t *testing.T, records []map[string]any, sourceName, targetQualified string) {
 	t.Helper()
 	nodes := nodeRecords(records)
