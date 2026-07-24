@@ -40,6 +40,7 @@ type scoredNode struct {
 	node    Node
 	score   float64
 	reasons []string
+	primary bool
 }
 
 type Corpus struct {

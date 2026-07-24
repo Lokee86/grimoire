@@ -1,9 +1,11 @@
 package app
 
 import (
+	"math"
 	"slices"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 )
@@ -28,7 +30,35 @@ func TestMergeContextCandidatesPrefersExactAndKeepsProviderEvidence(t *testing.T
 	}
 }
 
-func TestMergeRankedProvidersInterleavesProviderRanks(t *testing.T) {
+func TestMergeContextCandidatesMergesSharedEvidenceMetadata(t *testing.T) {
+	chunk := index.Chunk{ID: "alpha", Path: "alpha.go", StartLine: 1, EndLine: 3}
+	primary := retrieve.Candidate{
+		Chunk: chunk, Source: "vector", Rank: 1,
+		Context: &evidence.Descriptor{
+			Identity: "range:alpha.go:1:3",
+			Intents:  []evidence.Intent{evidence.IntentMechanism},
+		},
+	}
+	structural := retrieve.Candidate{
+		Chunk: chunk, Source: "lexicon", Rank: 2,
+		Context: &evidence.Descriptor{
+			GroupIDs: []string{"call-chain:alpha"},
+			Roles:    []evidence.Role{evidence.RoleStructural},
+		},
+	}
+
+	merged := mergeContextCandidates(10, []retrieve.Candidate{primary}, []retrieve.Candidate{structural})
+	if len(merged) != 1 || merged[0].Context == nil {
+		t.Fatalf("unexpected merge: %+v", merged)
+	}
+	if !slices.Contains(merged[0].Context.Intents, evidence.IntentMechanism) ||
+		!slices.Contains(merged[0].Context.GroupIDs, "call-chain:alpha") ||
+		!slices.Contains(merged[0].Context.Roles, evidence.RoleStructural) {
+		t.Fatalf("merged context lost provider metadata: %+v", merged[0].Context)
+	}
+}
+
+func TestMergeRankedProvidersPromotesCrossProviderMatches(t *testing.T) {
 	candidate := func(id, source string, rank int) retrieve.Candidate {
 		return retrieve.Candidate{Chunk: index.Chunk{ID: id}, Source: source, Rank: rank}
 	}
@@ -37,18 +67,92 @@ func TestMergeRankedProvidersInterleavesProviderRanks(t *testing.T) {
 		candidate("lexical-2", "lexical", 2),
 	}
 	vector := []retrieve.Candidate{
-		candidate("vector-1", "vector", 1),
+		candidate("lexical-2", "vector", 1),
 		candidate("vector-2", "vector", 2),
 	}
 
 	merged := mergeRankedProviders(4, lexical, vector)
-	got := []string{
-		merged[0].Chunk.ID, merged[1].Chunk.ID,
-		merged[2].Chunk.ID, merged[3].Chunk.ID,
-	}
-	want := []string{"lexical-1", "vector-1", "lexical-2", "vector-2"}
+	got := []string{merged[0].Chunk.ID, merged[1].Chunk.ID, merged[2].Chunk.ID}
+	want := []string{"lexical-2", "lexical-1", "vector-2"}
 	if !slices.Equal(got, want) {
-		t.Fatalf("interleaved IDs = %v, want %v", got, want)
+		t.Fatalf("fused IDs = %v, want %v", got, want)
+	}
+	if merged[0].Source != "vector" {
+		t.Fatalf("promoted candidate source = %q, want vector", merged[0].Source)
+	}
+	if !slices.Contains(merged[0].Reasons, "reciprocal-rank fusion from lexical rank 2") ||
+		!slices.Contains(merged[0].Reasons, "reciprocal-rank fusion from vector rank 1") {
+		t.Fatalf("missing fusion reasons: %+v", merged[0].Reasons)
+	}
+}
+
+func TestMergeRankedProvidersFusesDuplicatesAndRetainsMetadata(t *testing.T) {
+	chunk := index.Chunk{ID: "shared", Path: "shared.go", StartLine: 4, EndLine: 8}
+	lexical := retrieve.Candidate{
+		Chunk: chunk, Score: 100, Source: "lexical", Rank: 3,
+		Reasons: []string{"filename match"},
+		Context: &evidence.Descriptor{Intents: []evidence.Intent{evidence.IntentDirectLocation}},
+	}
+	vector := retrieve.Candidate{
+		Chunk: index.Chunk{ID: chunk.ID, Path: chunk.Path, StartLine: chunk.StartLine, EndLine: chunk.EndLine, Text: "vector payload"},
+		Score: 0.9, Source: "vector", Rank: 2,
+		Reasons: []string{"semantic match"},
+		Context: &evidence.Descriptor{Roles: []evidence.Role{evidence.RoleSupporting}},
+	}
+
+	merged := mergeRankedProviders(10, []retrieve.Candidate{lexical}, []retrieve.Candidate{vector})
+	if len(merged) != 1 {
+		t.Fatalf("merged %d candidates, want 1", len(merged))
+	}
+	if merged[0].Source != "vector" || merged[0].Rank != 2 || merged[0].Chunk.Text != "vector payload" || merged[0].Score != 1/(rrfRankConstant+2)+1/(rrfRankConstant+3) {
+		t.Fatalf("unexpected fused payload: %+v", merged[0])
+	}
+	if !slices.Contains(merged[0].Reasons, "filename match") || !slices.Contains(merged[0].Reasons, "semantic match") {
+		t.Fatalf("duplicate reasons were not retained: %+v", merged[0].Reasons)
+	}
+	if merged[0].Context == nil ||
+		!slices.Contains(merged[0].Context.Intents, evidence.IntentDirectLocation) ||
+		!slices.Contains(merged[0].Context.Roles, evidence.RoleSupporting) {
+		t.Fatalf("duplicate context was not retained: %+v", merged[0].Context)
+	}
+	if len(merged[0].ScoreDetails) != 2 {
+		t.Fatalf("fusion details = %+v, want two contributions", merged[0].ScoreDetails)
+	}
+}
+
+func TestMergeRankedProvidersUsesDeterministicTieBreakers(t *testing.T) {
+	candidate := func(id, source string) retrieve.Candidate {
+		return retrieve.Candidate{Chunk: index.Chunk{ID: id}, Source: source, Rank: 1}
+	}
+	first := mergeRankedProviders(2,
+		[]retrieve.Candidate{candidate("zeta", "vector")},
+		[]retrieve.Candidate{candidate("alpha", "lexical")},
+	)
+	second := mergeRankedProviders(2,
+		[]retrieve.Candidate{candidate("alpha", "lexical")},
+		[]retrieve.Candidate{candidate("zeta", "vector")},
+	)
+	for _, merged := range [][]retrieve.Candidate{first, second} {
+		got := []string{merged[0].Chunk.ID, merged[1].Chunk.ID}
+		if !slices.Equal(got, []string{"alpha", "zeta"}) {
+			t.Fatalf("tie order = %v, want [alpha zeta]", got)
+		}
+	}
+}
+
+func TestMergeRankedProvidersRespectsLimitAfterFusion(t *testing.T) {
+	candidate := func(id, source string, rank int) retrieve.Candidate {
+		return retrieve.Candidate{Chunk: index.Chunk{ID: id}, Source: source, Rank: rank}
+	}
+	merged := mergeRankedProviders(2,
+		[]retrieve.Candidate{candidate("alpha", "lexical", 1), candidate("beta", "lexical", 2), candidate("promoted", "lexical", 3)},
+		[]retrieve.Candidate{candidate("delta", "vector", 1), candidate("epsilon", "vector", 2), candidate("promoted", "vector", 3)},
+	)
+	if len(merged) != 2 || merged[0].Chunk.ID != "promoted" {
+		t.Fatalf("limited fused candidates = %+v, want promoted plus one candidate", merged)
+	}
+	if math.Abs(merged[0].Score-(1/(rrfRankConstant+3)+1/(rrfRankConstant+3))) > 1e-12 {
+		t.Fatalf("promoted fused score = %v", merged[0].Score)
 	}
 }
 

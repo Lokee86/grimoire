@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/retrieve"
@@ -73,6 +74,89 @@ func TestPlanExploratoryCapsStructuralEvidence(t *testing.T) {
 	}
 }
 
+func TestPlanPromotesStructuralGroupSourceAfterCuratedPrefix(t *testing.T) {
+	var candidates []retrieve.Candidate
+	for index := range 12 {
+		candidates = append(candidates, candidate(fmt.Sprintf("internal/damage/file_%02d.go", index), "lexical", index+1))
+	}
+	candidates[10] = candidateWithContext("internal/damage/trace.go", "lexical", 11, []string{"alpha"}, 700)
+	structural := []structure.Evidence{{Context: &evidence.Descriptor{GroupIDs: []string{"alpha"}}}}
+	result := Plan(queryshape.RetrievalPolicy{
+		Scope: queryshape.ScopeFocused, TargetTokens: 750,
+	}, candidates, structural)
+	if len(result.Candidates) != 9 || result.Candidates[8].Chunk.Path != candidates[10].Chunk.Path {
+		t.Fatalf("structural source anchor was not promoted after curated prefix: %+v", result.Candidates)
+	}
+	if result.Decision.GroupsRepresented != 1 {
+		t.Fatalf("represented groups = %d, want 1", result.Decision.GroupsRepresented)
+	}
+}
+
+func TestPlanDoesNotActivateGroupsFromSourceCandidates(t *testing.T) {
+	candidates := []retrieve.Candidate{
+		candidateWithContext("internal/damage/first.go", "exact", 1, []string{"alpha"}, 500),
+		candidate("internal/damage/second.go", "lexical", 2),
+		candidate("internal/damage/third.go", "lexical", 3),
+		candidate("internal/damage/fourth.go", "lexical", 4),
+		candidateWithContext("internal/damage/companion.go", "lexical", 5, []string{"alpha"}, 500),
+	}
+	result := Plan(queryshape.RetrievalPolicy{
+		Scope: queryshape.ScopeFocused, TargetTokens: 500,
+	}, candidates, nil)
+	if len(result.Candidates) != 3 {
+		t.Fatalf("selected %d candidates, want 3", len(result.Candidates))
+	}
+	for index := range result.Candidates {
+		if result.Candidates[index].Chunk.Path != candidates[index].Chunk.Path {
+			t.Fatalf("source group changed curated order: %+v", result.Candidates)
+		}
+	}
+}
+
+func TestPlanStructuralGroupPriorityRespectsCandidateCap(t *testing.T) {
+	candidates := make([]retrieve.Candidate, 0, 170)
+	for index := range 170 {
+		candidates = append(candidates, candidate(fmt.Sprintf("internal/damage/file_%03d.go", index), "lexical", index+1))
+	}
+	candidates[169].Context = &evidence.Descriptor{GroupIDs: []string{"call-chain"}}
+	structural := []structure.Evidence{{Context: &evidence.Descriptor{GroupIDs: []string{"call-chain"}}}}
+	result := Plan(queryshape.RetrievalPolicy{
+		Scope: queryshape.ScopeBounded, TargetTokens: 1_000_000_000,
+	}, candidates, structural)
+	if len(result.Candidates) != 160 {
+		t.Fatalf("selected %d candidates, want 160", len(result.Candidates))
+	}
+	if result.Candidates[preservedCandidatePrefix].Chunk.Path != candidates[169].Chunk.Path {
+		t.Fatalf("structural source anchor was not retained before cap: %s", result.Candidates[preservedCandidatePrefix].Chunk.Path)
+	}
+	if result.Decision.GroupsRepresented != 1 {
+		t.Fatalf("represented groups = %d, want 1", result.Decision.GroupsRepresented)
+	}
+}
+
+func TestPlanUngroupedOrderingRemainsCuratedOrder(t *testing.T) {
+	candidates := []retrieve.Candidate{
+		candidate("internal/damage/first.go", "exact", 1),
+		candidate("internal/damage/second.go", "lexical", 2),
+		candidate("internal/damage/third.go", "adjacent", 3),
+		candidate("internal/damage/fourth.go", "lexical", 4),
+	}
+	result := Plan(queryshape.RetrievalPolicy{
+		Scope: queryshape.ScopeFocused, TargetTokens: 1000,
+	}, candidates, nil)
+	if len(result.Candidates) != 3 {
+		t.Fatalf("selected %d candidates, want 3", len(result.Candidates))
+	}
+	for index, selected := range result.Candidates {
+		if selected.Chunk.Path != candidates[index].Chunk.Path {
+			t.Fatalf("candidate %d = %s, want %s", index, selected.Chunk.Path, candidates[index].Chunk.Path)
+		}
+	}
+	if result.Decision.GroupsRepresented != 0 {
+		t.Fatalf("represented groups = %d, want 0", result.Decision.GroupsRepresented)
+	}
+}
+
 func candidate(path, source string, rank int) retrieve.Candidate {
 	return retrieve.Candidate{
 		Chunk: index.Chunk{
@@ -82,4 +166,13 @@ func candidate(path, source string, rank int) retrieve.Candidate {
 		Source: source,
 		Rank:   rank,
 	}
+}
+
+func candidateWithContext(path, source string, rank int, groupIDs []string, estimatedTokens int) retrieve.Candidate {
+	candidate := candidate(path, source, rank)
+	candidate.Context = &evidence.Descriptor{
+		GroupIDs:        groupIDs,
+		EstimatedTokens: estimatedTokens,
+	}
+	return candidate
 }

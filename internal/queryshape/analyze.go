@@ -5,6 +5,7 @@ import "strings"
 // Analyze deterministically profiles a query and returns a shadow retrieval
 // policy. Neither result changes candidate order or context assembly.
 func Analyze(input Input) (Profile, RetrievalPolicy) {
+	originalQuery := strings.TrimSpace(input.Query)
 	query := strings.ToLower(strings.TrimSpace(input.Query))
 	tasks := recognizedTasks(query)
 	symbols, paths, errors, configs, quoted := exactCounts(input.Exact, query)
@@ -25,7 +26,7 @@ func Analyze(input Input) (Profile, RetrievalPolicy) {
 	profile.Specificity = specificityLevel(profile, configs, quoted, query)
 	profile.Breadth = breadthLevel(profile, query)
 	profile.Ambiguity = ambiguityLevel(profile, len(input.Ranked))
-	return profile, policyFor(profile, input.RequestedBudget)
+	return profile, policyFor(profile, input.RequestedBudget, originalQuery, tasks)
 }
 
 func specificityLevel(profile Profile, configs, quoted int, query string) Level {
@@ -164,7 +165,7 @@ func scoreLevel(score, medium, high int) Level {
 	return LevelLow
 }
 
-func policyFor(profile Profile, budget int) RetrievalPolicy {
+func policyFor(profile Profile, budget int, originalQuery string, tasks []string) RetrievalPolicy {
 	scope := ScopeBounded
 	if profile.Specificity == LevelHigh && profile.Breadth == LevelLow && profile.Ambiguity != LevelHigh {
 		scope = ScopeFocused
@@ -175,6 +176,7 @@ func policyFor(profile Profile, budget int) RetrievalPolicy {
 	policy := RetrievalPolicy{
 		Shadow: true, Scope: scope, BudgetMode: "fixed",
 		TargetTokens: budget, MaximumTokens: budget,
+		Intents: retrievalIntents(originalQuery, tasks),
 	}
 	if budget <= 0 {
 		policy.BudgetMode = "automatic-shadow"

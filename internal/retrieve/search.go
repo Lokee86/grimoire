@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
 )
 
@@ -21,6 +22,7 @@ type Candidate struct {
 	Rank         int
 	Reasons      []string
 	ScoreDetails []ScoreDetail
+	Context      *evidence.Descriptor
 }
 
 func Search(snapshot index.Snapshot, query string, limit int) []Candidate {

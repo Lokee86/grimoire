@@ -1,8 +1,10 @@
 package queryshape
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/structure"
@@ -73,5 +75,82 @@ func TestAnalyzeRecommendsAutomaticBudgetWhenUnspecified(t *testing.T) {
 	}
 	if policy.BudgetMode != "automatic-shadow" || policy.TargetTokens != BoundedTargetTokens || policy.MaximumTokens != BoundedMaximumTokens {
 		t.Fatalf("unexpected policy: %+v", policy)
+	}
+}
+
+func TestAnalyzeDirectLocationRetrievalIntent(t *testing.T) {
+	query := "Where is the profile store initialized?"
+	_, policy := Analyze(Input{Query: query, RequestedBudget: 4000})
+
+	if len(policy.Intents) != 1 {
+		t.Fatalf("direct-location query emitted intents: %+v", policy.Intents)
+	}
+	intent := policy.Intents[0]
+	if intent.Intent != evidence.IntentDirectLocation || intent.Query != query || intent.Weight <= 0 {
+		t.Fatalf("unexpected direct-location intent: %+v", intent)
+	}
+}
+
+func TestAnalyzeCallChainRetrievalIntent(t *testing.T) {
+	query := "Trace the call chain from ResolveProfile to the database adapter"
+	_, policy := Analyze(Input{Query: query, RequestedBudget: 4000})
+
+	if len(policy.Intents) != 1 || policy.Intents[0].Intent != evidence.IntentCallChain {
+		t.Fatalf("unexpected call-chain intents: %+v", policy.Intents)
+	}
+	if policy.Intents[0].Query != query || policy.Intents[0].Weight <= 0 {
+		t.Fatalf("call-chain intent did not preserve query: %+v", policy.Intents[0])
+	}
+}
+
+func TestAnalyzeArchitectureRetrievalIntent(t *testing.T) {
+	query := "Explain the architecture and ownership boundaries of retrieval"
+	_, policy := Analyze(Input{Query: query, RequestedBudget: 4000})
+
+	if len(policy.Intents) != 1 || policy.Intents[0].Intent != evidence.IntentArchitecture {
+		t.Fatalf("unexpected architecture intents: %+v", policy.Intents)
+	}
+	if policy.Intents[0].Query != query || policy.Intents[0].Weight <= 0 {
+		t.Fatalf("architecture intent did not preserve query: %+v", policy.Intents[0])
+	}
+}
+
+func TestAnalyzeBoundsLongMixedRetrievalIntents(t *testing.T) {
+	query := "Where is profile loading? Explain how persistence selects a store; trace the call chain into compilation, explain the architecture ownership boundaries, where are verification tests, how does caching work, trace the execution flow again, and explain subsystem context."
+	_, policy := Analyze(Input{Query: query, RequestedBudget: 9000})
+
+	if len(policy.Intents) < 2 || len(policy.Intents) > maxRetrievalIntentEntries {
+		t.Fatalf("mixed query was not bounded: %d intents (%+v)", len(policy.Intents), policy.Intents)
+	}
+	if policy.Intents[0].Intent != evidence.IntentMixed || policy.Intents[0].Query != query {
+		t.Fatalf("mixed query did not preserve the original first: %+v", policy.Intents)
+	}
+	seen := make(map[string]struct{}, len(policy.Intents))
+	for _, intent := range policy.Intents {
+		if strings.TrimSpace(intent.Query) == "" || intent.Weight <= 0 {
+			t.Fatalf("invalid mixed retrieval intent: %+v", intent)
+		}
+		key := strings.ToLower(strings.Join(strings.Fields(intent.Query), " "))
+		if _, exists := seen[key]; exists {
+			t.Fatalf("duplicate mixed retrieval query %q: %+v", intent.Query, policy.Intents)
+		}
+		seen[key] = struct{}{}
+	}
+	for _, want := range []evidence.Intent{
+		evidence.IntentDirectLocation,
+		evidence.IntentMechanism,
+		evidence.IntentCallChain,
+		evidence.IntentArchitecture,
+	} {
+		found := false
+		for _, intent := range policy.Intents {
+			if intent.Intent == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("mixed query omitted %s intent: %+v", want, policy.Intents)
+		}
 	}
 }

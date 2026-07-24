@@ -22,24 +22,31 @@ func Plan(
 	evidence []structure.Evidence,
 ) Result {
 	config := configFor(policy.Scope)
+	structuralLimit := min(config.structuralLimit, len(evidence))
+	structural := append([]structure.Evidence(nil), evidence[:structuralLimit]...)
 	anchorRegion := focusedAnchorRegion(candidates)
+	ordered, priorityBoundary := prioritizeCandidates(policy.Scope, candidates, anchorRegion, structural)
 	selected := make([]retrieve.Candidate, 0, min(config.maximumCandidates, len(candidates)))
 	regions := newOrderedSet()
 	roles := newOrderedSet()
+	groups := newOrderedSet()
 	hasExact := false
 	candidateTokens := 0
 	considered := 0
 	stopReason := "candidate set exhausted"
 
-	for _, candidate := range candidates {
+	for index, candidate := range ordered {
 		considered++
 		if policy.Scope == queryshape.ScopeFocused && !focusedCandidate(candidate, anchorRegion) {
 			continue
 		}
 		selected = append(selected, candidate)
-		candidateTokens += max(candidate.Chunk.TokenCount, 1)
+		candidateTokens += candidateTokenCount(candidate)
 		regions.Add(queryshape.PathRegion(candidate.Chunk.Path))
 		roles.Add(candidateRole(candidate.Chunk.Path))
+		for _, groupID := range candidateGroups(candidate) {
+			groups.Add(groupID)
+		}
 		if candidate.Source == "exact" {
 			hasExact = true
 		}
@@ -47,14 +54,12 @@ func Plan(
 			stopReason = string(policy.Scope) + " candidate cap reached"
 			break
 		}
-		if coverageSatisfied(policy, config, len(selected), candidateTokens, regions.Len(), hasExact, candidates) {
+		if (priorityBoundary == 0 || index+1 >= priorityBoundary) &&
+			coverageSatisfied(policy, config, len(selected), candidateTokens, regions.Len(), hasExact, candidates) {
 			stopReason = string(policy.Scope) + " evidence coverage satisfied"
 			break
 		}
 	}
-
-	structuralLimit := min(config.structuralLimit, len(evidence))
-	structural := append([]structure.Evidence(nil), evidence[:structuralLimit]...)
 	return Result{
 		Candidates: selected,
 		Structural: structural,
@@ -67,9 +72,102 @@ func Plan(
 			StructuralSelected:   len(structural),
 			RegionsRepresented:   regions.Values(),
 			RolesRepresented:     roles.Values(),
+			GroupsRepresented:    groups.Len(),
 			StopReason:           stopReason,
 		},
 	}
+}
+
+const (
+	preservedCandidatePrefix = 8
+	maxPromotedGroups        = 8
+)
+
+func prioritizeCandidates(
+	scope queryshape.Scope,
+	candidates []retrieve.Candidate,
+	anchorRegion string,
+	structural []structure.Evidence,
+) ([]retrieve.Candidate, int) {
+	prefix := min(preservedCandidatePrefix, len(candidates))
+	ordered := append([]retrieve.Candidate(nil), candidates[:prefix]...)
+	remaining := append([]retrieve.Candidate(nil), candidates[prefix:]...)
+	groups := structuralGroups(structural, maxPromotedGroups)
+	promoted := 0
+	for _, groupID := range groups {
+		active := map[string]struct{}{groupID: {}}
+		for index, candidate := range remaining {
+			if scope == queryshape.ScopeFocused && !focusedCandidate(candidate, anchorRegion) {
+				continue
+			}
+			if !sharesGroup(candidate, active) {
+				continue
+			}
+			ordered = append(ordered, candidate)
+			remaining = append(remaining[:index], remaining[index+1:]...)
+			promoted++
+			break
+		}
+	}
+	ordered = append(ordered, remaining...)
+	if promoted == 0 {
+		return ordered, 0
+	}
+	return ordered, prefix + promoted
+}
+
+func structuralGroups(items []structure.Evidence, limit int) []string {
+	seen := make(map[string]struct{})
+	groups := make([]string, 0, min(limit, len(items)))
+	for _, item := range items {
+		if item.Context == nil {
+			continue
+		}
+		for _, groupID := range item.Context.GroupIDs {
+			if groupID == "" {
+				continue
+			}
+			if _, exists := seen[groupID]; exists {
+				continue
+			}
+			seen[groupID] = struct{}{}
+			groups = append(groups, groupID)
+			if len(groups) >= limit {
+				return groups
+			}
+		}
+	}
+	return groups
+}
+
+func sharesGroup(candidate retrieve.Candidate, groups map[string]struct{}) bool {
+	for _, groupID := range candidateGroups(candidate) {
+		if _, ok := groups[groupID]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func candidateGroups(candidate retrieve.Candidate) []string {
+	if candidate.Context == nil {
+		return nil
+	}
+	groups := make([]string, 0, len(candidate.Context.GroupIDs))
+	for _, groupID := range candidate.Context.GroupIDs {
+		if groupID != "" {
+			groups = append(groups, groupID)
+		}
+	}
+	return groups
+}
+
+func candidateTokenCount(candidate retrieve.Candidate) int {
+	tokens := candidate.Chunk.TokenCount
+	if candidate.Context != nil && candidate.Context.EstimatedTokens > 0 {
+		tokens = candidate.Context.EstimatedTokens
+	}
+	return max(tokens, 1)
 }
 
 func configFor(scope queryshape.Scope) scopeConfig {
