@@ -11,13 +11,13 @@ Grimoire Context, and Pitlord.
 
 - **Lexicon** owns language parsing and the normalized symbol/relationship fact contract.
 - **Arcana** owns graph ingestion, packed storage, snapshots, deterministic traversal,
-  and measurements of storage representations.
+  optional semantic graph indexes, and measurements of storage representations.
 - **Demon Docs** owns documentation semantics, policy, review history, and
   Codemap decisions. It consumes Arcana facts without owning the graph
   engine.
-- **Grimoire Context** owns task interpretation, relevance ranking, token
-  budgets, and final context construction. It queries Arcana and Demon
-  Docs without becoming either system's storage layer.
+- **Grimoire Context** owns task interpretation, the shared embedding runtime,
+  relevance ranking, token budgets, and final context construction. It queries
+  Arcana and Demon Docs without becoming either system's storage layer.
 
 Arcana remains a standalone Rust process or CLI boundary. Go consumers do
 not link it through cgo or FFI.
@@ -158,6 +158,34 @@ call chains, dead-symbol detection, and operational-role summaries.
 
 See [`docs/LEXICON_CONTRACT.md`](docs/LEXICON_CONTRACT.md) for the exact consumer
 boundary and incremental ownership policy.
+
+## Optional semantic graph index
+
+Arcana can explicitly vectorize the current immutable graph through Grimoire's
+existing OpenAI-compatible embedding endpoint. Arcana stores and invalidates the
+graph vectors; it does not install or load a second model. Ordinary `arcana sync`
+and graph-protocol operations remain embedding-free.
+
+```text
+grimoire model serve
+arcana sync
+arcana vectorize
+arcana semantic-query --query "where is profile persistence handled?"
+```
+
+The index lives under
+`.arcana/vectors/<snapshot-digest>/<embedding-identity>/`. Each vector represents
+a graph node plus a bounded immediate neighborhood. Semantic matches provide
+entry points; exact Arcana traversal remains authoritative for relationships,
+impact, and call chains.
+
+Grimoire Context automatically uses a matching existing Arcana semantic index
+when Arcana structural retrieval is enabled. It never builds the index as a side
+effect of a context query and falls back to Lexicon-seeded graph traversal when
+the index is absent.
+
+See [`docs/vector-index.md`](docs/vector-index.md) for storage, invalidation,
+commands, and integration details.
 
 ## Benchmarks
 

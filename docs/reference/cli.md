@@ -107,6 +107,26 @@ grimoire model probe [flags]
 
 The result reports the fixed identity, endpoint, 512 dimensions, and inner-product similarity.
 
+## Arcana semantic graph index
+
+Arcana uses the same running embedding endpoint; no second model installation or model process is required.
+
+Build an index for the current `.arcana/CURRENT` graph snapshot:
+
+```bash
+arcana vectorize [--state .arcana] [--endpoint http://127.0.0.1:9876/v1] [--batch-size 32]
+```
+
+Search the graph index:
+
+```bash
+arcana semantic-query --query "where is profile persistence handled?" [--limit 10] [--json]
+```
+
+The index is stored under `.arcana/vectors/<snapshot-digest>/<embedding-identity>/`. Building is explicit. `grimoire context` uses a matching existing Arcana index automatically when Arcana structural retrieval is enabled, but never builds the index as a query side effect. Missing vector state falls back to Lexicon-seeded deterministic Arcana traversal.
+
+See [`../../arcana/docs/vector-index.md`](../../arcana/docs/vector-index.md).
+
 ## `grimoire index`
 
 Prepare or incrementally update source retrieval state:

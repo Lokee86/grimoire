@@ -18,8 +18,9 @@ const (
 // Client queries one immutable Arcana snapshot through its process JSONL
 // protocol. Run is replaceable for deterministic tests.
 type Client struct {
-	Command string
-	Run     protocolRun
+	Command     string
+	Run         protocolRun
+	RunSemantic semanticRun
 }
 
 func (client Client) Search(

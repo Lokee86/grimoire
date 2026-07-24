@@ -6,7 +6,7 @@ Grimoire is a deterministic repository-intelligence platform and the canonical h
 | --- | --- | --- |
 | **Grimoire Context** | repository root | Retrieval, ranking, query-shape analysis, token budgeting, and context-package construction |
 | **Lexicon** | [`lexicon/`](lexicon/) | Polyglot language analysis, normalized source facts, immutable analysis objects, and snapshots |
-| **Arcana** | [`arcana/`](arcana/) | Repository-graph construction, packed graph storage, traversal, impact analysis, and graph queries |
+| **Arcana** | [`arcana/`](arcana/) | Repository-graph construction, packed graph storage, semantic graph indexing, traversal, impact analysis, and graph queries |
 
 The components form one natural pipeline:
 
@@ -46,7 +46,7 @@ See [Component architecture](docs/architecture/components.md) for ownership, dep
 - Packed native vector snapshots with deterministic exact search.
 - Lexical fallback when semantic state is missing, stale, or unavailable.
 - Exact recovery for concrete paths, symbols, and identifiers.
-- Lexicon symbol facts and Arcana graph evidence when structural state is available.
+- Lexicon symbol facts plus lexical- and semantic-seeded Arcana graph evidence when structural state is available.
 - Deterministic query-shape classification and automatic context budgets.
 - Evidence-coverage assembly for automatic-budget requests.
 - Versioned JSON context packages with exact `o200k_base` accounting.
@@ -63,6 +63,7 @@ See [Component architecture](docs/architecture/components.md) for ownership, dep
 - Lexicon snapshot ingestion without rebuilding language parsers.
 - Packed forward and reverse graph storage, immutable snapshots, overlays, and compaction.
 - Deterministic graph protocol operations for paths, impact, call chains, unresolved references, roles, and snapshot differences.
+- Optional graph-neighborhood vector indexes built through Grimoire's existing embedding server, without a second model runtime.
 
 ## System flow
 
@@ -78,6 +79,7 @@ Repository
 Repository
   -> Lexicon immutable analysis snapshot
   -> Arcana immutable graph snapshot
+  -> optional Arcana semantic graph index through the shared embedding server
 
 Query
   -> semantic, lexical, exact, and structural retrieval
@@ -145,7 +147,7 @@ A positive budget retains fixed fit-to-budget behavior:
 grimoire context --root . --query "Trace context assembly end to end" --budget 8000
 ```
 
-Structural enrichment uses repository-local `.lexicon/` and `.arcana/` state when available. Build or install the component executables, then initialize their state with the commands documented in [`lexicon/README.md`](lexicon/README.md) and [`arcana/README.md`](arcana/README.md). Missing structural providers warn and fall back to source retrieval.
+Structural enrichment uses repository-local `.lexicon/` and `.arcana/` state when available. Build or install the component executables, then initialize their state with the commands documented in [`lexicon/README.md`](lexicon/README.md) and [`arcana/README.md`](arcana/README.md). Run `arcana vectorize` after `arcana sync` to add semantic graph entry points through the same embedding server used by Grimoire. Grimoire uses a matching existing index automatically but never builds one during a context request. Missing structural providers warn and fall back to source retrieval.
 
 ## Context policy
 

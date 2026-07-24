@@ -161,7 +161,8 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 					Root: absoluteRoot, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
 					LexiconState: *lexiconState, LexiconCommand: *lexiconCommand,
 					ArcanaState: *arcanaState, ArcanaCommand: *arcanaCommand,
-					Limit: *limit, Timeout: *structureTimeout,
+					EmbeddingEndpoint: *endpoint,
+					Limit:             *limit, Timeout: *structureTimeout,
 				},
 				QueryOptions: queryOptions,
 			})

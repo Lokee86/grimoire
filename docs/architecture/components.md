@@ -16,15 +16,15 @@ Lexicon does not own graph-wide traversal, context ranking, package budgeting, o
 
 Location: [`arcana/`](../../arcana/)
 
-Arcana consumes verified Lexicon snapshots and owns graph ingestion, packed forward and reverse storage, overlays, compaction, graph snapshots, traversal, impact analysis, call-chain queries, unresolved-reference queries, and graph protocol compatibility.
+Arcana consumes verified Lexicon snapshots and owns graph ingestion, packed forward and reverse storage, overlays, compaction, graph snapshots, graph-derived semantic documents and vector indexes, traversal, impact analysis, call-chain queries, unresolved-reference queries, and graph protocol compatibility.
 
-Arcana does not own language adapters or Grimoire's context-selection policy.
+Arcana does not own language adapters, the embedding model runtime, or Grimoire's context-selection policy. Its optional vector-index commands call the same OpenAI-compatible embedding endpoint already operated by Grimoire Context.
 
 ### Grimoire Context
 
 Location: repository root, primarily `cmd/grimoire`, `internal`, and `native/vector-engine`.
 
-The context engine owns source preparation, embeddings, vector storage, exact and lexical retrieval, structural-provider orchestration, deterministic ranking, query-shape analysis, evidence assembly, token accounting, and context-package serialization.
+The context engine owns source preparation, the shared embedding model runtime, source-vector storage, exact and lexical retrieval, structural-provider orchestration, deterministic ranking, query-shape analysis, evidence assembly, token accounting, and context-package serialization.
 
 It consumes Lexicon and Arcana through their application and state contracts rather than importing their domain internals.
 
@@ -38,7 +38,7 @@ Arcana
 Grimoire Context
 ```
 
-Grimoire Context may also consume Lexicon directly for symbol and source-span evidence. Neither Lexicon nor Arcana depends on the context engine.
+Grimoire Context may also consume Lexicon directly for symbol and source-span evidence. Lexicon does not depend on either downstream component. Arcana's deterministic graph path does not depend on Grimoire Context; only its explicitly invoked semantic-index path depends on a compatible embedding endpoint, currently supplied by Grimoire's existing model server.
 
 The repository layout must not create reverse imports merely because the source now shares one Git root.
 
@@ -47,7 +47,7 @@ The repository layout must not create reverse imports merely because the source 
 Each component must remain meaningful on its own:
 
 - Lexicon can scan and export normalized facts without building Arcana or Grimoire Context.
-- Arcana can synchronize and answer graph queries without running Grimoire Context.
+- Arcana can synchronize and answer deterministic graph queries without running Grimoire Context; semantic indexing is optional and uses an external compatible embedding endpoint.
 - Grimoire Context can index and retrieve source without Lexicon or Arcana state.
 
 Standalone operation is a product contract, not a requirement for separate repositories.
@@ -57,7 +57,7 @@ Standalone operation is a product contract, not a requirement for separate repos
 The components continue to publish separate repository-local state:
 
 - `.lexicon/` — immutable language-analysis state.
-- `.arcana/` — immutable graph state bound to a Lexicon snapshot.
+- `.arcana/` — immutable graph state plus optional snapshot- and model-bound semantic graph indexes.
 - `.grimoire/` — prepared source and vector state.
 
 Co-location does not permit one component to mutate another component's state format directly. Integration occurs through versioned manifests, exports, protocols, and explicit command boundaries.

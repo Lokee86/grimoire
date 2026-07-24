@@ -91,6 +91,41 @@ fn parses_import_and_query_arguments() {
 }
 
 #[test]
+fn parses_vector_commands() {
+    let command = cli::parse([
+        "vectorize".to_owned(),
+        "--state".to_owned(),
+        "graph-state".to_owned(),
+        "--endpoint=http://127.0.0.1:9999/v1".to_owned(),
+        "--batch-size".to_owned(),
+        "16".to_owned(),
+    ])
+    .unwrap();
+    let Command::Vectorize(command) = command else {
+        panic!("wrong command")
+    };
+    assert_eq!(command.state, PathBuf::from("graph-state"));
+    assert_eq!(command.endpoint, "http://127.0.0.1:9999/v1");
+    assert_eq!(command.batch_size, 16);
+
+    let command = cli::parse([
+        "semantic-query".to_owned(),
+        "--query".to_owned(),
+        "profile persistence".to_owned(),
+        "--limit=4".to_owned(),
+        "--json".to_owned(),
+    ])
+    .unwrap();
+    let Command::SemanticQuery(command) = command else {
+        panic!("wrong command")
+    };
+    assert_eq!(command.state, PathBuf::from(".arcana"));
+    assert_eq!(command.query, "profile persistence");
+    assert_eq!(command.limit, 4);
+    assert!(command.json);
+}
+
+#[test]
 fn reports_cli_argument_errors() {
     assert!(matches!(
         cli::parse(["import-facts".to_owned(), "--facts".to_owned()]),

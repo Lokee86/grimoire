@@ -10,6 +10,7 @@ pub mod repository;
 pub mod snapshot;
 pub mod storage;
 pub mod synthetic;
+pub mod vector;
 
 /// Product name presented by the Arcana library and CLI.
 pub const PROJECT_NAME: &str = "Arcana";

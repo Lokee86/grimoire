@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/Lokee86/grimoire/internal/arcanagraph"
@@ -12,18 +13,19 @@ import (
 )
 
 type structuralContextOptions struct {
-	Enabled        bool
-	ArcanaEnabled  bool
-	EmitLexicon    bool
-	Root           string
-	GrimoireState  string
-	LexiconFacts   string
-	LexiconState   string
-	LexiconCommand string
-	ArcanaState    string
-	ArcanaCommand  string
-	Limit          int
-	Timeout        time.Duration
+	Enabled           bool
+	ArcanaEnabled     bool
+	EmitLexicon       bool
+	Root              string
+	GrimoireState     string
+	LexiconFacts      string
+	LexiconState      string
+	LexiconCommand    string
+	ArcanaState       string
+	ArcanaCommand     string
+	EmbeddingEndpoint string
+	Limit             int
+	Timeout           time.Duration
 }
 
 type structuralContextResult struct {
@@ -76,7 +78,7 @@ func collectStructuralContext(
 	}
 	result.LexiconTime = time.Since(lexiconStarted)
 
-	if options.ArcanaEnabled && len(result.Lexicon.Seeds) > 0 {
+	if options.ArcanaEnabled {
 		arcanaStarted := time.Now()
 		arcanaSnapshot, arcanaSnapshotID, arcanaErr := arcanagraph.ResolveSnapshot(ctx, arcanagraph.StateOptions{
 			Root: options.Root, State: options.ArcanaState, LexiconState: options.LexiconState,
@@ -90,12 +92,24 @@ func collectStructuralContext(
 					Provider: "arcana", Snapshot: arcanaSnapshotID,
 				})
 			}
-			result.Arcana, arcanaErr = (arcanagraph.Client{Command: options.ArcanaCommand}).Search(
-				ctx, arcanaSnapshot, result.Lexicon.Seeds,
+			client := arcanagraph.Client{Command: options.ArcanaCommand}
+			semanticSeeds, semanticErr := client.SemanticSeeds(
+				ctx,
+				filepath.Dir(filepath.Dir(arcanaSnapshot)),
+				options.EmbeddingEndpoint,
+				query,
+				min(options.Limit, 6),
 			)
-			if arcanaErr != nil {
-				result.Warnings = append(result.Warnings, fmt.Sprintf("Arcana structural evidence unavailable: %v", arcanaErr))
-				result.Arcana = nil
+			if semanticErr != nil {
+				result.Warnings = append(result.Warnings, fmt.Sprintf("Arcana semantic graph retrieval unavailable: %v", semanticErr))
+			}
+			seeds := mergeArcanaSeeds(result.Lexicon.Seeds, semanticSeeds, 6)
+			if len(seeds) > 0 {
+				result.Arcana, arcanaErr = client.Search(ctx, arcanaSnapshot, seeds)
+				if arcanaErr != nil {
+					result.Warnings = append(result.Warnings, fmt.Sprintf("Arcana structural evidence unavailable: %v", arcanaErr))
+					result.Arcana = nil
+				}
 			}
 		}
 		result.ArcanaTime = time.Since(arcanaStarted)
@@ -106,6 +120,41 @@ func collectStructuralContext(
 		result.Combined = append([]structure.Evidence(nil), result.Arcana...)
 	}
 	result.TotalTime = time.Since(started)
+	return result
+}
+
+func mergeArcanaSeeds(lexicon, semantic []structure.Node, limit int) []structure.Node {
+	if limit <= 0 {
+		return nil
+	}
+	groups := [][]structure.Node{semantic, lexicon}
+	result := make([]structure.Node, 0, min(limit, len(lexicon)+len(semantic)))
+	seen := make(map[string]struct{}, cap(result))
+	for index := 0; len(result) < limit; index++ {
+		added := false
+		for _, group := range groups {
+			if index >= len(group) {
+				continue
+			}
+			seed := group[index]
+			if seed.Name == "" {
+				continue
+			}
+			key := seed.Name + "\x00" + seed.Path
+			if _, exists := seen[key]; exists {
+				continue
+			}
+			seen[key] = struct{}{}
+			result = append(result, seed)
+			added = true
+			if len(result) == limit {
+				break
+			}
+		}
+		if !added && index >= len(semantic) && index >= len(lexicon) {
+			break
+		}
+	}
 	return result
 }
 

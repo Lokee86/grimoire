@@ -22,6 +22,35 @@ func TestParseContextStructuralProvidersRejectsUnknownProvider(t *testing.T) {
 	}
 }
 
+func TestMergeArcanaSeedsBalancesSemanticAndLexiconRecall(t *testing.T) {
+	lexicon := []structure.Node{
+		{Name: "LexiconOne", Path: "lexicon/one.go"},
+		{Name: "Shared", Path: "shared.go"},
+		{Name: "LexiconThree", Path: "lexicon/three.go"},
+		{Name: "LexiconFour", Path: "lexicon/four.go"},
+	}
+	semantic := []structure.Node{
+		{Name: "SemanticOne", Path: "semantic/one.go"},
+		{Name: "Shared", Path: "shared.go"},
+		{Name: "SemanticThree", Path: "semantic/three.go"},
+		{Name: "SemanticFour", Path: "semantic/four.go"},
+	}
+
+	result := mergeArcanaSeeds(lexicon, semantic, 6)
+	want := []string{
+		"SemanticOne", "LexiconOne", "Shared",
+		"SemanticThree", "LexiconThree", "SemanticFour",
+	}
+	if len(result) != len(want) {
+		t.Fatalf("merged %d seeds, want %d: %+v", len(result), len(want), result)
+	}
+	for index := range want {
+		if result[index].Name != want[index] {
+			t.Fatalf("seed %d=%q, want %q: %+v", index, result[index].Name, want[index], result)
+		}
+	}
+}
+
 func TestInterleaveStructuralEvidencePreservesProviderRanks(t *testing.T) {
 	lexicon := []structure.Evidence{
 		{Provider: "lexicon", Rank: 1},

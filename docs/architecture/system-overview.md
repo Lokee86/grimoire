@@ -12,6 +12,8 @@ Repository files
   -> immutable Lexicon facts and snapshot
   -> Arcana graph compilation
   -> immutable Arcana graph snapshot
+  -> optional graph-neighborhood embeddings through Grimoire's model server
+  -> Arcana-owned semantic graph index
 
 Repository files
   -> Grimoire ignore and eligibility rules
@@ -31,6 +33,8 @@ Query
   -> query embedding plan
   -> vector search or lexical fallback
   -> concrete exact recovery
+  -> Lexicon symbol seeds plus optional Arcana semantic graph seeds
+  -> deterministic Arcana graph expansion
   -> available Lexicon and Arcana evidence
   -> candidate merge and ranking
   -> query-shape analysis
@@ -51,7 +55,7 @@ When the caller omits a positive budget, Grimoire activates the policy and appli
 
 ### Arcana
 
-`arcana/` owns Lexicon snapshot ingestion, repository graph construction, packed graph storage, overlays, compaction, traversal, impact analysis, path queries, and the graph protocol.
+`arcana/` owns Lexicon snapshot ingestion, repository graph construction, packed graph storage, overlays, compaction, graph-derived semantic documents and vector indexes, semantic graph search, traversal, impact analysis, path queries, and the graph protocol. Arcana's optional vector path calls the existing Grimoire embedding endpoint but keeps index storage and invalidation inside `.arcana/`.
 
 ### Context application orchestration
 
@@ -75,7 +79,7 @@ When the caller omits a positive budget, Grimoire activates the policy and appli
 
 ### Structural integration
 
-`internal/structure` defines common evidence and provider-state contracts. `internal/lexiconfacts` matches immutable Lexicon exports. `internal/arcanagraph` synchronizes and queries Arcana using Lexicon matches as bounded graph seeds.
+`internal/structure` defines common evidence and provider-state contracts. `internal/lexiconfacts` matches immutable Lexicon exports. `internal/arcanagraph` synchronizes and queries Arcana using both Lexicon matches and, when a compatible Arcana vector index already exists, semantic graph matches as bounded graph seeds.
 
 These packages integrate the components; they do not take ownership of Lexicon or Arcana domain logic. Structural failures are non-fatal to source retrieval.
 
@@ -93,7 +97,8 @@ These packages integrate the components; they do not take ownership of Lexicon o
 
 ## Failure and fallback boundaries
 
-- A stale or missing vector snapshot prevents semantic search but not lexical context construction.
+- A stale or missing Grimoire source-vector snapshot prevents source semantic search but not lexical context construction.
+- A missing Arcana vector index silently falls back to Lexicon-seeded graph traversal; a failed query against an existing Arcana vector index emits a warning and does not discard other evidence.
 - A failed Lexicon or Arcana provider emits warnings and does not discard source evidence.
 - Arcana state remains explicitly bound to the Lexicon snapshot it consumed.
 - Explicit backend or runtime errors fail setup or service startup rather than silently changing the requested backend.
@@ -104,6 +109,6 @@ These packages integrate the components; they do not take ownership of Lexicon o
 
 - `.grimoire/` — prepared and vector state.
 - `.lexicon/` — Lexicon immutable analysis state.
-- `.arcana/` — Arcana graph state.
+- `.arcana/` — Arcana graph state and optional snapshot- and model-bound semantic graph indexes.
 
 The source code now shares one repository, but these state formats remain independently versioned and owned. Integration occurs through manifests, exports, and protocols rather than direct cross-component mutation.

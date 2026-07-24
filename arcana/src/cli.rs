@@ -2,8 +2,9 @@ use std::fmt;
 use std::path::PathBuf;
 
 use arcana::repository::RelationKind;
+use arcana::vector::DEFAULT_ENDPOINT;
 
-pub const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds\n    import-facts     Compile facts into a verified repository snapshot\n    update-facts     Replace changed-file facts and create a graph overlay\n    sync             Synchronize from Lexicon's current immutable snapshot\n    query            Query exact node names from a packed graph\n    protocol         Serve machine-readable JSONL snapshot queries\n\nImport facts:\n    arcana import-facts --facts <FILE> --output <NEW-DIRECTORY> [--adapter <NAME>] [--adapter-version <VERSION>]\n\nUpdate facts:\n    arcana update-facts --base <repository.manifest> --facts <FILE> --changed <PATH>... --output <NEW-DIRECTORY>\n\nSync:\n    arcana sync [--lexicon <DIRECTORY>] [--state <DIRECTORY>] [--register]\n\nQuery:\n    arcana query --graph <FILE> --catalogue <FILE> --name <EXACT-NAME> [--reverse] [--relation <RELATION>]\n\nProtocol:\n    arcana protocol --snapshot <DIRECTORY>";
+pub const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds\n    import-facts     Compile facts into a verified repository snapshot\n    update-facts     Replace changed-file facts and create a graph overlay\n    sync             Synchronize from Lexicon's current immutable snapshot\n    query            Query exact node names from a packed graph\n    protocol         Serve machine-readable JSONL snapshot queries\n    vectorize        Build an optional semantic index for the current graph\n    semantic-query   Search the current semantic graph index\n\nImport facts:\n    arcana import-facts --facts <FILE> --output <NEW-DIRECTORY> [--adapter <NAME>] [--adapter-version <VERSION>]\n\nUpdate facts:\n    arcana update-facts --base <repository.manifest> --facts <FILE> --changed <PATH>... --output <NEW-DIRECTORY>\n\nSync:\n    arcana sync [--lexicon <DIRECTORY>] [--state <DIRECTORY>] [--register]\n\nQuery:\n    arcana query --graph <FILE> --catalogue <FILE> --name <EXACT-NAME> [--reverse] [--relation <RELATION>]\n\nProtocol:\n    arcana protocol --snapshot <DIRECTORY>\n\nVectorize:\n    arcana vectorize [--state <DIRECTORY>] [--endpoint <URL>] [--batch-size <N>]\n\nSemantic query:\n    arcana semantic-query --query <TEXT> [--state <DIRECTORY>] [--endpoint <URL>] [--limit <N>] [--json]";
 
 #[derive(Debug)]
 pub enum Command {
@@ -15,6 +16,8 @@ pub enum Command {
     Sync(SyncCommand),
     Query(QueryCommand),
     Protocol(ProtocolCommand),
+    Vectorize(VectorizeCommand),
+    SemanticQuery(SemanticQueryCommand),
 }
 
 #[derive(Debug)]
@@ -54,6 +57,22 @@ pub struct ProtocolCommand {
     pub snapshot: PathBuf,
 }
 
+#[derive(Debug)]
+pub struct VectorizeCommand {
+    pub state: PathBuf,
+    pub endpoint: String,
+    pub batch_size: usize,
+}
+
+#[derive(Debug)]
+pub struct SemanticQueryCommand {
+    pub state: PathBuf,
+    pub endpoint: String,
+    pub query: String,
+    pub limit: usize,
+    pub json: bool,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CliParseError {
     MissingValue(String),
@@ -61,6 +80,7 @@ pub enum CliParseError {
     UnknownFlag(String),
     UnexpectedArgument(String),
     InvalidRelation(String),
+    InvalidNumber { option: String, value: String },
 }
 
 impl fmt::Display for CliParseError {
@@ -73,6 +93,9 @@ impl fmt::Display for CliParseError {
                 write!(formatter, "unexpected argument '{argument}'")
             }
             Self::InvalidRelation(relation) => write!(formatter, "unknown relation '{relation}'"),
+            Self::InvalidNumber { option, value } => {
+                write!(formatter, "invalid value {value:?} for {option}")
+            }
         }
     }
 }
@@ -94,6 +117,8 @@ pub fn parse(arguments: impl IntoIterator<Item = String>) -> Result<Command, Cli
         "sync" => Ok(Command::Sync(parse_sync(rest)?)),
         "query" => Ok(Command::Query(parse_query(rest)?)),
         "protocol" => Ok(Command::Protocol(parse_protocol(rest)?)),
+        "vectorize" => Ok(Command::Vectorize(parse_vectorize(rest)?)),
+        "semantic-query" => Ok(Command::SemanticQuery(parse_semantic_query(rest)?)),
         argument => Err(CliParseError::UnexpectedArgument(argument.to_owned())),
     }
 }
@@ -209,6 +234,49 @@ fn parse_protocol(arguments: Vec<String>) -> Result<ProtocolCommand, CliParseErr
     })
 }
 
+fn parse_vectorize(arguments: Vec<String>) -> Result<VectorizeCommand, CliParseError> {
+    let mut state = None;
+    let mut endpoint = None;
+    let mut batch_size = None;
+    parse_options(arguments, |option, value| match option {
+        "--state" => set_path(&mut state, value.as_deref(), "--state"),
+        "--endpoint" => set_string(&mut endpoint, value.as_deref(), "--endpoint"),
+        "--batch-size" => set_usize(&mut batch_size, value.as_deref(), "--batch-size"),
+        option => Err(CliParseError::UnknownFlag(option.to_owned())),
+    })?;
+    Ok(VectorizeCommand {
+        state: state.unwrap_or_else(|| PathBuf::from(".arcana")),
+        endpoint: endpoint.unwrap_or_else(|| DEFAULT_ENDPOINT.to_owned()),
+        batch_size: batch_size.unwrap_or(32),
+    })
+}
+
+fn parse_semantic_query(arguments: Vec<String>) -> Result<SemanticQueryCommand, CliParseError> {
+    let mut state = None;
+    let mut endpoint = None;
+    let mut query = None;
+    let mut limit = None;
+    let mut json = false;
+    parse_options(arguments, |option, value| match option {
+        "--state" => set_path(&mut state, value.as_deref(), "--state"),
+        "--endpoint" => set_string(&mut endpoint, value.as_deref(), "--endpoint"),
+        "--query" => set_string(&mut query, value.as_deref(), "--query"),
+        "--limit" => set_usize(&mut limit, value.as_deref(), "--limit"),
+        "--json" if value.is_none() => {
+            json = true;
+            Ok(())
+        }
+        option => Err(CliParseError::UnknownFlag(option.to_owned())),
+    })?;
+    Ok(SemanticQueryCommand {
+        state: state.unwrap_or_else(|| PathBuf::from(".arcana")),
+        endpoint: endpoint.unwrap_or_else(|| DEFAULT_ENDPOINT.to_owned()),
+        query: query.ok_or(CliParseError::MissingRequired("--query"))?,
+        limit: limit.unwrap_or(10),
+        json,
+    })
+}
+
 fn parse_options<F>(arguments: Vec<String>, mut parse: F) -> Result<(), CliParseError>
 where
     F: FnMut(&str, Option<String>) -> Result<(), CliParseError>,
@@ -223,7 +291,7 @@ where
             .map_or((argument.as_str(), None), |(option, value)| {
                 (option, Some(value))
             });
-        if matches!(option, "--reverse" | "--register") {
+        if matches!(option, "--reverse" | "--register" | "--json") {
             parse(option, inline.map(str::to_owned))?;
             continue;
         }
@@ -262,6 +330,30 @@ fn set_string(
 ) -> Result<(), CliParseError> {
     let value = value.ok_or(CliParseError::MissingValue(option.to_owned()))?;
     if destination.replace(value.to_owned()).is_some() {
+        return Err(CliParseError::UnexpectedArgument(format!(
+            "duplicate {option}"
+        )));
+    }
+    Ok(())
+}
+
+fn set_usize(
+    destination: &mut Option<usize>,
+    value: Option<&str>,
+    option: &'static str,
+) -> Result<(), CliParseError> {
+    let value = value.ok_or(CliParseError::MissingValue(option.to_owned()))?;
+    let parsed = value.parse().map_err(|_| CliParseError::InvalidNumber {
+        option: option.to_owned(),
+        value: value.to_owned(),
+    })?;
+    if parsed == 0 {
+        return Err(CliParseError::InvalidNumber {
+            option: option.to_owned(),
+            value: value.to_owned(),
+        });
+    }
+    if destination.replace(parsed).is_some() {
         return Err(CliParseError::UnexpectedArgument(format!(
             "duplicate {option}"
         )));

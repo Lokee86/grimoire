@@ -97,7 +97,8 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		Root: *root, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
 		LexiconState: *lexiconState, LexiconCommand: *lexiconCommand,
 		ArcanaState: *arcanaState, ArcanaCommand: *arcanaCommand,
-		Limit: *limit, Timeout: *structureTimeout,
+		EmbeddingEndpoint: *endpoint,
+		Limit:             *limit, Timeout: *structureTimeout,
 	})
 	structural = annotateStructuralIntent(structural, structuralIntent)
 	for _, warning := range structural.Warnings {

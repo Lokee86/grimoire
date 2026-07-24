@@ -5,6 +5,7 @@ mod cli_query;
 mod cli_sync;
 mod cli_sync_state;
 mod cli_update;
+mod cli_vectors;
 
 #[cfg(test)]
 mod cli_sync_tests;
@@ -71,6 +72,27 @@ fn main() -> ExitCode {
             }
             Err(error) => {
                 eprintln!("arcana query: {error}");
+                ExitCode::FAILURE
+            }
+        },
+        Ok(cli::Command::Vectorize(command)) => match cli_vectors::run_vectorize(&command) {
+            Ok(summary) => {
+                print!("{summary}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("arcana vectorize: {error}");
+                ExitCode::FAILURE
+            }
+        },
+        Ok(cli::Command::SemanticQuery(command)) => match cli_vectors::run_semantic_query(&command)
+        {
+            Ok(output) => {
+                print!("{output}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("arcana semantic-query: {error}");
                 ExitCode::FAILURE
             }
         },
