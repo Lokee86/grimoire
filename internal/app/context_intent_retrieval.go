@@ -26,6 +26,7 @@ func activeRetrievalIntents(query string) []queryshape.RetrievalIntent {
 }
 
 func intentLexicalCandidates(snapshot index.Snapshot, intents []queryshape.RetrievalIntent, limit int) []retrieve.Candidate {
+	intents = providerRetrievalIntents(intents)
 	queries := make([]string, 0, len(intents))
 	for _, planned := range intents {
 		queries = append(queries, planned.Query)
@@ -40,6 +41,7 @@ func intentLexicalCandidates(snapshot index.Snapshot, intents []queryshape.Retri
 }
 
 func intentExactCandidates(snapshot index.Snapshot, intents []queryshape.RetrievalIntent, limit int) []retrieve.Candidate {
+	intents = providerRetrievalIntents(intents)
 	groups := make([]intentCandidateGroup, 0, len(intents))
 	for _, planned := range intents {
 		candidates := retrieve.Exact(snapshot, planned.Query, limit)
@@ -47,6 +49,23 @@ func intentExactCandidates(snapshot index.Snapshot, intents []queryshape.Retriev
 		groups = append(groups, intentCandidateGroup{Intent: planned, Candidates: candidates})
 	}
 	return mergeIntentCandidateGroups(limit, groups)
+}
+
+func providerRetrievalIntents(intents []queryshape.RetrievalIntent) []queryshape.RetrievalIntent {
+	if len(intents) <= 1 {
+		return intents
+	}
+	result := make([]queryshape.RetrievalIntent, 0, len(intents))
+	for _, planned := range intents {
+		if planned.Intent == evidence.IntentMixed && planned.Weight <= 0.25 {
+			continue
+		}
+		result = append(result, planned)
+	}
+	if len(result) == 0 {
+		return intents
+	}
+	return result
 }
 
 func rankCandidatesForIntent(candidates []retrieve.Candidate, planned queryshape.RetrievalIntent, boost bool) []retrieve.Candidate {

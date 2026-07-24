@@ -11,6 +11,28 @@ import (
 	"github.com/Lokee86/grimoire/internal/retrieve"
 )
 
+func TestProviderRetrievalIntentsDropsLowWeightLongContextPass(t *testing.T) {
+	intents := []queryshape.RetrievalIntent{
+		{Intent: evidence.IntentMixed, Query: "very long original prompt", Weight: 0.15},
+		{Intent: evidence.IntentMechanism, Query: "score retrieval evidence", Weight: 1},
+	}
+	got := providerRetrievalIntents(intents)
+	if len(got) != 1 || got[0].Query != "score retrieval evidence" {
+		t.Fatalf("provider intents = %+v", got)
+	}
+}
+
+func TestProviderRetrievalIntentsKeepsShortMixedContextPass(t *testing.T) {
+	intents := []queryshape.RetrievalIntent{
+		{Intent: evidence.IntentMixed, Query: "short mixed prompt", Weight: 0.4},
+		{Intent: evidence.IntentMechanism, Query: "explain retrieval", Weight: 1},
+	}
+	got := providerRetrievalIntents(intents)
+	if len(got) != 2 {
+		t.Fatalf("provider intents = %+v", got)
+	}
+}
+
 func TestIntentLexicalCandidatesPrioritizeDirectLocationPaths(t *testing.T) {
 	snapshot := index.Snapshot{Version: index.FormatVersion, Files: []index.FileRecord{
 		{Path: "noise/content.go", Chunks: []index.Chunk{{
