@@ -14,6 +14,7 @@ import (
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/index"
+	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/selection"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
@@ -42,6 +43,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	selectionAdjacentPrimaries := flags.Int("selection-adjacent-primaries", selectionDefaults.AdjacentPrimaryLimit, "number of diversified primaries whose immediate prepared neighbors are promoted")
 	assemblyStrategy := flags.String("assembly-strategy", "coverage", "adaptive assembly strategy: legacy or coverage")
 	assemblyFacetDepth := flags.Int("assembly-facet-depth", assembly.DefaultConfig().FacetDepth, "candidate depth reserved for each query facet")
+	lexicalDeclarationAliasBonus := flags.Float64("lexical-declaration-alias-bonus", retrieve.DefaultConfig().DeclarationAliasBonus, "score for one repository-derived high-similarity declaration alias per absent query term")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
 	structuralProvidersValue := flags.String("structural-providers", "none", "structural providers: none, lexicon, or lexicon,arcana")
@@ -62,12 +64,14 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if strings.TrimSpace(*casesPath) == "" || *limit <= 0 || *probeLimit <= 0 || *timeout <= 0 || *structureTimeout <= 0 ||
-		*selectionFilePenalty < 0 || *selectionSubsystemPenalty < 0 || *selectionAdjacentPrimaries < 0 || *assemblyFacetDepth < 0 {
-		return errors.New("--cases, positive limits and timeouts, and non-negative selection and assembly calibration values are required")
+		*selectionFilePenalty < 0 || *selectionSubsystemPenalty < 0 || *selectionAdjacentPrimaries < 0 || *assemblyFacetDepth < 0 ||
+		*lexicalDeclarationAliasBonus < 0 {
+		return errors.New("--cases, positive limits and timeouts, and non-negative ranking, selection, and assembly calibration values are required")
 	}
 	if *adaptive && *budgetOverride > 0 {
 		return errors.New("--adaptive cannot be combined with a fixed --budget override")
 	}
+	lexicalConfig := retrieve.Config{DeclarationAliasBonus: *lexicalDeclarationAliasBonus}
 	assemblyConfig := assembly.DefaultConfig()
 	switch strings.ToLower(strings.TrimSpace(*assemblyStrategy)) {
 	case "coverage":
@@ -187,6 +191,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 					AdjacentPrimaryLimit:   *selectionAdjacentPrimaries,
 				},
 				AssemblyConfig: &assemblyConfig,
+				LexicalConfig:  &lexicalConfig,
 			})
 			cancel()
 			run.Timings = executed.Timings

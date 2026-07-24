@@ -24,12 +24,18 @@
     "internal/evidence/descriptor_test.go",
     "internal/queryshape/intents.go",
     "internal/queryshape/intents_test.go",
-    "internal/queryshape/model.go"
+    "internal/queryshape/model.go",
+    "internal/retrieve/config.go",
+    "internal/retrieve/search.go",
+    "internal/retrieve/search_test.go"
   ],
   "selection": {
     "file_repeat_penalty": 10,
     "subsystem_repeat_penalty": 18,
     "adjacent_primary_limit": 4
+  },
+  "ranking": {
+    "lexical_declaration_alias_bonus": 1
   },
   "assembly": {
     "strategy": "coverage",

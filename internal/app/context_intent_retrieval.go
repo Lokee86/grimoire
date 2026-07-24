@@ -26,12 +26,21 @@ func activeRetrievalIntents(query string) []queryshape.RetrievalIntent {
 }
 
 func intentLexicalCandidates(snapshot index.Snapshot, intents []queryshape.RetrievalIntent, limit int) []retrieve.Candidate {
+	return intentLexicalCandidatesWithConfig(snapshot, intents, limit, retrieve.DefaultConfig())
+}
+
+func intentLexicalCandidatesWithConfig(
+	snapshot index.Snapshot,
+	intents []queryshape.RetrievalIntent,
+	limit int,
+	config retrieve.Config,
+) []retrieve.Candidate {
 	intents = providerRetrievalIntents(intents)
 	queries := make([]string, 0, len(intents))
 	for _, planned := range intents {
 		queries = append(queries, planned.Query)
 	}
-	results := retrieve.SearchMany(snapshot, queries, limit)
+	results := retrieve.SearchManyWithConfig(snapshot, queries, limit, config)
 	groups := make([]intentCandidateGroup, 0, len(intents))
 	for index, planned := range intents {
 		candidates := rankCandidatesForIntent(results[index], planned, true)

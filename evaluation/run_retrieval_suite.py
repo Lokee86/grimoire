@@ -143,6 +143,7 @@ def main() -> int:
     parser.add_argument("--selection-adjacent-primaries", type=int)
     parser.add_argument("--assembly-strategy", choices=("legacy", "coverage"))
     parser.add_argument("--assembly-facet-depth", type=int)
+    parser.add_argument("--lexical-declaration-alias-bonus", type=float)
     parser.add_argument("--skip-index", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -151,6 +152,12 @@ def main() -> int:
     workspace = Path(args.workspace_root).resolve()
     manifest = json.loads((grimoire / args.suite).read_text(encoding="utf-8"))
     assembly_defaults = manifest.get("assembly", {"strategy": "coverage", "facet_depth": 3})
+    ranking_defaults = manifest.get("ranking", {"lexical_declaration_alias_bonus": 1.0})
+    lexical_declaration_alias_bonus = (
+        args.lexical_declaration_alias_bonus
+        if args.lexical_declaration_alias_bonus is not None
+        else ranking_defaults["lexical_declaration_alias_bonus"]
+    )
     assembly_strategy = args.assembly_strategy or assembly_defaults["strategy"]
     assembly_facet_depth = (
         args.assembly_facet_depth
@@ -184,6 +191,8 @@ def main() -> int:
             selection[key] = value
     if assembly_facet_depth < 0:
         parser.error("assembly facet depth must be non-negative")
+    if lexical_declaration_alias_bonus < 0:
+        parser.error("lexical declaration alias bonus must be non-negative")
     for entry in entries:
         checkout = resolve_checkout(entry, workspace, grimoire)
         root = (checkout / entry.get("scope", ".")).resolve()
@@ -199,6 +208,7 @@ def main() -> int:
             "--selection-adjacent-primaries", str(selection["adjacent_primary_limit"]),
             "--assembly-strategy", assembly_strategy,
             "--assembly-facet-depth", str(assembly_facet_depth),
+            "--lexical-declaration-alias-bonus", str(lexical_declaration_alias_bonus),
             "--output-dir", str(output_dir), "--output-prefix", prefix,
         ]
         run(command, grimoire, args.dry_run)
@@ -214,6 +224,9 @@ def main() -> int:
         "mode": args.mode,
         "baseline_revision": manifest["baseline_revision"],
         "selection": selection,
+        "ranking": {
+            "lexical_declaration_alias_bonus": lexical_declaration_alias_bonus,
+        },
         "assembly": {
             "strategy": assembly_strategy,
             "facet_depth": assembly_facet_depth,

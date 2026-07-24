@@ -190,7 +190,9 @@ python evaluation/run_retrieval_suite.py \
   --allow-test
 ```
 
-Use `--skip-index` only when the prepared state for every selected checkout is known to match its pinned revision. The runner refuses revision drift and refuses changes under the baseline implementation paths. Bounded calibration runs may override the frozen selection values with `--selection-file-penalty`, `--selection-subsystem-penalty`, and `--selection-adjacent-primaries`, or compare `--assembly-strategy legacy|coverage` and `--assembly-facet-depth`. Every report records the effective selection and assembly values plus aggregate required-evidence failure stages.
+Use `--skip-index` only for the second half of a paired comparison after the first half rebuilt the same pinned checkout state. A normal `grimoire index` may reuse prepared objects, so a benchmark described as fresh must remove the checkout's `.grimoire/` directory before the first run and record the resulting `scanned`, `reused`, and `updated` counts. Reused-state and fresh-state reports are not paired measurements.
+
+The runner refuses revision drift and changes outside the declared calibration seams. Bounded calibration runs may override the frozen selection values with `--selection-file-penalty`, `--selection-subsystem-penalty`, and `--selection-adjacent-primaries`; compare `--assembly-strategy legacy|coverage` and `--assembly-facet-depth`; or vary `--lexical-declaration-alias-bonus`. Every report records the effective ranking, selection, and assembly values plus aggregate required-evidence failure stages.
 
 ## Candidate-selection calibration
 
@@ -210,12 +212,14 @@ grimoire eval retrieval \
   --variant selection-calibrated
 ```
 
-The current defaults are file penalty 10, subsystem penalty 18, four neighbor anchors, and coverage-aware assembly with three distinct candidates reserved per query facet. Selection values were established in the earlier bounded grid; facet depth was selected on the multi-repository calibration split and then validated against Space Rocks, RuboCop, and Actual `loot-core`. Depth four was rejected because it regressed HTTPie required recall, and widening ranking reservation was rejected because it regressed ranking metrics. These values are measured defaults, not a universal optimum. See [the selection comparison](../../evaluation/results/selection-calibration-comparison-2026-07-23.md) and [the coverage-aware comparison](../../evaluation/results/coverage-aware-retrieval-calibration-2026-07-24.md).
+The current defaults are file penalty 10, subsystem penalty 18, four neighbor anchors, coverage-aware assembly with three distinct candidates reserved per query facet, and repository-derived declaration aliases with bonus `1`. The alias ranker selects at most one high-similarity code-facing identifier for an absent query term and scores only declaration/path evidence; exact-token BM25 remains primary.
+
+Selection values were established in the earlier bounded grid; facet depth was selected on the multi-repository calibration split and validated against Space Rocks, RuboCop, and Actual `loot-core`. Declaration aliases improved calibration MRR and fresh-state test R@10 without changing validation quality metrics. These values are measured defaults, not a universal optimum. See [the selection comparison](../../evaluation/results/selection-calibration-comparison-2026-07-23.md), [the coverage-aware comparison](../../evaluation/results/coverage-aware-retrieval-calibration-2026-07-24.md), and [the declaration-alias ranking comparison](../../evaluation/results/declaration-alias-ranking-calibration-2026-07-24.md).
 
 ## Calibration discipline
 
-1. Rebuild prepared and vector state after implementation changes that affect indexed content or embedding identity.
-2. Run compared variants against the same immutable state.
+1. Remove `.grimoire/` and rebuild prepared and vector state for a fresh baseline after implementation changes that affect indexed content, chunking, or embedding identity.
+2. Record index reuse counts and run compared variants against that same immutable rebuilt state.
 3. Preserve corpus, command parameters, and provider set with the report.
 4. Inspect per-case failure stages before acting on aggregate recall.
 5. Correct invalid expectations instead of treating them as implementation failures.

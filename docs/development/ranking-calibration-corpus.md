@@ -69,7 +69,15 @@ The accepted implementation assigns stable facet identities to decomposed query 
 
 Against the repaired legacy-assembly baseline, calibration required recall increased from 23.58% to 32.64%, irrelevant selection fell from 80.92% to 74.22%, and median latency fell from 1072.2 ms to 1020.7 ms. Validation required recall increased from 13.69% to 17.01%, irrelevant selection fell from 86.39% to 82.39%, median latency fell from 1207.6 ms to 1173.9 ms, and macro pass rate increased from 1.04% to 7.71%. No validation repository lost required recall.
 
-Depth four was rejected despite a higher calibration macro average because HTTPie required recall regressed from 23.53% to 17.65%. Increasing the ranking reservation from two to three candidates per facet was also rejected because it regressed R@10 or MRR on Lexicon, Gum, and fd. R@10, R@20, and MRR therefore remain the next measured bottleneck rather than being hidden by package-assembly gains.
+Depth four was rejected despite a higher calibration macro average because HTTPie required recall regressed from 23.53% to 17.65%. Increasing the ranking reservation from two to three candidates per facet was also rejected because it regressed R@10 or MRR on Lexicon, Gum, and fd.
+
+## Declaration-alias ranking calibration
+
+The next cycle rebuilt every external suite checkout from source by removing only its `.grimoire/` prepared state; no repository was recloned. The accepted deterministic ranker derives at most one high-similarity identifier alias for a query term that is absent from the repository's declaration vocabulary. Vocabulary comes from paths and non-comment declaration headers, with CamelCase splitting performed before lowercasing. Production alias bonus is `1`.
+
+Calibration macro MRR increased from `0.3510` to `0.3718` without changing R@10, R@20, required recall, or pass rate. Validation quality metrics were unchanged. On fresh-state GDQuest and Trilium, macro R@10 increased from 45.31% to 46.74%; all other primary ranking and package metrics were unchanged, while irrelevant selection increased by 0.37 percentage points.
+
+The fresh-state test baseline reported 40.19% required recall versus 33.98% in the earlier reused-state run. Prepared-state freshness is therefore a benchmark invariant: reports must record whether `.grimoire/` was rebuilt, and reused-state results must not be treated as paired comparisons against fresh-state results. See [the declaration-alias ranking report](../../evaluation/results/declaration-alias-ranking-calibration-2026-07-24.md).
 
 ## Calibration workflow
 

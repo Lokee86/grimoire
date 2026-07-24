@@ -39,6 +39,7 @@ type evaluatedContextOptions struct {
 	QueryOptions    embedding.QueryOptions
 	SelectionConfig *selection.Config
 	AssemblyConfig  *assembly.Config
+	LexicalConfig   *retrieve.Config
 }
 
 func evaluateContext(
@@ -51,29 +52,33 @@ func evaluateContext(
 	var base []retrieve.Candidate
 	var broad []retrieve.Candidate
 	intents := activeRetrievalIntents(options.Query)
+	lexicalConfig := retrieve.DefaultConfig()
+	if options.LexicalConfig != nil {
+		lexicalConfig = *options.LexicalConfig
+	}
 
 	switch options.Mode {
 	case "lexical":
 		searchStart := time.Now()
-		base = intentLexicalCandidates(snapshot, intents, options.Limit)
+		base = intentLexicalCandidatesWithConfig(snapshot, intents, options.Limit, lexicalConfig)
 		result.Timings.LexicalSearchMS = durationMS(time.Since(searchStart))
 		probeLimit := options.ProbeLimit
 		if probeLimit <= 0 {
 			probeLimit = options.Limit
 		}
 		probeStart := time.Now()
-		broad = intentLexicalCandidates(snapshot, intents, probeLimit)
+		broad = intentLexicalCandidatesWithConfig(snapshot, intents, probeLimit, lexicalConfig)
 		result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
 	case "hybrid":
 		searchStart := time.Now()
-		lexical := intentLexicalCandidates(snapshot, intents, options.Limit)
+		lexical := intentLexicalCandidatesWithConfig(snapshot, intents, options.Limit, lexicalConfig)
 		result.Timings.LexicalSearchMS = durationMS(time.Since(searchStart))
 		probeLimit := options.ProbeLimit
 		if probeLimit <= 0 {
 			probeLimit = options.Limit
 		}
 		probeStart := time.Now()
-		lexicalBroad := intentLexicalCandidates(snapshot, intents, probeLimit)
+		lexicalBroad := intentLexicalCandidatesWithConfig(snapshot, intents, probeLimit, lexicalConfig)
 		result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
 
 		semantic, err := semanticIntentCandidatesForEvaluation(

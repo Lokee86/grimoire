@@ -117,6 +117,78 @@ func TestSearchSplitsCodeIdentifiers(t *testing.T) {
 	}
 }
 
+func TestNearestDeclarationAliasFindsCodeFacingIdentifier(t *testing.T) {
+	vocabulary := map[string]declarationVocabularyEntry{
+		"validate": {documentFrequency: 2},
+		"value":    {documentFrequency: 4},
+		"visitor":  {documentFrequency: 1},
+	}
+	alias, ok := nearestDeclarationAlias("validation", vocabulary)
+	if !ok || alias.token != "validate" {
+		t.Fatalf("nearest alias = %+v, %v; want validate", alias, ok)
+	}
+}
+
+func TestNearestDeclarationAliasRejectsWeakPrefixMatch(t *testing.T) {
+	vocabulary := map[string]declarationVocabularyEntry{
+		"server": {documentFrequency: 1},
+		"settle": {documentFrequency: 1},
+	}
+	if alias, ok := nearestDeclarationAlias("selection", vocabulary); ok {
+		t.Fatalf("weak alias unexpectedly accepted: %+v", alias)
+	}
+}
+
+func TestSearchDeclarationAliasPromotesMatchingDeclaration(t *testing.T) {
+	snapshot := index.Snapshot{Version: index.FormatVersion, Files: []index.FileRecord{
+		{Path: "owner.go", Chunks: []index.Chunk{{
+			Path: "owner.go", StartLine: 1, Text: "func ValidateSnapshot() {}", TokenCount: 3,
+		}}},
+		{Path: "notes.go", Chunks: []index.Chunk{{
+			Path: "notes.go", StartLine: 1, Text: "// validation behavior", TokenCount: 3,
+		}}},
+	}}
+	results := SearchWithConfig(snapshot, "snapshot validation", 10, Config{DeclarationAliasBonus: 8})
+	if len(results) != 2 || results[0].Chunk.Path != "owner.go" {
+		t.Fatalf("declaration alias did not promote ValidateSnapshot: %+v", results)
+	}
+	found := false
+	for _, detail := range results[0].ScoreDetails {
+		if detail.Name == "declaration alias validation -> validate" && detail.Value > 0 {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("declaration alias score missing: %+v", results[0].ScoreDetails)
+	}
+}
+
+func TestSearchLegacyConfigDoesNotUseDeclarationAliases(t *testing.T) {
+	snapshot := index.Snapshot{Version: index.FormatVersion, Files: []index.FileRecord{{
+		Path: "owner.go", Chunks: []index.Chunk{{
+			Path: "owner.go", StartLine: 1, Text: "func ValidateSnapshot() {}", TokenCount: 3,
+		}},
+	}}}
+	if results := SearchWithConfig(snapshot, "validation", 10, LegacyConfig()); len(results) != 0 {
+		t.Fatalf("legacy search unexpectedly used a declaration alias: %+v", results)
+	}
+}
+
+func TestSearchLegacyConfigKeepsFixedFieldBonus(t *testing.T) {
+	snapshot := index.Snapshot{Version: index.FormatVersion, Files: []index.FileRecord{{
+		Path: "server.go", Chunks: []index.Chunk{{Path: "server.go", StartLine: 1, Text: "server sentinel", TokenCount: 2}},
+	}}}
+	results := SearchWithConfig(snapshot, "server sentinel", 10, LegacyConfig())
+	if len(results) != 1 {
+		t.Fatalf("expected one result, got %+v", results)
+	}
+	for _, detail := range results[0].ScoreDetails {
+		if detail.Name == "filename matches server" && detail.Value != 8 {
+			t.Fatalf("legacy filename bonus = %.3f, want 8", detail.Value)
+		}
+	}
+}
+
 func TestQueryTermsSuppressesPromptScaffolding(t *testing.T) {
 	terms := queryTerms("Find where the damage resolver is")
 	if strings.Join(terms, ",") != "damage,resolver" {
