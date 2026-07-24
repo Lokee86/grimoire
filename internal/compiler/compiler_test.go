@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/assembly"
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/retrieve"
@@ -31,6 +32,9 @@ func TestCompileEnforcesSerializedPackageBudget(t *testing.T) {
 	}
 	if full.Selections[0].RetrievalSource != "test" || full.Selections[0].RetrievalRank != 1 {
 		t.Fatalf("unexpected selection provenance: %+v", full.Selections[0])
+	}
+	if full.FacetProtection || full.FacetCompanionDepth != 0 || full.FacetsAvailable != 0 {
+		t.Fatalf("fixed package fabricated adaptive fitting metadata: %+v", full)
 	}
 	assertExactPackageCount(t, full)
 
@@ -129,6 +133,127 @@ func TestCompileAdaptiveRetainsAssemblyDecision(t *testing.T) {
 	assertExactPackageCount(t, pkg)
 }
 
+func TestCompileAdaptiveProtectsDistinctFacetsDuringBudgetFitting(t *testing.T) {
+	candidates := []retrieve.Candidate{
+		facetCandidate(t, "a/one.go", strings.Repeat("alpha owner ", 90), 10, evidence.IntentDirectLocation, "facet:a"),
+		facetCandidate(t, "a/two.go", strings.Repeat("alpha helper ", 90), 9, evidence.IntentDirectLocation, "facet:a"),
+		facetCandidate(t, "a/three.go", strings.Repeat("alpha context ", 90), 8, evidence.IntentDirectLocation, "facet:a"),
+		facetCandidate(t, "b/chain.go", strings.Repeat("beta call chain ", 90), 7, evidence.IntentCallChain, "facet:b"),
+	}
+	decision := assembly.Decision{CoverageAware: true, FacetCoverageDepth: 3, FacetsAvailable: 2}
+
+	var protected Package
+	var legacy Package
+	found := false
+	for budget := 300; budget < 4000; budget++ {
+		var err error
+		protected, err = CompileAdaptiveWithEvidenceConfig(
+			"trace both facets", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"test"}, nil, nil, decision, candidates, DefaultConfig(),
+		)
+		if err != nil {
+			continue
+		}
+		legacy, err = CompileAdaptiveWithEvidenceConfig(
+			"trace both facets", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"test"}, nil, nil, decision, candidates, LegacyConfig(),
+		)
+		if err != nil {
+			continue
+		}
+		if len(protected.Selections) == 2 && protected.FacetsProtected == 2 && len(legacy.Selections) == 2 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("no two-selection budget found: protected=%+v legacy=%+v", protected, legacy)
+	}
+	if protected.Selections[0].ProtectedFacet != "facet:b" || protected.Selections[1].ProtectedFacet != "facet:a" {
+		t.Fatalf("protected facets = %+v, want call-chain then location", protected.Selections)
+	}
+	if legacy.Selections[0].Path != "a/one.go" || legacy.Selections[1].Path != "a/two.go" {
+		t.Fatalf("legacy fitting no longer preserves candidate order: %+v", legacy.Selections)
+	}
+	if protected.FacetsOmittedForBudget != 0 || !protected.FacetProtection {
+		t.Fatalf("facet protection summary is incomplete: %+v", protected)
+	}
+	assertExactPackageCount(t, protected)
+}
+
+func TestCompileAdaptiveProtectsSameFileCompanionChunks(t *testing.T) {
+	owner := facetCandidate(t, "internal/owner.go", strings.Repeat("owner declaration ", 70), 10, evidence.IntentMechanism, "facet:mechanism")
+	owner.Chunk.StartLine, owner.Chunk.EndLine = 1, 40
+	owner.ScoreDetails = []retrieve.ScoreDetail{{Name: "BM25 content matches owner", Value: 2}}
+	noise := facetCandidate(t, "internal/noise.go", strings.Repeat("unrelated helper ", 70), 9, evidence.IntentMechanism, "facet:mechanism")
+	companion := facetCandidate(t, "internal/owner.go", strings.Repeat("owner continuation ", 70), 8, evidence.IntentMechanism, "facet:mechanism")
+	companion.Chunk.StartLine, companion.Chunk.EndLine = 42, 80
+	companion.ScoreDetails = []retrieve.ScoreDetail{{Name: "BM25 content matches continuation", Value: 2}}
+	candidates := []retrieve.Candidate{owner, noise, companion}
+	decision := assembly.Decision{CoverageAware: true, FacetCoverageDepth: 3, FacetsAvailable: 1}
+	config := Config{ProtectFacets: true, CompanionDepth: 1}
+
+	var protected Package
+	var legacy Package
+	found := false
+	for budget := 300; budget < 3000; budget++ {
+		var err error
+		protected, err = CompileAdaptiveWithEvidenceConfig(
+			"explain the owner", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"test"}, nil, nil, decision, candidates, config,
+		)
+		if err != nil {
+			continue
+		}
+		legacy, err = CompileAdaptiveWithEvidenceConfig(
+			"explain the owner", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"test"}, nil, nil, decision, candidates, LegacyConfig(),
+		)
+		if err == nil && len(protected.Selections) == 2 && len(legacy.Selections) == 2 &&
+			protected.Selections[1].Path == "internal/owner.go" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("no two-selection budget found: protected=%+v legacy=%+v", protected, legacy)
+	}
+	if protected.Selections[0].Path != "internal/owner.go" || protected.Selections[1].Path != "internal/owner.go" {
+		t.Fatalf("companion chunk was not protected: %+v", protected.Selections)
+	}
+	if legacy.Selections[1].Path != "internal/noise.go" {
+		t.Fatalf("legacy fitting no longer preserves rank order: %+v", legacy.Selections)
+	}
+}
+
+func TestCompileAdaptiveTriesNextCandidateWhenFacetOwnerDoesNotFit(t *testing.T) {
+	candidates := []retrieve.Candidate{
+		facetCandidate(t, "large.go", strings.Repeat("large owner ", 500), 10, evidence.IntentMechanism, "facet:mechanism"),
+		facetCandidate(t, "small.go", "func smallMechanism() {}", 9, evidence.IntentMechanism, "facet:mechanism"),
+	}
+	decision := assembly.Decision{CoverageAware: true, FacetCoverageDepth: 2, FacetsAvailable: 1}
+
+	var pkg Package
+	found := false
+	for budget := 250; budget < 1200; budget++ {
+		var err error
+		pkg, err = CompileAdaptiveWithEvidenceConfig(
+			"how does it work", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"test"}, nil, nil, decision, candidates, DefaultConfig(),
+		)
+		if err == nil && len(pkg.Selections) == 1 && pkg.Selections[0].Path == "small.go" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("smaller facet fallback was not retained: %+v", pkg)
+	}
+	if pkg.Selections[0].ProtectedFacet != "facet:mechanism" || pkg.FacetsProtected != 1 {
+		t.Fatalf("fallback facet was not tracked: %+v", pkg)
+	}
+}
+
 func TestCompileRejectsBudgetBelowPackageMetadata(t *testing.T) {
 	_, err := Compile("query", 1, index.FormatVersion, tokenizer.Name, nil, nil)
 	if err == nil {
@@ -149,6 +274,24 @@ func candidate(t *testing.T, path, text string, score float64) retrieve.Candidat
 		},
 		Score: score, Source: "test", Rank: 1,
 	}
+}
+
+func facetCandidate(
+	t *testing.T,
+	path, text string,
+	score float64,
+	intent evidence.Intent,
+	facet string,
+) retrieve.Candidate {
+	result := candidate(t, path, text, score)
+	result.Context = &evidence.Descriptor{
+		Identity:   evidence.RangeIdentity(path, 1, 10),
+		Intents:    []evidence.Intent{intent},
+		Roles:      []evidence.Role{evidence.RolePrimary},
+		GroupIDs:   []string{facet},
+		FacetRanks: map[string]int{facet: result.Rank},
+	}
+	return result
 }
 
 func assertExactPackageCount(t *testing.T, pkg Package) {

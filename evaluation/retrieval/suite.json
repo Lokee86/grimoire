@@ -17,6 +17,13 @@
     "internal/assembly/README.md",
     "internal/assembly/model.go",
     "internal/assembly/plan.go",
+    "internal/compiler/compiler.go",
+    "internal/compiler/compiler_test.go",
+    "internal/compiler/config.go",
+    "internal/compiler/facet_fit.go",
+    "internal/compiler/README.md",
+    "internal/evaluation/candidate_diagnostics.go",
+    "internal/evaluation/candidate_diagnostics_test.go",
     "internal/evaluation/model.go",
     "internal/evaluation/report.go",
     "internal/evaluation/score.go",
@@ -41,6 +48,10 @@
   "assembly": {
     "strategy": "coverage",
     "facet_depth": 3
+  },
+  "compiler": {
+    "facet_protection": true,
+    "companion_depth": 1
   },
   "repositories": [
     {

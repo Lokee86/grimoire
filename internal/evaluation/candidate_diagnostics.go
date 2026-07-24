@@ -38,6 +38,8 @@ func BuildCandidateDiagnostics(entry Case, stages Stages) []CandidateDiagnostic 
 				diagnostic.Merged = stage
 			case "curated":
 				diagnostic.Curated = stage
+			case "assembled":
+				diagnostic.Assembled = stage
 			case "included":
 				diagnostic.Included = stage
 			}
@@ -48,6 +50,7 @@ func BuildCandidateDiagnostics(entry Case, stages Stages) []CandidateDiagnostic 
 	addStage("exact", stages.Exact)
 	addStage("merged", stages.Merged)
 	addStage("curated", stages.Curated)
+	addStage("assembled", stages.Assembled)
 	addStage("included", stages.Included)
 
 	result := make([]CandidateDiagnostic, 0, len(byKey))
@@ -107,7 +110,8 @@ func keepCandidateDiagnostic(candidate CandidateDiagnostic) bool {
 	return candidate.Required || candidate.Supporting || candidate.Forbidden ||
 		candidate.Retrieved != nil && candidate.Retrieved.Rank <= diagnosticRetrievedLimit ||
 		candidate.Exact != nil && candidate.Exact.Rank <= diagnosticStageLimit ||
-		candidate.Curated != nil && candidate.Curated.Rank <= diagnosticStageLimit
+		candidate.Curated != nil && candidate.Curated.Rank <= diagnosticStageLimit ||
+		candidate.Assembled != nil && candidate.Assembled.Rank <= diagnosticStageLimit
 }
 
 func diagnosticSortRank(candidate CandidateDiagnostic) int {
@@ -124,8 +128,11 @@ func diagnosticSortRank(candidate CandidateDiagnostic) int {
 	if candidate.Curated != nil {
 		return 300_000 + candidate.Curated.Rank
 	}
+	if candidate.Assembled != nil {
+		return 400_000 + candidate.Assembled.Rank
+	}
 	if candidate.Included != nil {
-		return 400_000 + candidate.Included.Rank
+		return 500_000 + candidate.Included.Rank
 	}
 	return absent
 }

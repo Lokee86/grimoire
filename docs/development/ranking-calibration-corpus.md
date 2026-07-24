@@ -89,6 +89,14 @@ Calibration pass rate increased from 11.33% to 13.00%, required recall from 32.6
 
 Broader use of the same formula for call-chain, mechanism, architecture, composite location facets, or every generated direct-location facet was rejected because it regressed recall or ranking. Repository-derived declaration co-occurrence expansion was also rejected because it added latency and cross-repository regressions. See [the standalone location-specificity report](../../evaluation/results/standalone-location-specificity-calibration-2026-07-24.md).
 
+## Facet-preserving budget fitting
+
+The next cycle targeted final exact-token fitting after attribution showed that budget fitting remained the largest source of missing required evidence. Assembled-stage diagnostics demonstrated that several failures already had an early chunk from the required file in the package while later same-file chunks containing additional required symbols were omitted.
+
+Coverage-aware adaptive packages now protect one source candidate per available facet. Pure mechanism, call-chain, and direct-location owners may also protect one same-file companion when it contributes a BM25, declaration-alias, or leading-line term not already represented by the owner. Architecture and mixed-intent owners are excluded because their companions displaced stronger evidence during calibration.
+
+Calibration required recall increased from 31.03% to 31.47% and budget-fitting losses fell from 54 to 53. Validation required recall increased from 19.10% to 19.37%, Space Rocks increased from 24.79% to 25.62%, and validation budget-fitting losses fell from 55 to 54. No calibration or validation repository lost a primary quality metric. Fresh-state GDQuest and Trilium quality metrics were unchanged. See [the facet-preserving fitting report](../../evaluation/results/facet-preserving-budget-fitting-calibration-2026-07-24.md).
+
 ## Calibration workflow
 
 1. Pin and record the repository revision and evaluated scope.

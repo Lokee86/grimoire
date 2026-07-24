@@ -152,6 +152,8 @@ func packageSelections(entry evaluation.Case, selections []compiler.Selection) [
 			Symbols:         detectedSymbols(entry, selected.Path, selected.Content),
 			RetrievalSource: selected.RetrievalSource,
 			ProviderRank:    selected.RetrievalRank,
+			FacetIDs:        append([]string(nil), selected.FacetIDs...),
+			ProtectedFacet:  selected.ProtectedFacet,
 			TokenCount:      selected.TokenCount,
 		})
 	}

@@ -143,6 +143,8 @@ def main() -> int:
     parser.add_argument("--selection-adjacent-primaries", type=int)
     parser.add_argument("--assembly-strategy", choices=("legacy", "coverage"))
     parser.add_argument("--assembly-facet-depth", type=int)
+    parser.add_argument("--compiler-facet-protection", choices=("true", "false"))
+    parser.add_argument("--compiler-companion-depth", type=int)
     parser.add_argument("--lexical-declaration-alias-bonus", type=float)
     parser.add_argument("--skip-index", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -152,6 +154,9 @@ def main() -> int:
     workspace = Path(args.workspace_root).resolve()
     manifest = json.loads((grimoire / args.suite).read_text(encoding="utf-8"))
     assembly_defaults = manifest.get("assembly", {"strategy": "coverage", "facet_depth": 3})
+    compiler_defaults = manifest.get(
+        "compiler", {"facet_protection": True, "companion_depth": 1}
+    )
     ranking_defaults = manifest.get("ranking", {"lexical_declaration_alias_bonus": 1.0})
     lexical_declaration_alias_bonus = (
         args.lexical_declaration_alias_bonus
@@ -163,6 +168,16 @@ def main() -> int:
         args.assembly_facet_depth
         if args.assembly_facet_depth is not None
         else assembly_defaults["facet_depth"]
+    )
+    compiler_facet_protection = (
+        args.compiler_facet_protection == "true"
+        if args.compiler_facet_protection is not None
+        else bool(compiler_defaults["facet_protection"])
+    )
+    compiler_companion_depth = (
+        args.compiler_companion_depth
+        if args.compiler_companion_depth is not None
+        else int(compiler_defaults["companion_depth"])
     )
     if args.split == "test" and not args.allow_test:
         parser.error("test split is sealed; pass --allow-test only for a final frozen run")
@@ -191,6 +206,8 @@ def main() -> int:
             selection[key] = value
     if assembly_facet_depth < 0:
         parser.error("assembly facet depth must be non-negative")
+    if compiler_companion_depth < 0:
+        parser.error("compiler companion depth must be non-negative")
     if lexical_declaration_alias_bonus < 0:
         parser.error("lexical declaration alias bonus must be non-negative")
     for entry in entries:
@@ -208,6 +225,8 @@ def main() -> int:
             "--selection-adjacent-primaries", str(selection["adjacent_primary_limit"]),
             "--assembly-strategy", assembly_strategy,
             "--assembly-facet-depth", str(assembly_facet_depth),
+            f"--compiler-facet-protection={str(compiler_facet_protection).lower()}",
+            "--compiler-companion-depth", str(compiler_companion_depth),
             "--lexical-declaration-alias-bonus", str(lexical_declaration_alias_bonus),
             "--output-dir", str(output_dir), "--output-prefix", prefix,
         ]
@@ -230,6 +249,10 @@ def main() -> int:
         "assembly": {
             "strategy": assembly_strategy,
             "facet_depth": assembly_facet_depth,
+        },
+        "compiler": {
+            "facet_protection": compiler_facet_protection,
+            "companion_depth": compiler_companion_depth,
         },
         "aggregate": aggregate(reports, args.mode),
     }

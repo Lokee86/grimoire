@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Lokee86/grimoire/internal/assembly"
+	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/index"
@@ -43,6 +44,8 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	selectionAdjacentPrimaries := flags.Int("selection-adjacent-primaries", selectionDefaults.AdjacentPrimaryLimit, "number of diversified primaries whose immediate prepared neighbors are promoted")
 	assemblyStrategy := flags.String("assembly-strategy", "coverage", "adaptive assembly strategy: legacy or coverage")
 	assemblyFacetDepth := flags.Int("assembly-facet-depth", assembly.DefaultConfig().FacetDepth, "candidate depth reserved for each query facet")
+	compilerFacetProtection := flags.Bool("compiler-facet-protection", compiler.DefaultConfig().ProtectFacets, "protect one source candidate per query facet during final token fitting")
+	compilerCompanionDepth := flags.Int("compiler-companion-depth", compiler.DefaultConfig().CompanionDepth, "additional protected chunks per selected facet source file")
 	lexicalDeclarationAliasBonus := flags.Float64("lexical-declaration-alias-bonus", retrieve.DefaultConfig().DeclarationAliasBonus, "score for one repository-derived high-similarity declaration alias per absent query term")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
@@ -65,13 +68,16 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	}
 	if strings.TrimSpace(*casesPath) == "" || *limit <= 0 || *probeLimit <= 0 || *timeout <= 0 || *structureTimeout <= 0 ||
 		*selectionFilePenalty < 0 || *selectionSubsystemPenalty < 0 || *selectionAdjacentPrimaries < 0 || *assemblyFacetDepth < 0 ||
-		*lexicalDeclarationAliasBonus < 0 {
+		*compilerCompanionDepth < 0 || *lexicalDeclarationAliasBonus < 0 {
 		return errors.New("--cases, positive limits and timeouts, and non-negative ranking, selection, and assembly calibration values are required")
 	}
 	if *adaptive && *budgetOverride > 0 {
 		return errors.New("--adaptive cannot be combined with a fixed --budget override")
 	}
 	lexicalConfig := retrieve.Config{DeclarationAliasBonus: *lexicalDeclarationAliasBonus}
+	compilerConfig := compiler.Config{
+		ProtectFacets: *compilerFacetProtection, CompanionDepth: *compilerCompanionDepth,
+	}
 	assemblyConfig := assembly.DefaultConfig()
 	switch strings.ToLower(strings.TrimSpace(*assemblyStrategy)) {
 	case "coverage":
@@ -191,6 +197,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 					AdjacentPrimaryLimit:   *selectionAdjacentPrimaries,
 				},
 				AssemblyConfig: &assemblyConfig,
+				CompilerConfig: &compilerConfig,
 				LexicalConfig:  &lexicalConfig,
 			})
 			cancel()
@@ -220,6 +227,11 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 			run.CandidateCount = len(executed.Stages.Merged)
 			run.CuratedCount = len(executed.Stages.Curated)
 			run.AssembledCount = len(executed.Stages.Assembled)
+			run.FacetProtection = executed.Package.FacetProtection
+			run.FacetCompanionDepth = executed.Package.FacetCompanionDepth
+			run.FacetsAvailable = executed.Package.FacetsAvailable
+			run.FacetsProtected = executed.Package.FacetsProtected
+			run.FacetsOmittedForBudget = executed.Package.FacetsOmittedForBudget
 			run.OmittedForBudget = executed.Package.OmittedForBudget
 			run.OmittedStructuralForBudget = executed.Package.OmittedStructuralForBudget
 			run.Selections = packageSelections(entry, executed.Package.Selections)

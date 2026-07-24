@@ -143,6 +143,7 @@ type CandidateDiagnostic struct {
 	Exact      *CandidateStageDiagnostic `json:"exact,omitempty"`
 	Merged     *CandidateStageDiagnostic `json:"merged,omitempty"`
 	Curated    *CandidateStageDiagnostic `json:"curated,omitempty"`
+	Assembled  *CandidateStageDiagnostic `json:"assembled,omitempty"`
 	Included   *CandidateStageDiagnostic `json:"included,omitempty"`
 }
 
@@ -153,6 +154,8 @@ type Selection struct {
 	Symbols         []string `json:"symbols,omitempty"`
 	RetrievalSource string   `json:"retrieval_source"`
 	ProviderRank    int      `json:"provider_rank"`
+	FacetIDs        []string `json:"facet_ids,omitempty"`
+	ProtectedFacet  string   `json:"protected_facet,omitempty"`
 	TokenCount      int      `json:"token_count"`
 	Relevant        bool     `json:"relevant"`
 	Forbidden       bool     `json:"forbidden"`
@@ -228,6 +231,11 @@ type CaseRun struct {
 	AssembledCount                    int                        `json:"assembled_count"`
 	Ranking                           RankingMetrics             `json:"ranking"`
 	CandidateDiagnostics              []CandidateDiagnostic      `json:"candidate_diagnostics,omitempty"`
+	FacetProtection                   bool                       `json:"facet_protection"`
+	FacetCompanionDepth               int                        `json:"facet_companion_depth"`
+	FacetsAvailable                   int                        `json:"facets_available"`
+	FacetsProtected                   int                        `json:"facets_protected"`
+	FacetsOmittedForBudget            int                        `json:"facets_omitted_for_budget"`
 	OmittedForBudget                  int                        `json:"omitted_for_budget"`
 	OmittedStructuralForBudget        int                        `json:"omitted_structural_for_budget"`
 	Required                          []EvidenceStatus           `json:"required,omitempty"`

@@ -21,9 +21,10 @@ func TestBuildCandidateDiagnosticsTracksStageMovement(t *testing.T) {
 			RetrievalSource: "exact", ProviderRank: 1, Score: 70,
 			ScoreDetails: []ScoreDetail{{Name: "identifier Own matches content", Value: 70}},
 		}},
-		Merged:   []Candidate{owner},
-		Curated:  []Candidate{owner},
-		Included: []Candidate{owner},
+		Merged:    []Candidate{owner},
+		Curated:   []Candidate{owner},
+		Assembled: []Candidate{owner},
+		Included:  []Candidate{owner},
 	}
 
 	diagnostics := BuildCandidateDiagnostics(entry, stages)
@@ -39,7 +40,7 @@ func TestBuildCandidateDiagnosticsTracksStageMovement(t *testing.T) {
 	}
 	if !found.Required || found.Retrieved == nil || found.Retrieved.Rank != 2 ||
 		found.Exact == nil || found.Exact.Rank != 1 || found.Merged == nil ||
-		found.Curated == nil || found.Included == nil {
+		found.Curated == nil || found.Assembled == nil || found.Included == nil {
 		t.Fatalf("stage movement was not preserved: %+v", *found)
 	}
 	if len(found.Retrieved.ScoreDetails) != 1 || found.Retrieved.ScoreDetails[0].Value != 14 {

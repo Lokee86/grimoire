@@ -39,6 +39,7 @@ type evaluatedContextOptions struct {
 	QueryOptions    embedding.QueryOptions
 	SelectionConfig *selection.Config
 	AssemblyConfig  *assembly.Config
+	CompilerConfig  *compiler.Config
 	LexicalConfig   *retrieve.Config
 }
 
@@ -168,10 +169,14 @@ func evaluateContext(
 	var pkg compiler.Package
 	var err error
 	if decision != nil {
-		pkg, err = compiler.CompileAdaptiveWithEvidence(
+		compileConfig := compiler.DefaultConfig()
+		if options.CompilerConfig != nil {
+			compileConfig = *options.CompilerConfig
+		}
+		pkg, err = compiler.CompileAdaptiveWithEvidenceConfig(
 			options.Query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
 			contextCandidateSources(assembledCandidates), structural.ProviderState,
-			assembledEvidence, *decision, assembledCandidates,
+			assembledEvidence, *decision, assembledCandidates, compileConfig,
 		)
 	} else {
 		pkg, err = compiler.CompileWithEvidence(
