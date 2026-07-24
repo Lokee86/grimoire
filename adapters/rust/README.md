@@ -10,13 +10,13 @@ From this directory:
 cargo run -- --repo /path/to/repository --output /path/to/facts.jsonl
 ```
 
-The adapter uses `cargo_metadata` for workspace and target discovery and `syn` for source parsing. `--repo` must point to a Cargo package or workspace containing `Cargo.toml`.
+The adapter uses `cargo_metadata` for workspace and target discovery and `syn` for source parsing. `--repo` may point to a larger repository without a root `Cargo.toml`; the adapter discovers nested Cargo packages and workspaces while excluding generated, dependency, cache, worktree, and Warlock state directories.
 
 The scanner excludes Git/worktree metadata, generated output, dependency trees, caches, and all Warlock tool-state directories.
 
 ## Analysis model
 
-Adapter version 0.3.0 emits:
+Adapter version 0.4.0 emits:
 
 - repository, directory, file, crate/module, type, trait, function, method, import, and macro facts;
 - inline and external module ownership;

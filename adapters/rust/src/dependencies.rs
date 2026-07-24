@@ -34,7 +34,7 @@ fn category(kind: DependencyKind) -> &'static str {
     }
 }
 
-pub(crate) fn add_dependencies(context: &mut Context, metadata: &Metadata) {
+pub(crate) fn add_dependencies(context: &mut Context, metadata: &[Metadata]) {
     let mut package_targets: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for crate_context in &context.crates {
         if let Some((package, _)) = crate_context.qn.split_once("::") {
@@ -49,7 +49,7 @@ pub(crate) fn add_dependencies(context: &mut Context, metadata: &Metadata) {
         values.dedup();
     }
 
-    for package in &metadata.packages {
+    for package in crate::discovery::metadata_packages(metadata) {
         let Some(source_id) = package_targets
             .get(&package.name)
             .and_then(|values| values.first())
