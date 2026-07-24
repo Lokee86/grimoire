@@ -68,9 +68,9 @@ Supported extensions and extensionless names are compiled into Grimoire. There i
 
 Grimoire does not continuously watch repositories or automatically rebuild prepared and vector state. Callers must run `grimoire index` and `grimoire vector build` after relevant changes. Compatibility checks prevent silently using mismatched vector state.
 
-## Structural providers are optional external dependencies
+## Structural components remain optional runtime dependencies
 
-Lexicon and Arcana state and executables are independently owned. Missing, stale, timed-out, or incompatible providers produce warnings and preserve source retrieval, but structural evidence is incomplete.
+Lexicon and Arcana source now lives in this repository, but their executables, state formats, and publication lifecycles remain independently owned. Grimoire Context does not yet build, install, start, or maintain them automatically. Missing, stale, timed-out, or incompatible structural components produce warnings and preserve source retrieval, but structural evidence is incomplete.
 
 Arcana queries use Lexicon matches as bounded graph seeds. A Lexicon miss can prevent otherwise relevant Arcana evidence from being requested. Current provider breadth is deliberately bounded rather than exhaustive.
 

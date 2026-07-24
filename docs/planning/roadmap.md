@@ -4,13 +4,14 @@ This page contains work that is not yet complete. Implemented behavior is docume
 
 ## Completed foundation
 
+- Lexicon and Arcana source trees and histories consolidated into the Grimoire repository while retaining independent applications and state boundaries.
 - Content-addressed prepared source index with exact token counts.
 - Managed local Qwen3 embedding setup and service commands.
 - Content-addressed vector objects and packed exact-search snapshots.
 - Incremental vector reuse and concurrent embedding requests with serialized deterministic ingestion.
 - Semantic, lexical, and concrete exact retrieval.
 - Deterministic ranking, curation, and prepared-neighbour expansion.
-- Optional Lexicon facts and Arcana graph evidence.
+- Lexicon facts and Arcana graph evidence as optional query-time enrichment.
 - Source and structural judged evaluation with pipeline-loss attribution.
 - Deterministic query-shape profiling and automatic budgets.
 - Evidence-coverage assembly and fixed-versus-adaptive evaluation.
@@ -18,12 +19,21 @@ This page contains work that is not yet complete. Implemented behavior is docume
 
 ## Near-term priorities
 
-1. Re-run ranking and adaptive-package calibration after all merged retrieval changes and tune targets against representative recall.
-2. Expand frozen judged corpora across additional repositories, languages, sizes, and task categories.
-3. Improve task-oriented evidence roles and stopping conditions without hiding decisions in opaque scoring.
-4. Add stronger diagnostics for runtime selection, provider failures, state compatibility, and native-engine errors.
-5. Measure embedding request concurrency and serialized ingestion costs across CPU, Vulkan, CUDA, and remote endpoints.
-6. Add explicit prepared/vector state status and maintenance commands suitable for Warlock supervision.
+1. Add root-level build, test, and release orchestration that verifies all three components without collapsing their build systems.
+2. Define coordinated versioning and component-specific release artifacts from the monorepo.
+3. Re-run ranking and adaptive-package calibration after all merged retrieval changes and tune targets against representative recall.
+4. Expand frozen judged corpora across additional repositories, languages, sizes, and task categories.
+5. Improve task-oriented evidence roles and stopping conditions without hiding decisions in opaque scoring.
+6. Add stronger diagnostics for runtime selection, provider failures, state compatibility, and native-engine errors.
+7. Add explicit prepared/vector/structural state status and maintenance commands suitable for Warlock supervision.
+
+## Monorepo and distribution work
+
+- Decide whether the former Arcana and Lexicon repositories should become automated subtree mirrors for compatibility.
+- Preserve independently installable `arcana`, `lexicon`, and `grimoire` artifacts.
+- Define canonical module/package import paths before a stable release.
+- Add one installer that can install any subset of the components.
+- Add repository-wide contribution and release documentation.
 
 ## Retrieval and package quality
 
@@ -51,7 +61,7 @@ This page contains work that is not yet complete. Implemented behavior is docume
 - Consider approximate indexing only when exact search is no longer acceptable and exact fallback remains available.
 - Evaluate a more efficient ingestion boundary after measuring serialized JSONL persistence cost.
 
-## Structural and provider work
+## Structural integration work
 
 - Improve Lexicon seed matching through judged task-shaped cases.
 - Expand Arcana operations only when specific graph-evidence failures justify them.
@@ -62,10 +72,10 @@ This page contains work that is not yet complete. Implemented behavior is docume
 ## Operational and compatibility work
 
 - Add stable machine-readable diagnostics and documented exit classes.
-- Define prepared-index, vector-index, embedding-runtime, and context-package migration policy.
+- Define prepared-index, vector-index, Lexicon, Arcana, embedding-runtime, and context-package migration policy.
 - Add managed runtime artifacts for additional platforms.
-- Add Warlock lifecycle integration for model service, provider discovery, and state maintenance while keeping Grimoire independently usable.
-- Establish release gates for latency, memory, retrieval quality, determinism, and ABI stress.
+- Add Warlock lifecycle integration for model service, component discovery, and state maintenance while keeping every component independently usable.
+- Establish release gates for latency, memory, retrieval quality, determinism, adapter correctness, graph correctness, and ABI stress.
 
 ## Longer-term investigation
 

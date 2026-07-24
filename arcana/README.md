@@ -1,6 +1,8 @@
 # Arcana
 
-Arcana is the repository-graph foundation of the [**Warlock Toolchain**](https://github.com/Lokee86/warlock-toolchain).
+> **Canonical source:** Arcana now lives inside the [Grimoire repository](https://github.com/Lokee86/grimoire) under `arcana/`. It remains an independently buildable Rust application, CLI, protocol, and reusable graph engine.
+
+Arcana is the repository-graph component of Grimoire and the [**Warlock Toolchain**](https://github.com/Lokee86/warlock-toolchain).
 It models repositories as queryable graphs and provides the storage, snapshot,
 and traversal foundations used by higher-level Warlock tools such as Demon Docs,
 Grimoire Context, and Pitlord.
@@ -20,16 +22,9 @@ Grimoire Context, and Pitlord.
 Arcana remains a standalone Rust process or CLI boundary. Go consumers do
 not link it through cgo or FFI.
 
-### Possible post-0.1.0 product-boundary review
+### Consolidated repository boundary
 
-The separate implementation remains intentional, but the Warlock suite may later
-make Lexicon the primary consumer-facing source-analysis interface and treat
-Arcana as its optimized graph backend. Arcana would remain a separate Rust
-process, independently testable and directly usable for advanced graph work.
-
-This is a deferred product/interface option, not a 0.1.0 restructuring task.
-The current Lexicon snapshot and Arcana protocol boundaries remain authoritative
-for the initial release.
+Arcana and Lexicon now share the Grimoire repository, but the implementation boundary remains intentional. Arcana is still a separate Rust process, independently testable and directly usable for advanced graph work. Lexicon snapshots and the Arcana protocol remain the authoritative integration boundaries; source co-location does not permit direct mutation of Lexicon state or language-analysis ownership.
 
 ## Graph workload foundation
 
@@ -109,8 +104,7 @@ manifest last. The source snapshot remains untouched.
 Arcana consumes Lexicon's immutable snapshot store, verifies each content-addressed
 fact object, and decodes Lexicon binary v1 node, edge, and unresolved sections
 into typed repository facts without reconstructing JSONL. Legacy canonical JSON
-fact objects remain readable during migration. Language adapters live in the
-standalone Lexicon repository; Arcana does not own or ship language parsers.
+fact objects remain readable during migration. Language adapters live in the co-located [`../lexicon`](../lexicon/) component; Arcana does not own language parsers.
 
 ### Lexicon synchronization
 

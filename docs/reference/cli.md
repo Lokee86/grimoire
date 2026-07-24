@@ -186,7 +186,7 @@ grimoire context [flags]
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--structure <bool>` | `true` | Include available Lexicon and Arcana structural evidence |
 | `--structure-timeout <duration>` | `30s` | Complete structural-provider timeout |
-| `--lexicon-facts <path>` | automatic snapshot export | Explicit standalone Lexicon JSONL directory override |
+| `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
 | `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
 | `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
 | `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph-state directory |
@@ -200,7 +200,7 @@ grimoire context [flags]
 
 The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds the complete query as fixed non-overlapping windows grouped into bounded 64-token requests, with at most two requests active concurrently. `full` embeds the complete query once. `quality` adds the full-query vector to the split windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged before deterministic query-shape analysis. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, and expanded with bounded prepared neighbours. Automatic assembly stops after deterministic evidence coverage is reached: focused requests remain around one anchor region, bounded requests require two represented regions, and exploratory requests require three. The emitted package records the assembly decision. Explicit-budget requests retain the existing fit-to-budget behavior.
 
-Structural enrichment is enabled by default. When Lexicon state exists, Grimoire resolves `.lexicon/CURRENT`, creates or reuses a cached `lexicon export`, and emits matched symbols, source spans, and immediate relationships as first-class package evidence. It then resolves the Arcana snapshot for the same Lexicon ID, invokes one-shot `arcana sync` when necessary, and queries Arcana's JSONL protocol for operational roles, impact, unresolved references, and shortest call chains. Structural failures warn and preserve standalone source retrieval. Use `--structure=false` to skip both providers or the explicit state, command, and facts flags to override discovery.
+Structural enrichment is enabled by default. When Lexicon state exists, Grimoire resolves `.lexicon/CURRENT`, creates or reuses a cached `lexicon export`, and emits matched symbols, source spans, and immediate relationships as first-class package evidence. It then resolves the Arcana snapshot for the same Lexicon ID, invokes one-shot `arcana sync` when necessary, and queries Arcana's JSONL protocol for operational roles, impact, unresolved references, and shortest call chains. The component executables are independently built from `lexicon/` and `arcana/` in this repository or discovered through the configured command paths. Structural failures warn and preserve source-only retrieval. Use `--structure=false` to skip both components or the explicit state, command, and facts flags to override discovery.
 
 If the vector path is missing, stale, incompatible, or unavailable, the command writes a warning to stderr and substitutes the deterministic lexical fallback before the same exact-recovery and curation stages. Structural evidence can still be emitted during semantic fallback.
 
@@ -227,7 +227,7 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--structural-providers <list>` | `none` | `none`, `lexicon`, or `lexicon,arcana` |
 | `--structure-timeout <duration>` | `30s` | Per-case structural-provider timeout |
-| `--lexicon-facts <path>` | automatic snapshot export | Explicit standalone Lexicon JSONL directory override |
+| `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
 | `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
 | `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
 | `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph-state directory |

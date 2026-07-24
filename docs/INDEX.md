@@ -1,16 +1,28 @@
 # Grimoire documentation
 
-This directory is the map for Grimoire's implemented system, operating contracts, verification, limitations, and planned work.
+This directory maps the Grimoire platform, its context engine, operating contracts, verification, limitations, and planned work. Lexicon and Arcana retain their own component documentation under their source directories.
 
 ## Sections
 
-- [Architecture](architecture/INDEX.md) — system flow, ownership, state boundaries, and prepared-index design.
-- [Reference](reference/INDEX.md) — CLI commands, embedding runtime, indexing, vector storage, query policy, and package schema.
+- [Architecture](architecture/INDEX.md) — component boundaries, system flow, state ownership, and prepared-index design.
+- [Reference](reference/INDEX.md) — context CLI commands, embedding runtime, indexing, vector storage, query policy, and package schema.
 - [Development](development/INDEX.md) — tests, judged corpora, benchmark procedure, and retrieval-quality interpretation.
 - [Limits](limits/INDEX.md) — constraints and failure modes that exist now.
 - [Planning](planning/INDEX.md) — work that is not yet implemented.
+- [Lexicon documentation](../lexicon/docs/README.md) — language analysis, adapters, snapshots, contracts, and validation.
+- [Arcana documentation](../arcana/docs/) — graph ingestion and repository-snapshot contracts.
 
-## Core code ownership
+## Component ownership
+
+| Component | Location | Owns |
+| --- | --- | --- |
+| Lexicon | [`lexicon/`](../lexicon/) | Language analysis, normalized facts, adapters, immutable analysis snapshots |
+| Arcana | [`arcana/`](../arcana/) | Graph ingestion, packed graph state, traversal, impact, paths, and graph protocol |
+| Grimoire Context | repository root | Retrieval, ranking, budgeting, evidence assembly, and context packages |
+
+See [Component architecture](architecture/components.md) for the dependency and independent-use rules.
+
+## Context-engine code ownership
 
 | Package | Owns |
 | --- | --- |
@@ -41,5 +53,6 @@ Package-level README files define the narrower control boundaries.
 5. Planning pages contain unimplemented work and must not be cited as current behavior.
 6. Version numbers, defaults, commands, and schemas must match code and tests.
 7. New top-level documentation must be linked from the nearest `INDEX.md`.
+8. Component-specific behavior belongs in that component's documentation even though the source shares one repository.
 
 When behavior changes, update the owning package README, its public reference page, and any affected limitations or roadmap entry in the same change.

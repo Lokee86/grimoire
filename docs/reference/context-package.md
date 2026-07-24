@@ -189,7 +189,7 @@ Scores from different providers are not declared comparable. Consumers should us
 
 Structural enrichment is enabled by default but remains optional.
 
-When `<root>/.lexicon/CURRENT` exists, Grimoire resolves its immutable snapshot ID and creates or reuses a cached standalone export under the Grimoire state directory. The export is produced through `lexicon export`; Grimoire does not inspect Lexicon's mutable private library.
+When `<root>/.lexicon/CURRENT` exists, Grimoire resolves its immutable snapshot ID and creates or reuses a cached export under the Grimoire state directory. The export is produced through the independently runnable `lexicon export` command from the co-located `lexicon/` component; Grimoire does not inspect Lexicon's mutable private library.
 
 When Lexicon produced matched symbols, Grimoire resolves `<root>/.arcana/CURRENT`. If Arcana is missing or does not represent the same Lexicon snapshot, Grimoire invokes one-shot `arcana sync`. It then queries the matching immutable snapshot through `arcana protocol --snapshot`.
 

@@ -1,10 +1,44 @@
 # Grimoire
 
-Grimoire builds deterministic, bounded context packages for codebase work. It combines a content-addressed source index, local embeddings, exact and lexical recovery, optional Lexicon and Arcana structure, query-shape analysis, evidence-aware assembly, and explicit token accounting.
+Grimoire is a deterministic repository-intelligence platform and the canonical home of three independently usable components:
 
-The project is part of the Warlock toolchain, but Grimoire remains independently usable. Lexicon and Arcana are optional structural providers; source retrieval continues when either provider is unavailable.
+| Component | Path | Responsibility |
+| --- | --- | --- |
+| **Grimoire Context** | repository root | Retrieval, ranking, query-shape analysis, token budgeting, and context-package construction |
+| **Lexicon** | [`lexicon/`](lexicon/) | Polyglot language analysis, normalized source facts, immutable analysis objects, and snapshots |
+| **Arcana** | [`arcana/`](arcana/) | Repository-graph construction, packed graph storage, traversal, impact analysis, and graph queries |
+
+The components form one natural pipeline:
+
+```text
+source repository
+  -> Lexicon facts and snapshots
+  -> Arcana graph snapshots
+  -> Grimoire retrieval and context packages
+```
+
+They remain separate applications and technical boundaries. Lexicon can be used without Arcana or the context engine. Arcana can be used directly by graph consumers. Grimoire Context continues to provide source retrieval when structural state or executables are unavailable.
+
+Grimoire is part of the [Warlock toolchain](https://github.com/Lokee86/warlock-toolchain), but the repository and each component remain independently usable.
+
+## Repository layout
+
+```text
+arcana/                 Rust graph engine and CLI
+lexicon/                Go orchestration plus polyglot language adapters
+cmd/grimoire/           Grimoire Context CLI
+internal/               Context retrieval, ranking, assembly, and integration
+native/vector-engine/   Rust vector storage and exact-search engine
+docs/                   Platform and context-engine documentation
+```
+
+The former standalone Arcana and Lexicon repositories are retained as migration pointers. Current development happens in this repository. Their histories were imported as Git subtrees rather than flattened copies.
+
+See [Component architecture](docs/architecture/components.md) for ownership, dependency, release, and standalone-use rules.
 
 ## Current capabilities
+
+### Grimoire Context
 
 - Incremental prepared indexing with immutable content identities.
 - Local Qwen3 embeddings served by a managed `llama.cpp` runtime.
@@ -12,22 +46,38 @@ The project is part of the Warlock toolchain, but Grimoire remains independently
 - Packed native vector snapshots with deterministic exact search.
 - Lexical fallback when semantic state is missing, stale, or unavailable.
 - Exact recovery for concrete paths, symbols, and identifiers.
-- Optional Lexicon symbol facts and Arcana graph evidence.
+- Lexicon symbol facts and Arcana graph evidence when structural state is available.
 - Deterministic query-shape classification and automatic context budgets.
 - Evidence-coverage assembly for automatic-budget requests.
 - Versioned JSON context packages with exact `o200k_base` accounting.
 - Repository-owned retrieval, ranking, structural, and adaptive-assembly evaluation.
 
+### Lexicon
+
+- Go, GDScript, Python, Ruby, Rust, JavaScript, TypeScript, Svelte, and generic adapters.
+- Normalized facts-v1 adapter output and compact immutable binary objects.
+- Atomic content-addressed snapshots, incremental analysis, deterministic merges, and consumer hooks.
+
+### Arcana
+
+- Lexicon snapshot ingestion without rebuilding language parsers.
+- Packed forward and reverse graph storage, immutable snapshots, overlays, and compaction.
+- Deterministic graph protocol operations for paths, impact, call chains, unresolved references, roles, and snapshot differences.
+
 ## System flow
 
-Index construction and context construction are separate pipelines:
+Repository preparation and context construction remain explicit stages:
 
 ```text
 Repository
-  -> prepared source index
+  -> Grimoire prepared source index
   -> embedding batches
   -> content-addressed vector objects
   -> packed vector snapshot
+
+Repository
+  -> Lexicon immutable analysis snapshot
+  -> Arcana immutable graph snapshot
 
 Query
   -> semantic, lexical, exact, and structural retrieval
@@ -38,34 +88,45 @@ Query
   -> versioned context package
 ```
 
-See [System overview](docs/architecture/system-overview.md) for ownership and failure boundaries.
+See [System overview](docs/architecture/system-overview.md).
 
 ## Build
 
-Grimoire requires Go 1.26.5 and Rust 1.90 or newer.
+The components keep separate build boundaries inside the monorepo.
+
+Grimoire Context requires Go 1.26.5 and Rust 1.90 or newer:
 
 ```bash
 cargo build --manifest-path native/vector-engine/Cargo.toml -p grimoire-vector-ffi --release
 go build ./cmd/grimoire
 ```
 
-On Windows, the native build produces `native/vector-engine/target/release/grimoire_vector_ffi.dll`. Grimoire discovers the DLL in the workspace, beside the executable, or through `GRIMOIRE_VECTOR_ENGINE`.
+Lexicon:
+
+```bash
+cd lexicon
+go build -o bin/lexicon ./cmd/lexicon
+```
+
+Arcana:
+
+```bash
+cd arcana
+cargo build --release
+```
+
+On Windows, the native vector build produces `native/vector-engine/target/release/grimoire_vector_ffi.dll`. Grimoire discovers the DLL in the workspace, beside the executable, or through `GRIMOIRE_VECTOR_ENGINE`.
 
 ## Quick start
 
-Install the managed embedding runtime and model on Windows x64:
+Install and start the managed embedding runtime:
 
 ```bash
 grimoire model setup
-```
-
-Start the local embeddings service in one terminal:
-
-```bash
 grimoire model serve
 ```
 
-Prepare and vectorize a repository in another terminal:
+Prepare and vectorize a repository:
 
 ```bash
 grimoire index --root .
@@ -78,13 +139,13 @@ Compile an automatically sized context package:
 grimoire context --root . --query "Where is context-package assembly implemented?"
 ```
 
-With no positive `--budget`, Grimoire classifies the query as focused, bounded, or exploratory and selects a deterministic target. A positive budget retains fixed fit-to-budget behavior:
+A positive budget retains fixed fit-to-budget behavior:
 
 ```bash
 grimoire context --root . --query "Trace context assembly end to end" --budget 8000
 ```
 
-Use `grimoire model probe` to verify the live embedding endpoint and `grimoire vector info` to inspect native snapshot availability.
+Structural enrichment uses repository-local `.lexicon/` and `.arcana/` state when available. Build or install the component executables, then initialize their state with the commands documented in [`lexicon/README.md`](lexicon/README.md) and [`arcana/README.md`](arcana/README.md). Missing structural providers warn and fall back to source retrieval.
 
 ## Context policy
 
@@ -103,32 +164,33 @@ See [Query shape and assembly](docs/reference/query-shape-and-assembly.md).
 ## Documentation
 
 - [Documentation index](docs/INDEX.md)
+- [Component architecture](docs/architecture/components.md)
 - [Architecture](docs/architecture/INDEX.md)
 - [CLI and data contracts](docs/reference/INDEX.md)
 - [Development and evaluation](docs/development/INDEX.md)
 - [Current limitations](docs/limits/INDEX.md)
 - [Roadmap](docs/planning/INDEX.md)
+- [Lexicon documentation](lexicon/docs/README.md)
+- [Arcana documentation](arcana/docs/)
 
 Reference documentation describes implemented behavior. Unimplemented work belongs in the roadmap, and unresolved constraints belong in the limitations section.
 
 ## Development
 
-Run the Go suite:
+Run each component from its own build root:
 
 ```bash
 go test ./...
-```
-
-Run the native vector-engine suite:
-
-```bash
 cargo test --manifest-path native/vector-engine/Cargo.toml
+
+cd lexicon && python evaluation/run_tests.py
+cd ../arcana && cargo test --all-targets
 ```
 
-Evaluation commands and checked-in report conventions are documented in [Testing and benchmarks](docs/development/testing-and-benchmarks.md).
+Evaluation commands and checked-in report conventions for the context engine are documented in [Testing and benchmarks](docs/development/testing-and-benchmarks.md).
 
 ## Current status
 
-Grimoire has working prepared indexing, local embedding setup and service control, vector persistence and search, source and structural retrieval, adaptive context assembly, and judged evaluation. The main remaining work is retrieval-quality calibration across more repositories, better automatic package targets, operational hardening, and automatic maintenance of prepared/vector state.
+The source trees and histories of Lexicon and Arcana are now consolidated into Grimoire. The components still publish separate state, expose separate CLIs, and retain explicit ownership boundaries. Unified installation, release packaging, and top-level command orchestration remain follow-up work.
 
-Grimoire is not a source-of-truth language graph, a general version-control system, or an autonomous code editor. Lexicon owns normalized language facts; Arcana owns graph operations; Grimoire owns retrieval and context-package construction.
+Grimoire Context has working prepared indexing, local embedding setup and service control, vector persistence and search, source and structural retrieval, adaptive context assembly, and judged evaluation. Lexicon and Arcana retain their existing application behavior inside `lexicon/` and `arcana/`.
