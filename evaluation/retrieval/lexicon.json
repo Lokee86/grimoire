@@ -2,7 +2,7 @@
   "version": 1,
   "repository": "Lexicon",
   "source_url": "https://github.com/Lokee86/grimoire",
-  "revision": "c7cb6ee321ef9ccc630a054bb4315872137bf3d8",
+  "revision": "5eb9e8eacc063b4620a463a59aac2fddfaaaa4d3",
   "scope": "lexicon",
   "judged_at": "2026-07-23",
   "cases": [
@@ -128,11 +128,19 @@
           "path": "internal/scan/languages.go",
           "symbols": [
             "languagesForChanges",
-            "libraryDriftLanguagesFor",
+            "snapshotDriftLanguages",
             "mergeLanguages"
           ],
-          "reason": "These functions derive and combine the languages affected by source changes and adapter drift.",
-          "minimum": "Evidence must explain affected-language selection for both change sources and their merge."
+          "reason": "These functions derive languages affected by source changes or snapshot-content drift and combine the resulting sets.",
+          "minimum": "Evidence must explain affected-language selection for source changes, snapshot drift, and their merge."
+        },
+        {
+          "path": "internal/scan/snapshot.go",
+          "symbols": [
+            "adapterDriftLanguages"
+          ],
+          "reason": "The scanner compares current adapter fingerprints with the published language entries to identify adapter drift.",
+          "minimum": "Evidence must identify adapter-fingerprint drift as a separate affected-language input."
         },
         {
           "path": "internal/scan/plan.go",
@@ -171,50 +179,47 @@
     },
     {
       "id": "lexicon-me-02",
-      "query": "How does partial-language merging preserve complete shared facts while replacing selected owners?",
+      "query": "How does incremental object-store rebuilding preserve unchanged file objects while replacing changed owners and optionally shared facts?",
       "category": "mechanism-explanation",
       "budget": 6000,
       "required": [
         {
-          "path": "internal/library/merge.go",
+          "path": "internal/objectstore/update.go",
           "symbols": [
-            "Merge"
+            "BuildIncrementalLanguage"
           ],
-          "reason": "Merge is the library-level entry point for combining partial-language results.",
-          "minimum": "Evidence must identify the merge orchestration and its replacement semantics."
+          "reason": "BuildIncrementalLanguage validates the incremental scope, retains unaffected file entries, removes declared owners, rebuilds changed file objects, and optionally replaces shared facts.",
+          "minimum": "Evidence must identify the immutable object-store update orchestration and its owner-replacement semantics."
         },
         {
-          "path": "internal/library/merge_stream.go",
+          "path": "internal/objectstore/analysis.go",
           "symbols": [
-            "readStream",
-            "nodeOwners",
-            "recordOwner",
-            "directOwner",
-            "normalize",
-            "sortRecords"
+            "groups",
+            "samePaths",
+            "normalizedPaths"
           ],
-          "reason": "These stream helpers classify ownership, normalize records, and produce deterministic merged output.",
-          "minimum": "Evidence must explain how shared facts are retained while selected owners are replaced."
+          "reason": "The validated analysis groups records by owner and normalizes the declared changed and removed file scopes before incremental application.",
+          "minimum": "Evidence must explain how owned and shared records are separated and how the adapter scope is validated."
         },
         {
-          "path": "internal/library/header.go",
+          "path": "internal/objectstore/update.go",
           "symbols": [
-            "SetSharedComplete"
+            "writeFileObject",
+            "writeSharedObject"
           ],
-          "reason": "The header records completeness of shared facts after a partial merge.",
-          "minimum": "Evidence must include the completeness state update that preserves shared-fact correctness."
+          "reason": "These helpers materialize changed owner records and replacement shared records as immutable content-addressed objects.",
+          "minimum": "Evidence must include the object-writing boundary for changed owners and optional shared-fact replacement."
         }
       ],
       "supporting": [
         {
-          "path": "internal/library/merge_stream.go",
+          "path": "internal/objectstore/update.go",
           "symbols": [
-            "stringSet",
-            "cloneRecord",
-            "writeStream"
+            "readLanguageSource",
+            "pathSet"
           ],
-          "reason": "These helpers support set tracking, record isolation, and merged stream output.",
-          "minimum": "Supporting evidence may clarify implementation details of the merge stream."
+          "reason": "These helpers validate changed source ownership and normalize the changed and removed path sets used by incremental rebuilding.",
+          "minimum": "Supporting evidence may clarify source validation and path-set handling."
         }
       ],
       "forbidden": [],
@@ -290,10 +295,9 @@
             "Ensure",
             "Open",
             "SourceChanges",
-            "CommitState",
-            "RestoreLibrary"
+            "CommitState"
           ],
-          "reason": "The state component owns repository state initialization, change detection, commits, and restoration.",
+          "reason": "The state component owns repository state initialization, staged source-change detection, and state commits.",
           "minimum": "Evidence must distinguish repository-state responsibilities from scan and storage responsibilities."
         },
         {
@@ -318,13 +322,13 @@
       ],
       "supporting": [
         {
-          "path": "internal/scan/snapshot.go",
+          "path": "internal/scan/transaction.go",
           "symbols": [
-            "ensureSnapshot",
-            "publishSnapshot"
+            "loadManifest",
+            "commitManifest"
           ],
-          "reason": "These scan-layer helpers bridge scan orchestration and object-store snapshot publication.",
-          "minimum": "Supporting evidence may explain the boundary between scan and storage components."
+          "reason": "These scan-transaction helpers load current snapshot state and bridge completed analysis into object-store publication.",
+          "minimum": "Supporting evidence may explain the boundary between scan orchestration and storage publication."
         }
       ],
       "forbidden": [],
@@ -484,12 +488,12 @@
           "minimum": "Evidence must identify the adapter invocation boundary."
         },
         {
-          "path": "internal/scan/snapshot.go",
+          "path": "internal/scan/transaction.go",
           "symbols": [
-            "publishSnapshot"
+            "commitManifest"
           ],
-          "reason": "The scan snapshot layer prepares publication after analysis.",
-          "minimum": "Evidence must show the scan-to-publication handoff."
+          "reason": "The scan transaction stages and commits private state, records a pending publication, publishes the updated manifest, and clears the pending marker.",
+          "minimum": "Evidence must show the scan-to-publication transaction boundary."
         },
         {
           "path": "internal/objectstore/store.go",
@@ -515,7 +519,7 @@
     },
     {
       "id": "lexicon-lm-01",
-      "query": "A tracked Go file changes while an adapter fingerprint drifts: how does Lexicon detect both conditions, select affected languages, scope analysis, merge cached facts, publish the new snapshot, and notify consumers?",
+      "query": "A tracked Go file changes while an adapter fingerprint drifts: how does Lexicon detect both conditions, select affected languages, scope analysis, preserve unchanged object-store facts while replacing changed owners, publish the new snapshot, and notify consumers?",
       "category": "long-mixed-query",
       "budget": 12000,
       "required": [
@@ -531,19 +535,19 @@
           "path": "internal/scan/languages.go",
           "symbols": [
             "languagesForChanges",
-            "libraryDriftLanguagesFor"
+            "snapshotDriftLanguages",
+            "mergeLanguages"
           ],
-          "reason": "These functions select languages affected by source changes and library or adapter drift.",
-          "minimum": "Evidence must cover both change inputs and affected-language selection."
+          "reason": "These functions select languages affected by source changes or snapshot drift and combine them with other drift inputs.",
+          "minimum": "Evidence must cover source-change and snapshot-drift language selection and set merging."
         },
         {
           "path": "internal/scan/snapshot.go",
           "symbols": [
-            "adapterDriftLanguages",
-            "publishSnapshot"
+            "adapterDriftLanguages"
           ],
-          "reason": "The snapshot layer detects adapter drift and publishes the resulting snapshot.",
-          "minimum": "Evidence must connect drift detection to eventual publication."
+          "reason": "The snapshot layer detects adapter fingerprint drift against the current manifest.",
+          "minimum": "Evidence must identify the adapter-drift input to scan planning."
         },
         {
           "path": "internal/scan/plan.go",
@@ -562,12 +566,20 @@
           "minimum": "Evidence must identify the scope-construction stage."
         },
         {
-          "path": "internal/library/merge.go",
+          "path": "internal/objectstore/update.go",
           "symbols": [
-            "Merge"
+            "BuildIncrementalLanguage"
           ],
-          "reason": "Merge combines newly analyzed facts with cached library facts.",
-          "minimum": "Evidence must include cached-fact merging."
+          "reason": "BuildIncrementalLanguage preserves unaffected immutable file objects while replacing changed owners in the language entry.",
+          "minimum": "Evidence must include incremental object-store preservation and owner replacement."
+        },
+        {
+          "path": "internal/scan/transaction.go",
+          "symbols": [
+            "commitManifest"
+          ],
+          "reason": "commitManifest commits private state and atomically publishes the updated snapshot manifest.",
+          "minimum": "Evidence must include the publication transaction after analysis."
         },
         {
           "path": "internal/scan/scanner.go",

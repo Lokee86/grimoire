@@ -119,6 +119,38 @@ func TestPlanRetrievalIntentsPreservesFocusedQuery(t *testing.T) {
 	}
 }
 
+func TestPlanRetrievalIntentsAssignsStableFacetIDs(t *testing.T) {
+	query := "Which package owns request parsing, candidate ranking, and package compilation?"
+	first := PlanRetrievalIntents(query)
+	second := PlanRetrievalIntents(query)
+	if len(first) != len(second) || len(first) < 4 {
+		t.Fatalf("unexpected retrieval plans: first=%+v second=%+v", first, second)
+	}
+	if first[0].FacetID != "" {
+		t.Fatalf("mixed context pass should not claim a facet: %+v", first[0])
+	}
+	seen := make(map[string]struct{})
+	for index := 1; index < len(first); index++ {
+		if !strings.HasPrefix(first[index].FacetID, "facet:") {
+			t.Fatalf("intent %d has no facet id: %+v", index, first[index])
+		}
+		if first[index].FacetID != second[index].FacetID {
+			t.Fatalf("facet id changed between identical plans: %q != %q", first[index].FacetID, second[index].FacetID)
+		}
+		if _, exists := seen[first[index].FacetID]; exists {
+			t.Fatalf("duplicate facet id %q", first[index].FacetID)
+		}
+		seen[first[index].FacetID] = struct{}{}
+	}
+}
+
+func TestPlanRetrievalIntentsAssignsFocusedFacet(t *testing.T) {
+	intents := PlanRetrievalIntents("Where is vector snapshot freshness validated?")
+	if len(intents) != 1 || !strings.HasPrefix(intents[0].FacetID, "facet:") {
+		t.Fatalf("focused query did not receive one facet: %+v", intents)
+	}
+}
+
 func intentQueriesContain(intents []RetrievalIntent, fragment string) bool {
 	fragment = strings.ToLower(fragment)
 	for _, intent := range intents {

@@ -196,7 +196,7 @@ func selectedPaths(selections []evaluation.Selection) []string {
 }
 
 func applyEvaluationErrorClassification(run *evaluation.CaseRun) {
-	classification := evaluation.FailureEmbeddingMiss
+	classification := evaluation.FailureProviderRetrievalMiss
 	message := strings.ToLower(run.Error)
 	if strings.Contains(message, "manifest") || strings.Contains(message, "snapshot") ||
 		strings.Contains(message, "prepared index") || strings.Contains(message, "vector result") {

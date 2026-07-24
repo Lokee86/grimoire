@@ -69,6 +69,16 @@ def aggregate(reports: list[dict], mode: str) -> dict:
         row = next(item for item in report["by_mode"] if item["group"] == mode)
         repositories.append({"repository": report["repository"], **row})
     macro = {metric: statistics.fmean(row[metric] for row in repositories) for metric in METRICS}
+    failure_stages: dict[str, int] = {}
+    failure_total = 0
+    for row in repositories:
+        failure_total += row.get("required_failures", 0)
+        for stage, count in row.get("required_failure_stages", {}).items():
+            failure_stages[stage] = failure_stages.get(stage, 0) + count
+    failure_stage_rates = {
+        stage: count / failure_total if failure_total else 0.0
+        for stage, count in failure_stages.items()
+    }
     micro = {}
     for metric in METRICS:
         weight_key = "ranking_cases" if metric in {
@@ -79,7 +89,14 @@ def aggregate(reports: list[dict], mode: str) -> dict:
             sum(row[metric] * row[weight_key] for row in repositories) / total_weight
             if total_weight else 0.0
         )
-    return {"repositories": repositories, "macro": macro, "micro": micro}
+    return {
+        "repositories": repositories,
+        "macro": macro,
+        "micro": micro,
+        "required_failures": failure_total,
+        "required_failure_stages": failure_stages,
+        "required_failure_stage_rates": failure_stage_rates,
+    }
 
 
 def write_summary(path: Path, result: dict) -> None:
@@ -104,6 +121,11 @@ def write_summary(path: Path, result: dict) -> None:
     lines.extend(["", "## Macro average", ""])
     for metric, value in result["aggregate"]["macro"].items():
         lines.append(f"- `{metric}`: {value:.4f}")
+    lines.extend(["", "## Required evidence failure stages", ""])
+    failure_stages = result["aggregate"].get("required_failure_stages", {})
+    failure_rates = result["aggregate"].get("required_failure_stage_rates", {})
+    for stage in sorted(failure_stages):
+        lines.append(f"- `{stage}`: {failure_stages[stage]} ({failure_rates[stage]:.1%})")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -119,6 +141,8 @@ def main() -> int:
     parser.add_argument("--selection-file-penalty", type=int)
     parser.add_argument("--selection-subsystem-penalty", type=int)
     parser.add_argument("--selection-adjacent-primaries", type=int)
+    parser.add_argument("--assembly-strategy", choices=("legacy", "coverage"))
+    parser.add_argument("--assembly-facet-depth", type=int)
     parser.add_argument("--skip-index", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -126,6 +150,13 @@ def main() -> int:
     grimoire = Path(args.grimoire_root).resolve()
     workspace = Path(args.workspace_root).resolve()
     manifest = json.loads((grimoire / args.suite).read_text(encoding="utf-8"))
+    assembly_defaults = manifest.get("assembly", {"strategy": "coverage", "facet_depth": 3})
+    assembly_strategy = args.assembly_strategy or assembly_defaults["strategy"]
+    assembly_facet_depth = (
+        args.assembly_facet_depth
+        if args.assembly_facet_depth is not None
+        else assembly_defaults["facet_depth"]
+    )
     if args.split == "test" and not args.allow_test:
         parser.error("test split is sealed; pass --allow-test only for a final frozen run")
     entries = [item for item in manifest["repositories"] if item["split"] == args.split]
@@ -151,6 +182,8 @@ def main() -> int:
             if value < 0:
                 parser.error("selection overrides must be non-negative")
             selection[key] = value
+    if assembly_facet_depth < 0:
+        parser.error("assembly facet depth must be non-negative")
     for entry in entries:
         checkout = resolve_checkout(entry, workspace, grimoire)
         root = (checkout / entry.get("scope", ".")).resolve()
@@ -164,6 +197,8 @@ def main() -> int:
             "--selection-file-penalty", str(selection["file_repeat_penalty"]),
             "--selection-subsystem-penalty", str(selection["subsystem_repeat_penalty"]),
             "--selection-adjacent-primaries", str(selection["adjacent_primary_limit"]),
+            "--assembly-strategy", assembly_strategy,
+            "--assembly-facet-depth", str(assembly_facet_depth),
             "--output-dir", str(output_dir), "--output-prefix", prefix,
         ]
         run(command, grimoire, args.dry_run)
@@ -179,6 +214,10 @@ def main() -> int:
         "mode": args.mode,
         "baseline_revision": manifest["baseline_revision"],
         "selection": selection,
+        "assembly": {
+            "strategy": assembly_strategy,
+            "facet_depth": assembly_facet_depth,
+        },
         "aggregate": aggregate(reports, args.mode),
     }
     (output_dir / "suite-summary.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

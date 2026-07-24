@@ -92,6 +92,12 @@ func rankCandidatesForIntent(candidates []retrieve.Candidate, planned queryshape
 	}
 	for index := range result {
 		result[index].Rank = index + 1
+		if planned.FacetID != "" && result[index].Context != nil {
+			if result[index].Context.FacetRanks == nil {
+				result[index].Context.FacetRanks = make(map[string]int)
+			}
+			result[index].Context.FacetRanks[planned.FacetID] = index + 1
+		}
 	}
 	return result
 }
@@ -107,6 +113,14 @@ func annotateCandidateIntent(candidate retrieve.Candidate, planned queryshape.Re
 	descriptor := evidence.Descriptor{
 		Identity: identity, Intents: []evidence.Intent{planned.Intent}, Roles: []evidence.Role{role},
 		EstimatedTokens: candidate.Chunk.TokenCount, RedundancyKey: identity,
+	}
+	if planned.FacetID != "" {
+		rank := candidate.Rank
+		if rank <= 0 {
+			rank = 1
+		}
+		descriptor.GroupIDs = []string{planned.FacetID}
+		descriptor.FacetRanks = map[string]int{planned.FacetID: rank}
 	}
 	candidate.Context = mergeCandidateContext(candidate.Context, &descriptor)
 	candidate.Reasons = appendUniqueReason(candidate.Reasons, fmt.Sprintf("retrieval intent %s", planned.Intent))

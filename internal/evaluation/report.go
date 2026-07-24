@@ -89,6 +89,17 @@ func Markdown(report Report) string {
 			aggregate.IrrelevantStructuralRate*100, aggregate.MedianLatencyMS, aggregate.P95LatencyMS)
 	}
 
+	output.WriteString("\n## Required evidence failure stages\n\n")
+	output.WriteString("| Mode | Failure stage | Count | Share of missing required evidence |\n")
+	output.WriteString("| --- | --- | ---: | ---: |\n")
+	for _, aggregate := range report.ByMode {
+		for _, stage := range sortedFailureStages(aggregate.RequiredFailureStages) {
+			fmt.Fprintf(&output, "| %s | %s | %d | %.1f%% |\n",
+				aggregate.Group, stage, aggregate.RequiredFailureStages[stage],
+				aggregate.RequiredFailureStageRates[stage]*100)
+		}
+	}
+
 	output.WriteString("\n## Package comparison\n\n")
 	output.WriteString("| Mode | Median tokens | p95 tokens | Median chunks | Median budget use |\n")
 	output.WriteString("| --- | ---: | ---: | ---: | ---: |\n")
@@ -236,6 +247,15 @@ func Markdown(report Report) string {
 		}
 	}
 	return output.String()
+}
+
+func sortedFailureStages(stages map[string]int) []string {
+	keys := make([]string, 0, len(stages))
+	for stage := range stages {
+		keys = append(keys, stage)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func failedRuns(runs []CaseRun) []CaseRun {

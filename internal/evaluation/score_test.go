@@ -17,8 +17,8 @@ func TestScoreCaseClassifiesPipelineLosses(t *testing.T) {
 		want   string
 	}{
 		{"stale", "find target", Stages{}, FailureStaleOrIncompleteIndex},
-		{"embedding", "explain subsystem behavior", Stages{Indexed: []Candidate{indexed}}, FailureEmbeddingMiss},
-		{"ranking", "explain subsystem behavior", Stages{Indexed: []Candidate{indexed}, BroadProbe: []Candidate{indexed}}, FailureVectorRankingMiss},
+		{"provider", "explain subsystem behavior", Stages{Indexed: []Candidate{indexed}}, FailureProviderRetrievalMiss},
+		{"ranking", "explain subsystem behavior", Stages{Indexed: []Candidate{indexed}, BroadProbe: []Candidate{indexed}}, FailureRankingCutoffMiss},
 		{"exact", "where is Target", Stages{Indexed: []Candidate{indexed}}, FailureExactRecoveryMiss},
 		{"merge", "find target", Stages{Indexed: []Candidate{indexed}, Retrieved: []Candidate{indexed}}, FailureCandidateMergeLoss},
 		{"curation", "find target", Stages{Indexed: []Candidate{indexed}, Retrieved: []Candidate{indexed}, Merged: []Candidate{indexed}}, FailureCurationLoss},

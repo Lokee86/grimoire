@@ -186,18 +186,24 @@ func annotateStructuralIntent(result structuralContextResult, planned queryshape
 		result.Lexicon.Candidates[index] = annotateCandidateIntent(result.Lexicon.Candidates[index], planned)
 	}
 	for index := range result.Lexicon.Evidence {
-		result.Lexicon.Evidence[index].Context = mergeStructuralIntent(result.Lexicon.Evidence[index].Context, planned.Intent)
+		result.Lexicon.Evidence[index].Context = mergeStructuralIntent(result.Lexicon.Evidence[index].Context, planned)
 	}
 	for index := range result.Arcana {
-		result.Arcana[index].Context = mergeStructuralIntent(result.Arcana[index].Context, planned.Intent)
+		result.Arcana[index].Context = mergeStructuralIntent(result.Arcana[index].Context, planned)
 	}
 	for index := range result.Combined {
-		result.Combined[index].Context = mergeStructuralIntent(result.Combined[index].Context, planned.Intent)
+		result.Combined[index].Context = mergeStructuralIntent(result.Combined[index].Context, planned)
 	}
 	return result
 }
 
-func mergeStructuralIntent(existing *evidence.Descriptor, intent evidence.Intent) *evidence.Descriptor {
-	descriptor := evidence.Descriptor{Intents: []evidence.Intent{intent}, Roles: []evidence.Role{evidence.RoleStructural}}
+func mergeStructuralIntent(existing *evidence.Descriptor, planned queryshape.RetrievalIntent) *evidence.Descriptor {
+	descriptor := evidence.Descriptor{
+		Intents: []evidence.Intent{planned.Intent},
+		Roles:   []evidence.Role{evidence.RoleStructural},
+	}
+	if planned.FacetID != "" {
+		descriptor.GroupIDs = []string{planned.FacetID}
+	}
 	return mergeCandidateContext(existing, &descriptor)
 }

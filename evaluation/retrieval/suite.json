@@ -1,15 +1,39 @@
 {
   "version": 1,
-  "baseline_revision": "c7cb6ee321ef9ccc630a054bb4315872137bf3d8",
+  "baseline_revision": "5eb9e8eacc063b4620a463a59aac2fddfaaaa4d3",
   "baseline_paths": ["cmd", "internal", "native"],
   "allowed_baseline_drift": [
-    "internal/selection/selection.go",
-    "internal/selection/selection_test.go"
+    "internal/app/context.go",
+    "internal/app/context_evaluation.go",
+    "internal/app/context_intent_fusion.go",
+    "internal/app/context_intent_retrieval.go",
+    "internal/app/context_intent_retrieval_test.go",
+    "internal/app/context_semantic.go",
+    "internal/app/eval_retrieval.go",
+    "internal/app/eval_retrieval_helpers.go",
+    "internal/assembly/coverage.go",
+    "internal/assembly/coverage_test.go",
+    "internal/assembly/README.md",
+    "internal/assembly/model.go",
+    "internal/assembly/plan.go",
+    "internal/evaluation/model.go",
+    "internal/evaluation/report.go",
+    "internal/evaluation/score.go",
+    "internal/evaluation/score_test.go",
+    "internal/evidence/descriptor.go",
+    "internal/evidence/descriptor_test.go",
+    "internal/queryshape/intents.go",
+    "internal/queryshape/intents_test.go",
+    "internal/queryshape/model.go"
   ],
   "selection": {
     "file_repeat_penalty": 10,
     "subsystem_repeat_penalty": 18,
-    "adjacent_primary_limit": 3
+    "adjacent_primary_limit": 4
+  },
+  "assembly": {
+    "strategy": "coverage",
+    "facet_depth": 3
   },
   "repositories": [
     {

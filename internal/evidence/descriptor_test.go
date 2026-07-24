@@ -28,6 +28,7 @@ func TestMergeRetainsProviderContributions(t *testing.T) {
 		Intents:            []Intent{IntentCallChain},
 		Roles:              []Role{RolePrimary},
 		GroupIDs:           []string{"chain:one"},
+		FacetRanks:         map[string]int{"facet:one": 4},
 		ExactMatchStrength: 0.5,
 		EstimatedTokens:    50,
 		RedundancyKey:      "a.go:symbol",
@@ -41,6 +42,7 @@ func TestMergeRetainsProviderContributions(t *testing.T) {
 		Intents:            []Intent{IntentCallChain, IntentMechanism},
 		Roles:              []Role{RoleSupporting},
 		GroupIDs:           []string{"chain:one", "mechanism:one"},
+		FacetRanks:         map[string]int{"facet:one": 2, "facet:two": 3},
 		ExactMatchStrength: 0.9,
 		EstimatedTokens:    70,
 		RedundancyKey:      "ignored-conflict",
@@ -65,5 +67,8 @@ func TestMergeRetainsProviderContributions(t *testing.T) {
 	}
 	if len(got.Intents) != 2 || len(got.Roles) != 2 || len(got.GroupIDs) != 2 || len(got.Links) != 2 {
 		t.Fatalf("Merge() failed to retain unique metadata: %+v", got)
+	}
+	if got.FacetRanks["facet:one"] != 2 || got.FacetRanks["facet:two"] != 3 {
+		t.Fatalf("Merge() facet ranks = %+v, want minimum ranks", got.FacetRanks)
 	}
 }

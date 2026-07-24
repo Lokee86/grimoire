@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Lokee86/grimoire/internal/assembly"
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/index"
@@ -39,6 +40,8 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	selectionFilePenalty := flags.Int("selection-file-penalty", selectionDefaults.FileRepeatPenalty, "curation penalty for each previously selected chunk from the same file")
 	selectionSubsystemPenalty := flags.Int("selection-subsystem-penalty", selectionDefaults.SubsystemRepeatPenalty, "curation penalty for each previously selected chunk from the same subsystem")
 	selectionAdjacentPrimaries := flags.Int("selection-adjacent-primaries", selectionDefaults.AdjacentPrimaryLimit, "number of diversified primaries whose immediate prepared neighbors are promoted")
+	assemblyStrategy := flags.String("assembly-strategy", "coverage", "adaptive assembly strategy: legacy or coverage")
+	assemblyFacetDepth := flags.Int("assembly-facet-depth", assembly.DefaultConfig().FacetDepth, "candidate depth reserved for each query facet")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
 	structuralProvidersValue := flags.String("structural-providers", "none", "structural providers: none, lexicon, or lexicon,arcana")
@@ -59,11 +62,21 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if strings.TrimSpace(*casesPath) == "" || *limit <= 0 || *probeLimit <= 0 || *timeout <= 0 || *structureTimeout <= 0 ||
-		*selectionFilePenalty < 0 || *selectionSubsystemPenalty < 0 || *selectionAdjacentPrimaries < 0 {
-		return errors.New("--cases, positive limits and timeouts, and non-negative selection calibration values are required")
+		*selectionFilePenalty < 0 || *selectionSubsystemPenalty < 0 || *selectionAdjacentPrimaries < 0 || *assemblyFacetDepth < 0 {
+		return errors.New("--cases, positive limits and timeouts, and non-negative selection and assembly calibration values are required")
 	}
 	if *adaptive && *budgetOverride > 0 {
 		return errors.New("--adaptive cannot be combined with a fixed --budget override")
+	}
+	assemblyConfig := assembly.DefaultConfig()
+	switch strings.ToLower(strings.TrimSpace(*assemblyStrategy)) {
+	case "coverage":
+		assemblyConfig.CoverageAware = true
+		assemblyConfig.FacetDepth = *assemblyFacetDepth
+	case "legacy":
+		assemblyConfig = assembly.LegacyConfig()
+	default:
+		return fmt.Errorf("unsupported --assembly-strategy %q", *assemblyStrategy)
 	}
 	modes, err := parseEvaluationModes(*modesValue)
 	if err != nil {
@@ -173,6 +186,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 					SubsystemRepeatPenalty: *selectionSubsystemPenalty,
 					AdjacentPrimaryLimit:   *selectionAdjacentPrimaries,
 				},
+				AssemblyConfig: &assemblyConfig,
 			})
 			cancel()
 			run.Timings = executed.Timings

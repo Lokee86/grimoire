@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	FailureEmbeddingMiss               = "embedding miss"
-	FailureVectorRankingMiss           = "vector ranking miss"
+	FailureProviderRetrievalMiss       = "provider retrieval miss"
+	FailureRankingCutoffMiss           = "ranking cutoff miss"
 	FailureExactRecoveryMiss           = "exact recovery miss"
 	FailureCandidateMergeLoss          = "candidate merge loss"
 	FailureCurationLoss                = "curation loss"
@@ -99,13 +99,13 @@ func ScoreCase(entry Case, run *CaseRun, stages Stages) {
 			continue
 		}
 		switch status.FailureStage {
-		case FailureEmbeddingMiss, FailureVectorRankingMiss, FailureExactRecoveryMiss,
+		case FailureProviderRetrievalMiss, FailureRankingCutoffMiss, FailureExactRecoveryMiss,
 			FailureCandidateMergeLoss, FailureCurationLoss, FailureAssemblyLoss, FailureBudgetFittingLoss,
 			FailureStaleOrIncompleteIndex, FailureIncorrectExpectation:
 			classifications[status.FailureStage] = struct{}{}
 		}
 		switch status.FailureStage {
-		case FailureEmbeddingMiss, FailureVectorRankingMiss, FailureExactRecoveryMiss:
+		case FailureProviderRetrievalMiss, FailureRankingCutoffMiss, FailureExactRecoveryMiss:
 			run.RequiredNeverRetrieved++
 		case FailureCandidateMergeLoss:
 			run.RequiredLostDuringMerge++
@@ -183,9 +183,9 @@ func classifyEvidenceFailure(query string, status EvidenceStatus) string {
 		return FailureExactRecoveryMiss
 	}
 	if status.BroadProbe {
-		return FailureVectorRankingMiss
+		return FailureRankingCutoffMiss
 	}
-	return FailureEmbeddingMiss
+	return FailureProviderRetrievalMiss
 }
 
 func expectsExact(query string, evidence Evidence) bool {
@@ -263,7 +263,12 @@ func recall(statuses []EvidenceStatus) float64 {
 }
 
 func AggregateRuns(group string, runs []CaseRun) Aggregate {
-	aggregate := Aggregate{Group: group, Cases: len(runs)}
+	aggregate := Aggregate{
+		Group:                     group,
+		Cases:                     len(runs),
+		RequiredFailureStages:     make(map[string]int),
+		RequiredFailureStageRates: make(map[string]float64),
+	}
 	if len(runs) == 0 {
 		return aggregate
 	}
@@ -308,6 +313,11 @@ func AggregateRuns(group string, runs []CaseRun) Aggregate {
 			requiredTotal++
 			if status.Included {
 				requiredIncluded++
+				continue
+			}
+			aggregate.RequiredFailures++
+			if status.FailureStage != "" {
+				aggregate.RequiredFailureStages[status.FailureStage]++
 			}
 		}
 		for _, status := range run.Supporting {
@@ -362,6 +372,11 @@ func AggregateRuns(group string, runs []CaseRun) Aggregate {
 	}
 	if aggregate.ProfileCases > 0 {
 		aggregate.ProfileMatchRate = float64(aggregate.ProfileMatches) / float64(aggregate.ProfileCases)
+	}
+	if aggregate.RequiredFailures > 0 {
+		for stage, count := range aggregate.RequiredFailureStages {
+			aggregate.RequiredFailureStageRates[stage] = float64(count) / float64(aggregate.RequiredFailures)
+		}
 	}
 	if aggregate.RankingCases > 0 {
 		count := float64(aggregate.RankingCases)

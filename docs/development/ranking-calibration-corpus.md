@@ -41,7 +41,7 @@ A mismatch is not automatically a classifier bug. First check whether the prompt
 
 ## Frozen multi-repository suite
 
-`evaluation/retrieval/suite.json` freezes the current retrieval implementation at commit `c7cb6ee321ef9ccc630a054bb4315872137bf3d8`, the production selection configuration `10/18/3`, and three repository-level splits:
+`evaluation/retrieval/suite.json` freezes the comparison baseline at commit `5eb9e8eacc063b4620a463a59aac2fddfaaaa4d3`, the production selection configuration `10/18/4`, the coverage-aware assembly configuration with facet depth `3`, and three repository-level splits:
 
 | Split | Repositories | Permitted use |
 | --- | --- | --- |
@@ -51,7 +51,7 @@ A mismatch is not automatically a classifier bug. First check whether the prompt
 
 The split is repository-level so closely related cases cannot leak between calibration and evaluation. Aggregate reports must include both per-repository results and an unweighted macro-average across repositories; a large corpus must not dominate merely because it contains more cases.
 
-`evaluation/run_retrieval_suite.py` verifies pinned checkout revisions and rejects a run when retrieval implementation paths differ from the recorded baseline. The manifest permits only the separately measured production-default change in `internal/selection`; all evaluation commands still pass explicit selection values. The test split is sealed unless the caller explicitly passes `--allow-test`.
+`evaluation/run_retrieval_suite.py` verifies pinned checkout revisions and rejects a run when retrieval implementation paths differ from the recorded baseline outside the declared calibration seam. Selection and assembly values are recorded in the manifest and every generated report. The test split is sealed unless the caller explicitly passes `--allow-test`.
 
 ## July 24, 2026 calibration result
 
@@ -60,6 +60,16 @@ The suite contains 91 cases across ten repositories: 39 calibration cases, 42 va
 Across the calibration split, required recall increased from 21.85% to 22.77% and irrelevant selection fell from 81.54% to 81.26%, with pass rate unchanged. Validation required recall increased from 11.19% to 11.47%, irrelevant selection fell slightly, and median latency decreased by 55.8 ms. On the once-consumed held-out test split, required recall increased from 32.13% to 33.98%, irrelevant selection fell from 80.06% to 78.38%, and median latency decreased by 42.8 ms.
 
 The change improves final package assembly rather than initial ranking: R@10, R@20, MRR, and held-out pass rate were unchanged. The test split produced no fully passing cases, and Trilium required recall remained 5.0%; the result is a bounded curation improvement, not evidence that retrieval quality is solved. No further tuning was performed against the held-out cases.
+
+## Coverage-aware assembly calibration
+
+The next cycle used only the calibration and validation repositories. GDQuest and Trilium were already consumed and were not rerun. Aggregate failure-stage reporting first showed that 59.3% of missing calibration requirements were present before final fitting but absent from the package. It also exposed stale Lexicon expectations left over from the pre-consolidation library design; those expectations were corrected against the pinned baseline before candidate comparison.
+
+The accepted implementation assigns stable facet identities to decomposed query intents, retains per-facet candidate ranks across exact, lexical, vector, and structural fusion, and reserves three distinct candidates per facet during adaptive assembly. One candidate can claim only one open facet for coverage purposes, preventing a generic multi-match chunk from satisfying the whole query.
+
+Against the repaired legacy-assembly baseline, calibration required recall increased from 23.58% to 32.64%, irrelevant selection fell from 80.92% to 74.22%, and median latency fell from 1072.2 ms to 1020.7 ms. Validation required recall increased from 13.69% to 17.01%, irrelevant selection fell from 86.39% to 82.39%, median latency fell from 1207.6 ms to 1173.9 ms, and macro pass rate increased from 1.04% to 7.71%. No validation repository lost required recall.
+
+Depth four was rejected despite a higher calibration macro average because HTTPie required recall regressed from 23.53% to 17.65%. Increasing the ranking reservation from two to three candidates per facet was also rejected because it regressed R@10 or MRR on Lexicon, Gum, and fd. R@10, R@20, and MRR therefore remain the next measured bottleneck rather than being hidden by package-assembly gains.
 
 ## Calibration workflow
 

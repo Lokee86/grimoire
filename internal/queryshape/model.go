@@ -62,9 +62,10 @@ type Profile struct {
 // Weight is relative to the other entries in the same policy and is always
 // positive for an emitted intent.
 type RetrievalIntent struct {
-	Intent evidence.Intent `json:"intent"`
-	Query  string          `json:"query"`
-	Weight float64         `json:"weight"`
+	FacetID string          `json:"facet_id,omitempty"`
+	Intent  evidence.Intent `json:"intent"`
+	Query   string          `json:"query"`
+	Weight  float64         `json:"weight"`
 }
 
 // RetrievalPolicy is the policy recommendation derived from a Profile.

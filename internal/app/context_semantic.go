@@ -9,6 +9,7 @@ import (
 
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/index"
+	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/vectorstore"
 )
@@ -41,6 +42,202 @@ func semanticCandidates(
 		ctx, snapshot, statePath, query, endpoint, enginePath, limit, 0, queryOptions,
 	)
 	return result.Candidates, err
+}
+
+func semanticIntentCandidates(
+	ctx context.Context,
+	snapshot index.Snapshot,
+	statePath string,
+	intents []queryshape.RetrievalIntent,
+	endpoint string,
+	enginePath string,
+	limit int,
+	queryOptions embedding.QueryOptions,
+) ([]retrieve.Candidate, error) {
+	result, err := semanticIntentCandidatesForEvaluation(
+		ctx, snapshot, statePath, intents, endpoint, enginePath, limit, 0, queryOptions,
+	)
+	return result.Candidates, err
+}
+
+type semanticIntentPlan struct {
+	intent queryshape.RetrievalIntent
+	inputs []embedding.QueryInput
+	start  int
+	end    int
+}
+
+func semanticIntentCandidatesForEvaluation(
+	ctx context.Context,
+	snapshot index.Snapshot,
+	statePath string,
+	intents []queryshape.RetrievalIntent,
+	endpoint string,
+	enginePath string,
+	limit int,
+	probeLimit int,
+	queryOptions embedding.QueryOptions,
+) (semanticEvaluationResult, error) {
+	var result semanticEvaluationResult
+	intents = providerRetrievalIntents(intents)
+	if len(intents) == 0 {
+		return result, nil
+	}
+
+	validationStart := time.Now()
+	paths := resolveVectorPaths(statePath)
+	chunks := snapshot.AllChunks()
+	manifest, err := validateVectorSnapshotManifest(paths.Manifest, snapshot, len(chunks))
+	if err != nil {
+		return result, err
+	}
+	library, err := vectorstore.Load(enginePath)
+	if err != nil {
+		return result, err
+	}
+	defer library.Close()
+	engine, err := library.OpenSnapshot(paths.Snapshot)
+	if err != nil {
+		return result, err
+	}
+	defer engine.Close()
+	info, err := engine.Info()
+	if err != nil {
+		return result, err
+	}
+	if err := validateVectorEngineInfo(manifest, info); err != nil {
+		return result, err
+	}
+	result.Metrics.SnapshotValidation = time.Since(validationStart)
+
+	plans := make([]semanticIntentPlan, 0, len(intents))
+	combinedPlan := make([]embedding.QueryInput, 0, len(intents))
+	for _, planned := range intents {
+		inputs, planErr := embedding.PlanQuery(planned.Query, queryOptions)
+		if planErr != nil {
+			return result, planErr
+		}
+		start := len(combinedPlan)
+		for index := range inputs {
+			inputs[index].Label = fmt.Sprintf("facet %s: %s", planned.Intent, inputs[index].Label)
+		}
+		combinedPlan = append(combinedPlan, inputs...)
+		plans = append(plans, semanticIntentPlan{
+			intent: planned,
+			inputs: inputs,
+			start:  start,
+			end:    len(combinedPlan),
+		})
+	}
+
+	embeddingStart := time.Now()
+	vectors, err := embedSemanticIntentPlans(ctx, embedding.NewClient(endpoint), plans, queryOptions)
+	result.Metrics.Embedding = time.Since(embeddingStart)
+	if err != nil {
+		return result, err
+	}
+	for _, vector := range vectors {
+		if info.Dimensions != len(vector) {
+			return result, fmt.Errorf("vector snapshot has %d dimensions, query has %d", info.Dimensions, len(vector))
+		}
+	}
+
+	searchStart := time.Now()
+	hits, err := searchQueryVectors(engine, vectors, limit)
+	result.Metrics.VectorSearch = time.Since(searchStart)
+	if err != nil {
+		return result, err
+	}
+	mergeStart := time.Now()
+	groups := make([]intentCandidateGroup, 0, len(plans))
+	for _, plan := range plans {
+		candidates, mergeErr := mergeSemanticHits(chunks, plan.inputs, hits[plan.start:plan.end], limit)
+		if mergeErr != nil {
+			return result, mergeErr
+		}
+		candidates = rankCandidatesForIntent(candidates, plan.intent, false)
+		groups = append(groups, intentCandidateGroup{Intent: plan.intent, Candidates: candidates})
+	}
+	result.Candidates = mergeIntentCandidateGroups(limit, groups)
+	result.Metrics.CandidateMerge = time.Since(mergeStart)
+
+	if probeLimit > limit {
+		probeStart := time.Now()
+		probeHits, probeErr := searchQueryVectors(engine, vectors, probeLimit)
+		if probeErr != nil {
+			return result, probeErr
+		}
+		probeGroups := make([]intentCandidateGroup, 0, len(plans))
+		for _, plan := range plans {
+			candidates, mergeErr := mergeSemanticHits(chunks, plan.inputs, probeHits[plan.start:plan.end], probeLimit)
+			if mergeErr != nil {
+				return result, mergeErr
+			}
+			candidates = rankCandidatesForIntent(candidates, plan.intent, false)
+			probeGroups = append(probeGroups, intentCandidateGroup{Intent: plan.intent, Candidates: candidates})
+		}
+		result.BroadProbe = mergeIntentCandidateGroups(probeLimit, probeGroups)
+		result.Metrics.DiagnosticProbe = time.Since(probeStart)
+	} else {
+		result.BroadProbe = append([]retrieve.Candidate(nil), result.Candidates...)
+	}
+	return result, nil
+}
+
+func embedSemanticIntentPlans(
+	ctx context.Context,
+	client *embedding.Client,
+	plans []semanticIntentPlan,
+	options embedding.QueryOptions,
+) ([][]float32, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	results := make([][][]float32, len(plans))
+	workerLimit := max(1, min(options.BatchConcurrency, len(plans)))
+	semaphore := make(chan struct{}, workerLimit)
+	perFacetOptions := options
+	perFacetOptions.BatchConcurrency = 1
+	var wait sync.WaitGroup
+	var firstError error
+	var errorOnce sync.Once
+
+	for index := range plans {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			select {
+			case semaphore <- struct{}{}:
+				defer func() { <-semaphore }()
+			case <-ctx.Done():
+				return
+			}
+			vectors, err := client.EmbedQueryPlan(ctx, plans[index].inputs, perFacetOptions)
+			if err != nil {
+				errorOnce.Do(func() {
+					firstError = fmt.Errorf("embed semantic facet %d: %w", index+1, err)
+					cancel()
+				})
+				return
+			}
+			results[index] = vectors
+		}()
+	}
+	wait.Wait()
+	if firstError != nil {
+		return nil, firstError
+	}
+
+	vectors := make([][]float32, 0)
+	for index, plan := range plans {
+		if len(results[index]) != len(plan.inputs) {
+			return nil, fmt.Errorf(
+				"semantic facet %d returned %d vectors for %d inputs",
+				index+1, len(results[index]), len(plan.inputs),
+			)
+		}
+		vectors = append(vectors, results[index]...)
+	}
+	return vectors, nil
 }
 
 func semanticCandidatesForEvaluation(

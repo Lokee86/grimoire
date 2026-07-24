@@ -38,6 +38,7 @@ type evaluatedContextOptions struct {
 	Structural      structuralContextOptions
 	QueryOptions    embedding.QueryOptions
 	SelectionConfig *selection.Config
+	AssemblyConfig  *assembly.Config
 }
 
 func evaluateContext(
@@ -75,16 +76,14 @@ func evaluateContext(
 		lexicalBroad := intentLexicalCandidates(snapshot, intents, probeLimit)
 		result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
 
-		semantic, err := semanticCandidatesForEvaluation(
-			ctx, snapshot, options.StatePath, options.Query, options.Endpoint,
+		semantic, err := semanticIntentCandidatesForEvaluation(
+			ctx, snapshot, options.StatePath, intents, options.Endpoint,
 			options.EnginePath, options.Limit, options.ProbeLimit, options.QueryOptions,
 		)
 		if err != nil {
 			return result, err
 		}
 		mergeStart := time.Now()
-		semantic.Candidates = rankCandidatesForIntent(semantic.Candidates, intents[0], false)
-		semantic.BroadProbe = rankCandidatesForIntent(semantic.BroadProbe, intents[0], false)
 		base = mergeRankedProviders(options.Limit, lexical, semantic.Candidates)
 		broad = mergeRankedProviders(probeLimit, lexicalBroad, semantic.BroadProbe)
 		result.Timings.SnapshotValidationMS = durationMS(semantic.Metrics.SnapshotValidation)
@@ -93,15 +92,15 @@ func evaluateContext(
 		result.Timings.CandidateMergeMS = durationMS(semantic.Metrics.CandidateMerge) + durationMS(time.Since(mergeStart))
 		result.Timings.DiagnosticProbeMS += durationMS(semantic.Metrics.DiagnosticProbe)
 	default:
-		semantic, err := semanticCandidatesForEvaluation(
-			ctx, snapshot, options.StatePath, options.Query, options.Endpoint,
+		semantic, err := semanticIntentCandidatesForEvaluation(
+			ctx, snapshot, options.StatePath, intents, options.Endpoint,
 			options.EnginePath, options.Limit, options.ProbeLimit, options.QueryOptions,
 		)
 		if err != nil {
 			return result, err
 		}
-		base = rankCandidatesForIntent(semantic.Candidates, intents[0], false)
-		broad = rankCandidatesForIntent(semantic.BroadProbe, intents[0], false)
+		base = semantic.Candidates
+		broad = semantic.BroadProbe
 		result.Timings.SnapshotValidationMS = durationMS(semantic.Metrics.SnapshotValidation)
 		result.Timings.EmbeddingMS = durationMS(semantic.Metrics.Embedding)
 		result.Timings.VectorSearchMS = durationMS(semantic.Metrics.VectorSearch)
@@ -149,7 +148,11 @@ func evaluateContext(
 		result.RetrievalPolicy = queryshape.Activate(result.RetrievalPolicy)
 		effectiveBudget = result.RetrievalPolicy.TargetTokens
 		assemblyStart := time.Now()
-		planned := assembly.Plan(result.RetrievalPolicy, curated, structural.Combined)
+		planConfig := assembly.DefaultConfig()
+		if options.AssemblyConfig != nil {
+			planConfig = *options.AssemblyConfig
+		}
+		planned := assembly.PlanWithConfig(result.RetrievalPolicy, curated, structural.Combined, planConfig)
 		result.Timings.AssemblyMS = durationMS(time.Since(assemblyStart))
 		assembledCandidates = planned.Candidates
 		assembledEvidence = planned.Structural

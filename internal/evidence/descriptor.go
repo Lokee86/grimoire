@@ -42,14 +42,15 @@ type Link struct {
 // package assembly consumes the combined descriptor without depending on a
 // specific retrieval or structural provider.
 type Descriptor struct {
-	Identity           string   `json:"identity,omitempty"`
-	Intents            []Intent `json:"intents,omitempty"`
-	Roles              []Role   `json:"roles,omitempty"`
-	GroupIDs           []string `json:"group_ids,omitempty"`
-	ExactMatchStrength float64  `json:"exact_match_strength,omitempty"`
-	EstimatedTokens    int      `json:"estimated_tokens,omitempty"`
-	RedundancyKey      string   `json:"redundancy_key,omitempty"`
-	Links              []Link   `json:"links,omitempty"`
+	Identity           string         `json:"identity,omitempty"`
+	Intents            []Intent       `json:"intents,omitempty"`
+	Roles              []Role         `json:"roles,omitempty"`
+	GroupIDs           []string       `json:"group_ids,omitempty"`
+	FacetRanks         map[string]int `json:"facet_ranks,omitempty"`
+	ExactMatchStrength float64        `json:"exact_match_strength,omitempty"`
+	EstimatedTokens    int            `json:"estimated_tokens,omitempty"`
+	RedundancyKey      string         `json:"redundancy_key,omitempty"`
+	Links              []Link         `json:"links,omitempty"`
 }
 
 // RangeIdentity returns a stable identity for one prepared source range.
@@ -81,6 +82,14 @@ func Merge(left, right Descriptor) Descriptor {
 	merged.Intents = appendUnique(merged.Intents, right.Intents...)
 	merged.Roles = appendUnique(merged.Roles, right.Roles...)
 	merged.GroupIDs = appendUnique(merged.GroupIDs, right.GroupIDs...)
+	if merged.FacetRanks == nil && len(right.FacetRanks) > 0 {
+		merged.FacetRanks = make(map[string]int, len(right.FacetRanks))
+	}
+	for facet, rank := range right.FacetRanks {
+		if current, exists := merged.FacetRanks[facet]; !exists || rank < current {
+			merged.FacetRanks[facet] = rank
+		}
+	}
 	if right.ExactMatchStrength > merged.ExactMatchStrength {
 		merged.ExactMatchStrength = right.ExactMatchStrength
 	}
@@ -102,6 +111,13 @@ func clone(descriptor Descriptor) Descriptor {
 	descriptor.Intents = slices.Clone(descriptor.Intents)
 	descriptor.Roles = slices.Clone(descriptor.Roles)
 	descriptor.GroupIDs = slices.Clone(descriptor.GroupIDs)
+	if descriptor.FacetRanks != nil {
+		cloned := make(map[string]int, len(descriptor.FacetRanks))
+		for facet, rank := range descriptor.FacetRanks {
+			cloned[facet] = rank
+		}
+		descriptor.FacetRanks = cloned
+	}
 	descriptor.Links = slices.Clone(descriptor.Links)
 	return descriptor
 }

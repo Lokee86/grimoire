@@ -15,25 +15,50 @@ type scopeConfig struct {
 }
 
 // Plan selects a sufficient deterministic evidence set for an active automatic
-// retrieval policy. Candidate order remains the curated order supplied by the caller.
+// retrieval policy using the production assembly configuration.
 func Plan(
 	policy queryshape.RetrievalPolicy,
 	candidates []retrieve.Candidate,
 	evidence []structure.Evidence,
 ) Result {
-	config := configFor(policy.Scope)
-	structuralLimit := min(config.structuralLimit, len(evidence))
+	return PlanWithConfig(policy, candidates, evidence, DefaultConfig())
+}
+
+// PlanWithConfig permits paired evaluation of the previous rank-preserving
+// planner and coverage-aware planning without maintaining two implementations.
+func PlanWithConfig(
+	policy queryshape.RetrievalPolicy,
+	candidates []retrieve.Candidate,
+	evidence []structure.Evidence,
+	planConfig Config,
+) Result {
+	planConfig = normalizedPlanConfig(planConfig)
+	scopeConfig := configFor(policy.Scope)
+	structuralLimit := min(scopeConfig.structuralLimit, len(evidence))
 	structural := append([]structure.Evidence(nil), evidence[:structuralLimit]...)
 	anchorRegion := focusedAnchorRegion(candidates)
 	ordered, priorityBoundary := prioritizeCandidates(policy.Scope, candidates, anchorRegion, structural)
-	selected := make([]retrieve.Candidate, 0, min(config.maximumCandidates, len(candidates)))
+	facetsAvailable := countAvailableFacets(ordered)
+	facetClaims := map[string]string(nil)
+	if planConfig.CoverageAware {
+		ordered, facetsAvailable, facetClaims = prioritizeFacetCoverage(ordered, planConfig.FacetDepth)
+		if facetsAvailable > 0 {
+			priorityBoundary = 0
+		}
+	}
+	selected := make([]retrieve.Candidate, 0, min(scopeConfig.maximumCandidates, len(candidates)))
 	regions := newOrderedSet()
 	roles := newOrderedSet()
 	groups := newOrderedSet()
+	facets := newOrderedSet()
 	hasExact := false
 	candidateTokens := 0
 	considered := 0
 	stopReason := "candidate set exhausted"
+	requiredFacets := 0
+	if planConfig.CoverageAware {
+		requiredFacets = facetsAvailable
+	}
 
 	for index, candidate := range ordered {
 		considered++
@@ -47,15 +72,25 @@ func Plan(
 		for _, groupID := range candidateGroups(candidate) {
 			groups.Add(groupID)
 		}
+		if planConfig.CoverageAware {
+			facets.Add(facetClaims[coverageCandidateKey(candidate)])
+		} else {
+			for _, facetID := range candidateFacets(candidate) {
+				facets.Add(facetID)
+			}
+		}
 		if candidate.Source == "exact" {
 			hasExact = true
 		}
-		if len(selected) >= config.maximumCandidates {
+		if len(selected) >= scopeConfig.maximumCandidates {
 			stopReason = string(policy.Scope) + " candidate cap reached"
 			break
 		}
 		if (priorityBoundary == 0 || index+1 >= priorityBoundary) &&
-			coverageSatisfied(policy, config, len(selected), candidateTokens, regions.Len(), hasExact, candidates) {
+			coverageSatisfied(
+				policy, scopeConfig, len(selected), candidateTokens, regions.Len(),
+				hasExact, facets.Len(), requiredFacets, candidates,
+			) {
 			stopReason = string(policy.Scope) + " evidence coverage satisfied"
 			break
 		}
@@ -73,9 +108,23 @@ func Plan(
 			RegionsRepresented:   regions.Values(),
 			RolesRepresented:     roles.Values(),
 			GroupsRepresented:    groups.Len(),
+			FacetsAvailable:      facetsAvailable,
+			FacetsRepresented:    facets.Len(),
+			FacetCoverageDepth:   planConfig.FacetDepth,
+			CoverageAware:        planConfig.CoverageAware,
 			StopReason:           stopReason,
 		},
 	}
+}
+
+func normalizedPlanConfig(config Config) Config {
+	if config.FacetDepth < 0 {
+		config.FacetDepth = 0
+	}
+	if config.CoverageAware && config.FacetDepth == 0 {
+		config.FacetDepth = 1
+	}
+	return config
 }
 
 const (
@@ -124,7 +173,7 @@ func structuralGroups(items []structure.Evidence, limit int) []string {
 			continue
 		}
 		for _, groupID := range item.Context.GroupIDs {
-			if groupID == "" {
+			if groupID == "" || isFacetID(groupID) {
 				continue
 			}
 			if _, exists := seen[groupID]; exists {
@@ -155,7 +204,7 @@ func candidateGroups(candidate retrieve.Candidate) []string {
 	}
 	groups := make([]string, 0, len(candidate.Context.GroupIDs))
 	for _, groupID := range candidate.Context.GroupIDs {
-		if groupID != "" {
+		if groupID != "" && !isFacetID(groupID) {
 			groups = append(groups, groupID)
 		}
 	}
@@ -186,10 +235,12 @@ func coverageSatisfied(
 	config scopeConfig,
 	selected, candidateTokens, regions int,
 	hasExact bool,
+	facetsRepresented, requiredFacets int,
 	all []retrieve.Candidate,
 ) bool {
 	if selected < config.minimumCandidates || regions < config.minimumRegions ||
-		candidateTokens < policy.TargetTokens*config.tokenPoolMultiplier {
+		candidateTokens < policy.TargetTokens*config.tokenPoolMultiplier ||
+		facetsRepresented < requiredFacets {
 		return false
 	}
 	if policy.Scope != queryshape.ScopeFocused {

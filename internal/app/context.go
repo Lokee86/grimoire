@@ -79,15 +79,14 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	intents := activeRetrievalIntents(*query)
 	lexicalCandidates := intentLexicalCandidates(snapshot, intents, *limit)
 	semanticContext, cancelSemantic := context.WithTimeout(context.Background(), *timeout)
-	semanticCandidates, err := semanticCandidates(
-		semanticContext, snapshot, statePath, *query, *endpoint, *enginePath, *limit, queryOptions,
+	semanticCandidates, err := semanticIntentCandidates(
+		semanticContext, snapshot, statePath, intents, *endpoint, *enginePath, *limit, queryOptions,
 	)
 	cancelSemantic()
 	baseCandidates := lexicalCandidates
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "warning: semantic retrieval unavailable; using lexical fallback (BM25): %v\n", err)
 	} else {
-		semanticCandidates = rankCandidatesForIntent(semanticCandidates, intents[0], false)
 		baseCandidates = mergeRankedProviders(*limit, lexicalCandidates, semanticCandidates)
 	}
 

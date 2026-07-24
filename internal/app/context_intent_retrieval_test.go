@@ -160,6 +160,22 @@ func TestStructuralRetrievalIntentPrefersCallChainClause(t *testing.T) {
 	}
 }
 
+func TestAnnotateCandidateIntentPreservesFacetIdentity(t *testing.T) {
+	planned := queryshape.RetrievalIntent{
+		FacetID: "facet:ownership",
+		Intent:  evidence.IntentArchitecture,
+		Query:   "which component owns routing",
+		Weight:  1,
+	}
+	candidate := annotateCandidateIntent(intentTestCandidate("internal/router/router.go", 1), planned)
+	if candidate.Context == nil || len(candidate.Context.GroupIDs) != 1 || candidate.Context.GroupIDs[0] != planned.FacetID {
+		t.Fatalf("facet identity missing from candidate descriptor: %+v", candidate.Context)
+	}
+	if candidate.Context.FacetRanks[planned.FacetID] != 1 {
+		t.Fatalf("facet rank missing from candidate descriptor: %+v", candidate.Context)
+	}
+}
+
 func TestAnnotateCandidateIntentMarksSupportingEvidence(t *testing.T) {
 	planned := queryshape.RetrievalIntent{Intent: evidence.IntentMechanism, Query: "explain", Weight: 1}
 	candidate := annotateCandidateIntent(intentTestCandidate("internal/store/store_test.go", 1), planned)

@@ -28,20 +28,21 @@ func retrievalIntents(query string, tasks []string) []RetrievalIntent {
 	intents := mappedIntents(tasks)
 	clauses := decomposeRetrievalQuery(query)
 	if len(clauses) <= 1 && len(intents) == 1 && !looksStructuredQuery(query) {
-		return []RetrievalIntent{{Intent: intents[0], Query: query, Weight: 1}}
+		return []RetrievalIntent{retrievalIntent(intents[0], query, 1, true)}
 	}
 	if len(clauses) == 0 {
 		if len(intents) == 1 {
-			return []RetrievalIntent{{Intent: intents[0], Query: query, Weight: 1}}
+			return []RetrievalIntent{retrievalIntent(intents[0], query, 1, true)}
 		}
-		return []RetrievalIntent{{Intent: evidence.IntentMixed, Query: query, Weight: 1}}
+		return []RetrievalIntent{retrievalIntent(evidence.IntentMixed, query, 1, true)}
 	}
 
-	result := []RetrievalIntent{{
-		Intent: evidence.IntentMixed,
-		Query:  query,
-		Weight: mixedQueryWeight(query),
-	}}
+	result := []RetrievalIntent{retrievalIntent(
+		evidence.IntentMixed,
+		query,
+		mixedQueryWeight(query),
+		false,
+	)}
 	seenQueries := map[string]struct{}{normalizedQuery(query): {}}
 	for _, clause := range clauses {
 		key := normalizedQuery(clause.Query)
@@ -52,19 +53,28 @@ func retrievalIntents(query string, tasks []string) []RetrievalIntent {
 			continue
 		}
 		seenQueries[key] = struct{}{}
-		result = append(result, RetrievalIntent{
-			Intent: clause.Intent,
-			Query:  clause.Query,
-			Weight: clauseWeight(clause.Score),
-		})
+		result = append(result, retrievalIntent(
+			clause.Intent,
+			clause.Query,
+			clauseWeight(clause.Score),
+			true,
+		))
 		if len(result) == maxRetrievalIntentEntries {
 			break
 		}
 	}
 	if len(result) == 1 && len(intents) > 0 {
-		result = append(result, RetrievalIntent{Intent: intents[0], Query: query, Weight: 1})
+		result = append(result, retrievalIntent(intents[0], query, 1, true))
 	}
 	return result
+}
+
+func retrievalIntent(intent evidence.Intent, query string, weight float64, facet bool) RetrievalIntent {
+	planned := RetrievalIntent{Intent: intent, Query: query, Weight: weight}
+	if facet {
+		planned.FacetID = evidence.StableID("facet", string(intent), normalizedQuery(query))
+	}
+	return planned
 }
 
 func mappedIntents(tasks []string) []evidence.Intent {

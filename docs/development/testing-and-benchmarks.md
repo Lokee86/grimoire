@@ -190,7 +190,7 @@ python evaluation/run_retrieval_suite.py \
   --allow-test
 ```
 
-Use `--skip-index` only when the prepared state for every selected checkout is known to match its pinned revision. The runner refuses revision drift and refuses changes under the baseline implementation paths. Bounded calibration runs may override the frozen selection values with `--selection-file-penalty`, `--selection-subsystem-penalty`, and `--selection-adjacent-primaries`; every report records the effective values.
+Use `--skip-index` only when the prepared state for every selected checkout is known to match its pinned revision. The runner refuses revision drift and refuses changes under the baseline implementation paths. Bounded calibration runs may override the frozen selection values with `--selection-file-penalty`, `--selection-subsystem-penalty`, and `--selection-adjacent-primaries`, or compare `--assembly-strategy legacy|coverage` and `--assembly-facet-depth`. Every report records the effective selection and assembly values plus aggregate required-evidence failure stages.
 
 ## Candidate-selection calibration
 
@@ -204,11 +204,13 @@ grimoire eval retrieval \
   --adaptive \
   --selection-file-penalty 10 \
   --selection-subsystem-penalty 18 \
-  --selection-adjacent-primaries 3 \
+  --selection-adjacent-primaries 4 \
+  --assembly-strategy coverage \
+  --assembly-facet-depth 3 \
   --variant selection-calibrated
 ```
 
-The current defaults—file penalty 10, subsystem penalty 18, and three neighbor anchors—were selected from a bounded grid after intent-driven BM25, query decomposition, and Arcana semantic vectors were active. The earlier `4/10/2` and intermediate `10/10/3` configurations underperformed on the final 716-file candidate stream. Together with implementation-priority ranking and per-phase reservation, the selected configuration raised adaptive required-evidence recall from 8.9% to 26.7% and complete-case pass rate from 8.3% to 16.7%. This 12-case corpus does not establish a universal optimum; semantic modes, structural providers, and additional repositories remain separate validation gates. See [the calibration comparison](../../evaluation/results/selection-calibration-comparison-2026-07-23.md).
+The current defaults are file penalty 10, subsystem penalty 18, four neighbor anchors, and coverage-aware assembly with three distinct candidates reserved per query facet. Selection values were established in the earlier bounded grid; facet depth was selected on the multi-repository calibration split and then validated against Space Rocks, RuboCop, and Actual `loot-core`. Depth four was rejected because it regressed HTTPie required recall, and widening ranking reservation was rejected because it regressed ranking metrics. These values are measured defaults, not a universal optimum. See [the selection comparison](../../evaluation/results/selection-calibration-comparison-2026-07-23.md) and [the coverage-aware comparison](../../evaluation/results/coverage-aware-retrieval-calibration-2026-07-24.md).
 
 ## Calibration discipline
 
