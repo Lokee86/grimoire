@@ -44,9 +44,9 @@ Deleted or replaced chunks disappear from the current manifest and snapshot, but
 
 Embedding requests may execute concurrently, but completed batches enter the native object store through a serialized JSONL ingestion boundary. Increasing request concurrency cannot remove that persistence cost and can instead increase endpoint and memory pressure.
 
-## Lexical fallback is linear
+## BM25 lexical fallback is linear
 
-When semantic retrieval is unavailable, the fallback scans all prepared chunks and applies deterministic lexical scoring. It is a resilience path, not a full BM25 or postings-based search engine.
+When semantic retrieval is unavailable, the fallback tokenizes and scans all prepared chunks, computes BM25 corpus statistics for the query, and applies deterministic path and leading-line boosts. It does not maintain a postings index, so query cost still grows with prepared chunk count.
 
 ## Exact recovery scans prepared chunks
 

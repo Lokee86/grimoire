@@ -1,6 +1,7 @@
 package retrieve
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/index"
@@ -51,5 +52,88 @@ func TestSearchUsesStablePathTieBreak(t *testing.T) {
 	results := Search(snapshot, "needle", 10)
 	if results[0].Chunk.Path != "a.go" {
 		t.Fatalf("tie break was not stable: %+v", results)
+	}
+}
+
+func TestSearchDoesNotSubstringMatchSingleTerm(t *testing.T) {
+	snapshot := index.Snapshot{Version: index.FormatVersion, Files: []index.FileRecord{{
+		Path:   "command.go",
+		Chunks: []index.Chunk{{Path: "command.go", StartLine: 1, Text: "package command", TokenCount: 2}},
+	}}}
+	if results := Search(snapshot, "and", 10); len(results) != 0 {
+		t.Fatalf("single term matched inside a larger token: %+v", results)
+	}
+}
+
+func TestSearchBM25RewardsRareMultiTermEvidence(t *testing.T) {
+	snapshot := index.Snapshot{Version: index.FormatVersion, Files: []index.FileRecord{
+		{Path: "alpha/common.go", Chunks: []index.Chunk{{Path: "alpha/common.go", StartLine: 1, Text: "package alpha\ncache cache cache cache", TokenCount: 5}}},
+		{Path: "worker/state.go", Chunks: []index.Chunk{{Path: "worker/state.go", StartLine: 1, Text: "package worker\ncache invalidation sentinel", TokenCount: 4}}},
+	}}
+
+	results := Search(snapshot, "cache sentinel", 10)
+	if len(results) != 2 {
+		t.Fatalf("expected two results, got %d", len(results))
+	}
+	if results[0].Chunk.Path != "worker/state.go" {
+		t.Fatalf("rare multi-term evidence did not lead ranking: %+v", results)
+	}
+}
+
+func TestSearchBM25NormalizesDocumentLength(t *testing.T) {
+	noise := strings.Repeat(" unrelated", 100)
+	snapshot := index.Snapshot{Version: index.FormatVersion, Files: []index.FileRecord{
+		{Path: "short.go", Chunks: []index.Chunk{{Path: "short.go", StartLine: 1, Text: "critical path", TokenCount: 2}}},
+		{Path: "long.go", Chunks: []index.Chunk{{Path: "long.go", StartLine: 1, Text: "critical path" + noise, TokenCount: 102}}},
+	}}
+
+	results := Search(snapshot, "critical path", 10)
+	if len(results) != 2 || results[0].Chunk.Path != "short.go" {
+		t.Fatalf("focused document did not outrank long noisy document: %+v", results)
+	}
+}
+
+func TestSearchSplitsCodeIdentifiers(t *testing.T) {
+	snapshot := index.Snapshot{Version: index.FormatVersion, Files: []index.FileRecord{{
+		Path:   "network/handler.go",
+		Chunks: []index.Chunk{{Path: "network/handler.go", StartLine: 1, Text: "func ResolveDamagePacket() {}", TokenCount: 3}},
+	}}}
+
+	results := Search(snapshot, "resolve damage packet", 10)
+	if len(results) != 1 {
+		t.Fatalf("expected identifier components to match: %+v", results)
+	}
+	for _, term := range []string{"resolve", "damage", "packet"} {
+		found := false
+		for _, detail := range results[0].ScoreDetails {
+			if detail.Name == "BM25 content matches "+term {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("missing BM25 attribution for %q: %+v", term, results[0].ScoreDetails)
+		}
+	}
+}
+
+func TestQueryTermsSuppressesPromptScaffolding(t *testing.T) {
+	terms := queryTerms("Find where the damage resolver is")
+	if strings.Join(terms, ",") != "damage,resolver" {
+		t.Fatalf("unexpected normalized query terms: %v", terms)
+	}
+}
+
+func TestQueryTermsSplitCamelCase(t *testing.T) {
+	terms := queryTerms("ResolveDamagePacket")
+	if strings.Join(terms, ",") != "resolvedamagepacket,resolve,damage,packet" {
+		t.Fatalf("unexpected identifier terms: %v", terms)
+	}
+}
+
+func TestQueryTermsRetainAllStopwordIdentifier(t *testing.T) {
+	terms := queryTerms("Show")
+	if strings.Join(terms, ",") != "show" {
+		t.Fatalf("single identifier was suppressed as prompt scaffolding: %v", terms)
 	}
 }
