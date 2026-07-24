@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"unicode"
 
 	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
@@ -26,15 +25,23 @@ type Candidate struct {
 }
 
 func Search(snapshot index.Snapshot, query string, limit int) []Candidate {
-	phrase := strings.ToLower(strings.TrimSpace(query))
-	terms := queryTerms(phrase)
+	query = strings.TrimSpace(query)
+	phrase := strings.ToLower(query)
+	terms := queryTerms(query)
 	if len(terms) == 0 {
 		return nil
 	}
 
+	chunks := snapshot.AllChunks()
+	texts := make([]string, len(chunks))
+	for chunkIndex, chunk := range chunks {
+		texts[chunkIndex] = chunk.Text
+	}
+	corpus := newBM25Corpus(texts, terms)
+
 	candidates := make([]Candidate, 0)
-	for _, chunk := range snapshot.AllChunks() {
-		candidate := scoreChunk(chunk, phrase, terms)
+	for chunkIndex, chunk := range chunks {
+		candidate := scoreChunk(chunk, chunkIndex, corpus, phrase)
 		if candidate.Score > 0 {
 			candidates = append(candidates, candidate)
 		}
@@ -58,73 +65,39 @@ func Search(snapshot index.Snapshot, query string, limit int) []Candidate {
 	return candidates
 }
 
-func scoreChunk(chunk index.Chunk, phrase string, terms []string) Candidate {
+func scoreChunk(chunk index.Chunk, documentIndex int, corpus bm25Corpus, phrase string) Candidate {
 	text := strings.ToLower(chunk.Text)
-	path := strings.ToLower(chunk.Path)
-	base := strings.ToLower(filepath.Base(chunk.Path))
 	firstLine := text
 	if newline := strings.IndexByte(firstLine, '\n'); newline >= 0 {
 		firstLine = firstLine[:newline]
 	}
+	baseMatches := corpus.matches(filepath.Base(chunk.Path))
+	pathMatches := corpus.matches(chunk.Path)
+	leadingMatches := corpus.matches(firstLine)
 
 	candidate := Candidate{Chunk: chunk, Source: "lexical"}
-	if len(phrase) > 2 && strings.Contains(text, phrase) {
-		candidate.Score += 12
-		candidate.Reasons = append(candidate.Reasons, "exact query phrase in content")
-		candidate.ScoreDetails = append(candidate.ScoreDetails, ScoreDetail{
-			Name: "exact query phrase in content", Value: 12,
-		})
+	if len(corpus.terms) > 1 && len(phrase) > 2 && strings.Contains(text, phrase) {
+		candidate.addScore("exact query phrase in content", 12)
 	}
 
-	for _, term := range terms {
-		if strings.Contains(base, term) {
-			candidate.Score += 8
-			candidate.Reasons = append(candidate.Reasons, "filename matches "+term)
-			candidate.ScoreDetails = append(candidate.ScoreDetails, ScoreDetail{
-				Name: "filename matches " + term, Value: 8,
-			})
-		} else if strings.Contains(path, term) {
-			candidate.Score += 4
-			candidate.Reasons = append(candidate.Reasons, "path matches "+term)
-			candidate.ScoreDetails = append(candidate.ScoreDetails, ScoreDetail{
-				Name: "path matches " + term, Value: 4,
-			})
+	for termIndex, term := range corpus.terms {
+		if baseMatches[termIndex] {
+			candidate.addScore("filename matches "+term.text, 8)
+		} else if pathMatches[termIndex] {
+			candidate.addScore("path matches "+term.text, 4)
 		}
-		if strings.Contains(firstLine, term) {
-			candidate.Score += 4
-			candidate.Reasons = append(candidate.Reasons, "leading line matches "+term)
-			candidate.ScoreDetails = append(candidate.ScoreDetails, ScoreDetail{
-				Name: "leading line matches " + term, Value: 4,
-			})
+		if leadingMatches[termIndex] {
+			candidate.addScore("leading line matches "+term.text, 4)
 		}
-		occurrences := min(strings.Count(text, term), 5)
-		if occurrences > 0 {
-			value := float64(occurrences * 2)
-			candidate.Score += value
-			candidate.Reasons = append(candidate.Reasons, "content matches "+term)
-			candidate.ScoreDetails = append(candidate.ScoreDetails, ScoreDetail{
-				Name: "content matches " + term, Value: value,
-			})
+		if value := corpus.score(documentIndex, termIndex); value > 0 {
+			candidate.addScore("BM25 content matches "+term.text, value)
 		}
 	}
 	return candidate
 }
 
-func queryTerms(query string) []string {
-	fields := strings.FieldsFunc(query, func(r rune) bool {
-		return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_'
-	})
-	seen := make(map[string]struct{}, len(fields))
-	terms := make([]string, 0, len(fields))
-	for _, field := range fields {
-		if len(field) < 2 {
-			continue
-		}
-		if _, ok := seen[field]; ok {
-			continue
-		}
-		seen[field] = struct{}{}
-		terms = append(terms, field)
-	}
-	return terms
+func (candidate *Candidate) addScore(name string, value float64) {
+	candidate.Score += value
+	candidate.Reasons = append(candidate.Reasons, name)
+	candidate.ScoreDetails = append(candidate.ScoreDetails, ScoreDetail{Name: name, Value: value})
 }
