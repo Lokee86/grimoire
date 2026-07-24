@@ -70,7 +70,6 @@ type callObservation struct {
 	Candidate      string
 	Arguments      []string
 	Member         bool
-	Receiver       string
 	ReceiverTypeID string
 	Span           sourceSpan
 }

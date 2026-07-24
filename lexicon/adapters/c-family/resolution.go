@@ -82,19 +82,6 @@ func resolveDeclarations(index declarationIndex, candidate, scope, path string, 
 	return selectDeclarations(index, index.byName[lastQualifiedPart(candidate)], path, accept)
 }
 
-func resolveUnscopedDeclarations(index declarationIndex, candidate, path string, accept func(*declaration) bool) []*declaration {
-	candidate = stripTemplateArguments(normalizeQualified(candidate))
-	if candidate == "" {
-		return nil
-	}
-	if strings.Contains(candidate, "::") {
-		if matches := visibleDeclarations(index, index.byQualified[candidate], path, accept); len(matches) > 0 {
-			return matches
-		}
-	}
-	return visibleDeclarations(index, index.byName[lastQualifiedPart(candidate)], path, accept)
-}
-
 func visibleDeclarations(index declarationIndex, values []*declaration, path string, accept func(*declaration) bool) []*declaration {
 	return filterDeclarations(values, func(value *declaration) bool {
 		return accept(value) && (!value.FileLocal || index.visibility.fileLocalVisible(path, value.Path))

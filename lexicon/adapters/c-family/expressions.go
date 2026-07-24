@@ -23,8 +23,8 @@ func (extractor *extractor) extractExpression(node *tree_sitter.Node, context ex
 				SourceID: context.CallableID, SourceScope: context.CallableScope, Path: extractor.file.Path,
 				Expression: nodeText(function, extractor.source), Candidate: candidate,
 				Arguments: callArguments(node.ChildByFieldName("arguments"), extractor.source), Member: member,
-				Receiver: receiver, ReceiverTypeID: receiverTypeID,
-				Span: spanForNode(extractor.file.Path, node),
+				ReceiverTypeID: receiverTypeID,
+				Span:           spanForNode(extractor.file.Path, node),
 			})
 		}
 		if function != nil && function.Kind() == "field_expression" {

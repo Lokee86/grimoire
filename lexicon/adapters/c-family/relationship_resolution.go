@@ -69,15 +69,12 @@ func resolveCallCandidates(index declarationIndex, observation callObservation) 
 		return declaration.Callable
 	}
 	if observation.ReceiverTypeID != "" {
-		candidates := resolveUnscopedDeclarations(index, observation.Candidate, observation.Path, accept)
+		candidates := resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
 		owned := selectDeclarations(index, index.byContainerName[observation.ReceiverTypeID+"\x00"+lastQualifiedPart(observation.Candidate)], observation.Path, accept)
 		if len(owned) > 0 {
 			return owned
 		}
 		return candidates
-	}
-	if observation.Member {
-		return resolveUnscopedDeclarations(index, observation.Candidate, observation.Path, accept)
 	}
 	return resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
 }
