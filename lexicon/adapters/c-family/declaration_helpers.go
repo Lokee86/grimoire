@@ -145,6 +145,11 @@ func (extractor *extractor) addParameters(declarator *tree_sitter.Node, callable
 	callable.Attributes["parameter_count"] = index
 }
 
+func (extractor *extractor) recordCallableParameters(declarator *tree_sitter.Node, callable *declaration) {
+	extractor.addParameters(declarator, callable)
+	callable.CallableShape = extractor.callableParameterShape(declarator)
+}
+
 func (extractor *extractor) handleEnumerator(node *tree_sitter.Node, context extractionContext) {
 	nameNode := node.ChildByFieldName("name")
 	if nameNode == nil {

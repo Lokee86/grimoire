@@ -28,6 +28,11 @@ func resolveCall(facts *factSet, index declarationIndex, indirectCalls indirectC
 		return
 	}
 	if len(candidates) > 1 {
+		candidates = pruneCallableCandidates(candidates, len(observation.Arguments))
+		if len(candidates) == 1 {
+			addCallEdge(facts, observation, candidates[0], "calls", nil)
+			return
+		}
 		for _, candidate := range candidates {
 			addCallEdge(facts, observation, candidate, "possible-calls", nil)
 		}
@@ -75,6 +80,29 @@ func resolveCallCandidates(index declarationIndex, observation callObservation) 
 		return resolveUnscopedDeclarations(index, observation.Candidate, observation.Path, accept)
 	}
 	return resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
+}
+
+func pruneCallableCandidates(candidates []*declaration, argumentCount int) []*declaration {
+	if len(candidates) < 2 {
+		return candidates
+	}
+	for _, candidate := range candidates {
+		if candidate.CallableShape == nil {
+			return candidates
+		}
+	}
+	compatible := make([]*declaration, 0, len(candidates))
+	for _, candidate := range candidates {
+		shape := candidate.CallableShape
+		if argumentCount < shape.Minimum || !shape.Variadic && argumentCount > shape.Maximum {
+			continue
+		}
+		compatible = append(compatible, candidate)
+	}
+	if len(compatible) == 0 {
+		return candidates
+	}
+	return compatible
 }
 
 func resolveMacroCall(facts *factSet, index declarationIndex, observation callObservation, macros []*declaration) {

@@ -43,6 +43,13 @@ type declaration struct {
 	FileLocal          bool
 	MacroFunction      bool
 	MacroTarget        string
+	CallableShape      *callableParameterShape
+}
+
+type callableParameterShape struct {
+	Minimum  int
+	Maximum  int
+	Variadic bool
 }
 
 type includeObservation struct {
