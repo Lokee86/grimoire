@@ -14,7 +14,7 @@ import (
 
 func runModel(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("expected model command: setup, info, serve, or probe")
+		return errors.New("expected model command: setup, info, serve, start, stop, restart, status, or probe")
 	}
 
 	switch args[0] {
@@ -24,6 +24,16 @@ func runModel(args []string, stdout, stderr io.Writer) error {
 		return runModelInfo(args[1:], stdout, stderr)
 	case "serve":
 		return runModelServe(args[1:], stdout, stderr)
+	case "start":
+		return runModelStart(args[1:], stdout, stderr)
+	case "stop":
+		return runModelStop(args[1:], stdout, stderr)
+	case "restart":
+		return runModelRestart(args[1:], stdout, stderr)
+	case "status":
+		return runModelStatus(args[1:], stdout, stderr)
+	case "supervise":
+		return runModelSupervise(args[1:], stderr)
 	case "probe":
 		return runModelProbe(args[1:], stdout, stderr)
 	default:
@@ -36,6 +46,7 @@ func runModelSetup(args []string, stdout, stderr io.Writer) error {
 	flags.SetOutput(stderr)
 	cacheDir := flags.String("cache", "", "managed model and runtime cache directory")
 	backend := flags.String("backend", embedding.RuntimeBackendAuto, "llama.cpp backend: auto, cuda, vulkan, or cpu")
+	force := flags.Bool("force", false, "revalidate and atomically reinstall the selected runtime")
 	timeout := flags.Duration("timeout", 45*time.Minute, "complete setup timeout")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -49,6 +60,7 @@ func runModelSetup(args []string, stdout, stderr io.Writer) error {
 	result, err := embedding.Setup(ctx, embedding.SetupOptions{
 		CacheDir: *cacheDir,
 		Backend:  *backend,
+		Force:    *force,
 		Progress: stderr,
 	})
 	if err != nil {
@@ -105,22 +117,25 @@ func runModelServe(args []string, stdout, stderr io.Writer) error {
 	modelPath := flags.String("model-file", "", "local GGUF path; defaults to the official Hugging Face Q8_0 artifact")
 	host := flags.String("host", "127.0.0.1", "embedding service host")
 	port := flags.Int("port", embedding.DefaultPort, "embedding service port")
-	contextSize := flags.Int("context-size", 8192, "llama.cpp context size")
-	ubatchSize := flags.Int("ubatch-size", 2048, "llama.cpp physical batch size")
-	parallel := flags.Int("parallel", 4, "llama.cpp server slots")
+	backend := flags.String("backend", embedding.RuntimeBackendAuto, "llama.cpp backend: auto, cuda, vulkan, or cpu")
+	contextSize := flags.Int("context-size", embedding.DefaultContextSize, "llama.cpp context size")
+	ubatchSize := flags.Int("ubatch-size", embedding.DefaultUbatchSize, "llama.cpp physical batch size")
+	parallel := flags.Int("parallel", embedding.DefaultParallelSlots, "llama.cpp server slots")
+	gpuLayers := flags.Int("gpu-layers", -1, "GPU layers; -1 selects all for GPU backends and zero for CPU")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if *port <= 0 || *port > 65535 {
 		return errors.New("--port must be between 1 and 65535")
 	}
-	if *contextSize <= 0 || *ubatchSize <= 0 || *parallel <= 0 {
-		return errors.New("--context-size, --ubatch-size, and --parallel must be positive")
+	if *contextSize <= 0 || *ubatchSize <= 0 || *parallel <= 0 || *gpuLayers < -1 {
+		return errors.New("--context-size, --ubatch-size, and --parallel must be positive; --gpu-layers must be -1 or non-negative")
 	}
 
 	return embedding.Serve(embedding.ServeOptions{
-		RuntimePath: *runtimePath, ModelPath: *modelPath,
-		Host: *host, Port: *port, ContextSize: *contextSize, UbatchSize: *ubatchSize, Parallel: *parallel,
+		RuntimePath: *runtimePath, ModelPath: *modelPath, Backend: *backend,
+		Host: *host, Port: *port, ContextSize: *contextSize, UbatchSize: *ubatchSize,
+		Parallel: *parallel, GPULayers: *gpuLayers,
 		Stdin: os.Stdin, Stdout: stdout, Stderr: stderr,
 	})
 }

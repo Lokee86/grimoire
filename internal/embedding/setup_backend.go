@@ -15,8 +15,9 @@ const windowsCUDA12MinimumDriver = "528.33"
 
 func selectRuntimeBackend(requested string) (string, error) {
 	requested = strings.TrimSpace(requested)
-	if requested == "" {
-		requested = strings.TrimSpace(os.Getenv("GRIMOIRE_LLAMA_BACKEND"))
+	configured := strings.TrimSpace(os.Getenv("GRIMOIRE_LLAMA_BACKEND"))
+	if requested == "" || (strings.EqualFold(requested, RuntimeBackendAuto) && configured != "") {
+		requested = configured
 	}
 	backend, err := normalizeRuntimeBackend(requested)
 	if err != nil {

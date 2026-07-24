@@ -14,9 +14,9 @@
 
 ## Managed runtime
 
-The package owns pinned runtime/model metadata, verified download and atomic cache publication, runtime discovery, and Windows x64 backend selection for `auto`, `cuda`, `vulkan`, and `cpu`.
+The package owns pinned runtime/model metadata, verified download and rollback-safe atomic cache publication, runtime discovery, and Windows x64 backend selection for `auto`, `cuda`, `vulkan`, and `cpu`.
 
-Automatic selection prefers supported CUDA, then Vulkan, then CPU. Explicit unavailable backends fail rather than silently changing the requested backend. Non-Windows systems may supply a compatible runtime and model through environment variables or `PATH`.
+Automatic selection prefers supported CUDA, then Vulkan, then CPU. Explicit unavailable backends fail rather than silently changing the requested backend. Managed serving adds detached process supervision, readiness probing, backend-log verification, crash restart, atomic config/state publication, stale-process cleanup, bounded rotating logs, per-slot context contracts, preflight input-token rejection, and optional NVIDIA telemetry. Non-Windows systems may supply a compatible runtime and model through environment variables or `PATH`.
 
 ## Query plans
 
@@ -28,4 +28,4 @@ Response processing validates indices and native dimensions, truncates to 512 di
 
 ## Boundary
 
-The package does not own source traversal, chunk boundaries, vector persistence, exact search, ranking, query-shape policy, evidence assembly, or context-package fitting.
+The package does not own source traversal, chunk boundaries, vector persistence, exact search, ranking, query-shape policy, evidence assembly, or context-package fitting. Chunking remains responsible for producing useful source regions; the embedding client independently enforces the active runtime's maximum input as the final safety boundary.

@@ -105,6 +105,25 @@ func TestClientPreservesResponseIndexes(t *testing.T) {
 	}
 }
 
+func TestClientRejectsOversizedInputBeforeRequest(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		requests++
+		writer.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	client.MaxInputTokens = 2
+	_, err := client.EmbedDocuments(context.Background(), []string{"this input contains far more than two tokens"})
+	if err == nil || !strings.Contains(err.Error(), "runtime limit is 2 tokens") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if requests != 0 {
+		t.Fatalf("embedding request reached server %d times", requests)
+	}
+}
+
 func TestClientRejectsShortVector(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		_ = json.NewEncoder(writer).Encode(map[string]any{

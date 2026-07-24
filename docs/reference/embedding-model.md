@@ -68,7 +68,15 @@ grimoire model info
 
 ## Serving
 
-Start the blocking local endpoint:
+Start the managed detached endpoint:
+
+```bash
+grimoire model start
+```
+
+The managed supervisor resolves and verifies the requested backend, launches `llama.cpp`, waits for a real embedding probe, records the runtime contract, rotates logs, and restarts a crashed child up to the configured limit. Use `grimoire model status` for health, process IDs, backend verification, context limits, and available NVIDIA telemetry. Use `grimoire model stop` or `grimoire model restart` for lifecycle control.
+
+Start a blocking foreground endpoint when direct console ownership is required:
 
 ```bash
 grimoire model serve
@@ -83,10 +91,15 @@ Default service settings:
 | Context size | 8,192 |
 | Physical batch size | 2,048 |
 | Parallel server slots | 4 |
+| GPU layers | all for CUDA/Vulkan; none for CPU |
+| Per-slot context | 2,048 |
+| Accepted input limit | 1,920 tokens |
+| Log rotation | 16 MiB, 3 backups |
+| Crash restarts | 5 |
 
-The server runs in embedding mode with last-token pooling. Grimoire performs 512-dimensional truncation and normalization after the response.
+The server runs in embedding mode with last-token pooling. Grimoire performs 512-dimensional truncation and normalization after the response. Requests to the managed endpoint are token-counted before transmission and rejected locally when an individual input exceeds the recorded per-slot limit.
 
-Verify the live OpenAI-compatible endpoint:
+Verify any live OpenAI-compatible endpoint:
 
 ```bash
 grimoire model probe
@@ -104,4 +117,4 @@ The probe embeds one instructed query and one raw document, validates the dimens
 
 ## Operational boundaries
 
-The embedding package owns model identity, runtime setup and discovery, request shaping, truncation, and normalization. It does not own chunking, vector persistence, ranking, context assembly, or package fitting.
+The embedding package owns model identity, runtime setup and discovery, backend selection and verification, detached lifecycle supervision, runtime state, log rotation, context-limit enforcement, request shaping, truncation, normalization, and optional NVIDIA telemetry. It does not own chunking, vector persistence, ranking, context assembly, or package fitting.
