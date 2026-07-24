@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -123,15 +124,17 @@ func TestVectorBuildReusesObjectsAndSearches(t *testing.T) {
 	if contextErrors.Len() != 0 {
 		t.Fatalf("unexpected context warning: %s", contextErrors.String())
 	}
-	if len(contextPackage.RetrievalSources) != 1 || contextPackage.RetrievalSources[0] != "vector" {
-		t.Fatalf("expected vector retrieval, got %+v", contextPackage.RetrievalSources)
+	if !slices.Contains(contextPackage.RetrievalSources, "lexical") ||
+		!slices.Contains(contextPackage.RetrievalSources, "vector") {
+		t.Fatalf("expected fused lexical and vector retrieval, got %+v", contextPackage.RetrievalSources)
 	}
 	if len(contextPackage.Selections) != 1 {
-		t.Fatalf("expected one vector selection, got %+v", contextPackage.Selections)
+		t.Fatalf("expected one fused selection, got %+v", contextPackage.Selections)
 	}
 	selection := contextPackage.Selections[0]
-	if selection.Path != "damage.go" || selection.RetrievalSource != "vector" || selection.RetrievalRank != 1 || selection.Score < 0.99 {
-		t.Fatalf("unexpected vector context selection: %+v", selection)
+	if selection.Path != "damage.go" || selection.RetrievalRank != 1 || selection.Score <= 0 ||
+		!slices.Contains(selection.Reasons, "reciprocal-rank fusion from vector rank 1") {
+		t.Fatalf("unexpected fused context selection: %+v", selection)
 	}
 
 	changed := "package damage\n\nfunc ResolveDamage() int { return 20 }\n"

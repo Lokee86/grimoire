@@ -199,6 +199,22 @@ func TestContextCandidateSourcesPreservesFirstUseOrder(t *testing.T) {
 	}
 }
 
+func TestContextCandidateSourcesIncludesFusionContributors(t *testing.T) {
+	candidates := []retrieve.Candidate{{
+		Source: "lexical",
+		Reasons: []string{
+			"reciprocal-rank fusion from lexical rank 1",
+			"reciprocal-rank fusion from vector rank 2",
+			"also retrieved by lexicon rank 3",
+		},
+	}}
+	got := contextCandidateSources(candidates)
+	want := []string{"lexical", "vector", "lexicon"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("sources = %v, want %v", got, want)
+	}
+}
+
 func TestMergeContextCandidatesAppliesCombinedLimit(t *testing.T) {
 	candidate := func(id, source string) retrieve.Candidate {
 		return retrieve.Candidate{Chunk: index.Chunk{ID: id}, Source: source, Rank: 1}

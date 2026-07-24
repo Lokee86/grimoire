@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
@@ -173,18 +174,40 @@ func contextCandidateKey(candidate retrieve.Candidate) string {
 
 func contextCandidateSources(candidates []retrieve.Candidate) []string {
 	seen := make(map[string]struct{})
-	sources := make([]string, 0, 3)
+	sources := make([]string, 0, 4)
+	appendSource := func(source string) {
+		if source == "" {
+			return
+		}
+		if _, exists := seen[source]; exists {
+			return
+		}
+		seen[source] = struct{}{}
+		sources = append(sources, source)
+	}
 	for _, candidate := range candidates {
-		if candidate.Source == "" {
-			continue
+		appendSource(candidate.Source)
+		for _, reason := range candidate.Reasons {
+			appendSource(retrievalSourceFromReason(reason))
 		}
-		if _, exists := seen[candidate.Source]; exists {
-			continue
-		}
-		seen[candidate.Source] = struct{}{}
-		sources = append(sources, candidate.Source)
 	}
 	return sources
+}
+
+func retrievalSourceFromReason(reason string) string {
+	for _, prefix := range []string{
+		"reciprocal-rank fusion from ",
+		"also retrieved by ",
+	} {
+		if !strings.HasPrefix(reason, prefix) {
+			continue
+		}
+		remainder := strings.TrimPrefix(reason, prefix)
+		if rank := strings.Index(remainder, " rank "); rank > 0 {
+			return remainder[:rank]
+		}
+	}
+	return ""
 }
 
 func appendUniqueReason(reasons []string, reason string) []string {

@@ -69,8 +69,8 @@ func TestContextUsesExactRecoveryDuringSemanticFallback(t *testing.T) {
 	if len(pkg.Selections) != 1 || pkg.Selections[0].RetrievalSource != "exact" {
 		t.Fatalf("expected exact selection, got %+v", pkg.Selections)
 	}
-	if len(pkg.RetrievalSources) != 1 || pkg.RetrievalSources[0] != "exact" {
-		t.Fatalf("expected exact package source, got %+v", pkg.RetrievalSources)
+	if len(pkg.RetrievalSources) != 2 || pkg.RetrievalSources[0] != "exact" || pkg.RetrievalSources[1] != "lexical" {
+		t.Fatalf("expected exact selection with lexical provenance, got %+v", pkg.RetrievalSources)
 	}
 	if !strings.Contains(strings.Join(pkg.Selections[0].Reasons, "\n"), "also retrieved by lexical rank 1") {
 		t.Fatalf("missing lexical provider evidence: %+v", pkg.Selections[0].Reasons)
