@@ -1,8 +1,6 @@
 package assembly
 
 import (
-	"sort"
-
 	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/structure"
@@ -24,8 +22,10 @@ func Plan(
 	evidence []structure.Evidence,
 ) Result {
 	config := configFor(policy.Scope)
+	structuralLimit := min(config.structuralLimit, len(evidence))
+	structural := append([]structure.Evidence(nil), evidence[:structuralLimit]...)
 	anchorRegion := focusedAnchorRegion(candidates)
-	ordered := prioritizeCandidates(policy.Scope, candidates, anchorRegion)
+	ordered, priorityBoundary := prioritizeCandidates(policy.Scope, candidates, anchorRegion, structural)
 	selected := make([]retrieve.Candidate, 0, min(config.maximumCandidates, len(candidates)))
 	regions := newOrderedSet()
 	roles := newOrderedSet()
@@ -54,15 +54,12 @@ func Plan(
 			stopReason = string(policy.Scope) + " candidate cap reached"
 			break
 		}
-		if coverageSatisfied(policy, config, len(selected), candidateTokens, regions.Len(), hasExact, candidates) &&
-			!hasEligibleGroupCompanion(ordered[index+1:], policy.Scope, anchorRegion, groups) {
+		if (priorityBoundary == 0 || index+1 >= priorityBoundary) &&
+			coverageSatisfied(policy, config, len(selected), candidateTokens, regions.Len(), hasExact, candidates) {
 			stopReason = string(policy.Scope) + " evidence coverage satisfied"
 			break
 		}
 	}
-
-	structuralLimit := min(config.structuralLimit, len(evidence))
-	structural := append([]structure.Evidence(nil), evidence[:structuralLimit]...)
 	return Result{
 		Candidates: selected,
 		Structural: structural,
@@ -75,64 +72,72 @@ func Plan(
 			StructuralSelected:   len(structural),
 			RegionsRepresented:   regions.Values(),
 			RolesRepresented:     roles.Values(),
-			GroupsRepresented:    sortedValues(groups.Values()),
+			GroupsRepresented:    groups.Len(),
 			StopReason:           stopReason,
 		},
 	}
 }
 
-func prioritizeCandidates(scope queryshape.Scope, candidates []retrieve.Candidate, anchorRegion string) []retrieve.Candidate {
-	remaining := append([]retrieve.Candidate(nil), candidates...)
-	ordered := make([]retrieve.Candidate, 0, len(candidates))
-	activeGroups := make(map[string]struct{})
-	for len(remaining) > 0 {
-		index := 0
-		if len(activeGroups) > 0 {
-			for candidateIndex, candidate := range remaining {
-				if scope == queryshape.ScopeFocused && !focusedCandidate(candidate, anchorRegion) {
-					continue
-				}
-				if sharesGroup(candidate, activeGroups) {
-					index = candidateIndex
-					break
-				}
+const (
+	preservedCandidatePrefix = 8
+	maxPromotedGroups        = 8
+)
+
+func prioritizeCandidates(
+	scope queryshape.Scope,
+	candidates []retrieve.Candidate,
+	anchorRegion string,
+	structural []structure.Evidence,
+) ([]retrieve.Candidate, int) {
+	prefix := min(preservedCandidatePrefix, len(candidates))
+	ordered := append([]retrieve.Candidate(nil), candidates[:prefix]...)
+	remaining := append([]retrieve.Candidate(nil), candidates[prefix:]...)
+	groups := structuralGroups(structural, maxPromotedGroups)
+	promoted := 0
+	for _, groupID := range groups {
+		active := map[string]struct{}{groupID: {}}
+		for index, candidate := range remaining {
+			if scope == queryshape.ScopeFocused && !focusedCandidate(candidate, anchorRegion) {
+				continue
 			}
-		}
-		candidate := remaining[index]
-		ordered = append(ordered, candidate)
-		remaining = append(remaining[:index], remaining[index+1:]...)
-		if scope == queryshape.ScopeFocused && !focusedCandidate(candidate, anchorRegion) {
-			continue
-		}
-		for _, groupID := range candidateGroups(candidate) {
-			activeGroups[groupID] = struct{}{}
+			if !sharesGroup(candidate, active) {
+				continue
+			}
+			ordered = append(ordered, candidate)
+			remaining = append(remaining[:index], remaining[index+1:]...)
+			promoted++
+			break
 		}
 	}
-	return ordered
+	ordered = append(ordered, remaining...)
+	if promoted == 0 {
+		return ordered, 0
+	}
+	return ordered, prefix + promoted
 }
 
-func hasEligibleGroupCompanion(
-	candidates []retrieve.Candidate,
-	scope queryshape.Scope,
-	anchorRegion string,
-	groups *orderedSet,
-) bool {
-	activeGroups := make(map[string]struct{}, groups.Len())
-	for _, groupID := range groups.Values() {
-		activeGroups[groupID] = struct{}{}
-	}
-	if len(activeGroups) == 0 {
-		return false
-	}
-	for _, candidate := range candidates {
-		if scope == queryshape.ScopeFocused && !focusedCandidate(candidate, anchorRegion) {
+func structuralGroups(items []structure.Evidence, limit int) []string {
+	seen := make(map[string]struct{})
+	groups := make([]string, 0, min(limit, len(items)))
+	for _, item := range items {
+		if item.Context == nil {
 			continue
 		}
-		if sharesGroup(candidate, activeGroups) {
-			return true
+		for _, groupID := range item.Context.GroupIDs {
+			if groupID == "" {
+				continue
+			}
+			if _, exists := seen[groupID]; exists {
+				continue
+			}
+			seen[groupID] = struct{}{}
+			groups = append(groups, groupID)
+			if len(groups) >= limit {
+				return groups
+			}
 		}
 	}
-	return false
+	return groups
 }
 
 func sharesGroup(candidate retrieve.Candidate, groups map[string]struct{}) bool {
@@ -163,12 +168,6 @@ func candidateTokenCount(candidate retrieve.Candidate) int {
 		tokens = candidate.Context.EstimatedTokens
 	}
 	return max(tokens, 1)
-}
-
-func sortedValues(values []string) []string {
-	sorted := append([]string(nil), values...)
-	sort.Strings(sorted)
-	return sorted
 }
 
 func configFor(scope queryshape.Scope) scopeConfig {

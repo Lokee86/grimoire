@@ -16,7 +16,7 @@ type Decision struct {
 	StructuralSelected   int              `json:"structural_selected"`
 	RegionsRepresented   []string         `json:"regions_represented,omitempty"`
 	RolesRepresented     []string         `json:"roles_represented,omitempty"`
-	GroupsRepresented    []string         `json:"groups_represented,omitempty"`
+	GroupsRepresented    int              `json:"groups_represented,omitempty"`
 	StopReason           string           `json:"stop_reason"`
 }
 
