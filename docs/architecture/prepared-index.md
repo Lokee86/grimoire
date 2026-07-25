@@ -53,7 +53,7 @@ Paths are UTF-8, repository-relative, slash-separated, and validated to reject a
 
 ## Stored formats
 
-The current prepared-index format is version 4. Shard encoding remains version 1. File records are version 3 because they store preparation identity and semantic chunk metadata. Version 4 also adds a required lexical sidecar encoded as deterministic JSON with lexical format version 1.
+The current prepared-index format is version 4. Shard encoding remains version 1 because its path-to-record container did not change. File records are version 3 because they store preparation identity and semantic chunk metadata. Version 4 also adds a required lexical sidecar encoded as deterministic JSON with lexical format version 1.
 
 | Record | Magic | Current version | Encoding |
 | --- | --- | --- | --- |
@@ -106,13 +106,13 @@ Loading verifies:
 - every other entry is a valid two-digit shard name;
 - each shard decodes successfully;
 - each file is stored in its expected shard;
-- paths are valid and unique; and
+- paths are valid and unique;
 - each file record and chunk range is well formed; and
 - lexical document count and ordered chunk identities match the loaded source chunks.
 
 ## Migration and legacy cleanup
 
-Prepared state before version 4 lacks the current preparation hashes, semantic chunk metadata, and required lexical sidecar, so it is not reusable. `grimoire index` recognizes the incompatible manifest, uses the current state root as its compare-and-swap base, rebuilds all eligible file and lexical records, and publishes a version-4 snapshot without deleting the state repository first. `grimoire context` requires a compatible index and reports the incompatibility until indexing is run.
+Prepared state before version 4 lacks the current preparation hashes, semantic chunk metadata, and required lexical sidecar. `grimoire index` recognizes the incompatible manifest, uses the current state root as its compare-and-swap base, rebuilds all eligible file and lexical records, and publishes a version-4 snapshot without deleting the state repository first. `grimoire context` requires a compatible index and reports the incompatibility until indexing is run.
 
 Successful saves also remove the former `.grimoire/index.json` file when present. The active prepared state is object-backed; JSON is used only for command output and context packages.
 
