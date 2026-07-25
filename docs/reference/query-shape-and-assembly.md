@@ -44,6 +44,20 @@ Focused location queries remain single-pass. Long structured prompts retain thei
 
 The emitted retrieval policy records `task_plan`, `task_plan_confidence`, and the ordered plan steps. Task-specific required-evidence and stop-condition metadata supplements the normal focused, bounded, or exploratory scope policy.
 
+## Graph-aware ranking
+
+Structural providers can attach provider-neutral graph signals to source candidates:
+
+- traversal distance from a matched structural seed;
+- directed relationship types;
+- module proximity;
+- symbol role; and
+- bounded node centrality.
+
+Grimoire scores each signal independently and retains every contribution as graph-ranking diagnostics in evaluation output, separate from lexical or vector score details. Relationship weights vary by retrieval intent: call-like edges are strongest for call-chain questions, ownership and implementation edges are strongest for architecture questions, and call/data-use edges are strongest for mechanism questions. Centrality remains a weak bounded prior so hubs cannot dominate retrieval. Graph diagnostics are not serialized into the model-facing context package, so observability cannot displace source evidence under the token budget.
+
+After source providers are combined, graph scoring runs in shadow mode by default: diagnostics are retained while candidate order remains unchanged. The ranking seam also provides an explicit bounded configuration for corpus calibration, where relationship-derived evidence can promote a candidate by only a small intent-specific number of positions. Direct structural seeds never reorder source retrieval, and explicit exact matches remain pinned ahead of graph-inferred candidates.
+
 ## Current tiers
 
 | Scope | Minimum | Target | Maximum | Intended shape |

@@ -1,6 +1,7 @@
 package lexiconfacts
 
 import (
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
@@ -45,6 +46,7 @@ type scoredNode struct {
 	score   float64
 	reasons []string
 	primary bool
+	graph   *evidence.GraphSignals
 }
 
 type Corpus struct {

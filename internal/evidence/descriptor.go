@@ -37,6 +37,17 @@ type Link struct {
 	Required bool   `json:"required,omitempty"`
 }
 
+// GraphSignals records bounded structural ranking evidence for a source
+// candidate. Distance is measured from the provider's matched structural seed;
+// a zero value is therefore meaningful when Graph is non-nil.
+type GraphSignals struct {
+	Distance        int      `json:"distance"`
+	Relations       []string `json:"relations,omitempty"`
+	ModuleProximity float64  `json:"module_proximity,omitempty"`
+	SymbolRole      string   `json:"symbol_role,omitempty"`
+	Centrality      float64  `json:"centrality,omitempty"`
+}
+
 // Descriptor is the provider-neutral coordination contract shared by source
 // candidates and structural evidence. Producers add the fields they own;
 // package assembly consumes the combined descriptor without depending on a
@@ -51,6 +62,7 @@ type Descriptor struct {
 	EstimatedTokens    int            `json:"estimated_tokens,omitempty"`
 	RedundancyKey      string         `json:"redundancy_key,omitempty"`
 	Links              []Link         `json:"links,omitempty"`
+	Graph              *GraphSignals  `json:"graph,omitempty"`
 }
 
 // RangeIdentity returns a stable identity for one prepared source range.
@@ -104,6 +116,7 @@ func Merge(left, right Descriptor) Descriptor {
 			merged.Links = append(merged.Links, link)
 		}
 	}
+	merged.Graph = mergeGraphSignals(merged.Graph, right.Graph)
 	return merged
 }
 
@@ -119,7 +132,53 @@ func clone(descriptor Descriptor) Descriptor {
 		descriptor.FacetRanks = cloned
 	}
 	descriptor.Links = slices.Clone(descriptor.Links)
+	if descriptor.Graph != nil {
+		graph := *descriptor.Graph
+		graph.Relations = slices.Clone(graph.Relations)
+		descriptor.Graph = &graph
+	}
 	return descriptor
+}
+
+// CloneGraphSignals returns an independent copy suitable for carrying graph
+// metadata across package and evaluation boundaries.
+func CloneGraphSignals(graph *GraphSignals) *GraphSignals {
+	if graph == nil {
+		return nil
+	}
+	cloned := *graph
+	cloned.Relations = slices.Clone(graph.Relations)
+	return &cloned
+}
+
+func mergeGraphSignals(left, right *GraphSignals) *GraphSignals {
+	if left == nil && right == nil {
+		return nil
+	}
+	if left == nil {
+		graph := *right
+		graph.Relations = slices.Clone(right.Relations)
+		return &graph
+	}
+	graph := *left
+	graph.Relations = slices.Clone(left.Relations)
+	if right == nil {
+		return &graph
+	}
+	if right.Distance < graph.Distance {
+		graph.Distance = right.Distance
+	}
+	graph.Relations = appendUnique(graph.Relations, right.Relations...)
+	if right.ModuleProximity > graph.ModuleProximity {
+		graph.ModuleProximity = right.ModuleProximity
+	}
+	if graph.SymbolRole == "" {
+		graph.SymbolRole = right.SymbolRole
+	}
+	if right.Centrality > graph.Centrality {
+		graph.Centrality = right.Centrality
+	}
+	return &graph
 }
 
 func appendUnique[T comparable](existing []T, values ...T) []T {

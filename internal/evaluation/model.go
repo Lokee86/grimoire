@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Lokee86/grimoire/internal/assembly"
+	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
@@ -110,26 +111,30 @@ type ScoreDetail struct {
 }
 
 type Candidate struct {
-	Path            string
-	StartLine       int
-	EndLine         int
-	Text            string
-	Symbols         []string
-	RetrievalSource string
-	ProviderRank    int
-	Score           float64
-	ScoreDetails    []ScoreDetail
-	Reasons         []string
-	TokenCount      int
+	Path              string
+	StartLine         int
+	EndLine           int
+	Text              string
+	Symbols           []string
+	RetrievalSource   string
+	ProviderRank      int
+	Score             float64
+	ScoreDetails      []ScoreDetail
+	GraphScoreDetails []ScoreDetail
+	Reasons           []string
+	Graph             *evidence.GraphSignals
+	TokenCount        int
 }
 
 type CandidateStageDiagnostic struct {
-	Rank            int           `json:"rank"`
-	RetrievalSource string        `json:"retrieval_source,omitempty"`
-	ProviderRank    int           `json:"provider_rank,omitempty"`
-	Score           float64       `json:"score"`
-	ScoreDetails    []ScoreDetail `json:"score_details,omitempty"`
-	Reasons         []string      `json:"reasons,omitempty"`
+	Rank              int                    `json:"rank"`
+	RetrievalSource   string                 `json:"retrieval_source,omitempty"`
+	ProviderRank      int                    `json:"provider_rank,omitempty"`
+	Score             float64                `json:"score"`
+	ScoreDetails      []ScoreDetail          `json:"score_details,omitempty"`
+	GraphScoreDetails []ScoreDetail          `json:"graph_score_details,omitempty"`
+	Reasons           []string               `json:"reasons,omitempty"`
+	Graph             *evidence.GraphSignals `json:"graph,omitempty"`
 }
 
 type CandidateDiagnostic struct {

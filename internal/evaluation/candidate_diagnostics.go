@@ -3,6 +3,8 @@ package evaluation
 import (
 	"fmt"
 	"sort"
+
+	"github.com/Lokee86/grimoire/internal/evidence"
 )
 
 const (
@@ -93,12 +95,14 @@ func diagnosticMatchesAny(group []Evidence, candidate Candidate) bool {
 
 func candidateStageDiagnostic(candidate Candidate, rank int) *CandidateStageDiagnostic {
 	return &CandidateStageDiagnostic{
-		Rank:            rank,
-		RetrievalSource: candidate.RetrievalSource,
-		ProviderRank:    candidate.ProviderRank,
-		Score:           candidate.Score,
-		ScoreDetails:    append([]ScoreDetail(nil), candidate.ScoreDetails...),
-		Reasons:         append([]string(nil), candidate.Reasons...),
+		Rank:              rank,
+		RetrievalSource:   candidate.RetrievalSource,
+		ProviderRank:      candidate.ProviderRank,
+		Score:             candidate.Score,
+		ScoreDetails:      append([]ScoreDetail(nil), candidate.ScoreDetails...),
+		GraphScoreDetails: append([]ScoreDetail(nil), candidate.GraphScoreDetails...),
+		Reasons:           append([]string(nil), candidate.Reasons...),
+		Graph:             evidence.CloneGraphSignals(candidate.Graph),
 	}
 }
 

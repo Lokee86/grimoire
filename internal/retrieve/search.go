@@ -16,13 +16,14 @@ type ScoreDetail struct {
 }
 
 type Candidate struct {
-	Chunk        index.Chunk
-	Score        float64
-	Source       string
-	Rank         int
-	Reasons      []string
-	ScoreDetails []ScoreDetail
-	Context      *evidence.Descriptor
+	Chunk             index.Chunk
+	Score             float64
+	Source            string
+	Rank              int
+	Reasons           []string
+	ScoreDetails      []ScoreDetail
+	GraphScoreDetails []ScoreDetail
+	Context           *evidence.Descriptor
 }
 
 type lexicalQuerySpec struct {
