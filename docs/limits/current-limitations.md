@@ -66,7 +66,7 @@ Supported extensions and extensionless names are compiled into Grimoire. There i
 
 ## State maintenance is explicit
 
-Grimoire does not continuously watch repositories or automatically rebuild prepared and vector state. Callers must run `grimoire index` and `grimoire vector build` after relevant changes. Compatibility checks prevent silently using mismatched vector state.
+Grimoire does not continuously watch repositories or automatically build vectors. Callers can use `grimoire status --refresh` to prepare missing or stale deterministic Lexicon, Arcana, and Grimoire state; vector construction remains an explicit `grimoire vector build` operation. Compatibility checks prevent silently using mismatched vector state.
 
 ## Structural components remain optional runtime dependencies
 

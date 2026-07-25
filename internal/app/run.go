@@ -40,6 +40,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		return writeRootHelp(stdout)
 	case "index":
 		return runIndex(args[1:], stdout, stderr)
+	case "status":
+		return runStatus(args[1:], stdout, stderr)
 	case "context":
 		return runContext(args[1:], stdout, stderr)
 	case "query":
@@ -77,6 +79,7 @@ Commands:
   query     Progressively orient, search, trace, impact, and inspect
   context   Build a context package
   index     Prepare repository source state
+  status    Inspect or prepare repository analysis state
   vector    Build, search, or inspect vector state
   model     Set up and manage the embedding runtime
   eval      Run judged retrieval evaluation

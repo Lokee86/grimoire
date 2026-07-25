@@ -10,6 +10,8 @@ grimoire index --root <repository>
 
 The indexer resolves the repository and state roots, applies traversal rules, optionally resolves the current immutable Lexicon export, normalizes eligible text into semantic declaration chunks plus fallback gaps, computes immutable identities and exact token counts, builds a persistent identifier-aware lexical sidecar, reuses unchanged objects, and atomically publishes a prepared snapshot. That snapshot remains usable for BM25 and exact retrieval without an embedding service or query-time corpus tokenization.
 
+`grimoire status --refresh` is the bounded preparation entry point for callers that need all deterministic repository state ready before a query. It checks the Git/source identity, refreshes Lexicon when absent or stale, synchronizes Arcana to the exact Lexicon snapshot, and then prepares Grimoire's source index. It never builds vectors; vector availability is reported separately.
+
 ## Permanent exclusions
 
 These directory names are excluded at every traversal depth:

@@ -142,6 +142,13 @@ grimoire index --root .
 grimoire vector build --root .
 ```
 
+Inspect or automatically prepare deterministic analysis state without building vectors:
+
+```bash
+grimoire status --root .
+grimoire status --root . --refresh
+```
+
 Query progressively without requiring vectors:
 
 ```bash

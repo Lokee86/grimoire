@@ -6,7 +6,19 @@
 grimoire <command> [flags]
 ```
 
-Current top-level commands are `index`, `query`, `context`, `eval`, `model`, `vector`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal workflow and exits successfully.
+Current top-level commands are `status`, `index`, `query`, `context`, `eval`, `model`, `vector`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal workflow and exits successfully.
+
+## `grimoire status`
+
+Inspect repository identity and the prepared Lexicon, Arcana, and Grimoire state:
+
+```bash
+grimoire status --root <repository>
+grimoire status --root <repository> --refresh
+grimoire status --root <repository> --refresh --force
+```
+
+The command emits versioned JSON with Git/source identity, snapshot identities, stale reasons, performed actions, elapsed times, warnings, deterministic-query readiness, and vector availability. `status` is read-only by default. `--refresh` incrementally runs the existing Lexicon, Arcana, and Grimoire preparation commands only when needed; `--force` refreshes all three regardless of current state. Vector indexes are reported but never built by this command.
 
 ## `grimoire model setup`
 

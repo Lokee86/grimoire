@@ -38,6 +38,7 @@ See [Component architecture](architecture/components.md) for the dependency and 
 | [`internal/structure`](../internal/structure/README.md) | Common structural-provider contracts and evidence composition |
 | [`internal/lexiconfacts`](../internal/lexiconfacts/README.md) | Immutable Lexicon export matching |
 | [`internal/arcanagraph`](../internal/arcanagraph/README.md) | Arcana synchronization and graph protocol queries |
+| [`internal/repostate`](../internal/repostate/README.md) | Repository identity inspection and serialized analysis-state preparation |
 | [`internal/compiler`](../internal/compiler/README.md) | Token accounting and versioned package serialization |
 | [`internal/evaluation`](../internal/evaluation/README.md) | Judged corpus model, scoring, aggregation, and reports |
 | [`native/vector-engine`](../native/vector-engine/README.md) | Content-addressed vector objects and packed exact-search snapshots |
