@@ -146,15 +146,16 @@ func packageSelections(entry evaluation.Case, selections []compiler.Selection) [
 	result := make([]evaluation.Selection, 0, len(selections))
 	for _, selected := range selections {
 		result = append(result, evaluation.Selection{
-			Path:            selected.Path,
-			StartLine:       selected.StartLine,
-			EndLine:         selected.EndLine,
-			Symbols:         detectedSymbols(entry, selected.Path, selected.Content),
-			RetrievalSource: selected.RetrievalSource,
-			ProviderRank:    selected.RetrievalRank,
-			FacetIDs:        append([]string(nil), selected.FacetIDs...),
-			ProtectedFacet:  selected.ProtectedFacet,
-			TokenCount:      selected.TokenCount,
+			Path:               selected.Path,
+			StartLine:          selected.StartLine,
+			EndLine:            selected.EndLine,
+			Symbols:            detectedSymbols(entry, selected.Path, selected.Content),
+			RetrievalSource:    selected.RetrievalSource,
+			ProviderRank:       selected.RetrievalRank,
+			FacetIDs:           append([]string(nil), selected.FacetIDs...),
+			ProtectedFacet:     selected.ProtectedFacet,
+			ProtectedLinkGroup: selected.ProtectedLinkGroup,
+			TokenCount:         selected.TokenCount,
 		})
 	}
 	return result

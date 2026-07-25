@@ -41,6 +41,7 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	batchTokens := flags.Int("query-batch-tokens", embedding.DefaultQueryBatchTokens, "maximum split-query tokens per embedding request")
 	batchConcurrency := flags.Int("query-batch-concurrency", embedding.DefaultQueryBatchConcurrency, "maximum concurrent query embedding requests")
 	maxTokens := flags.Int("query-max-tokens", embedding.DefaultQueryMaxTokens, "optional maximum query tokens embedded; zero means unlimited")
+	spanExtraction := flags.Bool("span-extraction", false, "refine multi-part adaptive candidates into language-aware source spans")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -121,6 +122,12 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		effectiveBudget = policy.TargetTokens
 	}
 	candidates := selection.Curate(snapshot, merged)
+	if automatic && *spanExtraction {
+		candidates, err = extractContextCandidates(*query, intents, candidates)
+		if err != nil {
+			return fmt.Errorf("extract context candidates: %w", err)
+		}
+	}
 	evidence := structural.Combined
 
 	var result compiler.Package

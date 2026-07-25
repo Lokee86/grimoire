@@ -97,6 +97,7 @@ type Timings struct {
 	CandidateMergeMS       float64 `json:"candidate_merge_ms,omitempty"`
 	ExactRecoveryMS        float64 `json:"exact_recovery_ms,omitempty"`
 	CurationMS             float64 `json:"curation_ms,omitempty"`
+	ExtractionMS           float64 `json:"extraction_ms,omitempty"`
 	AssemblyMS             float64 `json:"assembly_ms,omitempty"`
 	PackageCompilationMS   float64 `json:"package_compilation_ms,omitempty"`
 	SelectionCompilationMS float64 `json:"selection_compilation_ms,omitempty"`
@@ -148,17 +149,18 @@ type CandidateDiagnostic struct {
 }
 
 type Selection struct {
-	Path            string   `json:"path"`
-	StartLine       int      `json:"start_line"`
-	EndLine         int      `json:"end_line"`
-	Symbols         []string `json:"symbols,omitempty"`
-	RetrievalSource string   `json:"retrieval_source"`
-	ProviderRank    int      `json:"provider_rank"`
-	FacetIDs        []string `json:"facet_ids,omitempty"`
-	ProtectedFacet  string   `json:"protected_facet,omitempty"`
-	TokenCount      int      `json:"token_count"`
-	Relevant        bool     `json:"relevant"`
-	Forbidden       bool     `json:"forbidden"`
+	Path               string   `json:"path"`
+	StartLine          int      `json:"start_line"`
+	EndLine            int      `json:"end_line"`
+	Symbols            []string `json:"symbols,omitempty"`
+	RetrievalSource    string   `json:"retrieval_source"`
+	ProviderRank       int      `json:"provider_rank"`
+	FacetIDs           []string `json:"facet_ids,omitempty"`
+	ProtectedFacet     string   `json:"protected_facet,omitempty"`
+	ProtectedLinkGroup string   `json:"protected_link_group,omitempty"`
+	TokenCount         int      `json:"token_count"`
+	Relevant           bool     `json:"relevant"`
+	Forbidden          bool     `json:"forbidden"`
 }
 
 type StructuralSelection struct {
@@ -248,6 +250,10 @@ type CaseRun struct {
 	FacetsAvailable                   int                        `json:"facets_available"`
 	FacetsProtected                   int                        `json:"facets_protected"`
 	FacetsOmittedForBudget            int                        `json:"facets_omitted_for_budget"`
+	RequiredLinkProtection            bool                       `json:"required_link_protection"`
+	RequiredLinkGroupsAvailable       int                        `json:"required_link_groups_available"`
+	RequiredLinkGroupsProtected       int                        `json:"required_link_groups_protected"`
+	RequiredLinkGroupsOmitted         int                        `json:"required_link_groups_omitted_for_budget"`
 	OmittedForBudget                  int                        `json:"omitted_for_budget"`
 	OmittedStructuralForBudget        int                        `json:"omitted_structural_for_budget"`
 	Required                          []EvidenceStatus           `json:"required,omitempty"`

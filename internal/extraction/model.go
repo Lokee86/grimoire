@@ -35,6 +35,7 @@ type Discoverer interface {
 // assembly remain separate concerns.
 type Config struct {
 	MaxSpans         int
+	MinSpans         int
 	MinChunkLines    int
 	MinChunkTokens   int
 	MinTokenSavings  int
@@ -44,6 +45,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		MaxSpans:         2,
+		MinSpans:         1,
 		MinChunkLines:    24,
 		MinChunkTokens:   320,
 		MinTokenSavings:  96,
@@ -66,6 +68,12 @@ func normalizedConfig(config Config) Config {
 	defaults := DefaultConfig()
 	if config.MaxSpans <= 0 {
 		config.MaxSpans = defaults.MaxSpans
+	}
+	if config.MinSpans <= 0 {
+		config.MinSpans = defaults.MinSpans
+	}
+	if config.MinSpans > config.MaxSpans {
+		config.MinSpans = config.MaxSpans
 	}
 	if config.MinChunkLines <= 0 {
 		config.MinChunkLines = defaults.MinChunkLines

@@ -41,6 +41,7 @@ type evaluatedContextOptions struct {
 	AssemblyConfig  *assembly.Config
 	CompilerConfig  *compiler.Config
 	LexicalConfig   *retrieve.Config
+	SpanExtraction  bool
 }
 
 func evaluateContext(
@@ -146,10 +147,21 @@ func evaluateContext(
 		curated = selection.Curate(snapshot, merged)
 	}
 	result.Timings.CurationMS = durationMS(time.Since(curationStart))
-	assembledCandidates := curated
+	assemblyInput := curated
+	assembledCandidates := assemblyInput
 	assembledEvidence := structural.Combined
 	effectiveBudget := options.Budget
 	var decision *assembly.Decision
+	if options.Adaptive && options.SpanExtraction {
+		extractionStart := time.Now()
+		extracted, extractionErr := extractContextCandidates(options.Query, intents, curated)
+		result.Timings.ExtractionMS = durationMS(time.Since(extractionStart))
+		if extractionErr != nil {
+			return result, fmt.Errorf("extract context candidates: %w", extractionErr)
+		}
+		assemblyInput = extracted
+		assembledCandidates = assemblyInput
+	}
 	if options.Adaptive {
 		result.RetrievalPolicy = queryshape.Activate(result.RetrievalPolicy)
 		effectiveBudget = result.RetrievalPolicy.TargetTokens
@@ -158,7 +170,7 @@ func evaluateContext(
 		if options.AssemblyConfig != nil {
 			planConfig = *options.AssemblyConfig
 		}
-		planned := assembly.PlanWithConfig(result.RetrievalPolicy, curated, structural.Combined, planConfig)
+		planned := assembly.PlanWithConfig(result.RetrievalPolicy, assemblyInput, structural.Combined, planConfig)
 		result.Timings.AssemblyMS = durationMS(time.Since(assemblyStart))
 		assembledCandidates = planned.Candidates
 		assembledEvidence = planned.Structural
@@ -186,7 +198,7 @@ func evaluateContext(
 		)
 	}
 	result.Timings.PackageCompilationMS = durationMS(time.Since(compileStart))
-	result.Timings.SelectionCompilationMS = result.Timings.CurationMS + result.Timings.AssemblyMS + result.Timings.PackageCompilationMS
+	result.Timings.SelectionCompilationMS = result.Timings.CurationMS + result.Timings.ExtractionMS + result.Timings.AssemblyMS + result.Timings.PackageCompilationMS
 	result.Timings.TotalMS = durationMS(time.Since(totalStart)) - result.Timings.DiagnosticProbeMS
 	if result.Timings.TotalMS < 0 {
 		result.Timings.TotalMS = 0

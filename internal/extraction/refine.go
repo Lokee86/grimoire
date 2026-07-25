@@ -67,6 +67,9 @@ func (extractor Extractor) refineCandidate(request Request, candidate retrieve.C
 	if len(spans) > extractor.config.MaxSpans {
 		spans = spans[:extractor.config.MaxSpans]
 	}
+	if len(spans) < extractor.config.MinSpans {
+		return []retrieve.Candidate{candidate}, nil
+	}
 	sort.Slice(spans, func(left, right int) bool {
 		if spans[left].StartLine != spans[right].StartLine {
 			return spans[left].StartLine < spans[right].StartLine
@@ -202,7 +205,35 @@ func buildCandidates(candidate retrieve.Candidate, spans []Span) ([]retrieve.Can
 		parts = append(parts, part)
 		totalTokens += tokenCount
 	}
+	linkExtractedCompanions(parts)
 	return parts, totalTokens, nil
+}
+
+func linkExtractedCompanions(parts []retrieve.Candidate) {
+	if len(parts) < 2 || parts[0].Context == nil {
+		return
+	}
+	for index := 1; index < len(parts); index++ {
+		if parts[index].Context == nil || parts[index].Context.Identity == "" {
+			continue
+		}
+		parts[0].Context = mergedRequiredLink(
+			parts[0].Context,
+			parts[index].Context.Identity,
+		)
+	}
+}
+
+func mergedRequiredLink(descriptor *evidence.Descriptor, identity string) *evidence.Descriptor {
+	if descriptor == nil || identity == "" || descriptor.Identity == identity {
+		return descriptor
+	}
+	merged := evidence.Merge(*descriptor, evidence.Descriptor{Links: []evidence.Link{{
+		Identity: identity,
+		Relation: "extracted_companion",
+		Required: true,
+	}}})
+	return &merged
 }
 
 func refinedDescriptor(original *evidence.Descriptor, chunk index.Chunk) *evidence.Descriptor {

@@ -156,6 +156,15 @@ func TestRefineCanEmitTwoSeparatedFocusedSpans(t *testing.T) {
 	if result[0].Chunk.EndLine >= result[1].Chunk.StartLine {
 		t.Fatalf("spans overlap: %+v %+v", result[0].Chunk, result[1].Chunk)
 	}
+	linked := false
+	for _, link := range result[0].Context.Links {
+		if link.Identity == result[1].Context.Identity && link.Relation == "extracted_companion" && link.Required {
+			linked = true
+		}
+	}
+	if !linked {
+		t.Fatalf("separated spans were not linked as a required group: %+v", result[0].Context.Links)
+	}
 }
 
 func TestRefineKeepsDiscovererPriorityBeforeSourceOrdering(t *testing.T) {
