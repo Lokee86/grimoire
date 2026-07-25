@@ -52,9 +52,11 @@ BM25 runs alongside semantic retrieval and remains the fallback when semantic st
 
 Concrete path, identifier, phrase, key, code, and version recovery is conditional, but an activated exact query still scans prepared paths and text. There is no persistent compact literal index.
 
-## Source chunks are language-agnostic
+## Semantic source chunks depend on Lexicon coverage
 
-All source files currently use the line-based fallback chunker. Lexicon symbols and spans enrich retrieval and package evidence but do not replace source chunk boundaries.
+Prepared source uses Lexicon declaration spans when a current export is available. Files without valid spans and source regions outside those declarations retain line-window fallback chunking. Adapter omissions, unsupported constructs, stale or missing Lexicon state, and ambiguous overlapping spans therefore still produce less precise boundaries.
+
+Nested declaration containers are reduced to non-overlapping leaf spans to avoid duplicated source. This intentionally means a containing type is not emitted as one complete chunk when independently bounded methods occupy it. Oversized semantic declarations are still split at the hard 1,536-token ceiling.
 
 ## Prepared snapshots are fully materialized
 

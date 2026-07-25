@@ -16,6 +16,7 @@ This page contains work that is not yet complete. Implemented behavior is docume
 - Deterministic query-shape profiling and automatic budgets.
 - Evidence-coverage assembly and fixed-versus-adaptive evaluation.
 - Version 5 exact-budget context packages.
+- Lexicon-aligned semantic source preparation with complete fallback coverage and per-file preparation identities.
 
 ## Near-term priorities
 
@@ -50,7 +51,7 @@ This page contains work that is not yet complete. Implemented behavior is docume
 - Add optional repository watching or Warlock-fed change events without making one-shot commands dependent on a daemon.
 - Add lazy or bounded prepared-state reads for very large repositories.
 - Make file eligibility and generated-content policy configurable without weakening permanent state exclusions.
-- Evaluate optional Lexicon-aligned source chunk preparation while retaining language-agnostic fallback.
+- Calibrate semantic declaration chunking against judged retrieval and downstream-agent token use.
 
 ## Vector-engine work
 

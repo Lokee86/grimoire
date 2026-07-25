@@ -47,10 +47,13 @@ func TestFileCodecRoundTrip(t *testing.T) {
 	original := FileRecord{
 		Path: "alpha.go",
 		Hash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		PreparationHash: chunkPreparationHash("alpha.go", []SourceSpan{{
+			Path: "alpha.go", StartLine: 2, EndLine: 4, Kind: "function", Name: "Alpha",
+		}}),
 		Size: 42,
 		Chunks: []Chunk{{
 			ID: "chunk-1", Path: "alpha.go", StartLine: 2, EndLine: 4,
-			TokenCount: 7, Text: "func Alpha() {}",
+			TokenCount: 7, Text: "func Alpha() {}", SemanticKind: "function", SemanticName: "Alpha",
 		}},
 	}
 	encoded, err := encodeFile(original)
@@ -61,10 +64,12 @@ func TestFileCodecRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if decoded.Path != original.Path || decoded.Hash != original.Hash || decoded.Size != original.Size {
+	if decoded.Path != original.Path || decoded.Hash != original.Hash || decoded.Size != original.Size ||
+		decoded.PreparationHash != original.PreparationHash {
 		t.Fatalf("unexpected file metadata: %+v", decoded)
 	}
-	if len(decoded.Chunks) != 1 || decoded.Chunks[0].Text != original.Chunks[0].Text {
+	if len(decoded.Chunks) != 1 || decoded.Chunks[0].Text != original.Chunks[0].Text ||
+		decoded.Chunks[0].SemanticKind != "function" || decoded.Chunks[0].SemanticName != "Alpha" {
 		t.Fatalf("unexpected chunks: %+v", decoded.Chunks)
 	}
 }

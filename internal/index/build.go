@@ -22,6 +22,7 @@ type BuildOptions struct {
 	IgnoreFile       string
 	ExcludePaths     []string
 	IncludeGenerated bool
+	SourceSpans      []SourceSpan
 }
 
 type BuildStats struct {
@@ -30,6 +31,8 @@ type BuildStats struct {
 	Updated          int `json:"updated"`
 	Removed          int `json:"removed"`
 	GeneratedSkipped int `json:"generated_skipped"`
+	SemanticFiles    int `json:"semantic_files"`
+	SemanticChunks   int `json:"semantic_chunks"`
 }
 
 func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, BuildStats, error) {
@@ -64,6 +67,7 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 		}
 	}
 	dirtyShards := make(map[string]bool)
+	spansByPath := sourceSpansByPath(options.SourceSpans)
 
 	seen := make(map[string]struct{})
 	files := make([]FileRecord, 0, len(oldFiles))
@@ -135,22 +139,34 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 		stats.Scanned++
 
 		hash := contentHash(content)
-		if old, ok := oldFiles[relative]; ok && old.Hash == hash && old.Size == info.Size() {
+		fileSpans := spansByPath[relative]
+		preparationHash := chunkPreparationHash(relative, fileSpans)
+		if old, ok := oldFiles[relative]; ok && old.Hash == hash && old.Size == info.Size() &&
+			old.PreparationHash == preparationHash {
 			files = append(files, old)
 			stats.Reused++
+			if semantic := semanticChunkCount(old.Chunks); semantic > 0 {
+				stats.SemanticFiles++
+				stats.SemanticChunks += semantic
+			}
 			return nil
 		}
 
-		chunks, err := chunkFile(relative, string(content))
+		chunks, err := chunkFileWithSourceSpans(relative, string(content), fileSpans)
 		if err != nil {
 			return fmt.Errorf("tokenize %s: %w", relative, err)
 		}
 		files = append(files, FileRecord{
-			Path:   relative,
-			Hash:   hash,
-			Size:   info.Size(),
-			Chunks: chunks,
+			Path:            relative,
+			Hash:            hash,
+			PreparationHash: preparationHash,
+			Size:            info.Size(),
+			Chunks:          chunks,
 		})
+		if semantic := semanticChunkCount(chunks); semantic > 0 {
+			stats.SemanticFiles++
+			stats.SemanticChunks += semantic
+		}
 		dirtyShards[shardName(relative)] = true
 		stats.Updated++
 		return nil

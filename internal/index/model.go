@@ -2,7 +2,7 @@ package index
 
 import "errors"
 
-const FormatVersion = 3
+const FormatVersion = 4
 
 var ErrIncompatibleIndex = errors.New("incompatible prepared index")
 
@@ -17,19 +17,22 @@ type Snapshot struct {
 }
 
 type FileRecord struct {
-	Path   string
-	Hash   string
-	Size   int64
-	Chunks []Chunk
+	Path            string
+	Hash            string
+	PreparationHash string
+	Size            int64
+	Chunks          []Chunk
 }
 
 type Chunk struct {
-	ID         string
-	Path       string
-	StartLine  int
-	EndLine    int
-	TokenCount int
-	Text       string
+	ID           string
+	Path         string
+	StartLine    int
+	EndLine      int
+	TokenCount   int
+	Text         string
+	SemanticKind string
+	SemanticName string
 }
 
 func (snapshot Snapshot) Identity() string {

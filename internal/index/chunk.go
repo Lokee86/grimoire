@@ -15,18 +15,36 @@ const (
 )
 
 func chunkFile(path string, content string) ([]Chunk, error) {
+	lines := normalizedSourceLines(content)
+	if len(lines) == 0 {
+		return nil, nil
+	}
+	return chunkLineRange(nil, path, lines, 0, len(lines))
+}
+
+func normalizedSourceLines(content string) []string {
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 	content = strings.TrimSuffix(content, "\n")
 	if strings.TrimSpace(content) == "" {
-		return nil, nil
+		return nil
+	}
+	return strings.Split(content, "\n")
+}
+
+func chunkLineRange(chunks []Chunk, path string, lines []string, rangeStart, rangeEnd int) ([]Chunk, error) {
+	if rangeStart < 0 {
+		rangeStart = 0
+	}
+	if rangeEnd > len(lines) {
+		rangeEnd = len(lines)
+	}
+	if rangeStart >= rangeEnd {
+		return chunks, nil
 	}
 
-	lines := strings.Split(content, "\n")
-	chunks := make([]Chunk, 0, (len(lines)/fallbackChunkLines)+1)
-	start := 0
+	start := rangeStart
 	lastBoundary := -1
-
-	for current := 0; current < len(lines); current++ {
+	for current := rangeStart; current < rangeEnd; current++ {
 		if strings.TrimSpace(lines[current]) == "" {
 			lastBoundary = current + 1
 		}
@@ -47,7 +65,7 @@ func chunkFile(path string, content string) ([]Chunk, error) {
 		lastBoundary = -1
 	}
 
-	return appendChunk(chunks, path, lines, start, len(lines))
+	return appendChunk(chunks, path, lines, start, rangeEnd)
 }
 
 func appendChunk(chunks []Chunk, path string, lines []string, start, end int) ([]Chunk, error) {
