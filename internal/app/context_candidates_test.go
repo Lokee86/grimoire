@@ -242,6 +242,23 @@ func TestMergeContextProvidersFusesLexiconAndArcanaSourceCandidates(t *testing.T
 	}
 }
 
+func TestMergeContextProvidersKeepsPriorityCandidatesFirst(t *testing.T) {
+	candidate := func(id, source string, rank int) retrieve.Candidate {
+		return retrieve.Candidate{Chunk: index.Chunk{ID: id}, Source: source, Rank: rank}
+	}
+	priority := []retrieve.Candidate{candidate("changed", "git-diff", 1)}
+	exact := []retrieve.Candidate{candidate("changed", "exact", 1), candidate("symbol", "exact", 2)}
+	base := []retrieve.Candidate{candidate("semantic", "vector", 1)}
+
+	merged := mergeContextProvidersWithPriority(10, priority, exact, base, nil, nil)
+	if len(merged) != 3 || merged[0].Chunk.ID != "changed" || merged[0].Source != "git-diff" {
+		t.Fatalf("priority candidate was displaced: %+v", merged)
+	}
+	if !slices.Contains(merged[0].Reasons, "also retrieved by exact rank 1") {
+		t.Fatalf("duplicate exact provenance was lost: %+v", merged[0].Reasons)
+	}
+}
+
 func TestContextCandidateSourcesPreservesFirstUseOrder(t *testing.T) {
 	candidates := []retrieve.Candidate{
 		{Source: "exact"}, {Source: "adjacent"}, {Source: "vector"}, {Source: "exact"},

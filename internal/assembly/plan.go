@@ -282,7 +282,7 @@ func focusedAnchorRegion(candidates []retrieve.Candidate) string {
 }
 
 func focusedCandidate(candidate retrieve.Candidate, anchorRegion string) bool {
-	if candidate.Source == "exact" || candidate.Source == "adjacent" {
+	if candidate.Source == "exact" || candidate.Source == "adjacent" || candidate.Source == "git-diff" {
 		return true
 	}
 	return anchorRegion == "" || queryshape.PathRegion(candidate.Chunk.Path) == anchorRegion
