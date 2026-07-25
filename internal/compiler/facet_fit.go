@@ -36,6 +36,78 @@ func buildFacetFitPlans(candidates []retrieve.Candidate) []facetFitPlan {
 	}
 	plans := make([]facetFitPlan, 0, len(plansByFacet))
 	for _, plan := range plansByFacet {
+		lexicalPlan := false
+		for _, candidateIndex := range plan.candidateIndexes {
+			if len(candidateRankingTerms(candidates[candidateIndex])) > 0 {
+				lexicalPlan = true
+				break
+			}
+		}
+		if lexicalPlan {
+			sort.SliceStable(plan.candidateIndexes, func(left, right int) bool {
+				leftPriority := candidateRolePriority(candidates[plan.candidateIndexes[left]])
+				rightPriority := candidateRolePriority(candidates[plan.candidateIndexes[right]])
+				if leftPriority != rightPriority {
+					return leftPriority < rightPriority
+				}
+				return plan.candidateIndexes[left] < plan.candidateIndexes[right]
+			})
+			plans = append(plans, *plan)
+			continue
+		}
+
+		type filePlan struct {
+			key              string
+			candidateIndexes []int
+			rolePriority     int
+			firstPosition    int
+		}
+		filesByKey := make(map[string]*filePlan)
+		files := make([]*filePlan, 0)
+		for _, candidateIndex := range plan.candidateIndexes {
+			candidate := candidates[candidateIndex]
+			key := candidateFileKey(candidate)
+			file := filesByKey[key]
+			if file == nil {
+				file = &filePlan{
+					key: key, rolePriority: candidateRolePriority(candidate),
+					firstPosition: candidateIndex,
+				}
+				filesByKey[key] = file
+				files = append(files, file)
+			} else if priority := candidateRolePriority(candidate); priority < file.rolePriority {
+				file.rolePriority = priority
+			}
+			file.candidateIndexes = append(file.candidateIndexes, candidateIndex)
+		}
+		sort.SliceStable(files, func(left, right int) bool {
+			if files[left].rolePriority != files[right].rolePriority {
+				return files[left].rolePriority < files[right].rolePriority
+			}
+			if files[left].firstPosition != files[right].firstPosition {
+				return files[left].firstPosition < files[right].firstPosition
+			}
+			return files[left].key < files[right].key
+		})
+		plan.candidateIndexes = plan.candidateIndexes[:0]
+		for _, file := range files {
+			sort.SliceStable(file.candidateIndexes, func(left, right int) bool {
+				leftCandidate := candidates[file.candidateIndexes[left]]
+				rightCandidate := candidates[file.candidateIndexes[right]]
+				leftPriority := candidateRolePriority(leftCandidate)
+				rightPriority := candidateRolePriority(rightCandidate)
+				if leftPriority != rightPriority {
+					return leftPriority < rightPriority
+				}
+				leftPriority = candidateSemanticImplementationPriority(leftCandidate)
+				rightPriority = candidateSemanticImplementationPriority(rightCandidate)
+				if leftPriority != rightPriority {
+					return leftPriority < rightPriority
+				}
+				return file.candidateIndexes[left] < file.candidateIndexes[right]
+			})
+			plan.candidateIndexes = append(plan.candidateIndexes, file.candidateIndexes...)
+		}
 		plans = append(plans, *plan)
 	}
 	sort.Slice(plans, func(left, right int) bool {
@@ -74,6 +146,21 @@ func lastUnprotectedSelection(selections []Selection) int {
 
 func candidateFileKey(candidate retrieve.Candidate) string {
 	return strings.ToLower(strings.ReplaceAll(candidate.Chunk.Path, "\\", "/"))
+}
+
+func candidateSupportsAdditionalMechanismFiles(candidate retrieve.Candidate) bool {
+	if candidate.Context == nil {
+		return false
+	}
+	for _, intent := range candidate.Context.Intents {
+		if intent == evidence.IntentMixed {
+			return false
+		}
+		if intent == evidence.IntentMechanism {
+			return true
+		}
+	}
+	return false
 }
 
 func candidateSupportsCompanions(candidate retrieve.Candidate) bool {
@@ -123,6 +210,29 @@ func candidateRankingTerms(candidate retrieve.Candidate) []string {
 	return terms
 }
 
+func candidateSemanticImplementationPriority(candidate retrieve.Candidate) int {
+	if len(candidateRankingTerms(candidate)) > 0 {
+		return 0
+	}
+	if !candidateSupportsCompanions(candidate) {
+		return 2
+	}
+	if candidateContainsDeclaration(candidate) {
+		return 0
+	}
+	return 1
+}
+
+func candidateContainsDeclaration(candidate retrieve.Candidate) bool {
+	text := strings.ToLower(candidate.Chunk.Text)
+	for _, marker := range []string{"func ", "function ", "def ", "class ", "type ", "interface ", "fn "} {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
+}
+
 func addsRankingTerm(candidate retrieve.Candidate, covered map[string]struct{}) bool {
 	for _, term := range candidateRankingTerms(candidate) {
 		if _, exists := covered[term]; !exists {
@@ -156,6 +266,32 @@ func protectedFacetCount(selections []Selection) int {
 		}
 	}
 	return len(seen)
+}
+
+func candidateRolePriority(candidate retrieve.Candidate) int {
+	if candidate.Context == nil {
+		return 4
+	}
+	priority := 4
+	for _, role := range candidate.Context.Roles {
+		switch role {
+		case evidence.RolePrimary:
+			return 0
+		case evidence.RoleStructural:
+			if priority > 1 {
+				priority = 1
+			}
+		case evidence.RoleSupporting:
+			if priority > 2 {
+				priority = 2
+			}
+		case evidence.RoleContext:
+			if priority > 3 {
+				priority = 3
+			}
+		}
+	}
+	return priority
 }
 
 func candidateIntentPriority(candidate retrieve.Candidate) int {

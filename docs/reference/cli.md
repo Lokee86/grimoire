@@ -297,6 +297,11 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | `--selection-file-penalty <n>` | `10` | Evaluation-only curation penalty for each previously selected chunk from the same file |
 | `--selection-subsystem-penalty <n>` | `18` | Evaluation-only curation penalty for each previously selected chunk from the same subsystem |
 | `--selection-adjacent-primaries <n>` | `3` | Evaluation-only number of diversified primaries whose immediate prepared neighbors are promoted |
+| `--compiler-facet-protection <bool>` | `true` | Protect query-facet implementation owners during final fitting |
+| `--compiler-facet-file-depth <n>` | `2` | Distinct implementation files protected for eligible mechanism facets |
+| `--compiler-companion-depth <n>` | `1` | Additional same-file chunks protected for each selected facet file |
+| `--compiler-required-link-protection <bool>` | `true` | Retain complete provider-declared required source-link groups atomically |
+| `--span-extraction` | `false` | Evaluation-only language-aware source-span refinement for adaptive packages |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--structural-providers <list>` | `none` | `none`, `lexicon`, or `lexicon,arcana` |

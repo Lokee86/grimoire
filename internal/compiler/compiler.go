@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"github.com/Lokee86/grimoire/internal/assembly"
+	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/structure"
 	"github.com/Lokee86/grimoire/internal/tokenizer"
 )
 
 const (
-	PackageVersion      = 7
+	PackageVersion      = 8
 	maxTokenCountPasses = 8
 )
 
@@ -29,6 +30,7 @@ type Package struct {
 	Assembly                    *assembly.Decision        `json:"assembly,omitempty"`
 	Selections                  []Selection               `json:"selections"`
 	FacetProtection             bool                      `json:"facet_protection,omitempty"`
+	FacetFileDepth              int                       `json:"facet_file_depth,omitempty"`
 	FacetCompanionDepth         int                       `json:"facet_companion_depth,omitempty"`
 	FacetsAvailable             int                       `json:"facets_available,omitempty"`
 	FacetsProtected             int                       `json:"facets_protected,omitempty"`
@@ -170,6 +172,7 @@ func compileWithEvidence(
 		Assembly:                    decision,
 		Selections:                  make([]Selection, 0),
 		FacetProtection:             facetProtection,
+		FacetFileDepth:              config.FacetFileDepth,
 		FacetCompanionDepth:         config.CompanionDepth,
 		FacetsAvailable:             len(facetPlans),
 		FacetsOmittedForBudget:      len(facetPlans),
@@ -346,14 +349,27 @@ func compileWithEvidence(
 			return fitCandidate(candidateIndex, protectedFacet, "")
 		}
 		if facetProtection && len(facetPlans) > 0 {
-			for _, plan := range facetPlans {
-				for _, candidateIndex := range plan.candidateIndexes {
-					fitted, err := fitCandidateUnit(candidateIndex, plan.facet)
-					if err != nil {
-						return Package{}, err
+			multipleFacetFiles := len(facetPlans) == 1 || decision.Scope == queryshape.ScopeExploratory
+			for fileRound := 0; fileRound < config.FacetFileDepth; fileRound++ {
+				for _, plan := range facetPlans {
+					if len(protectedFacetFiles[plan.facet]) > fileRound {
+						continue
 					}
-					if fitted {
-						break
+					for _, candidateIndex := range plan.candidateIndexes {
+						candidate := candidates[candidateIndex]
+						if _, protected := protectedFacetFiles[plan.facet][candidateFileKey(candidate)]; protected {
+							continue
+						}
+						if fileRound > 0 && (!multipleFacetFiles || !candidateSupportsAdditionalMechanismFiles(candidate)) {
+							continue
+						}
+						fitted, err := fitCandidateUnit(candidateIndex, plan.facet)
+						if err != nil {
+							return Package{}, err
+						}
+						if fitted {
+							break
+						}
 					}
 				}
 			}
@@ -364,12 +380,33 @@ func compileWithEvidence(
 							continue
 						}
 						covered := protectedFacetFileTerms[plan.facet][fileKey]
+						companionFitted := false
 						for _, candidateIndex := range plan.candidateIndexes {
 							if _, exists := attempted[candidateIndex]; exists {
 								continue
 							}
 							candidate := candidates[candidateIndex]
 							if candidateFileKey(candidate) != fileKey || !addsRankingTerm(candidate, covered) {
+								continue
+							}
+							fitted, err := fitCandidateUnit(candidateIndex, plan.facet)
+							if err != nil {
+								return Package{}, err
+							}
+							if fitted {
+								companionFitted = true
+								break
+							}
+						}
+						if companionFitted || len(covered) > 0 {
+							continue
+						}
+						for _, candidateIndex := range plan.candidateIndexes {
+							if _, exists := attempted[candidateIndex]; exists {
+								continue
+							}
+							candidate := candidates[candidateIndex]
+							if candidateFileKey(candidate) != fileKey || !candidateContainsDeclaration(candidate) {
 								continue
 							}
 							fitted, err := fitCandidateUnit(candidateIndex, plan.facet)

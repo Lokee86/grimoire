@@ -4,13 +4,13 @@
 
 `grimoire context` emits a versioned, agent-independent JSON package containing selected repository source plus bounded structural evidence from Lexicon and Arcana when their repository state is available.
 
-The current package version is `7`.
+The current package version is `8`.
 
 ## Example
 
 ```json
 {
-  "version": 7,
+  "version": 8,
   "query": "trace player damage resolution",
   "budget": 2000,
   "tokenizer": "o200k_base",
@@ -140,7 +140,7 @@ The values illustrate the schema. A real `token_count` is calculated from the co
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `version` | integer | Context-package schema version; currently `7` |
+| `version` | integer | Context-package schema version; currently `8` |
 | `query` | string | Original query supplied by the caller |
 | `budget` | integer | Maximum `o200k_base` tokens permitted in the emitted package |
 | `tokenizer` | string | Tokenizer used for chunk and package accounting; currently `o200k_base` |
@@ -152,6 +152,7 @@ The values illustrate the schema. A real `token_count` is calculated from the co
 | `structural_evidence` | object array | Bounded Lexicon and Arcana facts retained under the package budget |
 | `assembly` | object | Automatic query scope, coverage, selected/considered counts, and stop reason; omitted for explicit budgets |
 | `selections` | object array | Ranked source chunks retained under the package budget |
+| `facet_file_depth` | integer | Maximum distinct protected implementation files per eligible query facet |
 | `required_link_protection` | boolean | Whether automatic fitting honored provider-declared required source links |
 | `required_link_groups_available` | integer | Complete required linked-span groups available to final fitting |
 | `required_link_groups_protected` | integer | Complete required linked-span groups retained in the package |
@@ -227,7 +228,7 @@ Lexicon and Arcana evidence are interleaved while preserving provider-local orde
 For automatic packages, the compiler attempts evidence in this order:
 
 1. highest-ranked structural fact;
-2. protected query-facet owners and eligible same-file companions;
+2. primary query-facet owners, eligible secondary implementation files, and same-file companions;
 3. remaining interleaved structural facts; and
 4. remaining curated source selections.
 
@@ -254,6 +255,8 @@ Fast mode divides the complete query into non-overlapping windows and sends boun
 When semantic retrieval is unavailable or incompatible, `context` writes a warning to stderr and substitutes deterministic lexical retrieval. Structural enrichment can still run independently.
 
 ## Compatibility
+
+Version 8 makes facet fitting role-aware and records protected file depth. Primary implementation owners are protected before supporting tests or documentation, and eligible mechanism requests may retain a second implementation file.
 
 Version 7 adds provider-declared required source-link groups, atomic final fitting for those groups, and inspectable required-group protection and omission metadata.
 

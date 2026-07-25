@@ -44,7 +44,8 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	selectionAdjacentPrimaries := flags.Int("selection-adjacent-primaries", selectionDefaults.AdjacentPrimaryLimit, "number of diversified primaries whose immediate prepared neighbors are promoted")
 	assemblyStrategy := flags.String("assembly-strategy", "coverage", "adaptive assembly strategy: legacy or coverage")
 	assemblyFacetDepth := flags.Int("assembly-facet-depth", assembly.DefaultConfig().FacetDepth, "candidate depth reserved for each query facet")
-	compilerFacetProtection := flags.Bool("compiler-facet-protection", compiler.DefaultConfig().ProtectFacets, "protect one source candidate per query facet during final token fitting")
+	compilerFacetProtection := flags.Bool("compiler-facet-protection", compiler.DefaultConfig().ProtectFacets, "protect source candidates for each query facet during final token fitting")
+	compilerFacetFileDepth := flags.Int("compiler-facet-file-depth", compiler.DefaultConfig().FacetFileDepth, "distinct mechanism source files protected per eligible query facet")
 	compilerCompanionDepth := flags.Int("compiler-companion-depth", compiler.DefaultConfig().CompanionDepth, "additional protected chunks per selected facet source file")
 	compilerRequiredLinkProtection := flags.Bool("compiler-required-link-protection", compiler.DefaultConfig().ProtectRequiredLinks, "protect complete required source-link groups during final token fitting")
 	spanExtraction := flags.Bool("span-extraction", false, "refine multi-part adaptive candidates into language-aware source spans")
@@ -70,7 +71,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	}
 	if strings.TrimSpace(*casesPath) == "" || *limit <= 0 || *probeLimit <= 0 || *timeout <= 0 || *structureTimeout <= 0 ||
 		*selectionFilePenalty < 0 || *selectionSubsystemPenalty < 0 || *selectionAdjacentPrimaries < 0 || *assemblyFacetDepth < 0 ||
-		*compilerCompanionDepth < 0 || *lexicalDeclarationAliasBonus < 0 {
+		*compilerFacetFileDepth < 0 || *compilerCompanionDepth < 0 || *lexicalDeclarationAliasBonus < 0 {
 		return errors.New("--cases, positive limits and timeouts, and non-negative ranking, selection, and assembly calibration values are required")
 	}
 	if *adaptive && *budgetOverride > 0 {
@@ -79,6 +80,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	lexicalConfig := retrieve.Config{DeclarationAliasBonus: *lexicalDeclarationAliasBonus}
 	compilerConfig := compiler.Config{
 		ProtectFacets:        *compilerFacetProtection,
+		FacetFileDepth:       *compilerFacetFileDepth,
 		CompanionDepth:       *compilerCompanionDepth,
 		ProtectRequiredLinks: *compilerRequiredLinkProtection,
 	}
@@ -233,6 +235,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 			run.CuratedCount = len(executed.Stages.Curated)
 			run.AssembledCount = len(executed.Stages.Assembled)
 			run.FacetProtection = executed.Package.FacetProtection
+			run.FacetFileDepth = executed.Package.FacetFileDepth
 			run.FacetCompanionDepth = executed.Package.FacetCompanionDepth
 			run.FacetsAvailable = executed.Package.FacetsAvailable
 			run.FacetsProtected = executed.Package.FacetsProtected

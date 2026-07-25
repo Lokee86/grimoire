@@ -24,7 +24,11 @@ func retrievalIntents(query string, tasks []string) []RetrievalIntent {
 	intents := mappedIntents(tasks)
 	clauses := decomposeRetrievalQuery(query)
 	if len(clauses) <= 1 && len(intents) == 1 && !looksStructuredQuery(query) {
-		return []RetrievalIntent{retrievalIntent(intents[0], query, 1, true)}
+		plannedQuery := query
+		if len(clauses) == 1 && clauses[0].Intent == evidence.IntentCallChain && clauses[0].Query != "" {
+			plannedQuery = clauses[0].Query
+		}
+		return []RetrievalIntent{retrievalIntent(intents[0], plannedQuery, 1, true)}
 	}
 	if len(clauses) == 0 {
 		if len(intents) == 1 {
