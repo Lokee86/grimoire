@@ -80,6 +80,7 @@ fn relation_name(relation: &RelationKind) -> &'static str {
         RelationKind::Calls => "calls",
         RelationKind::PossibleCalls => "possible-calls",
         RelationKind::PassesTo => "passes-to",
+        RelationKind::ObservedCalls => "observed-calls",
         RelationKind::ConvertsTo => "converts-to",
         RelationKind::Implements => "implements",
         RelationKind::UsesTrait => "uses-trait",
@@ -90,8 +91,11 @@ fn relation_name(relation: &RelationKind) -> &'static str {
         RelationKind::Extends => "extends",
         RelationKind::Includes => "includes",
         RelationKind::DependsOn => "depends-on",
+        RelationKind::RoutesTo => "routes-to",
+        RelationKind::CommunicatesWith => "communicates-with",
         RelationKind::Tests => "tests",
         RelationKind::Documents => "documents",
         RelationKind::Generates => "generates",
+        RelationKind::SimilarTo => "similar-to",
     }
 }

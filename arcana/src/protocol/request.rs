@@ -72,6 +72,12 @@ pub(crate) enum RequestCommand {
         include_possible: Option<bool>,
         max_depth: Option<usize>,
     },
+    ArchitectureSummary {
+        path_prefix: Option<String>,
+        relations: Option<Vec<String>>,
+        min_community_size: Option<usize>,
+        limit: Option<usize>,
+    },
     Unresolved {
         node_id: Option<u32>,
         path: Option<String>,

@@ -305,6 +305,153 @@ fn serves_dense_traversal_edge_cases() {
     assert_eq!(dead["result"]["dead_symbols"][2]["name"], "unused");
 }
 
+#[test]
+fn serves_architecture_and_runtime_evidence() {
+    let directory = TestDirectory::new();
+    let snapshot_path = directory.path.join("architecture");
+    write_snapshot(&snapshot_path, architecture_facts());
+    let snapshot = ProtocolSnapshot::open(snapshot_path).unwrap();
+
+    let summary = request(
+        &snapshot,
+        r#"{"op":"architecture_summary","relations":["routes-to","observed-calls","communicates-with"],"min_community_size":2,"limit":10}"#,
+    );
+    assert_eq!(
+        summary["result"]["relations"],
+        json!(["observed-calls", "routes-to", "communicates-with"])
+    );
+    assert_eq!(summary["result"]["node_count"], 6);
+    assert_eq!(summary["result"]["internal_edge_count"], 3);
+    assert_eq!(summary["result"]["component_count"], 3);
+    assert_eq!(summary["result"]["community_count"], 2);
+    assert_eq!(summary["result"]["excluded_node_count"], 1);
+    assert_eq!(summary["result"]["communities"][0]["node_count"], 3);
+    assert_eq!(summary["result"]["communities"][0]["edge_count"], 2);
+    assert_eq!(
+        summary["result"]["communities"][0]["relation_counts"]["observed-calls"],
+        1
+    );
+    assert_eq!(
+        summary["result"]["communities"][0]["relation_counts"]["routes-to"],
+        1
+    );
+    assert_eq!(
+        summary["result"]["communities"][0]["representative_nodes"][0]["name"],
+        "service"
+    );
+
+    let scoped = request(
+        &snapshot,
+        r#"{"op":"architecture_summary","path_prefix":"src/service","relations":["observed-calls"],"min_community_size":1}"#,
+    );
+    assert_eq!(scoped["result"]["node_count"], 1);
+    assert_eq!(scoped["result"]["internal_edge_count"], 0);
+    assert_eq!(scoped["result"]["boundary_edge_count"], 1);
+    assert_eq!(
+        scoped["result"]["communities"][0]["outgoing_boundary_counts"]["observed-calls"],
+        1
+    );
+
+    let observed_chain = request(
+        &snapshot,
+        r#"{"op":"shortest_call_chain","from_node_id":1,"to_node_id":2,"include_possible":false}"#,
+    );
+    assert_eq!(observed_chain["result"]["found"], true);
+    assert_eq!(observed_chain["result"]["chain"]["depth"], 1);
+
+    let role = request(
+        &snapshot,
+        r#"{"op":"operational_role","node_id":2,"include_possible":false}"#,
+    );
+    assert_eq!(role["result"]["incoming_counts"]["observed-calls"], 1);
+    assert_eq!(role["result"]["callers"][0]["node"]["name"], "service");
+
+    let similar = request(
+        &snapshot,
+        r#"{"op":"neighbors","node_id":2,"direction":"outgoing","relation":"similar-to"}"#,
+    );
+    assert_eq!(similar["result"]["count"], 1);
+    assert_eq!(
+        similar["result"]["relationships"][0]["node"]["name"],
+        "queue"
+    );
+
+    let stats = request(&snapshot, r#"{"op":"stats"}"#);
+    assert_eq!(
+        stats["result"]["call_resolution"]["runtime_confirmed_relationships"],
+        1
+    );
+}
+
+fn architecture_facts() -> RepositoryFacts {
+    RepositoryFacts::new(
+        vec![
+            node(
+                10,
+                NodeKind::Function,
+                "src/api/handler.rs",
+                "handler",
+                Some(1),
+            ),
+            node(
+                20,
+                NodeKind::Function,
+                "src/service/order.rs",
+                "service",
+                Some(2),
+            ),
+            node(
+                30,
+                NodeKind::Function,
+                "src/store/order.rs",
+                "repository",
+                Some(3),
+            ),
+            node(
+                40,
+                NodeKind::Function,
+                "src/worker/job.rs",
+                "worker",
+                Some(4),
+            ),
+            node(50, NodeKind::Type, "src/queue/client.rs", "queue", Some(5)),
+            node(
+                60,
+                NodeKind::Function,
+                "src/isolated.rs",
+                "isolated",
+                Some(6),
+            ),
+        ],
+        vec![
+            EdgeFact {
+                source: NodeKey::from_u64(10),
+                target: NodeKey::from_u64(20),
+                relation: RelationKind::RoutesTo,
+                span: None,
+            },
+            EdgeFact {
+                source: NodeKey::from_u64(20),
+                target: NodeKey::from_u64(30),
+                relation: RelationKind::ObservedCalls,
+                span: None,
+            },
+            EdgeFact {
+                source: NodeKey::from_u64(40),
+                target: NodeKey::from_u64(50),
+                relation: RelationKind::CommunicatesWith,
+                span: None,
+            },
+            EdgeFact {
+                source: NodeKey::from_u64(30),
+                target: NodeKey::from_u64(50),
+                relation: RelationKind::SimilarTo,
+                span: None,
+            },
+        ],
+    )
+}
+
 fn analysis_facts() -> RepositoryFacts {
     RepositoryFacts::new(
         vec![

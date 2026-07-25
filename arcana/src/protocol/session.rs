@@ -155,6 +155,17 @@ impl ProtocolSnapshot {
                 include_possible.unwrap_or(true),
                 max_depth,
             ),
+            RequestCommand::ArchitectureSummary {
+                path_prefix,
+                relations,
+                min_community_size,
+                limit,
+            } => self.architecture_summary(
+                path_prefix.as_deref(),
+                relations.as_deref(),
+                min_community_size,
+                limit,
+            ),
             RequestCommand::Unresolved {
                 node_id,
                 path,

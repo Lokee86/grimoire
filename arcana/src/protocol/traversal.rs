@@ -43,7 +43,7 @@ impl RelationMask {
     }
 }
 
-const RELATION_ORDER: [RelationKind; 20] = [
+const RELATION_ORDER: [RelationKind; 24] = [
     RelationKind::Contains,
     RelationKind::Defines,
     RelationKind::References,
@@ -51,6 +51,7 @@ const RELATION_ORDER: [RelationKind; 20] = [
     RelationKind::Calls,
     RelationKind::PossibleCalls,
     RelationKind::PassesTo,
+    RelationKind::ObservedCalls,
     RelationKind::ConvertsTo,
     RelationKind::Implements,
     RelationKind::Extends,
@@ -61,9 +62,12 @@ const RELATION_ORDER: [RelationKind; 20] = [
     RelationKind::Annotates,
     RelationKind::Includes,
     RelationKind::DependsOn,
+    RelationKind::RoutesTo,
+    RelationKind::CommunicatesWith,
     RelationKind::Tests,
     RelationKind::Documents,
     RelationKind::Generates,
+    RelationKind::SimilarTo,
 ];
 
 pub(crate) fn bounded_depth(depth: Option<usize>) -> usize {
@@ -127,6 +131,7 @@ pub(crate) fn parse_relations(
 pub(crate) fn call_relations(include_possible: bool) -> RelationMask {
     let mut relations = RelationMask::empty();
     relations.insert(&RelationKind::Calls);
+    relations.insert(&RelationKind::ObservedCalls);
     if include_possible {
         relations.insert(&RelationKind::PossibleCalls);
     }
@@ -138,7 +143,29 @@ pub(crate) fn impact_relations() -> RelationMask {
     relations.insert(&RelationKind::Calls);
     relations.insert(&RelationKind::PossibleCalls);
     relations.insert(&RelationKind::PassesTo);
+    relations.insert(&RelationKind::ObservedCalls);
     relations.insert(&RelationKind::References);
+    relations
+}
+
+pub(crate) fn architecture_relations() -> RelationMask {
+    let mut relations = RelationMask::empty();
+    for relation in [
+        RelationKind::Imports,
+        RelationKind::Calls,
+        RelationKind::PossibleCalls,
+        RelationKind::ObservedCalls,
+        RelationKind::Implements,
+        RelationKind::Extends,
+        RelationKind::UsesTrait,
+        RelationKind::Overrides,
+        RelationKind::Includes,
+        RelationKind::DependsOn,
+        RelationKind::RoutesTo,
+        RelationKind::CommunicatesWith,
+    ] {
+        relations.insert(&relation);
+    }
     relations
 }
 
@@ -321,5 +348,9 @@ fn relation_bit(relation: &RelationKind) -> u32 {
         RelationKind::Documents => 1 << 17,
         RelationKind::Generates => 1 << 18,
         RelationKind::PassesTo => 1 << 19,
+        RelationKind::ObservedCalls => 1 << 20,
+        RelationKind::RoutesTo => 1 << 21,
+        RelationKind::CommunicatesWith => 1 << 22,
+        RelationKind::SimilarTo => 1 << 23,
     }
 }

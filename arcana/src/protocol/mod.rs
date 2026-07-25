@@ -1,6 +1,7 @@
 //! Machine-readable JSON Lines query protocol for repository snapshots.
 
 mod analysis_queries;
+mod architecture_queries;
 mod diff;
 mod error;
 mod path_queries;
