@@ -6,7 +6,7 @@
 grimoire <command> [flags]
 ```
 
-Current top-level commands are `status`, `index`, `query`, `context`, `eval`, `model`, `vector`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal workflow and exits successfully.
+Current top-level commands are `status`, `index`, `knowledge`, `query`, `context`, `eval`, `model`, `vector`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal workflow and exits successfully.
 
 ## `grimoire status`
 
@@ -19,6 +19,10 @@ grimoire status --root <repository> --refresh --force
 ```
 
 The command emits versioned JSON with Git/source identity, snapshot identities, stale reasons, performed actions, elapsed times, warnings, deterministic-query readiness, and vector availability. `status` is read-only by default. `--refresh` incrementally runs the existing Lexicon, Arcana, and Grimoire preparation commands only when needed; `--force` refreshes all three regardless of current state. Vector indexes are reported but never built by this command.
+
+## `grimoire knowledge`
+
+`knowledge index` builds the independent documentation/rationale index under `<root>/.grimoire/knowledge`; `knowledge search` returns exact cited sections as JSON; and `knowledge inspect` reports state or one document/section. Search is deterministic BM25 and supports path, kind, heading, commit, and commit-time filters. It does not require the embedding runtime or vector state. See [Knowledge retrieval](knowledge.md).
 
 ## `grimoire model setup`
 

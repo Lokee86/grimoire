@@ -42,6 +42,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		return runIndex(args[1:], stdout, stderr)
 	case "status":
 		return runStatus(args[1:], stdout, stderr)
+	case "knowledge":
+		return runKnowledge(args[1:], stdout, stderr)
 	case "context":
 		return runContext(args[1:], stdout, stderr)
 	case "query":
@@ -70,6 +72,8 @@ Core workflow:
   grimoire model setup                 Install the local embedding runtime
   grimoire model start                 Start the managed embedding service
   grimoire index --root .              Prepare source and Lexicon-aligned chunks
+  grimoire knowledge index --root .    Index repository rationale and documentation
+  grimoire knowledge search --query .  Cite exact knowledge sections with BM25
   grimoire vector build --root .       Build or refresh semantic vectors
   grimoire query orient --root .       Discover compact repository anchors
   grimoire query trace --anchor <id>   Expand an exact structural handle
@@ -80,6 +84,7 @@ Commands:
   context   Build a context package
   index     Prepare repository source state
   status    Inspect or prepare repository analysis state
+  knowledge Index, search, or inspect repository knowledge
   vector    Build, search, or inspect vector state
   model     Set up and manage the embedding runtime
   eval      Run judged retrieval evaluation
