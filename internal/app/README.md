@@ -9,6 +9,7 @@
 - `vector build`, `search`, and `info` — persistent semantic-state workflows.
 - `context` — source, structural, policy, assembly, and package orchestration.
 - `eval retrieval` — judged corpus execution and report publication.
+- `investigation create|status|close` — session lifecycle for the persistent discovery ledger.
 - `version` — build identity.
 
 ## Context pipeline
@@ -39,6 +40,7 @@ Provider failures become warnings when source retrieval can continue. Explicit i
 - `structural_context.go` — Lexicon/Arcana discovery, scheduling, and composition.
 - `eval_retrieval.go` — corpus flags, run matrix, and report output.
 - `version.go` — version response.
+- `investigation.go` — investigation-ledger lifecycle commands.
 
 ## Boundary
 

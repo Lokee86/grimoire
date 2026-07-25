@@ -9,6 +9,7 @@ This directory maps the Grimoire platform, its context engine, operating contrac
 - [Development](development/INDEX.md) — tests, judged corpora, benchmark procedure, and retrieval-quality interpretation.
 - [Limits](limits/INDEX.md) — constraints and failure modes that exist now.
 - [Planning](planning/INDEX.md) — work that is not yet implemented.
+- [Investigation ledger](../internal/investigation/README.md) — persistent agent-facing discovery state and integration contract.
 - [Lexicon documentation](../lexicon/docs/README.md) — language analysis, adapters, snapshots, contracts, and validation.
 - [Arcana documentation](../arcana/docs/) — graph ingestion and repository-snapshot contracts.
 
@@ -18,7 +19,7 @@ This directory maps the Grimoire platform, its context engine, operating contrac
 | --- | --- | --- |
 | Lexicon | [`lexicon/`](../lexicon/) | Language analysis, normalized facts, adapters, immutable analysis snapshots |
 | Arcana | [`arcana/`](../arcana/) | Graph ingestion, packed graph state, traversal, impact, paths, and graph protocol |
-| Grimoire Context | repository root | Retrieval, ranking, budgeting, evidence assembly, and context packages |
+| Grimoire Context | repository root | Retrieval, ranking, budgeting, evidence assembly, context packages, and investigation-ledger orchestration |
 
 See [Component architecture](architecture/components.md) for the dependency and independent-use rules.
 

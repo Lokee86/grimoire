@@ -54,6 +54,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		return runModel(args[1:], stdout, stderr)
 	case "vector":
 		return runVector(args[1:], stdout, stderr)
+	case "investigation":
+		return runInvestigation(args[1:], stdout, stderr)
 	case "version":
 		_, err := fmt.Fprintln(stdout, Version)
 		return err
@@ -86,6 +88,7 @@ Commands:
   status    Inspect or prepare repository analysis state
   knowledge Index, search, or inspect repository knowledge
   vector    Build, search, or inspect vector state
+  investigation  Create, inspect, or close an agent investigation ledger session
   model     Set up and manage the embedding runtime
   eval      Run judged retrieval evaluation
   version   Print the Grimoire version

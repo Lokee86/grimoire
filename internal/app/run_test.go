@@ -33,6 +33,24 @@ func TestUnknownCommandPointsToHelp(t *testing.T) {
 	}
 }
 
+func TestInvestigationLifecycleCommands(t *testing.T) {
+	root := t.TempDir()
+	var output bytes.Buffer
+	if err := Run([]string{"investigation", "create", "--root", root, "--session", "cli-session", "--snapshot", "repo:1", "--provider", "arcana=arc:1"}, &output, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(output.Bytes(), []byte(`"session_id": "cli-session"`)) {
+		t.Fatalf("create output missing session: %s", output.String())
+	}
+	output.Reset()
+	if err := Run([]string{"investigation", "close", "--root", root, "--session", "cli-session"}, &output, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(output.Bytes(), []byte(`"closed_at"`)) {
+		t.Fatalf("close output missing closed_at: %s", output.String())
+	}
+}
+
 func TestIndexUsesConfiguredIgnoreFile(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, ".contextignore"), []byte("ignored.go\n"), 0o644); err != nil {

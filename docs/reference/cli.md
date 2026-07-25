@@ -6,7 +6,7 @@
 grimoire <command> [flags]
 ```
 
-Current top-level commands are `status`, `index`, `knowledge`, `query`, `context`, `eval`, `model`, `vector`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal workflow and exits successfully.
+Current top-level commands are `status`, `index`, `knowledge`, `query`, `context`, `eval`, `model`, `vector`, `investigation`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal workflow and exits successfully.
 
 ## `grimoire status`
 
@@ -23,6 +23,18 @@ The command emits versioned JSON with Git/source identity, snapshot identities, 
 ## `grimoire knowledge`
 
 `knowledge index` builds the independent documentation/rationale index under `<root>/.grimoire/knowledge`; `knowledge search` returns exact cited sections as JSON; and `knowledge inspect` reports state or one document/section. Search is deterministic BM25 and supports path, kind, heading, commit, and commit-time filters. It does not require the embedding runtime or vector state. See [Knowledge retrieval](knowledge.md).
+
+## `grimoire investigation`
+
+The investigation ledger stores deduplicated agent-facing discovery evidence under `<grimoire-state>/investigations/<session-id>/`. Sessions are bound to one repository snapshot and optional provider snapshot identities.
+
+```bash
+grimoire investigation create --session <id> --snapshot <repository-id> [--provider name=identity]
+grimoire investigation status --session <id>
+grimoire investigation close --session <id>
+```
+
+All commands accept `--root <path>` and `--state <path>`; state defaults to `<root>/.grimoire`. Evidence recording is owned by `internal/investigation` for the query and MCP layers. See [`internal/investigation`](../../internal/investigation/README.md) for the package contract.
 
 ## `grimoire model setup`
 
