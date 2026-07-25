@@ -10,34 +10,39 @@ import (
 // production default; LegacyConfig exists for paired evaluation against the
 // previous rank-preserving planner.
 type Config struct {
-	CoverageAware bool
-	FacetDepth    int
+	CoverageAware     bool
+	FacetDepth        int
+	RequiredLinkAware bool
 }
 
 func DefaultConfig() Config {
-	return Config{CoverageAware: true, FacetDepth: 3}
+	return Config{CoverageAware: true, FacetDepth: 3, RequiredLinkAware: true}
 }
 
 func LegacyConfig() Config {
-	return Config{CoverageAware: false, FacetDepth: 0}
+	return Config{CoverageAware: false, FacetDepth: 0, RequiredLinkAware: false}
 }
 
 // Decision records why adaptive assembly stopped before package compilation.
 type Decision struct {
-	Scope                queryshape.Scope `json:"scope"`
-	CandidatesConsidered int              `json:"candidates_considered"`
-	CandidatesSelected   int              `json:"candidates_selected"`
-	CandidateTokens      int              `json:"candidate_tokens"`
-	StructuralConsidered int              `json:"structural_considered"`
-	StructuralSelected   int              `json:"structural_selected"`
-	RegionsRepresented   []string         `json:"regions_represented,omitempty"`
-	RolesRepresented     []string         `json:"roles_represented,omitempty"`
-	GroupsRepresented    int              `json:"groups_represented,omitempty"`
-	FacetsAvailable      int              `json:"facets_available,omitempty"`
-	FacetsRepresented    int              `json:"facets_represented,omitempty"`
-	FacetCoverageDepth   int              `json:"facet_coverage_depth,omitempty"`
-	CoverageAware        bool             `json:"coverage_aware"`
-	StopReason           string           `json:"stop_reason"`
+	Scope                    queryshape.Scope `json:"scope"`
+	CandidatesConsidered     int              `json:"candidates_considered"`
+	CandidatesSelected       int              `json:"candidates_selected"`
+	CandidateTokens          int              `json:"candidate_tokens"`
+	StructuralConsidered     int              `json:"structural_considered"`
+	StructuralSelected       int              `json:"structural_selected"`
+	RegionsRepresented       []string         `json:"regions_represented,omitempty"`
+	RolesRepresented         []string         `json:"roles_represented,omitempty"`
+	GroupsRepresented        int              `json:"groups_represented,omitempty"`
+	FacetsAvailable          int              `json:"facets_available,omitempty"`
+	FacetsRepresented        int              `json:"facets_represented,omitempty"`
+	FacetCoverageDepth       int              `json:"facet_coverage_depth,omitempty"`
+	CoverageAware            bool             `json:"coverage_aware"`
+	RequiredLinkAware        bool             `json:"required_link_aware,omitempty"`
+	RequiredLinksAvailable   int              `json:"required_links_available,omitempty"`
+	RequiredLinksRepresented int              `json:"required_links_represented,omitempty"`
+	CandidateCapOverflow     int              `json:"candidate_cap_overflow,omitempty"`
+	StopReason               string           `json:"stop_reason"`
 }
 
 // Result is the bounded evidence set passed to the exact-budget compiler.

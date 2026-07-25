@@ -11,44 +11,49 @@ import (
 )
 
 const (
-	PackageVersion      = 6
+	PackageVersion      = 7
 	maxTokenCountPasses = 8
 )
 
 type Package struct {
-	Version                    int                       `json:"version"`
-	Query                      string                    `json:"query"`
-	Budget                     int                       `json:"budget"`
-	Tokenizer                  string                    `json:"tokenizer"`
-	TokenCount                 int                       `json:"token_count"`
-	IndexVersion               int                       `json:"index_version"`
-	RetrievalSources           []string                  `json:"retrieval_sources"`
-	StructuralSources          []string                  `json:"structural_sources,omitempty"`
-	StructuralState            []structure.ProviderState `json:"structural_state,omitempty"`
-	StructuralEvidence         []structure.Evidence      `json:"structural_evidence,omitempty"`
-	Assembly                   *assembly.Decision        `json:"assembly,omitempty"`
-	Selections                 []Selection               `json:"selections"`
-	FacetProtection            bool                      `json:"facet_protection,omitempty"`
-	FacetCompanionDepth        int                       `json:"facet_companion_depth,omitempty"`
-	FacetsAvailable            int                       `json:"facets_available,omitempty"`
-	FacetsProtected            int                       `json:"facets_protected,omitempty"`
-	FacetsOmittedForBudget     int                       `json:"facets_omitted_for_budget,omitempty"`
-	OmittedStructuralForBudget int                       `json:"omitted_structural_for_budget"`
-	OmittedForBudget           int                       `json:"omitted_for_budget"`
+	Version                     int                       `json:"version"`
+	Query                       string                    `json:"query"`
+	Budget                      int                       `json:"budget"`
+	Tokenizer                   string                    `json:"tokenizer"`
+	TokenCount                  int                       `json:"token_count"`
+	IndexVersion                int                       `json:"index_version"`
+	RetrievalSources            []string                  `json:"retrieval_sources"`
+	StructuralSources           []string                  `json:"structural_sources,omitempty"`
+	StructuralState             []structure.ProviderState `json:"structural_state,omitempty"`
+	StructuralEvidence          []structure.Evidence      `json:"structural_evidence,omitempty"`
+	Assembly                    *assembly.Decision        `json:"assembly,omitempty"`
+	Selections                  []Selection               `json:"selections"`
+	FacetProtection             bool                      `json:"facet_protection,omitempty"`
+	FacetCompanionDepth         int                       `json:"facet_companion_depth,omitempty"`
+	FacetsAvailable             int                       `json:"facets_available,omitempty"`
+	FacetsProtected             int                       `json:"facets_protected,omitempty"`
+	FacetsOmittedForBudget      int                       `json:"facets_omitted_for_budget,omitempty"`
+	RequiredLinkProtection      bool                      `json:"required_link_protection,omitempty"`
+	RequiredLinkGroupsAvailable int                       `json:"required_link_groups_available,omitempty"`
+	RequiredLinkGroupsProtected int                       `json:"required_link_groups_protected,omitempty"`
+	RequiredLinkGroupsOmitted   int                       `json:"required_link_groups_omitted_for_budget,omitempty"`
+	OmittedStructuralForBudget  int                       `json:"omitted_structural_for_budget"`
+	OmittedForBudget            int                       `json:"omitted_for_budget"`
 }
 
 type Selection struct {
-	Path            string   `json:"path"`
-	StartLine       int      `json:"start_line"`
-	EndLine         int      `json:"end_line"`
-	Score           float64  `json:"score"`
-	RetrievalSource string   `json:"retrieval_source"`
-	RetrievalRank   int      `json:"retrieval_rank"`
-	Reasons         []string `json:"reasons"`
-	FacetIDs        []string `json:"facet_ids,omitempty"`
-	ProtectedFacet  string   `json:"protected_facet,omitempty"`
-	TokenCount      int      `json:"token_count"`
-	Content         string   `json:"content"`
+	Path               string   `json:"path"`
+	StartLine          int      `json:"start_line"`
+	EndLine            int      `json:"end_line"`
+	Score              float64  `json:"score"`
+	RetrievalSource    string   `json:"retrieval_source"`
+	RetrievalRank      int      `json:"retrieval_rank"`
+	Reasons            []string `json:"reasons"`
+	FacetIDs           []string `json:"facet_ids,omitempty"`
+	ProtectedFacet     string   `json:"protected_facet,omitempty"`
+	ProtectedLinkGroup string   `json:"protected_link_group,omitempty"`
+	TokenCount         int      `json:"token_count"`
+	Content            string   `json:"content"`
 }
 
 func Compile(
@@ -145,26 +150,34 @@ func compileWithEvidence(
 
 	config = normalizedConfig(config)
 	facetProtection := config.ProtectFacets && decision != nil && decision.CoverageAware
+	requiredLinkProtection := config.ProtectRequiredLinks && decision != nil && decision.RequiredLinkAware
 	facetPlans := []facetFitPlan(nil)
 	if facetProtection {
 		facetPlans = buildFacetFitPlans(candidates)
 	}
+	requiredPlans := []requiredFitPlan(nil)
+	if requiredLinkProtection {
+		requiredPlans = buildRequiredFitPlans(candidates)
+	}
 	result := Package{
-		Version:                    PackageVersion,
-		Query:                      query,
-		Budget:                     budget,
-		Tokenizer:                  tokenizer.Name,
-		IndexVersion:               indexVersion,
-		RetrievalSources:           append([]string(nil), retrievalSources...),
-		StructuralEvidence:         make([]structure.Evidence, 0),
-		Assembly:                   decision,
-		Selections:                 make([]Selection, 0),
-		FacetProtection:            facetProtection,
-		FacetCompanionDepth:        config.CompanionDepth,
-		FacetsAvailable:            len(facetPlans),
-		FacetsOmittedForBudget:     len(facetPlans),
-		OmittedStructuralForBudget: len(evidence),
-		OmittedForBudget:           len(candidates),
+		Version:                     PackageVersion,
+		Query:                       query,
+		Budget:                      budget,
+		Tokenizer:                   tokenizer.Name,
+		IndexVersion:                indexVersion,
+		RetrievalSources:            append([]string(nil), retrievalSources...),
+		StructuralEvidence:          make([]structure.Evidence, 0),
+		Assembly:                    decision,
+		Selections:                  make([]Selection, 0),
+		FacetProtection:             facetProtection,
+		FacetCompanionDepth:         config.CompanionDepth,
+		FacetsAvailable:             len(facetPlans),
+		FacetsOmittedForBudget:      len(facetPlans),
+		RequiredLinkProtection:      requiredLinkProtection,
+		RequiredLinkGroupsAvailable: len(requiredPlans),
+		RequiredLinkGroupsOmitted:   len(requiredPlans),
+		OmittedStructuralForBudget:  len(evidence),
+		OmittedForBudget:            len(candidates),
 	}
 	if err := stabilizeTokenCount(&result); err != nil {
 		return Package{}, err
@@ -200,28 +213,63 @@ func compileWithEvidence(
 	protectedFacetFileOrder := make(map[string][]string, len(facetPlans))
 	protectedFacetFileEligible := make(map[string]map[string]bool, len(facetPlans))
 	protectedFacetFileTerms := make(map[string]map[string]map[string]struct{}, len(facetPlans))
-	fitCandidate := func(candidateIndex int, protectedFacet string) (bool, error) {
+	selectionForCandidate := func(candidateIndex int, protectedFacet, protectedGroup string) Selection {
 		candidate := candidates[candidateIndex]
-		selection := Selection{
-			Path:            candidate.Chunk.Path,
-			StartLine:       candidate.Chunk.StartLine,
-			EndLine:         candidate.Chunk.EndLine,
-			Score:           candidate.Score,
-			RetrievalSource: candidate.Source,
-			RetrievalRank:   candidate.Rank,
-			Reasons:         append([]string(nil), candidate.Reasons...),
-			FacetIDs:        candidateFacetIDs(candidate),
-			ProtectedFacet:  protectedFacet,
-			TokenCount:      candidate.Chunk.TokenCount,
-			Content:         candidate.Chunk.Text,
+		return Selection{
+			Path:               candidate.Chunk.Path,
+			StartLine:          candidate.Chunk.StartLine,
+			EndLine:            candidate.Chunk.EndLine,
+			Score:              candidate.Score,
+			RetrievalSource:    candidate.Source,
+			RetrievalRank:      candidate.Rank,
+			Reasons:            append([]string(nil), candidate.Reasons...),
+			FacetIDs:           candidateFacetIDs(candidate),
+			ProtectedFacet:     protectedFacet,
+			ProtectedLinkGroup: protectedGroup,
+			TokenCount:         candidate.Chunk.TokenCount,
+			Content:            candidate.Chunk.Text,
 		}
+	}
+	recordProtectedCandidate := func(candidate retrieve.Candidate, protectedFacet string) {
+		if protectedFacet == "" {
+			return
+		}
+		protectedFacetCounts[protectedFacet]++
+		files := protectedFacetFiles[protectedFacet]
+		if files == nil {
+			files = make(map[string]struct{})
+			protectedFacetFiles[protectedFacet] = files
+		}
+		fileKey := candidateFileKey(candidate)
+		if _, exists := files[fileKey]; !exists {
+			files[fileKey] = struct{}{}
+			protectedFacetFileOrder[protectedFacet] = append(protectedFacetFileOrder[protectedFacet], fileKey)
+			eligible := protectedFacetFileEligible[protectedFacet]
+			if eligible == nil {
+				eligible = make(map[string]bool)
+				protectedFacetFileEligible[protectedFacet] = eligible
+			}
+			eligible[fileKey] = candidateSupportsCompanions(candidate)
+			facetTerms := protectedFacetFileTerms[protectedFacet]
+			if facetTerms == nil {
+				facetTerms = make(map[string]map[string]struct{})
+				protectedFacetFileTerms[protectedFacet] = facetTerms
+			}
+			facetTerms[fileKey] = make(map[string]struct{})
+		}
+		addRankingTerms(candidate, protectedFacetFileTerms[protectedFacet][fileKey])
+	}
+	fitCandidate := func(candidateIndex int, protectedFacet, protectedGroup string) (bool, error) {
 		tentative := result
-		tentative.Selections = append(append([]Selection(nil), result.Selections...), selection)
+		tentative.Selections = append(
+			append([]Selection(nil), result.Selections...),
+			selectionForCandidate(candidateIndex, protectedFacet, protectedGroup),
+		)
 		tentative.OmittedForBudget = len(candidates) - len(tentative.Selections)
-		if protectedFacet != "" && protectedFacetCounts[protectedFacet] == 0 {
-			tentative.FacetsProtected++
-			tentative.FacetsOmittedForBudget = tentative.FacetsAvailable - tentative.FacetsProtected
-		}
+		tentative.FacetsProtected = packageProtectedFacetCount(tentative)
+		tentative.FacetsOmittedForBudget = tentative.FacetsAvailable - tentative.FacetsProtected
+		tentative.RequiredLinkGroupsProtected = protectedRequiredGroupCount(tentative.Selections)
+		tentative.RequiredLinkGroupsOmitted = tentative.RequiredLinkGroupsAvailable - tentative.RequiredLinkGroupsProtected
 		if err := stabilizeTokenCount(&tentative); err != nil {
 			return false, err
 		}
@@ -229,31 +277,45 @@ func compileWithEvidence(
 			return false, nil
 		}
 		result = tentative
+		candidate := candidates[candidateIndex]
 		if protectedFacet != "" {
-			protectedFacetCounts[protectedFacet]++
-			files := protectedFacetFiles[protectedFacet]
-			if files == nil {
-				files = make(map[string]struct{})
-				protectedFacetFiles[protectedFacet] = files
+			recordProtectedCandidate(candidate, protectedFacet)
+		} else if protectedGroup != "" {
+			for _, facet := range candidateFacetIDs(candidate) {
+				recordProtectedCandidate(candidate, facet)
 			}
-			fileKey := candidateFileKey(candidate)
-			if _, exists := files[fileKey]; !exists {
-				files[fileKey] = struct{}{}
-				protectedFacetFileOrder[protectedFacet] = append(protectedFacetFileOrder[protectedFacet], fileKey)
-				eligible := protectedFacetFileEligible[protectedFacet]
-				if eligible == nil {
-					eligible = make(map[string]bool)
-					protectedFacetFileEligible[protectedFacet] = eligible
-				}
-				eligible[fileKey] = candidateSupportsCompanions(candidate)
-				facetTerms := protectedFacetFileTerms[protectedFacet]
-				if facetTerms == nil {
-					facetTerms = make(map[string]map[string]struct{})
-					protectedFacetFileTerms[protectedFacet] = facetTerms
-				}
-				facetTerms[fileKey] = make(map[string]struct{})
+		}
+		return true, nil
+	}
+	fitRequiredPlan := func(plan requiredFitPlan, triggerIndex int, protectedFacet string) (bool, error) {
+		tentative := result
+		for _, candidateIndex := range plan.candidateIndexes {
+			candidateFacet := ""
+			if candidateIndex == triggerIndex {
+				candidateFacet = protectedFacet
 			}
-			addRankingTerms(candidate, protectedFacetFileTerms[protectedFacet][fileKey])
+			tentative.Selections = append(
+				tentative.Selections,
+				selectionForCandidate(candidateIndex, candidateFacet, plan.id),
+			)
+		}
+		tentative.OmittedForBudget = len(candidates) - len(tentative.Selections)
+		tentative.FacetsProtected = packageProtectedFacetCount(tentative)
+		tentative.FacetsOmittedForBudget = tentative.FacetsAvailable - tentative.FacetsProtected
+		tentative.RequiredLinkGroupsProtected = protectedRequiredGroupCount(tentative.Selections)
+		tentative.RequiredLinkGroupsOmitted = tentative.RequiredLinkGroupsAvailable - tentative.RequiredLinkGroupsProtected
+		if err := stabilizeTokenCount(&tentative); err != nil {
+			return false, err
+		}
+		if tentative.TokenCount > budget {
+			return false, nil
+		}
+		result = tentative
+		for _, candidateIndex := range plan.candidateIndexes {
+			candidate := candidates[candidateIndex]
+			for _, facet := range candidateFacetIDs(candidate) {
+				recordProtectedCandidate(candidate, facet)
+			}
 		}
 		return true, nil
 	}
@@ -265,47 +327,71 @@ func compileWithEvidence(
 		}
 		evidenceStart = 1
 	}
-	if facetProtection && len(facetPlans) > 0 {
+	adaptiveProtection := requiredLinkProtection || (facetProtection && len(facetPlans) > 0)
+	if adaptiveProtection {
 		attempted := make(map[int]struct{}, len(candidates))
-		for _, plan := range facetPlans {
-			for _, candidateIndex := range plan.candidateIndexes {
-				if _, exists := attempted[candidateIndex]; exists {
-					continue
+		requiredByCandidate := requiredFitPlanIndexes(requiredPlans)
+		fitCandidateUnit := func(candidateIndex int, protectedFacet string) (bool, error) {
+			if _, exists := attempted[candidateIndex]; exists {
+				return false, nil
+			}
+			if planIndex, exists := requiredByCandidate[candidateIndex]; exists {
+				plan := requiredPlans[planIndex]
+				for _, memberIndex := range plan.candidateIndexes {
+					attempted[memberIndex] = struct{}{}
 				}
-				attempted[candidateIndex] = struct{}{}
-				fitted, err := fitCandidate(candidateIndex, plan.facet)
+				return fitRequiredPlan(plan, candidateIndex, protectedFacet)
+			}
+			attempted[candidateIndex] = struct{}{}
+			return fitCandidate(candidateIndex, protectedFacet, "")
+		}
+		if facetProtection && len(facetPlans) > 0 {
+			for _, plan := range facetPlans {
+				for _, candidateIndex := range plan.candidateIndexes {
+					fitted, err := fitCandidateUnit(candidateIndex, plan.facet)
+					if err != nil {
+						return Package{}, err
+					}
+					if fitted {
+						break
+					}
+				}
+			}
+			for companion := 0; companion < config.CompanionDepth; companion++ {
+				for _, plan := range facetPlans {
+					for _, fileKey := range protectedFacetFileOrder[plan.facet] {
+						if !protectedFacetFileEligible[plan.facet][fileKey] {
+							continue
+						}
+						covered := protectedFacetFileTerms[plan.facet][fileKey]
+						for _, candidateIndex := range plan.candidateIndexes {
+							if _, exists := attempted[candidateIndex]; exists {
+								continue
+							}
+							candidate := candidates[candidateIndex]
+							if candidateFileKey(candidate) != fileKey || !addsRankingTerm(candidate, covered) {
+								continue
+							}
+							fitted, err := fitCandidateUnit(candidateIndex, plan.facet)
+							if err != nil {
+								return Package{}, err
+							}
+							if fitted {
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+		if len(result.Selections) == 0 {
+			for candidateIndex := range candidates {
+				fitted, err := fitCandidateUnit(candidateIndex, "")
 				if err != nil {
 					return Package{}, err
 				}
 				if fitted {
 					break
-				}
-			}
-		}
-		for companion := 0; companion < config.CompanionDepth; companion++ {
-			for _, plan := range facetPlans {
-				for _, fileKey := range protectedFacetFileOrder[plan.facet] {
-					if !protectedFacetFileEligible[plan.facet][fileKey] {
-						continue
-					}
-					covered := protectedFacetFileTerms[plan.facet][fileKey]
-					for _, candidateIndex := range plan.candidateIndexes {
-						if _, exists := attempted[candidateIndex]; exists {
-							continue
-						}
-						candidate := candidates[candidateIndex]
-						if candidateFileKey(candidate) != fileKey || !addsRankingTerm(candidate, covered) {
-							continue
-						}
-						attempted[candidateIndex] = struct{}{}
-						fitted, err := fitCandidate(candidateIndex, plan.facet)
-						if err != nil {
-							return Package{}, err
-						}
-						if fitted {
-							break
-						}
-					}
 				}
 			}
 		}
@@ -315,17 +401,14 @@ func compileWithEvidence(
 			}
 		}
 		for candidateIndex := range candidates {
-			if _, exists := attempted[candidateIndex]; exists {
-				continue
-			}
-			if _, err := fitCandidate(candidateIndex, ""); err != nil {
+			if _, err := fitCandidateUnit(candidateIndex, ""); err != nil {
 				return Package{}, err
 			}
 		}
 	} else {
 		candidateStart := 0
 		if len(candidates) > 0 {
-			if _, err := fitCandidate(0, ""); err != nil {
+			if _, err := fitCandidate(0, "", ""); err != nil {
 				return Package{}, err
 			}
 			candidateStart = 1
@@ -336,14 +419,17 @@ func compileWithEvidence(
 			}
 		}
 		for candidateIndex := candidateStart; candidateIndex < len(candidates); candidateIndex++ {
-			if _, err := fitCandidate(candidateIndex, ""); err != nil {
+			if _, err := fitCandidate(candidateIndex, "", ""); err != nil {
 				return Package{}, err
 			}
 		}
 	}
 	result.OmittedStructuralForBudget = len(evidence) - len(result.StructuralEvidence)
 	result.OmittedForBudget = len(candidates) - len(result.Selections)
+	result.FacetsProtected = packageProtectedFacetCount(result)
 	result.FacetsOmittedForBudget = result.FacetsAvailable - result.FacetsProtected
+	result.RequiredLinkGroupsProtected = protectedRequiredGroupCount(result.Selections)
+	result.RequiredLinkGroupsOmitted = result.RequiredLinkGroupsAvailable - result.RequiredLinkGroupsProtected
 	for {
 		if err := stabilizeTokenCount(&result); err != nil {
 			return Package{}, err
@@ -364,9 +450,11 @@ func compileWithEvidence(
 			continue
 		}
 		if len(result.Selections) > 0 {
-			result.Selections = result.Selections[:len(result.Selections)-1]
-			result.FacetsProtected = protectedFacetCount(result.Selections)
+			result.Selections = removeLastProtectedUnit(result.Selections)
+			result.FacetsProtected = packageProtectedFacetCount(result)
 			result.FacetsOmittedForBudget = result.FacetsAvailable - result.FacetsProtected
+			result.RequiredLinkGroupsProtected = protectedRequiredGroupCount(result.Selections)
+			result.RequiredLinkGroupsOmitted = result.RequiredLinkGroupsAvailable - result.RequiredLinkGroupsProtected
 			result.OmittedForBudget = len(candidates) - len(result.Selections)
 			continue
 		}
