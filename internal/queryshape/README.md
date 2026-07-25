@@ -11,7 +11,9 @@ Analysis receives:
 - exact, ranked, merged, and structural candidates; and
 - ranking confidence and path/graph dispersion derived from those candidates.
 
-Query-only retrieval intents are emitted before candidate generation. The app layer consumes them to run bounded BM25 and exact passes, reserve mixed-query coverage, attach candidate roles, and choose the most graph-relevant structural query. Retrieval evidence may then refine breadth or ambiguity without changing the original intent plan.
+Query-only retrieval intents are emitted before candidate generation. The app layer consumes them to run bounded BM25, exact, and semantic passes, reserve mixed-query coverage, attach candidate roles, and choose the most graph-relevant structural query. Retrieval evidence may then refine breadth or ambiguity without changing the original intent plan.
+
+Short, strongly classified tasks use deterministic retrieval plans for implementation, impact analysis, tracing, debugging, architecture, and verification. Each plan retains the original task as a context pass and adds bounded focused passes for the evidence that task requires. Long structured prompts keep their clause decomposition and receive task-plan annotations rather than generic expansion.
 
 ## Profile
 

@@ -95,11 +95,14 @@ func TestAnalyzeCallChainRetrievalIntent(t *testing.T) {
 	query := "Trace the call chain from ResolveProfile to the database adapter"
 	_, policy := Analyze(Input{Query: query, RequestedBudget: 4000})
 
-	if len(policy.Intents) != 1 || policy.Intents[0].Intent != evidence.IntentCallChain {
-		t.Fatalf("unexpected call-chain intents: %+v", policy.Intents)
+	if policy.TaskPlan != TaskPlanTracing || len(policy.Intents) != 5 {
+		t.Fatalf("unexpected call-chain plan: %+v", policy)
 	}
-	if policy.Intents[0].Query != query || policy.Intents[0].Weight <= 0 {
-		t.Fatalf("call-chain intent did not preserve query: %+v", policy.Intents[0])
+	if policy.Intents[0].Intent != evidence.IntentMixed || policy.Intents[0].Query != query {
+		t.Fatalf("call-chain plan did not preserve the task context: %+v", policy.Intents)
+	}
+	if policy.Intents[2].Intent != evidence.IntentCallChain || policy.Intents[2].Step != "call-path" {
+		t.Fatalf("call-chain plan omitted its path step: %+v", policy.Intents)
 	}
 }
 
@@ -107,11 +110,14 @@ func TestAnalyzeArchitectureRetrievalIntent(t *testing.T) {
 	query := "Explain the architecture and ownership boundaries of retrieval"
 	_, policy := Analyze(Input{Query: query, RequestedBudget: 4000})
 
-	if len(policy.Intents) != 1 || policy.Intents[0].Intent != evidence.IntentArchitecture {
-		t.Fatalf("unexpected architecture intents: %+v", policy.Intents)
+	if policy.TaskPlan != TaskPlanArchitecture || len(policy.Intents) != 5 {
+		t.Fatalf("unexpected architecture plan: %+v", policy)
 	}
-	if policy.Intents[0].Query != query || policy.Intents[0].Weight <= 0 {
-		t.Fatalf("architecture intent did not preserve query: %+v", policy.Intents[0])
+	if policy.Intents[0].Intent != evidence.IntentMixed || policy.Intents[0].Query != query {
+		t.Fatalf("architecture plan did not preserve the task context: %+v", policy.Intents)
+	}
+	if policy.Intents[1].Intent != evidence.IntentArchitecture || policy.Intents[1].Step != "ownership" {
+		t.Fatalf("architecture plan omitted its ownership step: %+v", policy.Intents)
 	}
 }
 

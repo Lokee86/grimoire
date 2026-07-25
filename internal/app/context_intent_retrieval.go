@@ -132,6 +132,10 @@ func annotateCandidateIntent(candidate retrieve.Candidate, planned queryshape.Re
 		descriptor.FacetRanks = map[string]int{planned.FacetID: rank}
 	}
 	candidate.Context = mergeCandidateContext(candidate.Context, &descriptor)
-	candidate.Reasons = appendUniqueReason(candidate.Reasons, fmt.Sprintf("retrieval intent %s", planned.Intent))
+	reason := fmt.Sprintf("retrieval intent %s", planned.Intent)
+	if planned.Task != "" && planned.Step != "" {
+		reason = fmt.Sprintf("retrieval plan %s step %s", planned.Task, planned.Step)
+	}
+	candidate.Reasons = appendUniqueReason(candidate.Reasons, reason)
 	return candidate
 }
