@@ -44,13 +44,11 @@ Deleted or replaced chunks disappear from the current manifest and snapshot, but
 
 Embedding requests may execute concurrently, but completed batches enter the native object store through a serialized JSONL ingestion boundary. Increasing request concurrency cannot remove that persistence cost and can instead increase endpoint and memory pressure.
 
-## BM25 retrieval is linear
+## Lexical state is fully materialized
 
-BM25 runs alongside semantic retrieval and remains the fallback when semantic state is unavailable. One request tokenizes the prepared corpus once and shares corpus statistics across its bounded intent queries, but it does not maintain a postings index. Query cost therefore still grows with prepared chunk count and emitted intent count.
+Prepared snapshots now persist identifier-aware BM25 terms, field tokens, document lengths, declaration vocabulary, and exact-recovery candidate postings. Loading reconstructs the in-memory posting maps from that compact sidecar. Query work is bounded by matching postings rather than prepared chunk count, but the complete lexical sidecar remains resident alongside source chunks.
 
-## Exact recovery scans prepared chunks
-
-Concrete path, identifier, phrase, key, code, and version recovery is conditional, but an activated exact query still scans prepared paths and text. There is no persistent compact literal index.
+Exact recovery uses those postings to localize candidate chunks before preserving the existing case-sensitive and boundary-aware checks. A signal with no lexical token, such as a punctuation-only quoted phrase, still falls back to scanning prepared chunks so exact behavior is not silently lost.
 
 ## Source chunks are language-agnostic
 

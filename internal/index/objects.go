@@ -15,6 +15,7 @@ import (
 
 const (
 	manifestName       = "manifest"
+	lexicalName        = "lexical"
 	manifestMagic      = "GRIM"
 	manifestHeaderSize = len(manifestMagic) + 2 + 2
 )
@@ -92,9 +93,17 @@ func readManifest(store storage.Storer, hash plumbing.Hash) (string, error) {
 	return tokenizerName, nil
 }
 
-func writeRoot(store storage.Storer, manifest plumbing.Hash, shards map[string]plumbing.Hash) (plumbing.Hash, error) {
-	entries := make([]object.TreeEntry, 0, len(shards)+1)
-	entries = append(entries, object.TreeEntry{Name: manifestName, Mode: filemode.Regular, Hash: manifest})
+func writeRoot(
+	store storage.Storer,
+	manifest plumbing.Hash,
+	lexicalIndex plumbing.Hash,
+	shards map[string]plumbing.Hash,
+) (plumbing.Hash, error) {
+	entries := make([]object.TreeEntry, 0, len(shards)+2)
+	entries = append(entries,
+		object.TreeEntry{Name: manifestName, Mode: filemode.Regular, Hash: manifest},
+		object.TreeEntry{Name: lexicalName, Mode: filemode.Regular, Hash: lexicalIndex},
+	)
 	for name, hash := range shards {
 		if !isShardName(name) {
 			return plumbing.ZeroHash, fmt.Errorf("invalid index shard %q", name)

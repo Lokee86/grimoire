@@ -1,8 +1,12 @@
 package index
 
-import "errors"
+import (
+	"errors"
 
-const FormatVersion = 3
+	"github.com/Lokee86/grimoire/internal/lexical"
+)
+
+const FormatVersion = 4
 
 var ErrIncompatibleIndex = errors.New("incompatible prepared index")
 
@@ -11,9 +15,10 @@ type Snapshot struct {
 	Tokenizer string
 	Files     []FileRecord
 
-	baseRoot    string
-	baseShards  map[string]string
-	dirtyShards map[string]bool
+	baseRoot     string
+	baseShards   map[string]string
+	dirtyShards  map[string]bool
+	lexicalIndex *lexical.Index
 }
 
 type FileRecord struct {

@@ -26,6 +26,7 @@ It points directly to a Git tree object. The tree contains:
 
 ```text
 manifest   format version and tokenizer identity
+lexical    persistent lexical document and posting source state
 00         optional shard blob
 01         optional shard blob
 ...
@@ -48,13 +49,14 @@ Each shard stores path-keyed binary file records. A record contains:
 
 Paths are UTF-8, repository-relative, slash-separated, and validated to reject absolute paths, backslashes, NUL bytes, empty segments, `.` segments, and `..` segments.
 
-## Binary formats
+## Stored formats
 
-The current prepared-index format is version 2. Shard encoding remains version 1 because its path-to-record container did not change; file records are version 2 because their stored cost is now an exact token count.
+The current prepared-index format is version 4. Shard encoding remains version 1 and file records remain version 2 because their binary layouts did not change. Version 4 adds a required lexical sidecar encoded as deterministic JSON with lexical format version 1.
 
-| Record | Magic | Current version | Numeric byte order |
+| Record | Magic | Current version | Encoding |
 | --- | --- | --- | --- |
-| Manifest | `GRIM` | Prepared-index format `2` | Big-endian version and tokenizer-name length |
+| Manifest | `GRIM` | Prepared-index format `4` | Big-endian version and tokenizer-name length |
+| Lexical sidecar | none | Lexical format `1` | Deterministic JSON document records |
 | Shard | `GRSH` | Shard format `1` | Big-endian lengths and counts |
 | File | `GRFL` | File format `2` | Big-endian lengths and metadata |
 
@@ -73,7 +75,7 @@ Index construction loads the previous snapshot when one exists. Each eligible so
 - Removed or newly ignored file: remove its record and mark its prior shard dirty.
 - Unaffected shard: retain the previous shard object unchanged.
 
-Only dirty shards are re-encoded and written.
+Only dirty shards are re-encoded and written. The lexical sidecar is deterministically materialized for the complete ordered chunk set. Unchanged chunk IDs reuse their prior lexical document records, while new chunk IDs are analyzed. An unchanged logical sidecar resolves to the same immutable blob identity.
 
 ## Publication
 
@@ -81,7 +83,7 @@ Publication uses compare-and-swap semantics on `refs/grimoire/state`:
 
 1. Open or initialize the private bare repository.
 2. Confirm the state reference still matches the snapshot used as the update base.
-3. Write changed shard blobs and the manifest blob.
+3. Write changed shard blobs, the manifest blob, and the lexical sidecar blob.
 4. Write the deterministic root tree.
 5. Atomically replace the state reference only if it has not changed.
 
@@ -97,17 +99,18 @@ Loading verifies:
 - the state reference exists;
 - the reference resolves to a tree;
 - every root entry is a regular file;
-- exactly one valid manifest is present;
-- the manifest declares prepared-index version 2 and tokenizer `o200k_base`;
+- exactly one valid manifest and one lexical sidecar are present;
+- the manifest declares prepared-index version 4 and tokenizer `o200k_base`;
 - every other entry is a valid two-digit shard name;
 - each shard decodes successfully;
 - each file is stored in its expected shard;
 - paths are valid and unique; and
-- each file record and chunk range is well formed.
+- each file record and chunk range is well formed; and
+- lexical document count and ordered chunk identities match the loaded source chunks.
 
 ## Migration and legacy cleanup
 
-Version-1 prepared state contains heuristic chunk costs and is not reusable as version 2. `grimoire index` recognizes the incompatible manifest, uses the current state root as its compare-and-swap base, rebuilds all eligible file records, and publishes a version-2 snapshot without deleting the state repository first. `grimoire context` requires a compatible index and reports the incompatibility until indexing is run.
+Prepared state before version 4 has no required lexical sidecar and is not reusable. `grimoire index` recognizes the incompatible manifest, uses the current state root as its compare-and-swap base, rebuilds all eligible file and lexical records, and publishes a version-4 snapshot without deleting the state repository first. `grimoire context` requires a compatible index and reports the incompatibility until indexing is run.
 
 Successful saves also remove the former `.grimoire/index.json` file when present. The active prepared state is object-backed; JSON is used only for command output and context packages.
 
@@ -121,6 +124,8 @@ Successful saves also remove the former `.grimoire/index.json` file when present
 | `internal/index/codec.go` | Shard names, shard binary format, and path validation |
 | `internal/index/file_codec.go` | File/chunk binary format |
 | `internal/index/model.go` | In-memory snapshot, file, and chunk models |
+| `internal/index/lexical.go` | Chunk-to-lexical identity mapping and sidecar validation |
+| `internal/lexical/` | Identifier-aware analysis, compact document records, postings, and sidecar codec |
 
 ## Related documentation
 

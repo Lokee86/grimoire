@@ -8,7 +8,7 @@ Grimoire separates source preparation from vector construction. This keeps repos
 grimoire index --root <repository>
 ```
 
-The indexer resolves the repository and state roots, applies traversal rules, normalizes eligible text into chunks, computes immutable identities and exact token counts, reuses unchanged objects, and atomically publishes a prepared snapshot. That snapshot remains usable for lexical and exact retrieval without an embedding service.
+The indexer resolves the repository and state roots, applies traversal rules, normalizes eligible text into chunks, computes immutable identities and exact token counts, builds a persistent identifier-aware lexical sidecar, reuses unchanged objects, and atomically publishes a prepared snapshot. That snapshot remains usable for BM25 and exact retrieval without an embedding service or query-time corpus tokenization.
 
 ## Permanent exclusions
 
@@ -65,7 +65,7 @@ Grimoire computes SHA-256 over each eligible file. A prior file record is reused
 
 A prior record is removed when its path is deleted, ignored, unsupported, oversized, binary, or otherwise absent from the eligible traversal result. Renames naturally reuse immutable content where the storage identity permits it while publishing the new path record.
 
-Changing traversal, chunking, tokenizer, or schema behavior invalidates the relevant identity and forces affected work to be rebuilt. The token-ceiling and generated-content policy use prepared-index format version 3, so older prepared state is rebuilt once on the next `grimoire index` run.
+Changing traversal, chunking, tokenizer, or schema behavior invalidates the relevant identity and forces affected work to be rebuilt. Persistent lexical postings use prepared-index format version 4, so older prepared state is rebuilt once on the next `grimoire index` run.
 
 ## Fallback chunking
 

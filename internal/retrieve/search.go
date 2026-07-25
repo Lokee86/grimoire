@@ -1,13 +1,13 @@
 package retrieve
 
 import (
-	"path/filepath"
 	"sort"
 	"strings"
 	"unicode"
 
 	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/index"
+	"github.com/Lokee86/grimoire/internal/lexical"
 )
 
 type ScoreDetail struct {
@@ -28,14 +28,6 @@ type Candidate struct {
 type lexicalQuerySpec struct {
 	phrase      string
 	termIndexes []int
-}
-
-type lexicalFields struct {
-	text              string
-	baseMatches       []bool
-	pathMatches       []bool
-	leadingMatches    []bool
-	declarationTokens map[string]struct{}
 }
 
 type declarationVocabularyEntry struct {
@@ -75,34 +67,11 @@ func SearchManyWithConfig(snapshot index.Snapshot, queries []string, limit int, 
 	}
 
 	chunks := snapshot.AllChunks()
-	texts := make([]string, len(chunks))
-	for chunkIndex, chunk := range chunks {
-		texts[chunkIndex] = chunk.Text
-	}
-	corpus := newBM25Corpus(texts, terms)
-	fields := make([]lexicalFields, len(chunks))
+	lexicalIndex := snapshot.LexicalIndex()
+	corpus := newBM25Corpus(lexicalIndex, terms)
 	vocabulary := make(map[string]declarationVocabularyEntry)
-	for chunkIndex, chunk := range chunks {
-		text := strings.ToLower(chunk.Text)
-		firstLine := text
-		if newline := strings.IndexByte(firstLine, '\n'); newline >= 0 {
-			firstLine = firstLine[:newline]
-		}
-		declarationTokens := lexicalTokenSet(
-			filepath.Base(chunk.Path) + "\n" + chunk.Path + "\n" + declarationHeader(chunk.Text),
-		)
-		for token := range declarationTokens {
-			entry := vocabulary[token]
-			entry.documentFrequency++
-			vocabulary[token] = entry
-		}
-		fields[chunkIndex] = lexicalFields{
-			text:              text,
-			baseMatches:       corpus.matches(filepath.Base(chunk.Path)),
-			pathMatches:       corpus.matches(chunk.Path),
-			leadingMatches:    corpus.matches(firstLine),
-			declarationTokens: declarationTokens,
-		}
+	for token, frequency := range lexicalIndex.DeclarationVocabulary() {
+		vocabulary[token] = declarationVocabularyEntry{documentFrequency: frequency}
 	}
 
 	for queryIndex, spec := range specs {
@@ -110,10 +79,20 @@ func SearchManyWithConfig(snapshot index.Snapshot, queries []string, limit int, 
 			continue
 		}
 		aliases := queryDeclarationAliases(corpus, spec, vocabulary, config.DeclarationAliasBonus)
+		candidateTerms := make([]string, 0, len(spec.termIndexes)+len(aliases))
+		for _, termIndex := range spec.termIndexes {
+			candidateTerms = append(candidateTerms, corpus.terms[termIndex].text)
+		}
+		for _, alias := range aliases {
+			candidateTerms = append(candidateTerms, alias.token)
+		}
 		candidates := make([]Candidate, 0)
-		for chunkIndex, chunk := range chunks {
+		for _, chunkIndex := range lexicalIndex.CandidateDocuments(candidateTerms) {
+			if chunkIndex < 0 || chunkIndex >= len(chunks) {
+				continue
+			}
 			candidate := scoreChunk(
-				chunk, chunkIndex, corpus, fields[chunkIndex], spec, aliases, config,
+				chunks[chunkIndex], chunkIndex, corpus, lexicalIndex.Document(chunkIndex), spec, aliases, config,
 			)
 			if candidate.Score > 0 {
 				candidates = append(candidates, candidate)
@@ -163,28 +142,28 @@ func scoreChunk(
 	chunk index.Chunk,
 	documentIndex int,
 	corpus bm25Corpus,
-	fields lexicalFields,
+	document lexical.Document,
 	spec lexicalQuerySpec,
 	aliases map[int]declarationAlias,
 	config Config,
 ) Candidate {
 	candidate := Candidate{Chunk: chunk, Source: "lexical"}
-	if len(spec.termIndexes) > 1 && len(spec.phrase) > 2 && strings.Contains(fields.text, spec.phrase) {
+	if len(spec.termIndexes) > 1 && len(spec.phrase) > 2 && strings.Contains(strings.ToLower(chunk.Text), spec.phrase) {
 		candidate.addScore("exact query phrase in content", 12)
 	}
 
 	for _, termIndex := range spec.termIndexes {
 		term := corpus.terms[termIndex]
-		if fields.baseMatches[termIndex] {
+		if lexical.Contains(document.BaseTokens, term.text) {
 			candidate.addScore("filename matches "+term.text, 8)
-		} else if fields.pathMatches[termIndex] {
+		} else if lexical.Contains(document.PathTokens, term.text) {
 			candidate.addScore("path matches "+term.text, 4)
 		}
-		if fields.leadingMatches[termIndex] {
+		if lexical.Contains(document.LeadingTokens, term.text) {
 			candidate.addScore("leading line matches "+term.text, 4)
 		}
 		if alias, exists := aliases[termIndex]; exists {
-			if _, matched := fields.declarationTokens[alias.token]; matched {
+			if lexical.Contains(document.DeclarationTokens, alias.token) {
 				candidate.addScore(
 					"declaration alias "+term.text+" -> "+alias.token,
 					config.DeclarationAliasBonus*alias.similarity,
@@ -315,50 +294,6 @@ func absoluteDifference(left, right int) int {
 		return right - left
 	}
 	return left - right
-}
-
-func lexicalTokenSet(value string) map[string]struct{} {
-	result := make(map[string]struct{})
-	for _, token := range lexicalTokens(value) {
-		result[token] = struct{}{}
-	}
-	return result
-}
-
-func declarationHeader(text string) string {
-	const maxLines = 6
-	const maxBytes = 768
-	lines := strings.Split(text, "\n")
-	var header strings.Builder
-	linesAdded := 0
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || commentOnlyLine(line) {
-			continue
-		}
-		if header.Len() > 0 {
-			header.WriteByte('\n')
-		}
-		header.WriteString(line)
-		linesAdded++
-		if linesAdded >= maxLines || header.Len() >= maxBytes {
-			break
-		}
-	}
-	value := header.String()
-	if len(value) > maxBytes {
-		value = value[:maxBytes]
-	}
-	return value
-}
-
-func commentOnlyLine(line string) bool {
-	for _, prefix := range []string{"//", "#", "--", "/*", "*", "<!--"} {
-		if strings.HasPrefix(line, prefix) {
-			return true
-		}
-	}
-	return false
 }
 
 func (candidate *Candidate) addScore(name string, value float64) {
