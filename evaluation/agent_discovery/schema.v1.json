@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Lokee86/grimoire/evaluation/agent_discovery/schema.v1.json",
+  "title": "Agent discovery benchmark corpus v1",
+  "type": "object",
+  "required": ["version", "repository", "revision", "cases"],
+  "properties": {
+    "version": { "const": 1 },
+    "repository": { "type": "string", "minLength": 1 },
+    "revision": { "type": "string" },
+    "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/case" } }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "required": ["path", "reason"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "symbols": { "type": "array", "items": { "type": "string" } },
+        "reason": { "type": "string" }
+      }
+    },
+    "case": {
+      "type": "object",
+      "required": ["id", "task", "ownership_boundary", "required_evidence", "completion_criteria"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "task": { "type": "string", "minLength": 1 },
+        "ownership_boundary": { "type": "string", "minLength": 1 },
+        "ownership_evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+        "required_evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } },
+        "required_structural_evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
+        "forbidden_unsupported_conclusions": { "type": "array" },
+        "completion_criteria": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    }
+  }
+}

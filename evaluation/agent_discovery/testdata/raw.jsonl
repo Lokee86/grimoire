@@ -1,0 +1,1 @@
+{"run_id":"run","case_id":"case","type":"tool_call","tool":"open_file","arguments":{"path":"src/owner.go","symbol":"Owner"},"usage":{"input_tokens":4,"output_tokens":2}}

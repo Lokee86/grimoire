@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "repository": "Space Rocks",
+  "revision": "ff882f636706e4917f86e156ce1ed7f40b467e83",
+  "cases": [
+    {
+      "id": "space-rocks-client-rails-auth",
+      "task": "Trace the Godot Discord login-session flow into Rails: creation, browser launch, polling/exchange, token persistence, and the Rails validation/issuance boundary.",
+      "ownership_boundary": "AuthSessionController owns the client operation and persisted credential; DiscordLoginSessionsController owns Rails session validation and access-token issuance.",
+      "ownership_evidence": [
+        { "path": "client/scripts/auth/auth_session_controller.gd", "symbols": ["request_discord_sign_in", "_run_discord_sign_in", "_poll_discord_login_session"], "reason": "Godot owns the asynchronous login operation and saves the returned token." },
+        { "path": "services/api-server/app/controllers/api/auth/discord_login_sessions_controller.rb", "symbols": ["create", "exchange", "valid_poll_secret?"], "reason": "Rails creates, validates, consumes, and exchanges OAuth login sessions." }
+      ],
+      "required_evidence": [
+        { "path": "client/scripts/auth/auth_api_client.gd", "symbols": ["begin_discord_login_session", "exchange_discord_login_session"], "reason": "Client API calls define the two Rails requests." },
+        { "path": "client/scripts/api/api_config.gd", "symbols": ["discord_login_sessions_path", "discord_login_session_exchange_path"], "reason": "The client owns the exact Rails endpoint construction." },
+        { "path": "services/api-server/app/controllers/api/auth/discord_login_sessions_controller.rb", "symbols": ["create", "exchange", "valid_poll_secret?"], "reason": "The Rails controller validates polling state and issues an access token transactionally." }
+      ],
+      "required_structural_evidence": [
+        { "path": "services/api-server/config/routes.rb", "symbols": ["discord/login_sessions", "discord_login_sessions#create", "discord_login_sessions#exchange"], "reason": "Routes establish the client-to-controller contract." }
+      ],
+      "forbidden_unsupported_conclusions": [
+        { "id": "no-client-discord-secret", "pattern": "client sends a discord client secret" },
+        { "id": "no-client-access-token-issue", "pattern": "client issues the access token" }
+      ],
+      "completion_criteria": ["Identify both HTTP endpoints and their Rails controller actions.", "Distinguish client credential persistence from Rails access-token issuance."],
+      "relevant_branches": ["client/scripts/auth", "client/scripts/api", "services/api-server/app/controllers/api/auth", "services/api-server/config"]
+    },
+    {
+      "id": "space-rocks-gameplay-packet-producer-handler",
+      "task": "Trace a Godot gameplay input packet from its producer through outbound sending, Go websocket/envelope routing, and the authoritative Game handler.",
+      "ownership_boundary": "Godot produces and sends packet dictionaries; networking admits and routes them; game.Game owns authoritative packet interpretation.",
+      "ownership_evidence": [
+        { "path": "client/scripts/networking/outbound/gameplay_client_packets.gd", "symbols": ["input_packet"], "reason": "Godot owns construction of the gameplay input packet." },
+        { "path": "services/game-server/internal/game/input.go", "symbols": ["HandlePacket"], "reason": "Game applies accepted input to authoritative player state." }
+      ],
+      "required_evidence": [
+        { "path": "client/scripts/networking/outbound/client_packet_sender.gd", "symbols": ["send_input_packet", "send_packet"], "reason": "Outbound client code sends producer output to the network client." },
+        { "path": "services/game-server/internal/networking/websocket_read.go", "symbols": ["readClientInput"], "reason": "The server websocket reader receives client input." },
+        { "path": "services/game-server/internal/networking/inbound/client_packet_envelope.go", "symbols": ["DecodeClientPacketEnvelope", "ClientPacketEnvelope"], "reason": "Envelope decoding establishes packet type and payload." },
+        { "path": "services/game-server/internal/networking/inbound/gameplay.go", "symbols": ["HandleGameplayPacket"], "reason": "Gameplay routing calls the room Game with admitted packets." },
+        { "path": "services/game-server/internal/game/input.go", "symbols": ["HandlePacket"], "reason": "The authoritative game handler applies input or lifecycle packets." }
+      ],
+      "required_structural_evidence": [],
+      "forbidden_unsupported_conclusions": [
+        { "id": "no-client-authority", "pattern": "client authoritatively applies input" }
+      ],
+      "completion_criteria": ["Locate the producer, transport handoff, envelope boundary, router, and Game handler.", "Do not move authority from Go Game to Godot."],
+      "relevant_branches": ["client/scripts/networking/outbound", "services/game-server/internal/networking", "services/game-server/internal/game"]
+    },
+    {
+      "id": "space-rocks-match-respawn-lifecycle",
+      "task": "Map the respawn lifecycle from Godot request gating through the Go respawn handler and match classification, including the difference between pending respawn and eliminated.",
+      "ownership_boundary": "GameplayRespawnFlow owns request/UI gating, Game owns respawn mutation, and rules.EvaluateMatch owns active/pending-respawn/eliminated classification.",
+      "ownership_evidence": [
+        { "path": "client/scripts/gameplay/respawn/gameplay_respawn_flow.gd", "symbols": ["request_respawn", "mark_awaiting_confirmation", "should_restore_alive_hud"], "reason": "Godot only requests respawn and waits for authoritative confirmation." },
+        { "path": "services/game-server/internal/game/rules/match.go", "symbols": ["EvaluateMatch", "classifyPlayer", "PlayerPendingRespawn", "PlayerEliminated"], "reason": "Rules owns participation and terminal-match classification." }
+      ],
+      "required_evidence": [
+        { "path": "client/scripts/networking/outbound/gameplay_client_packets.gd", "symbols": ["respawn_packet"], "reason": "The client packet producer defines the respawn request." },
+        { "path": "client/scripts/networking/outbound/client_packet_sender.gd", "symbols": ["send_respawn_request"], "reason": "Client sender dispatches the produced respawn packet." },
+        { "path": "services/game-server/internal/networking/inbound/gameplay.go", "symbols": ["HandleGameplayPacket"], "reason": "Inbound routing admits respawn packets and calls Game." },
+        { "path": "services/game-server/internal/game/input.go", "symbols": ["HandlePacket"], "reason": "Game selects respawn behavior when packet.Type is PacketTypeRespawn." },
+        { "path": "services/game-server/internal/game/session.go", "symbols": ["respawnPlayer"], "reason": "The game session mutates respawn state under server authority." },
+        { "path": "services/game-server/internal/game/rules/match.go", "symbols": ["EvaluateMatch", "classifyPlayer", "PlayerPendingRespawn", "PlayerEliminated"], "reason": "Pending respawn is not elimination while lives remain." }
+      ],
+      "required_structural_evidence": [],
+      "forbidden_unsupported_conclusions": [
+        { "id": "no-pending-elimination", "pattern": "pending respawn is eliminated" }
+      ],
+      "completion_criteria": ["Show client request gating and server-side mutation.", "Explain that a match ends only when rule classification finds every player eliminated."],
+      "relevant_branches": ["client/scripts/gameplay", "client/scripts/networking/outbound", "services/game-server/internal/game", "services/game-server/internal/networking"]
+    },
+    {
+      "id": "space-rocks-config-key-readers",
+      "task": "Find every production Godot reader of SPACE_ROCKS_LOCAL_SERVER_PORT and explain which client endpoint each reader controls.",
+      "ownership_boundary": "ApiConfig owns player-data base URL selection and SessionNetworkTarget owns single-player websocket URL selection; neither reader owns server configuration.",
+      "ownership_evidence": [
+        { "path": "client/scripts/api/api_config.gd", "symbols": ["LOCAL_SERVER_PORT_ENV", "player_data_base_url_for_runtime"], "reason": "ApiConfig reads the key to select the player-data HTTP endpoint." },
+        { "path": "client/scripts/boot/session_network_target.gd", "symbols": ["LOCAL_SERVER_PORT_ENV", "_single_player_websocket_url"], "reason": "SessionNetworkTarget reads the same key for the websocket endpoint." }
+      ],
+      "required_evidence": [
+        { "path": "client/scripts/api/api_config.gd", "symbols": ["LOCAL_SERVER_PORT_ENV", "player_data_base_url_for_runtime", "player_data_profile_path"], "reason": "The API configuration validates the port and returns the local HTTP base URL." },
+        { "path": "client/scripts/boot/session_network_target.gd", "symbols": ["LOCAL_SERVER_PORT_ENV", "websocket_url_for_runtime", "_single_player_websocket_url"], "reason": "The session target validates the port and returns the local websocket URL." }
+      ],
+      "required_structural_evidence": [],
+      "forbidden_unsupported_conclusions": [
+        { "id": "no-rails-reader", "pattern": "rails reads space_rocks_local_server_port" },
+        { "id": "no-game-server-reader", "pattern": "game server reads space_rocks_local_server_port" }
+      ],
+      "completion_criteria": ["Name both production readers and their separate endpoint responsibilities.", "Do not claim an unverified service-side reader."],
+      "relevant_branches": ["client/scripts/api", "client/scripts/boot"]
+    }
+  ]
+}

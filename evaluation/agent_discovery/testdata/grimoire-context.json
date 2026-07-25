@@ -1,0 +1,1 @@
+{"query":"owner","token_count":4,"selections":[{"path":"src/owner.go","start_line":1,"end_line":2,"token_count":3,"content":"func Owner() {}"}]}
