@@ -169,7 +169,7 @@ func TestMergeContextProvidersBoundsLexiconWithoutReplacingBaseFront(t *testing.
 		lexicon[index] = candidate("lexicon-"+string(rune('a'+index)), "lexicon", index+1)
 	}
 
-	merged := mergeContextProviders(60, nil, base, lexicon)
+	merged := mergeContextProviders(60, nil, base, lexicon, nil)
 	if len(merged) != 60 {
 		t.Fatalf("merged %d candidates, want 60", len(merged))
 	}
@@ -185,6 +185,60 @@ func TestMergeContextProvidersBoundsLexiconWithoutReplacingBaseFront(t *testing.
 	}
 	if merged[baseFrontCandidates+maxLexiconCandidates].Chunk.ID != base[baseFrontCandidates].Chunk.ID {
 		t.Fatalf("remaining base candidates did not resume: %+v", merged)
+	}
+}
+
+func TestMergeStructuralProvidersPreservesSingleProviderScores(t *testing.T) {
+	lexicon := []retrieve.Candidate{{
+		Chunk: index.Chunk{ID: "lexicon"}, Source: "lexicon", Rank: 1, Score: 42,
+	}}
+	arcana := []retrieve.Candidate{{
+		Chunk: index.Chunk{ID: "arcana"}, Source: "arcana", Rank: 1, Score: 96,
+	}}
+	for name, candidates := range map[string][]retrieve.Candidate{
+		"lexicon": mergeStructuralProviders(4, lexicon, nil),
+		"arcana":  mergeStructuralProviders(4, nil, arcana),
+	} {
+		if len(candidates) != 1 {
+			t.Fatalf("%s candidates = %+v", name, candidates)
+		}
+		if name == "lexicon" && candidates[0].Score != 42 {
+			t.Fatalf("Lexicon score changed: %+v", candidates[0])
+		}
+		if name == "arcana" && candidates[0].Score != 96 {
+			t.Fatalf("Arcana score changed: %+v", candidates[0])
+		}
+	}
+}
+
+func TestMergeContextProvidersFusesLexiconAndArcanaSourceCandidates(t *testing.T) {
+	candidate := func(id, source string, rank int) retrieve.Candidate {
+		return retrieve.Candidate{Chunk: index.Chunk{ID: id}, Source: source, Rank: rank}
+	}
+	base := make([]retrieve.Candidate, baseFrontCandidates)
+	for index := range base {
+		base[index] = candidate("base-"+string(rune('a'+index)), "vector", index+1)
+	}
+	lexicon := []retrieve.Candidate{
+		candidate("lexicon-only", "lexicon", 1),
+		candidate("shared", "lexicon", 2),
+	}
+	arcana := []retrieve.Candidate{
+		candidate("shared", "arcana", 1),
+		candidate("arcana-only", "arcana", 2),
+	}
+
+	merged := mergeContextProviders(36, nil, base, lexicon, arcana)
+	if len(merged) != 35 {
+		t.Fatalf("merged %d candidates, want 35", len(merged))
+	}
+	promoted := merged[baseFrontCandidates]
+	if promoted.Chunk.ID != "shared" || promoted.Source != "arcana" {
+		t.Fatalf("cross-structural candidate was not promoted: %+v", promoted)
+	}
+	if !slices.Contains(promoted.Reasons, "reciprocal-rank fusion from lexicon rank 2") ||
+		!slices.Contains(promoted.Reasons, "reciprocal-rank fusion from arcana rank 1") {
+		t.Fatalf("structural fusion provenance missing: %+v", promoted.Reasons)
 	}
 }
 

@@ -128,7 +128,7 @@ func evaluateContext(
 	result.Timings.ExactRecoveryMS = durationMS(time.Since(exactStart))
 
 	mergeStart := time.Now()
-	merged := mergeContextProviders(options.Limit, exact, base, structural.Lexicon.Candidates)
+	merged := mergeContextProviders(options.Limit, exact, base, structural.Lexicon.Candidates, structural.ArcanaCandidates)
 	result.Timings.CandidateMergeMS += durationMS(time.Since(mergeStart))
 	profileBudget := options.Budget
 	if options.Adaptive {
@@ -210,7 +210,7 @@ func evaluateContext(
 	result.Stages = evaluation.Stages{
 		Indexed:             chunksToEvaluation(snapshot.AllChunks()),
 		BroadProbe:          candidatesToEvaluation(broad),
-		Retrieved:           candidatesToEvaluation(mergeContextProviders(options.Limit, nil, base, structural.Lexicon.Candidates)),
+		Retrieved:           candidatesToEvaluation(mergeContextProviders(options.Limit, nil, base, structural.Lexicon.Candidates, structural.ArcanaCandidates)),
 		Exact:               candidatesToEvaluation(exact),
 		Merged:              candidatesToEvaluation(merged),
 		Curated:             candidatesToEvaluation(curated),

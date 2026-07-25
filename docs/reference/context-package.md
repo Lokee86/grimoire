@@ -181,7 +181,7 @@ Relationships record `direction`, `relation`, and `certainty`. Definite and poss
 | `start_line` | integer | One-based inclusive source start line |
 | `end_line` | integer | One-based inclusive source end line |
 | `score` | number | Provider-native ranking score |
-| `retrieval_source` | string | Source that produced the candidate, such as `exact`, `vector`, `lexical`, `lexicon`, or `adjacent` |
+| `retrieval_source` | string | Source that produced the candidate, such as `exact`, `vector`, `lexical`, `lexicon`, `arcana`, or `adjacent` |
 | `retrieval_rank` | integer | One-based provider rank before curation; adjacent expansion uses zero |
 | `reasons` | string array | Inspectable provider explanation |
 | `facet_ids` | string array | Query facets represented by the candidate, when available |
@@ -198,7 +198,7 @@ Structural enrichment is enabled by default but remains optional.
 
 When `<root>/.lexicon/CURRENT` exists, Grimoire resolves its immutable snapshot ID and creates or reuses a cached export under the Grimoire state directory. The export is produced through the independently runnable `lexicon export` command from the co-located `lexicon/` component; Grimoire does not inspect Lexicon's mutable private library.
 
-When Lexicon produced matched symbols, Grimoire resolves `<root>/.arcana/CURRENT`. If Arcana is missing or does not represent the same Lexicon snapshot, Grimoire invokes one-shot `arcana sync`. It then queries the matching immutable snapshot through `arcana protocol --snapshot`.
+When Lexicon produced matched symbols, Grimoire resolves `<root>/.arcana/CURRENT`. If Arcana is missing or does not represent the same Lexicon snapshot, Grimoire invokes one-shot `arcana sync`. It then queries the matching immutable snapshot through `arcana protocol --snapshot`. Source-bearing Arcana results are also mapped to overlapping prepared chunks and enter the ordinary candidate pipeline with graph relation, depth, path-position, and unresolved-reference provenance.
 
 A structural-provider failure writes a warning to stderr and does not disable standalone source retrieval. `--structure=false` explicitly skips both providers. Explicit state, executable, and exported-facts paths are available through the context command flags.
 
@@ -231,7 +231,7 @@ If the budget cannot fit package metadata with no evidence or selections, the co
 
 The normal source path uses the configured embedding endpoint and exact vector snapshot. Before query embedding, Grimoire requires the vector manifest's prepared identity to match the current content-addressed prepared-index root. It then validates model identity, dimensions, vector count, and returned chunk IDs.
 
-Fast mode divides the complete query into non-overlapping windows and sends bounded requests. Full mode submits the complete query once. Quality mode submits both forms. Concrete repository literals also activate targeted exact recovery. Exact, semantic or fallback, and Lexicon-derived source candidates are merged before deterministic curation.
+Fast mode divides the complete query into non-overlapping windows and sends bounded requests. Full mode submits the complete query once. Quality mode submits both forms. Concrete repository literals also activate targeted exact recovery. Exact, semantic or fallback, Lexicon-derived, and Arcana graph-derived source candidates are merged before deterministic curation. Lexicon and Arcana source candidates use reciprocal-rank fusion when both providers locate the same prepared chunk; a single structural provider preserves its native rank and score.
 
 When semantic retrieval is unavailable or incompatible, `context` writes a warning to stderr and substitutes deterministic lexical retrieval. Structural enrichment can still run independently.
 

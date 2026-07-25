@@ -36,6 +36,7 @@ Query
   -> Lexicon symbol seeds plus optional Arcana semantic graph seeds
   -> deterministic Arcana graph expansion
   -> available Lexicon and Arcana evidence
+  -> source-bearing Arcana graph results localized to prepared chunks
   -> candidate merge and ranking
   -> query-shape analysis
   -> selection and neighbour expansion
@@ -79,7 +80,7 @@ When the caller omits a positive budget, Grimoire activates the policy and appli
 
 ### Structural integration
 
-`internal/structure` defines common evidence and provider-state contracts. `internal/lexiconfacts` matches immutable Lexicon exports. `internal/arcanagraph` synchronizes and queries Arcana using both Lexicon matches and, when a compatible Arcana vector index already exists, semantic graph matches as bounded graph seeds.
+`internal/structure` defines common evidence and provider-state contracts. `internal/lexiconfacts` matches immutable Lexicon exports. `internal/arcanagraph` synchronizes and queries Arcana using both Lexicon matches and, when a compatible Arcana vector index already exists, semantic graph matches as bounded graph seeds. It also maps source-bearing graph subjects, callers, callees, impact dependents, call-chain nodes, and unresolved-reference spans back to prepared source candidates without moving graph ownership into Grimoire Context.
 
 These packages integrate the components; they do not take ownership of Lexicon or Arcana domain logic. Structural failures are non-fatal to source retrieval.
 
