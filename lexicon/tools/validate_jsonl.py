@@ -39,6 +39,7 @@ RELATIONS = {
     "imports",
     "calls",
     "possible-calls",
+    "passes-to",
     "converts-to",
     "references",
     "extends",

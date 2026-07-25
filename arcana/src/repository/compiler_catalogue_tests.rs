@@ -54,6 +54,11 @@ fn compiler_assigns_dense_ids_and_stable_relation_codes() {
         edge_kind_to_relation(EdgeKind(14)),
         Some(RelationKind::ConvertsTo)
     );
+    assert_eq!(relation_to_edge_kind(&RelationKind::PassesTo), EdgeKind(20));
+    assert_eq!(
+        edge_kind_to_relation(EdgeKind(20)),
+        Some(RelationKind::PassesTo)
+    );
 }
 
 #[test]

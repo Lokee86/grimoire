@@ -19,18 +19,35 @@ The Go adapter is covered separately by `GO_ADAPTER_VALIDATION.md`, including tw
 
 Two pinned C calibration cases supplement the July 23 cross-adapter baseline:
 
-| Case | Definite calls | Possible-call edges | Macro references | Reads | Writes | Unresolved calls |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Git `9a0c470` | 64,651 | 4,572 | 18,198 | 262,277 | 56,674 | 15,120 |
-| Codebase Memory C backend `97ce23f` | 23,650 | 23 | 3,109 | 116,753 | 14,745 | 19,915 |
+| Case | Definite calls | Possible-call edges | Macro references | Passes to | Reads | Writes | Unresolved calls |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Git `9a0c470` | 65,235 | 2,720 | 24,923 | 44,615 | 262,277 | 56,674 | 23,435 |
+| Codebase Memory C backend `97ce23f` | 31,125 | 23 | 3,109 | 42,472 | 116,753 | 14,745 | 22,476 |
 
-Raw edge counts are not a call-site coverage percentage: one indirect call site can emit several possible targets while retaining an unresolved dynamic record. The site-level report therefore classifies each observed call expression once. Git contained 93,460 observed call-expression sites. Of the 68,354 sites with repository-callable evidence, 64,651 were definite and 3,703 had bounded possible targets. That is 94.6% definite and 100% definite-or-possible for repository-target sites. No Git or CBM call remained classified as `missing-target`.
+Raw edge counts are not a call-site coverage percentage: one indirect call site can emit several possible targets while retaining an unresolved dynamic record, and one macro invocation can contribute several body calls at the same source span. The site-level report therefore classifies each observed expression and expansion expression separately. Git contains 88,511 such sites; 66,314 have repository-callable evidence, of which 64,456 have definite targets, 1,858 have possible targets only, and 3 retain both classes. That is 97.2% definite and 100% definite-or-possible for repository-target sites. No Git or CBM call remains classified as `missing-target`.
 
-The second pass added include-closure translation units for included `.c` fragments and headers, simple macro alias/wrapper resolution, function-pointer typedef propagation, and bounded target flow from initializers, assignments, designated dispatch tables, and callback arguments. Conditional macro and indirect function-pointer targets remain possible rather than definite. External APIs and genuinely dynamic calls remain unresolved by design.
+The C-family passes now include include-closure translation units for included `.c` fragments and headers, bounded macro aliases and function-like bodies, nested argument substitution, function-pointer typedef propagation, and bounded target flow from initializers, assignments, designated dispatch tables, callback arguments, and macro-expanded calls. Conditional macro and indirect function-pointer targets remain possible rather than definite. External APIs and genuinely dynamic calls remain unresolved by design.
 
 The CBM case intentionally targets `internal/cbm`, the independently meaningful C backend, rather than mixing duplicate frontend/application definitions and generated vendored grammars into one judgment surface. Its unresolved groups remain dominated by C-library and Tree-sitter APIs.
 
-The C cases use exact node and source-target edge judgments, relation-count gates, and expected-zero unresolved-call-reason gates. They protect included-C translation units, header-to-source static calls, macro aliases, function-pointer typedefs and dispatch tables, definition selection, includer-driven header attribution, and repository-local include resolution.
+The C cases use exact node and source-target edge judgments, relation-count gates, and expected-zero unresolved-call-reason gates. They protect included-C translation units, header-to-source static calls, macro-mediated body calls, macro aliases, function-pointer typedefs and dispatch tables, definition selection, includer-driven header attribution, and repository-local include resolution.
+
+## C-family semantic depth added July 25, 2026
+
+Adapter 0.5.0 adds a bounded semantic interpretation of function-like macros rather than replaying a compiler preprocessor. It records macro parameters and body calls, binds invocation arguments, substitutes safe identifier tokens, follows nested repository-visible macros to a fixed depth, and emits each provable call at the invocation span. Every expanded call retains its macro-definition span, expansion chain, body callee, substituted arguments, and ordinary resolution evidence. Unsupported token pasting, stringification, variadic substitution, cycles, and argument mismatches remain explicit unresolved records.
+
+| Case | Macro-mediated occurrences / pairs | Body-call occurrences / pairs | Substitution-backed occurrences / pairs | Passes-to occurrences / pairs | Maximum macro depth |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Git | 6,549 / 4,541 | 5,190 / 3,471 | 5,157 / 3,451 | 44,615 / 36,992 | 2 |
+| Codebase Memory C backend | 7,763 / 43 | 7,763 / 43 | 7,475 / 41 | 42,472 / 8,554 | 0 |
+| LevelDB | 0 / 0 | 0 / 0 | 0 / 0 | 1,784 / 1,296 | 0 |
+| fmt | 1,106 / 407 | 1,094 / 395 | 1,106 / 407 | 2,801 / 2,154 | 5 |
+| Catch2 `src/` | 0 / 0 | 0 / 0 | 0 / 0 | 512 / 445 | 0 |
+| nlohmann/json holdout | 0 / 0 | 0 / 0 | 0 / 0 | 480 / 267 | 0 |
+
+The CBM backend is the direct comparison target. The previous Lexicon graph contained 5,076 unique definite function-call pairs; adapter 0.5.0 contains 5,115, a net gain of 39. Its 43 macro-body pairs cover the macro-mediated class previously observed only in CBM while preserving substantially deeper occurrence-level provenance. The same graph includes 8,554 unique direct caller-value-to-callee-parameter pairs, which CBM's compact C graph does not represent.
+
+All six cases passed twice with byte-identical output. The nlohmann/json holdout retained its prior 1,857 definite calls and zero call-level `missing-target` records while gaining direct argument-flow evidence, supporting that the new flow model is language-general rather than CBM-specific.
 
 ## C++ corpus added July 24, 2026
 

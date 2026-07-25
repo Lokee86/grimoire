@@ -16,6 +16,7 @@
       ],
       "required_edges": [
         {"relation": "calls", "target": {"kind": "function", "name": "cbm_arena_alloc", "path": "arena.c"}},
+        {"relation": "calls", "source": {"kind": "function", "name": "cbm_rw_push", "path": "cbm.c"}, "target": {"kind": "function", "name": "cbm_arena_alloc", "path": "arena.c"}, "attributes": {"indirect": "macro"}},
         {"relation": "references", "source": {"kind": "function", "name": "cbm_rw_push", "path": "cbm.c"}, "target": {"kind": "symbol", "name": "GROW_ARRAY", "path": "cbm.c"}, "attributes": {"role": "macro-expansion"}},
         {"relation": "includes", "source": {"kind": "import", "name": "arena.h", "path": "cbm.c"}, "target": {"kind": "file", "path": "arena.h"}}
       ]

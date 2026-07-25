@@ -6,14 +6,15 @@ func addResolvedCallEdges(facts *factSet, index declarationIndex, observation ca
 	addCallEdge(facts, observation, target, "calls", attributes)
 	parameters := index.byCallableParameters[target.ID]
 	for argumentIndex, expression := range observation.ArgumentExpressions {
-		if !isSimpleIdentifier(expression) {
+		name, ok := simpleIdentifierName(expression)
+		if !ok {
 			continue
 		}
 		parameter := parameterAtIndex(parameters, argumentIndex)
 		if parameter == nil {
 			continue
 		}
-		argument := resolveDirectArgument(index, observation, expression)
+		argument := resolveDirectArgument(index, observation, name)
 		if argument == nil {
 			continue
 		}
@@ -73,20 +74,25 @@ func resolveDirectArgument(index declarationIndex, observation callObservation, 
 }
 
 func isSimpleIdentifier(expression string) bool {
-	expression = strings.TrimSpace(expression)
+	_, ok := simpleIdentifierName(expression)
+	return ok
+}
+
+func simpleIdentifierName(expression string) (string, bool) {
+	expression = stripWrappingParentheses(strings.TrimSpace(expression))
 	if expression == "" {
-		return false
+		return "", false
 	}
 	for index, character := range expression {
 		if index == 0 {
 			if character != '_' && (character < 'a' || character > 'z') && (character < 'A' || character > 'Z') {
-				return false
+				return "", false
 			}
 			continue
 		}
 		if character != '_' && (character < 'a' || character > 'z') && (character < 'A' || character > 'Z') && (character < '0' || character > '9') {
-			return false
+			return "", false
 		}
 	}
-	return true
+	return expression, true
 }

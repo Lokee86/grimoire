@@ -84,6 +84,20 @@ def summarize(path: Path) -> dict[str, Any]:
         selected = [record for record in call_edges if predicate(record)]
         return metric({edge_pair(record) for record in selected}, len(selected))
 
+    evidence_labels: defaultdict[str, set[tuple[str, str]]] = defaultdict(set)
+    evidence_label_occurrences: Counter[str] = Counter()
+    macro_expansion_depths: Counter[int] = Counter()
+    for record in call_edges:
+        attributes = record.get("attributes", {})
+        for label in attributes.get("evidence", []):
+            if not isinstance(label, str):
+                continue
+            evidence_label_occurrences[label] += 1
+            evidence_labels[label].add(edge_pair(record))
+        depth = attributes.get("expansion_depth")
+        if isinstance(depth, int):
+            macro_expansion_depths[depth] += 1
+
     evidence = {
         "direct_calls": evidence_metric(
             lambda record: record.get("relation") == "calls" and not record.get("attributes", {}).get("indirect")
@@ -91,6 +105,9 @@ def summarize(path: Path) -> dict[str, Any]:
         "possible_calls": evidence_metric(lambda record: record.get("relation") == "possible-calls"),
         "indirect_calls": evidence_metric(lambda record: bool(record.get("attributes", {}).get("indirect"))),
         "macro_body_calls": evidence_metric(
+            lambda record: "macro-body" in record.get("attributes", {}).get("evidence", [])
+        ),
+        "macro_mediated_calls": evidence_metric(
             lambda record: record.get("attributes", {}).get("indirect") == "macro"
         ),
         "self_recursion": evidence_metric(
@@ -99,6 +116,14 @@ def summarize(path: Path) -> dict[str, Any]:
         "passes_to": relations.get("passes-to", metric(set(), 0)),
         "reads": relations.get("reads", metric(set(), 0)),
         "writes": relations.get("writes", metric(set(), 0)),
+        "resolution_evidence": {
+            label: metric(evidence_labels[label], evidence_label_occurrences[label])
+            for label in sorted(evidence_label_occurrences)
+        },
+        "macro_expansion_depth": {
+            "max": max(macro_expansion_depths, default=0),
+            "by_depth": {str(depth): count for depth, count in sorted(macro_expansion_depths.items())},
+        },
     }
 
     unresolved_by_reason: Counter[str] = Counter()

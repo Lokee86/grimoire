@@ -43,13 +43,14 @@ impl RelationMask {
     }
 }
 
-const RELATION_ORDER: [RelationKind; 19] = [
+const RELATION_ORDER: [RelationKind; 20] = [
     RelationKind::Contains,
     RelationKind::Defines,
     RelationKind::References,
     RelationKind::Imports,
     RelationKind::Calls,
     RelationKind::PossibleCalls,
+    RelationKind::PassesTo,
     RelationKind::ConvertsTo,
     RelationKind::Implements,
     RelationKind::Extends,
@@ -136,6 +137,7 @@ pub(crate) fn impact_relations() -> RelationMask {
     let mut relations = RelationMask::empty();
     relations.insert(&RelationKind::Calls);
     relations.insert(&RelationKind::PossibleCalls);
+    relations.insert(&RelationKind::PassesTo);
     relations.insert(&RelationKind::References);
     relations
 }
@@ -318,5 +320,6 @@ fn relation_bit(relation: &RelationKind) -> u32 {
         RelationKind::Tests => 1 << 16,
         RelationKind::Documents => 1 << 17,
         RelationKind::Generates => 1 << 18,
+        RelationKind::PassesTo => 1 << 19,
     }
 }

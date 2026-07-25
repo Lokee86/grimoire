@@ -86,6 +86,48 @@ func TestSearchMapsMatchedAndRelatedNodesToPreparedChunks(t *testing.T) {
 	}
 }
 
+func TestRelationshipsAggregateOccurrencesAndPreserveSemanticSites(t *testing.T) {
+	directory := t.TempDir()
+	data := "" +
+		`{"record":"lexicon","language":"c-family","repository":"example"}` + "\n" +
+		`{"record":"node","id":"run","kind":"function","name":"run","path":"main.c","qualified_name":"run"}` + "\n" +
+		`{"record":"node","id":"sink","kind":"function","name":"sink","path":"main.c","qualified_name":"sink"}` + "\n" +
+		`{"record":"node","id":"macro","kind":"symbol","name":"FORWARD","path":"main.c","qualified_name":"FORWARD"}` + "\n" +
+		`{"record":"node","id":"input","kind":"parameter","name":"input","path":"main.c","qualified_name":"run::input"}` + "\n" +
+		`{"record":"node","id":"target","kind":"parameter","name":"target","path":"main.c","qualified_name":"sink::target"}` + "\n" +
+		`{"record":"edge","source":"run","target":"sink","relation":"calls","span":{"path":"main.c","start_line":3,"end_line":3},"attributes":{"resolution":"definite","candidate_count":1,"evidence":["macro-body","argument-substitution"],"indirect":"macro","via":["macro"],"macro_body_callee":"sink","macro_definition_span":{"path":"main.c","start_line":2,"end_line":2},"expansion_depth":0,"macro_call_index":0,"substitutions":{"value":"input"},"substituted_arguments":["(input)"]}}` + "\n" +
+		`{"record":"edge","source":"run","target":"sink","relation":"calls","span":{"path":"main.c","start_line":4,"end_line":4},"attributes":{"resolution":"definite","candidate_count":1,"evidence":["macro-body"],"indirect":"macro","via":["macro"],"macro_body_callee":"sink","expansion_depth":0}}` + "\n" +
+		`{"record":"edge","source":"input","target":"target","relation":"passes-to","span":{"path":"main.c","start_line":3,"end_line":3},"attributes":{"argument_index":0,"expression":"input","via_call":"sink"}}` + "\n"
+	if err := os.WriteFile(filepath.Join(directory, "c-family.jsonl"), []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	facts, err := loadDirectory(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	calls := relationshipsForSeed("run", facts, 12)
+	if len(calls) != 1 || calls[0].Relation != "calls" || calls[0].Occurrences != 2 || len(calls[0].Sites) != 2 {
+		t.Fatalf("macro call occurrences were not aggregated: %+v", calls)
+	}
+	first := calls[0].Sites[0]
+	if first.ExpansionDepth == nil || *first.ExpansionDepth != 0 || first.DefinitionSpan == nil ||
+		first.DefinitionSpan.StartLine != 2 || len(first.Via) != 1 || first.Via[0].Name != "FORWARD" ||
+		first.Substitutions["value"] != "input" || first.Arguments[0] != "(input)" {
+		t.Fatalf("macro provenance was not preserved: %+v", first)
+	}
+
+	flow := relationshipsForSeed("input", facts, 12)
+	if len(flow) != 1 || flow[0].Relation != "passes-to" || flow[0].Occurrences != 1 || len(flow[0].Sites) != 1 {
+		t.Fatalf("argument flow relationship was not preserved: %+v", flow)
+	}
+	flowSite := flow[0].Sites[0]
+	if flowSite.ArgumentIndex == nil || *flowSite.ArgumentIndex != 0 || flowSite.Expression != "input" ||
+		len(flowSite.Via) != 1 || flowSite.Via[0].Name != "sink" {
+		t.Fatalf("argument flow provenance was not preserved: %+v", flowSite)
+	}
+}
+
 func TestDescriptorsWithoutSourceSpansKeepFallbackRangeAndOmitLinks(t *testing.T) {
 	chunk := index.Chunk{Path: "internal/fallback.go", StartLine: 1, EndLine: 12, TokenCount: 9}
 	node := Node{ID: "fallback", Name: "Fallback", Path: chunk.Path}

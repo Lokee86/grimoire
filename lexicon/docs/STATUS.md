@@ -1,6 +1,6 @@
 # Lexicon current status
 
-Status date: July 24, 2026.
+Status date: July 25, 2026.
 
 This document describes the implementation currently present on `main`. Dated validation reports record evidence from specific runs and should not be treated as permanent performance guarantees.
 
@@ -31,7 +31,7 @@ The primary execution model remains one-shot CLI operations. Watch mode invokes 
 
 | Adapter | Version | Implemented semantic scope | Principal limits |
 | --- | ---: | --- | --- |
-| C / C++ | 0.4.0 | Shared C-family view, includer-aware parsing, include-closure translation units, macro and function-pointer flow, arity and explicit-qualification pruning, direct receiver-type evidence, definite/possible calls, dataflow | No compiler/preprocessor replay, general macro expansion, template instantiation, full overload ranking, ADL, virtual dispatch proof, generated headers, Objective-C, or CUDA semantics |
+| C / C++ | 0.5.0 | Shared C-family view, includer-aware parsing, include-closure translation units, bounded nested macro expansion with argument substitution and provenance, function-pointer flow, explainable call resolution, direct argument-to-parameter flow, arity and qualification pruning, direct receiver-type evidence, definite/possible calls, reads/writes | No full compiler/preprocessor replay, token pasting, stringification, variadic macro substitution, configuration-accurate branch evaluation, template instantiation, full overload ranking, ADL, virtual dispatch proof, generated headers, Objective-C, or CUDA semantics |
 | Go | 0.1.0 | Multi-module discovery, packages, types, calls, closures, interfaces, implementations, overrides, dataflow, dependencies, SSA/VTA possible dispatch | Reflection, plugins, cgo/assembly, generated runtime behavior, and exact call-site graph retention |
 | GDScript | 0.3.0 | Godot project scoping, classes, inheritance, autoloads, callbacks, bounded type flow, calls, possible calls, dataflow, dependencies | Scene-tree-only type evidence, engine internals, runtime script replacement, computed dispatch and resource paths |
 | Python | 0.3.0 | Imports, lexical scopes, inheritance, protocols, callbacks, callable flow, C3 lookup, dataflow, dependencies | Monkey patching, metaclasses, dynamic imports/reflection, framework injection without ordinary value-flow evidence |
@@ -104,7 +104,7 @@ Current acceptance mechanisms include:
 - positive and expected-negative relation gates;
 - real-repository corpus cases across C, GDScript, Python, Ruby, Rust, TypeScript, JavaScript, and Svelte;
 - pinned Git, Codebase Memory, LevelDB, fmt, Catch2, and nlohmann/json judgments for the C/C++ shared adapter;
-- call-site and possible-target-fanout reporting for C-family corpus outputs;
+- call-site, possible-target-fanout, resolution-provenance, macro-expansion-depth, and direct argument-flow reporting for C-family corpus outputs;
 - fixture and application smoke coverage for the C/C++ shared adapter;
 - separate dated Go real-repository validation.
 

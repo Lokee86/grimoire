@@ -6,9 +6,10 @@
 
 - resolving `.lexicon/CURRENT`;
 - creating and reusing cached immutable `lexicon export` directories;
-- loading exported normalized nodes and edges;
+- loading exported normalized nodes, occurrence-level edges, and typed edge attributes;
 - ranking query-matched symbols;
-- preserving matched symbols, source spans, identities, and immediate relationships as structural evidence; and
+- aggregating repeated relationships without discarding bounded source sites;
+- preserving matched symbols, exact source spans, call-resolution evidence, macro expansion chains and substitutions, direct argument flow, identities, and immediate relationships as structural evidence; and
 - mapping matched structural ranges back to prepared source candidates.
 
 ## Does not own
@@ -27,5 +28,6 @@ Repositories without Lexicon state continue through Grimoire's standalone source
 - `load.go` — exported JSONL loading.
 - `rank.go` — symbol matching and one-hop candidate expansion.
 - `candidates.go` — prepared-source mapping.
-- `evidence.go` — first-class symbol and relationship evidence.
+- `evidence.go` — first-class symbol and aggregated relationship evidence.
+- `relationship_provenance.go` — bounded occurrence sites and typed call, macro, and argument-flow provenance.
 - `terms.go` — deterministic query and identifier normalization.

@@ -369,6 +369,7 @@ fn parse_relation(value: &str) -> Result<RelationKind, CliParseError> {
         "imports" => Ok(RelationKind::Imports),
         "calls" => Ok(RelationKind::Calls),
         "possible-calls" => Ok(RelationKind::PossibleCalls),
+        "passes-to" => Ok(RelationKind::PassesTo),
         "converts-to" => Ok(RelationKind::ConvertsTo),
         "implements" => Ok(RelationKind::Implements),
         "uses-trait" => Ok(RelationKind::UsesTrait),

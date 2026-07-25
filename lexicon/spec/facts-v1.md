@@ -137,6 +137,7 @@ Common relations:
 - `imports`;
 - `calls`;
 - `possible-calls`;
+- `passes-to`;
 - `converts-to`;
 - `references`;
 - `extends`;
@@ -153,6 +154,8 @@ Common relations:
 - `generates`.
 
 `calls` means one definite statically identified callable contract. Multiple sound runtime targets must use `possible-calls`. Consumers must not silently merge `possible-calls` into definite calls.
+
+`passes-to` records a proven direct value-flow step from a caller-side parameter, local, field, or constant to a callee parameter. It does not imply mutation, ownership transfer, aliasing beyond the call boundary, or flow through unsupported compound expressions.
 
 ## Unresolved record
 
@@ -184,7 +187,11 @@ Common reasons:
 - `dynamic-target`;
 - `external-target`;
 - `builtin-target`;
-- `generated-target`.
+- `generated-target`;
+- `unsupported-macro-expansion`;
+- `macro-argument-mismatch`;
+- `macro-expansion-cycle`;
+- `macro-expansion-depth`.
 
 ## Incremental ownership and removals
 

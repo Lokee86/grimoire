@@ -6,9 +6,11 @@ import (
 )
 
 type Span struct {
-	Path      string `json:"path"`
-	StartLine int    `json:"start_line"`
-	EndLine   int    `json:"end_line"`
+	Path        string `json:"path"`
+	StartLine   int    `json:"start_line"`
+	StartColumn int    `json:"start_column,omitempty"`
+	EndLine     int    `json:"end_line"`
+	EndColumn   int    `json:"end_column,omitempty"`
 }
 
 type Node struct {
@@ -22,9 +24,11 @@ type Node struct {
 }
 
 type Edge struct {
-	Source   string `json:"source"`
-	Target   string `json:"target"`
-	Relation string `json:"relation"`
+	Source     string         `json:"source"`
+	Target     string         `json:"target"`
+	Relation   string         `json:"relation"`
+	Span       *Span          `json:"span,omitempty"`
+	Attributes map[string]any `json:"attributes,omitempty"`
 }
 
 type library struct {

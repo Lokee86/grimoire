@@ -25,11 +25,35 @@ type Node struct {
 
 // Relationship records one directed structural relation around an evidence
 // node. Certainty is "definite" or "possible" when the provider distinguishes it.
+// Repeated occurrence-level facts are aggregated by related node while retaining
+// a bounded set of inspectable source sites.
 type Relationship struct {
-	Direction string `json:"direction"`
-	Relation  string `json:"relation"`
-	Certainty string `json:"certainty,omitempty"`
-	Node      Node   `json:"node"`
+	Direction      string             `json:"direction"`
+	Relation       string             `json:"relation"`
+	Certainty      string             `json:"certainty,omitempty"`
+	Node           Node               `json:"node"`
+	Occurrences    int                `json:"occurrences"`
+	Sites          []RelationshipSite `json:"sites,omitempty"`
+	SitesTruncated bool               `json:"sites_truncated,omitempty"`
+}
+
+// RelationshipSite preserves occurrence-level evidence that would otherwise be
+// lost when graph edges are collapsed. Fields remain provider-neutral while
+// exposing call-resolution, macro-expansion, and argument-flow provenance.
+type RelationshipSite struct {
+	Span           *Span             `json:"span,omitempty"`
+	Evidence       []string          `json:"evidence,omitempty"`
+	Via            []Node            `json:"via,omitempty"`
+	DefinitionSpan *Span             `json:"definition_span,omitempty"`
+	CandidateCount int               `json:"candidate_count,omitempty"`
+	Indirect       string            `json:"indirect,omitempty"`
+	BodyCallee     string            `json:"body_callee,omitempty"`
+	ExpansionDepth *int              `json:"expansion_depth,omitempty"`
+	MacroCallIndex *int              `json:"macro_call_index,omitempty"`
+	Substitutions  map[string]string `json:"substitutions,omitempty"`
+	Arguments      []string          `json:"arguments,omitempty"`
+	ArgumentIndex  *int              `json:"argument_index,omitempty"`
+	Expression     string            `json:"expression,omitempty"`
 }
 
 // DepthNode records a graph node and its traversal distance from the subject.

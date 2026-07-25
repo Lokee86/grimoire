@@ -52,7 +52,7 @@ def write_stream(path: Path, suffix: str = "") -> None:
         edge("a", "f", "defines"),
         edge("a", "b", "calls"),
         edge("a", "a", "possible-calls", indirect="function-pointer"),
-        edge("a", "b", "calls", indirect="macro"),
+        edge("a", "b", "calls", indirect="macro", evidence=["macro-body", "argument-substitution"], expansion_depth=1),
         edge("a", "f", "passes-to"),
         edge("a", "d", "reads"),
         edge("a", "d", "writes"),
@@ -85,7 +85,13 @@ def test_reports_c_family_semantic_depth(tmp_path: Path) -> None:
     assert report["evidence"]["possible_calls"]["occurrences"] == 1
     assert report["evidence"]["indirect_calls"]["occurrences"] == 2
     assert report["evidence"]["macro_body_calls"]["occurrences"] == 1
+    assert report["evidence"]["macro_mediated_calls"]["occurrences"] == 1
     assert report["evidence"]["self_recursion"]["occurrences"] == 1
+    assert report["evidence"]["resolution_evidence"] == {
+        "argument-substitution": {"occurrences": 1, "unique_source_target_pairs": 1},
+        "macro-body": {"occurrences": 1, "unique_source_target_pairs": 1},
+    }
+    assert report["evidence"]["macro_expansion_depth"] == {"max": 1, "by_depth": {"1": 1}}
     assert report["unresolved"]["by_reason"] == {
         "dynamic-target": {"occurrences": 1, "unique_sources": 1},
         "missing-target": {"occurrences": 1, "unique_sources": 1},

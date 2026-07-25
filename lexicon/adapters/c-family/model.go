@@ -3,7 +3,7 @@ package main
 import "strings"
 
 const (
-	adapterVersion = "0.4.0"
+	adapterVersion = "0.5.0"
 	streamLanguage = "c-family"
 )
 

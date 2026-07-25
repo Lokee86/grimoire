@@ -80,7 +80,23 @@ The current package version is `7`.
             "kind": "function",
             "name": "ApplyShield",
             "path": "internal/game/damage/shield.go"
-          }
+          },
+          "occurrences": 2,
+          "sites": [
+            {
+              "span": {
+                "path": "internal/game/damage/resolver.go",
+                "start_line": 31,
+                "start_column": 3,
+                "end_line": 31,
+                "end_column": 24
+              },
+              "evidence": [
+                "direct-scoped-name"
+              ],
+              "candidate_count": 1
+            }
+          ]
         }
       ]
     },
@@ -171,7 +187,9 @@ Current evidence kinds are:
 
 Lexicon identities are durable across consumers. Arcana `node_id` values are snapshot-local; `structural_state` records the exact immutable snapshot that makes those IDs meaningful.
 
-Relationships record `direction`, `relation`, and `certainty`. Definite and possible call edges remain distinct rather than being collapsed.
+Relationships record `direction`, `relation`, `certainty`, the related `node`, and an `occurrences` count. Repeated occurrence-level edges to the same related node are aggregated so one frequently repeated call cannot consume the complete relationship budget. Up to three distinct `sites` retain exact source spans and provider-supplied semantic provenance; `sites_truncated` reports when additional sites exist.
+
+A relationship site may include resolution `evidence`, `candidate_count`, indirect-dispatch kind, macro expansion chain in `via`, macro definition span, body callee, expansion depth, macro call index, substitutions, substituted arguments, and direct argument-flow fields. The `passes-to` relation records a proven caller-side parameter, local, field, or constant flowing into a callee parameter. Definite and possible call edges remain distinct rather than being collapsed.
 
 ## Selection fields
 

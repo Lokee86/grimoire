@@ -2,7 +2,6 @@ package lexiconfacts
 
 import (
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/Lokee86/grimoire/internal/evidence"
@@ -56,7 +55,7 @@ func seedNodes(seeds []scoredNode, limit int) []structure.Node {
 }
 
 func relationshipsForSeed(seedID string, facts library, limit int) []structure.Relationship {
-	result := make([]structure.Relationship, 0)
+	aggregates := make(map[relationshipKey]*relationshipAggregate)
 	for _, edge := range facts.edges {
 		var direction, relatedID string
 		switch seedID {
@@ -71,25 +70,26 @@ func relationshipsForSeed(seedID string, facts library, limit int) []structure.R
 		if !exists || !localNode(related) {
 			continue
 		}
-		result = append(result, structure.Relationship{
-			Direction: direction,
-			Relation:  edge.Relation,
-			Certainty: relationCertainty(edge.Relation),
-			Node:      structureNode(related),
-		})
+		certainty := relationshipCertainty(edge)
+		key := relationshipKey{
+			direction: direction, relation: edge.Relation,
+			certainty: certainty, relatedID: relatedID,
+		}
+		aggregate := aggregates[key]
+		if aggregate == nil {
+			aggregate = &relationshipAggregate{value: structure.Relationship{
+				Direction: direction, Relation: edge.Relation,
+				Certainty: certainty, Node: structureNode(related),
+			}}
+			aggregates[key] = aggregate
+		}
+		appendRelationshipSite(aggregate, relationshipSite(edge, facts))
 	}
-	sort.Slice(result, func(i, j int) bool {
-		if result[i].Direction != result[j].Direction {
-			return result[i].Direction < result[j].Direction
-		}
-		if result[i].Relation != result[j].Relation {
-			return result[i].Relation < result[j].Relation
-		}
-		if result[i].Node.Path != result[j].Node.Path {
-			return result[i].Node.Path < result[j].Node.Path
-		}
-		return result[i].Node.Name < result[j].Node.Name
-	})
+	result := make([]structure.Relationship, 0, len(aggregates))
+	for _, aggregate := range aggregates {
+		result = append(result, aggregate.value)
+	}
+	sortRelationships(result)
 	if len(result) > limit {
 		result = result[:limit]
 	}
@@ -106,9 +106,11 @@ func structureNode(node Node) structure.Node {
 	}
 	if node.Span != nil {
 		result.Span = &structure.Span{
-			Path:      filepath.ToSlash(node.Span.Path),
-			StartLine: node.Span.StartLine,
-			EndLine:   node.Span.EndLine,
+			Path:        filepath.ToSlash(node.Span.Path),
+			StartLine:   node.Span.StartLine,
+			StartColumn: node.Span.StartColumn,
+			EndLine:     node.Span.EndLine,
+			EndColumn:   node.Span.EndColumn,
 		}
 	}
 	return result
