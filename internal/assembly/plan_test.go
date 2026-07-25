@@ -157,6 +157,63 @@ func TestPlanUngroupedOrderingRemainsCuratedOrder(t *testing.T) {
 	}
 }
 
+func TestPlanPromotesRequiredLinkedSourceSpan(t *testing.T) {
+	candidates := []retrieve.Candidate{
+		candidate("internal/damage/owner.go", "exact", 1),
+		candidate("internal/damage/noise_1.go", "lexical", 2),
+		candidate("internal/damage/noise_2.go", "lexical", 3),
+		candidate("internal/damage/noise_3.go", "lexical", 4),
+		candidate("internal/damage/noise_4.go", "lexical", 5),
+		candidate("internal/damage/companion.go", "lexical", 6),
+	}
+	ownerIdentity := evidence.RangeIdentity("internal/damage/owner.go", 1, 1)
+	companionIdentity := evidence.RangeIdentity("internal/damage/companion.go", 6, 6)
+	candidates[0].Context = &evidence.Descriptor{
+		Identity: ownerIdentity,
+		Links:    []evidence.Link{{Identity: companionIdentity, Relation: "extracted_companion", Required: true}},
+	}
+	candidates[5].Context = &evidence.Descriptor{Identity: companionIdentity}
+
+	result := Plan(queryshape.RetrievalPolicy{
+		Scope: queryshape.ScopeFocused, TargetTokens: 500,
+	}, candidates, nil)
+	if len(result.Candidates) != 3 {
+		t.Fatalf("selected %d candidates, want 3", len(result.Candidates))
+	}
+	if result.Candidates[1].Chunk.Path != "internal/damage/companion.go" {
+		t.Fatalf("required companion was not promoted: %+v", result.Candidates)
+	}
+	if result.Decision.RequiredLinksAvailable != 1 || result.Decision.RequiredLinksRepresented != 1 {
+		t.Fatalf("required-link decision is incomplete: %+v", result.Decision)
+	}
+}
+
+func TestPlanCompletesRequiredLinkAcrossCandidateCap(t *testing.T) {
+	candidates := make([]retrieve.Candidate, 0, 33)
+	for index := range 33 {
+		candidates = append(candidates, candidate(
+			fmt.Sprintf("internal/damage/file_%02d.go", index), "lexical", index+1,
+		))
+	}
+	ownerIdentity := evidence.RangeIdentity(candidates[31].Chunk.Path, 32, 32)
+	companionIdentity := evidence.RangeIdentity(candidates[32].Chunk.Path, 33, 33)
+	candidates[31].Context = &evidence.Descriptor{
+		Identity: ownerIdentity,
+		Links:    []evidence.Link{{Identity: companionIdentity, Relation: "extracted_companion", Required: true}},
+	}
+	candidates[32].Context = &evidence.Descriptor{Identity: companionIdentity}
+
+	result := Plan(queryshape.RetrievalPolicy{
+		Scope: queryshape.ScopeFocused, TargetTokens: 1_000_000_000,
+	}, candidates, nil)
+	if len(result.Candidates) != 33 || result.Decision.CandidateCapOverflow != 1 {
+		t.Fatalf("required companion was cut at candidate cap: %+v", result.Decision)
+	}
+	if result.Decision.RequiredLinksRepresented != 1 {
+		t.Fatalf("required link was not completed: %+v", result.Decision)
+	}
+}
+
 func candidate(path, source string, rank int) retrieve.Candidate {
 	return retrieve.Candidate{
 		Chunk: index.Chunk{
