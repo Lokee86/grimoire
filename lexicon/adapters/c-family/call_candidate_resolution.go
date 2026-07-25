@@ -2,45 +2,67 @@ package main
 
 import "strings"
 
+type callCandidateResolution struct {
+	Candidates []*declaration
+	Evidence   []string
+}
+
 func resolveCallCandidates(index declarationIndex, observation callObservation) []*declaration {
+	return resolveCallCandidateResolution(index, observation).Candidates
+}
+
+func resolveCallCandidateResolution(index declarationIndex, observation callObservation) callCandidateResolution {
 	accept := func(declaration *declaration) bool {
 		return declaration.Callable
 	}
 	if qualifier := explicitCallQualifier(observation.Candidate); qualifier != "" {
 		candidates := resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
+		evidence := []string{"explicit-qualification"}
 		if types := directQualifiedTypes(index, qualifier, observation.Path); len(types) > 0 {
 			if len(candidates) == 0 {
 				candidates = resolveDeclarations(index, lastQualifiedPart(observation.Candidate), observation.SourceScope, observation.Path, accept)
 			}
 			owned := callableDeclarationsOwnedByTypes(index, types, lastQualifiedPart(observation.Candidate), observation.Path, accept)
 			if len(owned) > 0 {
-				return owned
+				return newCallCandidateResolution(owned, append(evidence, "enclosing-type-ownership"))
 			}
-			return candidates
+			return newCallCandidateResolution(candidates, evidence)
 		}
 		free := filterDeclarations(candidates, func(declaration *declaration) bool {
 			return !classOwnedCallable(index, declaration)
 		})
 		if len(free) > 0 {
-			return free
+			return newCallCandidateResolution(free, evidence)
 		}
-		return candidates
+		return newCallCandidateResolution(candidates, evidence)
 	}
 	if receiverTypeID := resolveDirectReceiverTypeID(index, observation); receiverTypeID != "" {
 		owned := selectDeclarations(index, index.byContainerName[receiverTypeID+"\x00"+lastQualifiedPart(observation.Candidate)], observation.Path, accept)
 		if len(owned) > 0 {
-			return owned
+			return newCallCandidateResolution(owned, []string{"direct-receiver-type"})
 		}
 	}
 	if observation.ReceiverTypeID != "" {
 		candidates := resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
 		owned := selectDeclarations(index, index.byContainerName[observation.ReceiverTypeID+"\x00"+lastQualifiedPart(observation.Candidate)], observation.Path, accept)
 		if len(owned) > 0 {
-			return owned
+			return newCallCandidateResolution(owned, []string{"enclosing-type-ownership"})
 		}
-		return candidates
+		return newCallCandidateResolution(candidates, []string{"direct-scoped-name"})
 	}
-	return resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept)
+	return newCallCandidateResolution(resolveDeclarations(index, observation.Candidate, observation.SourceScope, observation.Path, accept), []string{"direct-scoped-name"})
+}
+
+func newCallCandidateResolution(candidates []*declaration, evidence []string) callCandidateResolution {
+	return callCandidateResolution{Candidates: candidates, Evidence: evidence}
+}
+
+func (resolution callCandidateResolution) prune(argumentCount int) callCandidateResolution {
+	pruned := pruneCallableCandidates(resolution.Candidates, argumentCount)
+	if len(pruned) == len(resolution.Candidates) {
+		return resolution
+	}
+	return callCandidateResolution{Candidates: pruned, Evidence: append(resolution.Evidence, "arity-pruning")}
 }
 
 func explicitCallQualifier(candidate string) string {

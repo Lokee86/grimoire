@@ -22,19 +22,21 @@ func resolveCall(facts *factSet, index declarationIndex, indirectCalls indirectC
 		return
 	}
 
-	candidates := resolveCallCandidates(index, observation)
+	resolution := resolveCallCandidateResolution(index, observation)
+	candidates := resolution.Candidates
 	if len(candidates) == 1 {
-		addCallEdge(facts, observation, candidates[0], "calls", nil)
+		addCallEdge(facts, observation, candidates[0], "calls", callEdgeAttributes(resolution))
 		return
 	}
 	if len(candidates) > 1 {
-		candidates = pruneCallableCandidates(candidates, len(observation.Arguments))
+		resolution = resolution.prune(len(observation.Arguments))
+		candidates = resolution.Candidates
 		if len(candidates) == 1 {
-			addCallEdge(facts, observation, candidates[0], "calls", nil)
+			addCallEdge(facts, observation, candidates[0], "calls", callEdgeAttributes(resolution))
 			return
 		}
 		for _, candidate := range candidates {
-			addCallEdge(facts, observation, candidate, "possible-calls", nil)
+			addCallEdge(facts, observation, candidate, "possible-calls", callEdgeAttributes(resolution))
 		}
 		facts.addUnresolved(observation.Path, unresolvedRecord(observation.SourceID, "calls", observation.Expression, "ambiguous-target", observation.Path, observation.Span))
 		return
@@ -48,7 +50,10 @@ func resolveCall(facts *factSet, index declarationIndex, indirectCalls indirectC
 				pointerIDs = append(pointerIDs, pointer.ID)
 			}
 			sort.Strings(pointerIDs)
-			attributes := map[string]any{"indirect": "function-pointer", "via": pointerIDs}
+			attributes := map[string]any{
+				"candidate_count": len(targets), "evidence": []string{"function-pointer"},
+				"indirect": "function-pointer", "via": pointerIDs,
+			}
 			for _, target := range targets {
 				addCallEdge(facts, observation, target, "possible-calls", attributes)
 			}
@@ -79,7 +84,10 @@ func resolveMacroCall(facts *factSet, index declarationIndex, observation callOb
 	sort.Strings(macroIDs)
 
 	targets := macroCallableTargets(index, macros, observation, map[string]struct{}{})
-	attributes := map[string]any{"indirect": "macro", "via": macroIDs}
+	attributes := map[string]any{
+		"candidate_count": len(targets), "evidence": []string{"macro-mediation"},
+		"indirect": "macro", "via": macroIDs,
+	}
 	if len(targets) == 0 {
 		return
 	}
@@ -134,10 +142,23 @@ func addCallEdge(facts *factSet, observation callObservation, target *declaratio
 		"owner": observation.Path, "record": "edge", "relation": relation, "source": observation.SourceID,
 		"span": observation.Span.record(), "target": target.ID,
 	}
-	if len(attributes) > 0 {
-		edge["attributes"] = attributes
+	edgeAttributes := map[string]any{
+		"candidate_count": 1, "evidence": []string{}, "resolution": "possible",
 	}
+	if relation == "calls" {
+		edgeAttributes["resolution"] = "definite"
+	}
+	for key, value := range attributes {
+		edgeAttributes[key] = value
+	}
+	edge["attributes"] = edgeAttributes
 	facts.addEdge(observation.Path, edge)
+}
+
+func callEdgeAttributes(resolution callCandidateResolution) map[string]any {
+	return map[string]any{
+		"candidate_count": len(resolution.Candidates), "evidence": resolution.Evidence,
+	}
 }
 
 func resolveAccess(facts *factSet, index declarationIndex, observation accessObservation) {
