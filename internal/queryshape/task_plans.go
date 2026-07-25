@@ -76,7 +76,9 @@ func expandedTaskPlanIntents(query string, kind TaskPlanKind) []RetrievalIntent 
 		Task: kind, Step: "task-context",
 	}}
 	for _, step := range steps {
-		planned := retrievalIntent(step.intent, taskFocusedQuery(query, step.focus), step.weight, true)
+		focusedQuery := taskFocusedQuery(query, step.focus)
+		focusedQuery = expandRetrievalClause(focusedQuery, step.intent)
+		planned := retrievalIntent(step.intent, focusedQuery, step.weight, true)
 		planned.Task = kind
 		planned.Step = step.name
 		planned.FacetID = evidence.StableID(

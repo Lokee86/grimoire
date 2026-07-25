@@ -113,12 +113,19 @@ func TestPlanRetrievalIntentsKeepsDistinctMechanismActions(t *testing.T) {
 
 func TestPlanRetrievalIntentsExpandsLifecycleCallChainVocabulary(t *testing.T) {
 	intents := PlanRetrievalIntents("Trace how a post is created and persisted.")
-	if len(intents) != 1 || intents[0].Intent != evidence.IntentCallChain {
-		t.Fatalf("unexpected lifecycle intent: %+v", intents)
+	var callPath string
+	for _, intent := range intents {
+		if intent.Intent == evidence.IntentCallChain {
+			callPath = strings.ToLower(intent.Query)
+			break
+		}
+	}
+	if callPath == "" {
+		t.Fatalf("lifecycle plan has no call-chain intent: %+v", intents)
 	}
 	for _, term := range []string{"new", "create", "insert", "store", "save", "database"} {
-		if !strings.Contains(strings.ToLower(intents[0].Query), term) {
-			t.Errorf("lifecycle query missing %q: %q", term, intents[0].Query)
+		if !strings.Contains(callPath, term) {
+			t.Errorf("lifecycle call path missing %q: %q", term, callPath)
 		}
 	}
 }
