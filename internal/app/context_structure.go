@@ -9,6 +9,7 @@ import (
 	"github.com/Lokee86/grimoire/internal/arcanagraph"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/lexiconfacts"
+	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
@@ -29,14 +30,15 @@ type structuralContextOptions struct {
 }
 
 type structuralContextResult struct {
-	Lexicon       lexiconfacts.Result
-	Arcana        []structure.Evidence
-	Combined      []structure.Evidence
-	ProviderState []structure.ProviderState
-	Warnings      []string
-	LexiconTime   time.Duration
-	ArcanaTime    time.Duration
-	TotalTime     time.Duration
+	Lexicon          lexiconfacts.Result
+	Arcana           []structure.Evidence
+	ArcanaCandidates []retrieve.Candidate
+	Combined         []structure.Evidence
+	ProviderState    []structure.ProviderState
+	Warnings         []string
+	LexiconTime      time.Duration
+	ArcanaTime       time.Duration
+	TotalTime        time.Duration
 }
 
 func collectStructuralContext(
@@ -109,6 +111,8 @@ func collectStructuralContext(
 				if arcanaErr != nil {
 					result.Warnings = append(result.Warnings, fmt.Sprintf("Arcana structural evidence unavailable: %v", arcanaErr))
 					result.Arcana = nil
+				} else {
+					result.ArcanaCandidates = arcanagraph.SourceCandidates(snapshot, result.Arcana, options.Limit)
 				}
 			}
 		}

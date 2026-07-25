@@ -8,15 +8,16 @@
 - one-shot `arcana sync` when graph state is missing or stale;
 - JSONL request/response handling for `arcana.query.v1`;
 - optional semantic seed retrieval from an existing Arcana-owned vector index;
-- bounded symbol resolution, operational-role, impact, unresolved-reference, and shortest-call-chain queries; and
-- conversion from Arcana protocol results into Grimoire structural evidence.
+- bounded symbol resolution, operational-role, impact, unresolved-reference, and shortest-call-chain queries;
+- conversion from Arcana protocol results into Grimoire structural evidence; and
+- localization of source-bearing graph subjects, neighbors, dependents, paths, and unresolved spans into ranked prepared-source candidates.
 
 ## Does not own
 
 - graph, graph-vector, or traversal storage;
 - Arcana vector-index creation;
 - Lexicon fact generation;
-- task relevance scoring;
+- cross-provider task relevance scoring;
 - source-candidate curation; or
 - final package budgeting.
 

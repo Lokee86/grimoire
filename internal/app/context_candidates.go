@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	maxExactCandidates   = 32
-	maxLexiconCandidates = 24
-	baseFrontCandidates  = 32
-	rrfRankConstant      = 60.0
+	maxExactCandidates      = 32
+	maxStructuralCandidates = 24
+	maxLexiconCandidates    = maxStructuralCandidates
+	baseFrontCandidates     = 32
+	rrfRankConstant         = 60.0
 )
 
 func curateContextCandidates(
@@ -149,17 +150,33 @@ func mergeRankedProviders(limit int, groups ...[]retrieve.Candidate) []retrieve.
 
 func mergeContextProviders(
 	limit int,
-	exact, base, lexicon []retrieve.Candidate,
+	exact, base, lexicon, arcana []retrieve.Candidate,
 ) []retrieve.Candidate {
 	frontCount := min(baseFrontCandidates, len(base))
-	lexiconCount := min(maxLexiconCandidates, len(lexicon))
+	structural := mergeStructuralProviders(maxStructuralCandidates, lexicon, arcana)
 	return mergeContextCandidates(
 		limit,
 		exact,
 		base[:frontCount],
-		lexicon[:lexiconCount],
+		structural,
 		base[frontCount:],
 	)
+}
+
+func mergeStructuralProviders(
+	limit int,
+	lexicon, arcana []retrieve.Candidate,
+) []retrieve.Candidate {
+	switch {
+	case limit <= 0:
+		return nil
+	case len(lexicon) == 0:
+		return append([]retrieve.Candidate(nil), arcana[:min(limit, len(arcana))]...)
+	case len(arcana) == 0:
+		return append([]retrieve.Candidate(nil), lexicon[:min(limit, len(lexicon))]...)
+	default:
+		return mergeRankedProviders(limit, lexicon, arcana)
+	}
 }
 
 func contextCandidateKey(candidate retrieve.Candidate) string {

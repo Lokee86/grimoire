@@ -110,7 +110,7 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	if !emitLexicon {
 		lexiconCandidates = nil
 	}
-	merged := mergeContextProviders(*limit, exact, baseCandidates, lexiconCandidates)
+	merged := mergeContextProviders(*limit, exact, baseCandidates, lexiconCandidates, structural.ArcanaCandidates)
 	_, policy := queryshape.Analyze(queryshape.Input{
 		Query: *query, RequestedBudget: *budget,
 		Exact: exact, Ranked: baseCandidates, Candidates: merged, Structural: structural.Combined,

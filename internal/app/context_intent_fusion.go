@@ -191,6 +191,9 @@ func annotateStructuralIntent(result structuralContextResult, planned queryshape
 	for index := range result.Arcana {
 		result.Arcana[index].Context = mergeStructuralIntent(result.Arcana[index].Context, planned)
 	}
+	for index := range result.ArcanaCandidates {
+		result.ArcanaCandidates[index] = annotateCandidateIntent(result.ArcanaCandidates[index], planned)
+	}
 	for index := range result.Combined {
 		result.Combined[index].Context = mergeStructuralIntent(result.Combined[index].Context, planned)
 	}
