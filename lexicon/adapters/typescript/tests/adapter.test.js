@@ -393,7 +393,8 @@ test("passes the repository JSONL validator", () => {
   const repo = makeFixture();
   const output = path.join(repo, "facts.jsonl");
   runAdapter(repo, output);
-  const result = spawnSync("python", [path.join(REPO_ROOT, "tools", "validate_jsonl.py"), output], { encoding: "utf8" });
+  const python = process.env.PYTHON || (process.platform === "win32" ? "python" : "python3");
+  const result = spawnSync(python, [path.join(REPO_ROOT, "tools", "validate_jsonl.py"), output], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
 });
 

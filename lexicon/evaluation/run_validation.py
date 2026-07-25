@@ -16,7 +16,10 @@ from validation_summary import summarize
 
 
 def executable(name: str, *fallbacks: Path) -> str:
-    candidates = [shutil.which(name), *(str(path) for path in fallbacks)]
+    names = [name]
+    if name.lower().endswith(".exe"):
+        names.append(name[:-4])
+    candidates = [*(shutil.which(candidate) for candidate in names), *(str(path) for path in fallbacks)]
     for candidate in candidates:
         if candidate and Path(candidate).is_file():
             return candidate
@@ -24,6 +27,8 @@ def executable(name: str, *fallbacks: Path) -> str:
 
 
 def npm_command(*args: str) -> list[str]:
+    if os.name != "nt":
+        return [executable("npm"), *args]
     node = Path(executable("node.exe", Path("C:/Program Files/nodejs/node.exe")))
     npm_cli = node.parent / "node_modules" / "npm" / "bin" / "npm-cli.js"
     if not npm_cli.is_file():
