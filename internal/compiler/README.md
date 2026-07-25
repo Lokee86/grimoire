@@ -11,7 +11,7 @@
 
 ## Current schema
 
-The current package version is 6. The package records:
+The current package version is 7. The package records:
 
 - query and selected budget;
 - prepared and embedding identities;
@@ -21,13 +21,14 @@ The current package version is 6. The package records:
 - adaptive assembly metadata when applicable;
 - selected source chunks and structural evidence;
 - facet identities and protected facet claims;
+- required linked-span group identities and protection summaries;
 - facet-protection and companion-depth summaries;
 - exact token count; and
-- source, structural, and facet omission counts.
+- source, structural, facet, and required-group omission counts.
 
 ## Adaptive fitting
 
-Coverage-aware adaptive packages protect one source candidate for each available query facet before spending the remaining budget on repeated evidence. Mechanism, call-chain, and direct-location owners may also protect one same-file companion chunk when it contributes a lexical term not already represented by that owner.
+Coverage-aware adaptive packages protect one source candidate for each available query facet before spending the remaining budget on repeated evidence. When a candidate belongs to a provider-declared required source-link group, the complete group is attempted atomically at that candidate's existing rank rather than being elevated ahead of stronger evidence. Mechanism, call-chain, and direct-location owners may also protect one same-file companion chunk when it contributes a lexical term not already represented by that owner.
 
 Architecture and mixed-intent owners do not receive companion completion. Calibration showed that completing those files displaced stronger evidence. Companion selection is deterministic and bounded; it does not change retrieval or ranking.
 
@@ -36,7 +37,8 @@ Architecture and mixed-intent owners do not receive companion completion. Calibr
 - Token accounting uses `o200k_base` over the serialized package representation.
 - The compiler never exceeds the supplied positive budget.
 - Legacy and fixed-budget packages retain deterministic input order.
-- Coverage-aware adaptive packages retain deterministic facet and companion order subject to fitting.
+- Coverage-aware adaptive packages retain deterministic required-group, facet, and companion order subject to fitting.
+- A required linked group is retained or omitted as a complete unit; final trimming never leaves a partial protected group.
 - Unsupported package versions must be rejected by consumers.
 - Explicit-budget packages do not fabricate adaptive assembly metadata.
 

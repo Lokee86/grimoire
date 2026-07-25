@@ -226,6 +226,124 @@ func TestCompileAdaptiveProtectsSameFileCompanionChunks(t *testing.T) {
 	}
 }
 
+func TestCompileAdaptiveRequiredGroupKeepsOwnerRank(t *testing.T) {
+	primary := facetCandidate(
+		t, "internal/primary.go", strings.Repeat("primary mechanism ", 70),
+		10, evidence.IntentMechanism, "facet:mechanism",
+	)
+	noise := candidate(t, "internal/noise.go", strings.Repeat("ranked context ", 70), 9)
+	owner := facetCandidate(
+		t, "internal/late_owner.go", strings.Repeat("late owner ", 70),
+		8, evidence.IntentMechanism, "facet:mechanism",
+	)
+	companion := candidate(
+		t, "internal/late_companion.go", strings.Repeat("late companion ", 70), 7,
+	)
+	companion.Context = &evidence.Descriptor{
+		Identity: evidence.RangeIdentity(companion.Chunk.Path, companion.Chunk.StartLine, companion.Chunk.EndLine),
+	}
+	owner.Context.Links = []evidence.Link{{
+		Identity: companion.Context.Identity, Relation: "extracted_companion", Required: true,
+	}}
+	candidates := []retrieve.Candidate{primary, noise, owner, companion}
+	decision := assembly.Decision{
+		CoverageAware: true, RequiredLinkAware: true,
+		FacetCoverageDepth: 3, FacetsAvailable: 1, RequiredLinksAvailable: 1,
+	}
+
+	var pkg Package
+	found := false
+	for budget := 300; budget < 4000; budget++ {
+		var err error
+		pkg, err = CompileAdaptiveWithEvidenceConfig(
+			"explain the mechanism", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"test"}, nil, nil, decision, candidates,
+			Config{ProtectFacets: true, ProtectRequiredLinks: true},
+		)
+		if err == nil && len(pkg.Selections) == 2 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("no two-selection budget found: %+v", pkg)
+	}
+	if pkg.Selections[0].Path != primary.Chunk.Path || pkg.Selections[1].Path != noise.Chunk.Path {
+		t.Fatalf("late required group leapfrogged stronger evidence: %+v", pkg.Selections)
+	}
+	if pkg.RequiredLinkGroupsProtected != 0 || pkg.RequiredLinkGroupsOmitted != 1 {
+		t.Fatalf("late omitted group summary is incomplete: %+v", pkg)
+	}
+}
+
+func TestCompileAdaptiveProtectsRequiredLinkedSpansAtomically(t *testing.T) {
+	owner := facetCandidate(
+		t, "internal/owner.go", strings.Repeat("owner mechanism ", 70),
+		10, evidence.IntentMechanism, "facet:mechanism",
+	)
+	noise := facetCandidate(
+		t, "internal/noise.go", strings.Repeat("unrelated mechanism ", 70),
+		9, evidence.IntentMechanism, "facet:mechanism",
+	)
+	companion := candidate(
+		t, "internal/companion.go", strings.Repeat("required extracted continuation ", 70), 8,
+	)
+	companion.Context = &evidence.Descriptor{
+		Identity: evidence.RangeIdentity(companion.Chunk.Path, companion.Chunk.StartLine, companion.Chunk.EndLine),
+		Intents:  []evidence.Intent{evidence.IntentMechanism},
+		Roles:    []evidence.Role{evidence.RoleSupporting},
+	}
+	owner.Context.Links = []evidence.Link{{
+		Identity: companion.Context.Identity, Relation: "extracted_companion", Required: true,
+	}}
+	candidates := []retrieve.Candidate{owner, noise, companion}
+	decision := assembly.Decision{
+		CoverageAware: true, RequiredLinkAware: true,
+		FacetCoverageDepth: 3, FacetsAvailable: 1, RequiredLinksAvailable: 1,
+	}
+
+	var protected Package
+	var facetOnly Package
+	found := false
+	for budget := 300; budget < 4000; budget++ {
+		var err error
+		protected, err = CompileAdaptiveWithEvidenceConfig(
+			"explain the complete mechanism", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"test"}, nil, nil, decision, candidates, DefaultConfig(),
+		)
+		if err != nil {
+			continue
+		}
+		facetOnly, err = CompileAdaptiveWithEvidenceConfig(
+			"explain the complete mechanism", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"test"}, nil, nil, decision, candidates,
+			Config{ProtectFacets: true, CompanionDepth: 0},
+		)
+		if err == nil && len(protected.Selections) == 2 && len(facetOnly.Selections) == 2 &&
+			protected.RequiredLinkGroupsProtected == 1 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("no two-selection budget found: protected=%+v facet-only=%+v", protected, facetOnly)
+	}
+	if protected.Selections[0].Path != owner.Chunk.Path || protected.Selections[1].Path != companion.Chunk.Path {
+		t.Fatalf("required linked group was not preserved: %+v", protected.Selections)
+	}
+	if protected.Selections[0].ProtectedLinkGroup == "" ||
+		protected.Selections[0].ProtectedLinkGroup != protected.Selections[1].ProtectedLinkGroup {
+		t.Fatalf("required linked group metadata is incomplete: %+v", protected.Selections)
+	}
+	if protected.RequiredLinkGroupsProtected != 1 || protected.RequiredLinkGroupsOmitted != 0 {
+		t.Fatalf("required link summary is incomplete: %+v", protected)
+	}
+	if facetOnly.Selections[0].Path != owner.Chunk.Path || facetOnly.Selections[1].Path != noise.Chunk.Path {
+		t.Fatalf("facet-only fitting no longer demonstrates the displaced companion: %+v", facetOnly.Selections)
+	}
+	assertExactPackageCount(t, protected)
+}
+
 func TestCompileAdaptiveTriesNextCandidateWhenFacetOwnerDoesNotFit(t *testing.T) {
 	candidates := []retrieve.Candidate{
 		facetCandidate(t, "large.go", strings.Repeat("large owner ", 500), 10, evidence.IntentMechanism, "facet:mechanism"),

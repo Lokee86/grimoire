@@ -46,6 +46,8 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	assemblyFacetDepth := flags.Int("assembly-facet-depth", assembly.DefaultConfig().FacetDepth, "candidate depth reserved for each query facet")
 	compilerFacetProtection := flags.Bool("compiler-facet-protection", compiler.DefaultConfig().ProtectFacets, "protect one source candidate per query facet during final token fitting")
 	compilerCompanionDepth := flags.Int("compiler-companion-depth", compiler.DefaultConfig().CompanionDepth, "additional protected chunks per selected facet source file")
+	compilerRequiredLinkProtection := flags.Bool("compiler-required-link-protection", compiler.DefaultConfig().ProtectRequiredLinks, "protect complete required source-link groups during final token fitting")
+	spanExtraction := flags.Bool("span-extraction", false, "refine multi-part adaptive candidates into language-aware source spans")
 	lexicalDeclarationAliasBonus := flags.Float64("lexical-declaration-alias-bonus", retrieve.DefaultConfig().DeclarationAliasBonus, "score for one repository-derived high-similarity declaration alias per absent query term")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
@@ -76,7 +78,9 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	}
 	lexicalConfig := retrieve.Config{DeclarationAliasBonus: *lexicalDeclarationAliasBonus}
 	compilerConfig := compiler.Config{
-		ProtectFacets: *compilerFacetProtection, CompanionDepth: *compilerCompanionDepth,
+		ProtectFacets:        *compilerFacetProtection,
+		CompanionDepth:       *compilerCompanionDepth,
+		ProtectRequiredLinks: *compilerRequiredLinkProtection,
 	}
 	assemblyConfig := assembly.DefaultConfig()
 	switch strings.ToLower(strings.TrimSpace(*assemblyStrategy)) {
@@ -199,6 +203,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 				AssemblyConfig: &assemblyConfig,
 				CompilerConfig: &compilerConfig,
 				LexicalConfig:  &lexicalConfig,
+				SpanExtraction: *spanExtraction,
 			})
 			cancel()
 			run.Timings = executed.Timings
@@ -232,6 +237,10 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 			run.FacetsAvailable = executed.Package.FacetsAvailable
 			run.FacetsProtected = executed.Package.FacetsProtected
 			run.FacetsOmittedForBudget = executed.Package.FacetsOmittedForBudget
+			run.RequiredLinkProtection = executed.Package.RequiredLinkProtection
+			run.RequiredLinkGroupsAvailable = executed.Package.RequiredLinkGroupsAvailable
+			run.RequiredLinkGroupsProtected = executed.Package.RequiredLinkGroupsProtected
+			run.RequiredLinkGroupsOmitted = executed.Package.RequiredLinkGroupsOmitted
 			run.OmittedForBudget = executed.Package.OmittedForBudget
 			run.OmittedStructuralForBudget = executed.Package.OmittedStructuralForBudget
 			run.Selections = packageSelections(entry, executed.Package.Selections)

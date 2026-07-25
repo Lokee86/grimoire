@@ -107,6 +107,9 @@ func TestScoreCasePassAndIrrelevance(t *testing.T) {
 	if !run.Pass || run.RequiredEvidenceRecall != 1 {
 		t.Fatalf("unexpected pass result: %+v", run)
 	}
+	if run.RequiredEvidenceFunnel.Total != 1 || run.RequiredEvidenceFunnel.Included != 1 {
+		t.Fatalf("unexpected required evidence funnel: %+v", run.RequiredEvidenceFunnel)
+	}
 	if run.IrrelevantSelectionRate != 0.5 {
 		t.Fatalf("irrelevant rate = %v", run.IrrelevantSelectionRate)
 	}

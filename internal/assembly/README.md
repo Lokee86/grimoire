@@ -6,6 +6,8 @@ It receives curated source candidates and composed structural evidence in ranked
 
 Coverage-aware planning is the production strategy. Decomposed query intents receive stable facet identities during retrieval, and assembly reserves three distinct ranked candidates per facet before spending the remaining pool on repeated evidence. A candidate may match several facets, but it claims only its strongest still-open facet during coverage planning so one generic chunk cannot satisfy an entire multi-part query.
 
+Provider-neutral required links are also honored. When a selected source span declares another available span as required, assembly places the linked span directly behind its owner and does not stop coverage or enforce the normal candidate cap until that selected evidence unit is complete. Any bounded cap overflow is recorded in the assembly decision.
+
 ## Scope behavior
 
 - Focused: stay near an exact or highest-ranked anchor region.
@@ -16,4 +18,4 @@ Each scope has hard candidate and structural limits. Facet reservation is applie
 
 ## Boundary
 
-Assembly owns scope-specific coverage, distinct facet claims, and reserve rules. It consumes provider-assigned facet ranks but does not score candidates, infer graph relations, or serialize packages. Fixed positive-budget requests bypass this package.
+Assembly owns scope-specific coverage, distinct facet claims, required-link completion, and reserve rules. It consumes provider-assigned facet ranks and required links but does not score candidates, infer graph relations, or serialize packages. Fixed positive-budget requests bypass this package.

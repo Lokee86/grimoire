@@ -42,6 +42,7 @@ func ScoreCase(entry Case, run *CaseRun, stages Stages) {
 	run.Ranking = ScoreRanking(entry, stages.Retrieved)
 	run.CandidateDiagnostics = BuildCandidateDiagnostics(entry, stages)
 	run.Required = scoreEvidenceGroup(entry.Query, entry.Required, stages)
+	run.RequiredEvidenceFunnel = evidenceFunnel(run.Required)
 	run.Supporting = scoreEvidenceGroup(entry.Query, entry.Supporting, stages)
 	run.RequiredEvidenceRecall = recall(run.Required)
 	run.SupportingEvidenceRecall = recall(run.Supporting)
@@ -249,6 +250,49 @@ func filepathKey(path string) string {
 	return strings.TrimPrefix(strings.ReplaceAll(strings.TrimSpace(path), "\\", "/"), "./")
 }
 
+func evidenceFunnel(statuses []EvidenceStatus) EvidenceFunnel {
+	funnel := EvidenceFunnel{Total: len(statuses)}
+	for _, status := range statuses {
+		if status.Indexed {
+			funnel.Indexed++
+		}
+		if status.BroadProbe {
+			funnel.BroadProbe++
+		}
+		if status.Retrieved {
+			funnel.Retrieved++
+		}
+		if status.ExactRecovered {
+			funnel.ExactRecovered++
+		}
+		if status.Merged {
+			funnel.Merged++
+		}
+		if status.Curated {
+			funnel.Curated++
+		}
+		if status.Assembled {
+			funnel.Assembled++
+		}
+		if status.Included {
+			funnel.Included++
+		}
+	}
+	return funnel
+}
+
+func addEvidenceFunnel(target *EvidenceFunnel, source EvidenceFunnel) {
+	target.Total += source.Total
+	target.Indexed += source.Indexed
+	target.BroadProbe += source.BroadProbe
+	target.Retrieved += source.Retrieved
+	target.ExactRecovered += source.ExactRecovered
+	target.Merged += source.Merged
+	target.Curated += source.Curated
+	target.Assembled += source.Assembled
+	target.Included += source.Included
+}
+
 func recall(statuses []EvidenceStatus) float64 {
 	if len(statuses) == 0 {
 		return 0
@@ -309,6 +353,7 @@ func AggregateRuns(group string, runs []CaseRun) Aggregate {
 			rankingRelevantAt10 += run.Ranking.RelevantRateAt10
 			rankingRelevantAt20 += run.Ranking.RelevantRateAt20
 		}
+		addEvidenceFunnel(&aggregate.RequiredEvidenceFunnel, evidenceFunnel(run.Required))
 		for _, status := range run.Required {
 			requiredTotal++
 			if status.Included {

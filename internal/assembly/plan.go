@@ -46,6 +46,10 @@ func PlanWithConfig(
 			priorityBoundary = 0
 		}
 	}
+	var requiredLinks []requiredCandidateLink
+	if planConfig.RequiredLinkAware {
+		ordered, requiredLinks = prioritizeRequiredLinks(ordered)
+	}
 	selected := make([]retrieve.Candidate, 0, min(scopeConfig.maximumCandidates, len(candidates)))
 	regions := newOrderedSet()
 	roles := newOrderedSet()
@@ -82,37 +86,43 @@ func PlanWithConfig(
 		if candidate.Source == "exact" {
 			hasExact = true
 		}
-		if len(selected) >= scopeConfig.maximumCandidates {
+		linksSatisfied := selectedRequiredLinksSatisfied(selected, requiredLinks)
+		if len(selected) >= scopeConfig.maximumCandidates && linksSatisfied {
 			stopReason = string(policy.Scope) + " candidate cap reached"
 			break
 		}
 		if (priorityBoundary == 0 || index+1 >= priorityBoundary) &&
 			coverageSatisfied(
 				policy, scopeConfig, len(selected), candidateTokens, regions.Len(),
-				hasExact, facets.Len(), requiredFacets, candidates,
+				hasExact, facets.Len(), requiredFacets, candidates, linksSatisfied,
 			) {
 			stopReason = string(policy.Scope) + " evidence coverage satisfied"
 			break
 		}
 	}
+	requiredLinksRepresented := representedRequiredLinks(selected, requiredLinks)
 	return Result{
 		Candidates: selected,
 		Structural: structural,
 		Decision: Decision{
-			Scope:                policy.Scope,
-			CandidatesConsidered: considered,
-			CandidatesSelected:   len(selected),
-			CandidateTokens:      candidateTokens,
-			StructuralConsidered: len(evidence),
-			StructuralSelected:   len(structural),
-			RegionsRepresented:   regions.Values(),
-			RolesRepresented:     roles.Values(),
-			GroupsRepresented:    groups.Len(),
-			FacetsAvailable:      facetsAvailable,
-			FacetsRepresented:    facets.Len(),
-			FacetCoverageDepth:   planConfig.FacetDepth,
-			CoverageAware:        planConfig.CoverageAware,
-			StopReason:           stopReason,
+			Scope:                    policy.Scope,
+			CandidatesConsidered:     considered,
+			CandidatesSelected:       len(selected),
+			CandidateTokens:          candidateTokens,
+			StructuralConsidered:     len(evidence),
+			StructuralSelected:       len(structural),
+			RegionsRepresented:       regions.Values(),
+			RolesRepresented:         roles.Values(),
+			GroupsRepresented:        groups.Len(),
+			FacetsAvailable:          facetsAvailable,
+			FacetsRepresented:        facets.Len(),
+			FacetCoverageDepth:       planConfig.FacetDepth,
+			CoverageAware:            planConfig.CoverageAware,
+			RequiredLinkAware:        planConfig.RequiredLinkAware,
+			RequiredLinksAvailable:   len(requiredLinks),
+			RequiredLinksRepresented: requiredLinksRepresented,
+			CandidateCapOverflow:     max(0, len(selected)-scopeConfig.maximumCandidates),
+			StopReason:               stopReason,
 		},
 	}
 }
@@ -237,10 +247,11 @@ func coverageSatisfied(
 	hasExact bool,
 	facetsRepresented, requiredFacets int,
 	all []retrieve.Candidate,
+	requiredLinksSatisfied bool,
 ) bool {
 	if selected < config.minimumCandidates || regions < config.minimumRegions ||
 		candidateTokens < policy.TargetTokens*config.tokenPoolMultiplier ||
-		facetsRepresented < requiredFacets {
+		facetsRepresented < requiredFacets || !requiredLinksSatisfied {
 		return false
 	}
 	if policy.Scope != queryshape.ScopeFocused {

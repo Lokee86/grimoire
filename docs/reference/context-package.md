@@ -4,13 +4,13 @@
 
 `grimoire context` emits a versioned, agent-independent JSON package containing selected repository source plus bounded structural evidence from Lexicon and Arcana when their repository state is available.
 
-The current package version is `5`.
+The current package version is `7`.
 
 ## Example
 
 ```json
 {
-  "version": 5,
+  "version": 7,
   "query": "trace player damage resolution",
   "budget": 2000,
   "tokenizer": "o200k_base",
@@ -124,7 +124,7 @@ The values illustrate the schema. A real `token_count` is calculated from the co
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `version` | integer | Context-package schema version; currently `5` |
+| `version` | integer | Context-package schema version; currently `7` |
 | `query` | string | Original query supplied by the caller |
 | `budget` | integer | Maximum `o200k_base` tokens permitted in the emitted package |
 | `tokenizer` | string | Tokenizer used for chunk and package accounting; currently `o200k_base` |
@@ -136,6 +136,10 @@ The values illustrate the schema. A real `token_count` is calculated from the co
 | `structural_evidence` | object array | Bounded Lexicon and Arcana facts retained under the package budget |
 | `assembly` | object | Automatic query scope, coverage, selected/considered counts, and stop reason; omitted for explicit budgets |
 | `selections` | object array | Ranked source chunks retained under the package budget |
+| `required_link_protection` | boolean | Whether automatic fitting honored provider-declared required source links |
+| `required_link_groups_available` | integer | Complete required linked-span groups available to final fitting |
+| `required_link_groups_protected` | integer | Complete required linked-span groups retained in the package |
+| `required_link_groups_omitted_for_budget` | integer | Complete required linked-span groups that could not fit |
 | `omitted_structural_for_budget` | integer | Structural facts rejected because the complete fact did not fit |
 | `omitted_for_budget` | integer | Source selections rejected because the complete chunk did not fit |
 
@@ -180,6 +184,9 @@ Relationships record `direction`, `relation`, and `certainty`. Definite and poss
 | `retrieval_source` | string | Source that produced the candidate, such as `exact`, `vector`, `lexical`, `lexicon`, or `adjacent` |
 | `retrieval_rank` | integer | One-based provider rank before curation; adjacent expansion uses zero |
 | `reasons` | string array | Inspectable provider explanation |
+| `facet_ids` | string array | Query facets represented by the candidate, when available |
+| `protected_facet` | string | Facet claim protected during adaptive fitting, when applicable |
+| `protected_link_group` | string | Stable identity shared by every selection in one retained required-link group |
 | `token_count` | integer | Exact `o200k_base` count of the prepared chunk text |
 | `content` | string | Exact prepared chunk text |
 
@@ -199,12 +206,16 @@ A structural-provider failure writes a warning to stderr and does not disable st
 
 Lexicon and Arcana evidence are interleaved while preserving provider-local order, so one provider cannot consume the entire structural section before the other is considered.
 
-The compiler attempts evidence in this order:
+For automatic packages, the compiler attempts evidence in this order:
 
 1. highest-ranked structural fact;
-2. highest-ranked source selection;
+2. protected query-facet owners and eligible same-file companions;
 3. remaining interleaved structural facts; and
 4. remaining curated source selections.
+
+When any attempted candidate belongs to a provider-declared required source-link group, the compiler attempts the complete group atomically at that candidate's existing position. Required groups do not leapfrog stronger unrelated evidence.
+
+Fixed-budget packages retain the legacy rank-preserving source order.
 
 This guarantees that first-class structural data does not remain merely a ranking hint, while reserving an early opportunity for the implementation source itself. Complete facts and complete chunks are never truncated. An item that does not fit is omitted, and later smaller items may still be retained.
 
@@ -225,6 +236,10 @@ Fast mode divides the complete query into non-overlapping windows and sends boun
 When semantic retrieval is unavailable or incompatible, `context` writes a warning to stderr and substitutes deterministic lexical retrieval. Structural enrichment can still run independently.
 
 ## Compatibility
+
+Version 7 adds provider-declared required source-link groups, atomic final fitting for those groups, and inspectable required-group protection and omission metadata.
+
+Version 6 adds facet-preserving final fitting, protected facet claims, and bounded same-file companions.
 
 Version 5 adds deterministic automatic budgeting and assembly metadata. Automatic requests may intentionally stop below their selected maximum after scope-specific evidence coverage is satisfied. Explicit-budget requests omit `assembly` and retain fit-to-budget behavior.
 

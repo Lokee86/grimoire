@@ -89,6 +89,19 @@ func Markdown(report Report) string {
 			aggregate.IrrelevantStructuralRate*100, aggregate.MedianLatencyMS, aggregate.P95LatencyMS)
 	}
 
+	output.WriteString("\n## Required evidence funnel\n\n")
+	output.WriteString("Counts show how judged required evidence survives each source-selection stage. Percentages are relative to total required evidence.\n\n")
+	output.WriteString("| Mode | Total | Retrieved | Merged | Curated | Assembled | Included |\n")
+	output.WriteString("| --- | ---: | ---: | ---: | ---: | ---: | ---: |\n")
+	for _, aggregate := range report.ByMode {
+		funnel := aggregate.RequiredEvidenceFunnel
+		fmt.Fprintf(&output, "| %s | %d | %s | %s | %s | %s | %s |\n",
+			aggregate.Group, funnel.Total,
+			funnelCell(funnel.Retrieved, funnel.Total), funnelCell(funnel.Merged, funnel.Total),
+			funnelCell(funnel.Curated, funnel.Total), funnelCell(funnel.Assembled, funnel.Total),
+			funnelCell(funnel.Included, funnel.Total))
+	}
+
 	output.WriteString("\n## Required evidence failure stages\n\n")
 	output.WriteString("| Mode | Failure stage | Count | Share of missing required evidence |\n")
 	output.WriteString("| --- | --- | ---: | ---: |\n")
@@ -187,7 +200,7 @@ func Markdown(report Report) string {
 
 	if hasCandidateDiagnostics(report.Runs) {
 		output.WriteString("\n## Candidate score attribution\n\n")
-		output.WriteString("Retrieved attribution shows the provider score and its numeric signals. Exact, merged, curated, and included columns expose later movement or loss; adjacency is a curation insertion rather than an additive score.\n\n")
+		output.WriteString("Retrieved attribution shows the provider score and its numeric signals. Exact, merged, curated, assembled, and included columns expose later movement or loss; adjacency is a curation insertion rather than an additive score.\n\n")
 		for _, run := range report.Runs {
 			diagnostics := candidateDiagnosticsForMarkdown(run.CandidateDiagnostics)
 			if len(diagnostics) == 0 {
@@ -197,15 +210,16 @@ func Markdown(report Report) string {
 			if run.Query != "" {
 				fmt.Fprintf(&output, "Query: %s\n\n", run.Query)
 			}
-			output.WriteString("| Evidence | Candidate | Retrieved attribution | Exact attribution | Merged | Curated | Included |\n")
-			output.WriteString("| --- | --- | --- | --- | ---: | --- | ---: |\n")
+			output.WriteString("| Evidence | Candidate | Retrieved attribution | Exact attribution | Merged | Curated | Assembled | Included |\n")
+			output.WriteString("| --- | --- | --- | --- | ---: | --- | ---: | ---: |\n")
 			for _, diagnostic := range diagnostics {
-				fmt.Fprintf(&output, "| %s | `%s` | %s | %s | %s | %s | %s |\n",
+				fmt.Fprintf(&output, "| %s | `%s` | %s | %s | %s | %s | %s | %s |\n",
 					diagnosticEvidenceLabel(diagnostic), diagnosticLocation(diagnostic),
 					escapeCell(candidateStageSummary(diagnostic.Retrieved)),
 					escapeCell(candidateStageSummary(diagnostic.Exact)),
 					candidateStageRank(diagnostic.Merged),
 					escapeCell(candidateStageSummary(diagnostic.Curated)),
+					candidateStageRank(diagnostic.Assembled),
 					candidateStageRank(diagnostic.Included))
 			}
 			output.WriteByte('\n')
@@ -247,6 +261,13 @@ func Markdown(report Report) string {
 		}
 	}
 	return output.String()
+}
+
+func funnelCell(count, total int) string {
+	if total == 0 {
+		return "0 (0.0%)"
+	}
+	return fmt.Sprintf("%d (%.1f%%)", count, float64(count)/float64(total)*100)
 }
 
 func sortedFailureStages(stages map[string]int) []string {

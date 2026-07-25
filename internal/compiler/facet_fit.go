@@ -65,7 +65,7 @@ func candidateFacetIDs(candidate retrieve.Candidate) []string {
 
 func lastUnprotectedSelection(selections []Selection) int {
 	for index := len(selections) - 1; index >= 0; index-- {
-		if selections[index].ProtectedFacet == "" {
+		if selections[index].ProtectedFacet == "" && selections[index].ProtectedLinkGroup == "" {
 			return index
 		}
 	}
@@ -138,11 +138,21 @@ func addRankingTerms(candidate retrieve.Candidate, covered map[string]struct{}) 
 	}
 }
 
+func packageProtectedFacetCount(pkg Package) int {
+	return min(pkg.FacetsAvailable, protectedFacetCount(pkg.Selections))
+}
+
 func protectedFacetCount(selections []Selection) int {
 	seen := make(map[string]struct{})
 	for _, selection := range selections {
 		if selection.ProtectedFacet != "" {
 			seen[selection.ProtectedFacet] = struct{}{}
+		}
+		if selection.ProtectedLinkGroup == "" {
+			continue
+		}
+		for _, facet := range selection.FacetIDs {
+			seen[facet] = struct{}{}
 		}
 	}
 	return len(seen)
