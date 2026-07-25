@@ -8,7 +8,7 @@
 - Record source stages from index presence through final package inclusion.
 - Record structural stages from provider production through final inclusion.
 - Distinguish retrieval, merge, curation, adaptive assembly, and budget-fitting losses.
-- Calculate ranking recall, MRR, final recall, irrelevant-selection rates, latency, package size, and budget utilization.
+- Calculate ranking recall, MRR, stage-by-stage required-evidence retention, final recall, irrelevant-selection rates, latency, package size, and budget utilization.
 - Aggregate by mode and category.
 - Emit machine-readable JSON and reviewable Markdown.
 
