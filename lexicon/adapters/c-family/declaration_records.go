@@ -41,7 +41,8 @@ func (extractor *extractor) handleMacro(node *tree_sitter.Node, context extracti
 	if name == "" {
 		return
 	}
-	replacement, target := macroDetails(node, name, extractor.source)
+	replacement, parameters, calls := macroSemanticDetails(node, name, extractor.source)
+	target := directMacroTarget(replacement)
 	attributes := map[string]any{"macro": true, "function_like": node.Kind() == "preproc_function_def"}
 	if context.Conditional {
 		attributes["conditional"] = true
@@ -52,7 +53,9 @@ func (extractor *extractor) handleMacro(node *tree_sitter.Node, context extracti
 	if target != "" {
 		attributes["target"] = target
 	}
-	extractor.addDeclaration(node, context, "symbol", name, qualify(context.ContainerQualified, name), "", false, true, attributes)
+	declaration := extractor.addDeclaration(node, context, "symbol", name, qualify(context.ContainerQualified, name), "", false, true, attributes)
+	declaration.MacroParameters = parameters
+	declaration.MacroCalls = calls
 }
 
 func (extractor *extractor) addDeclaration(node *tree_sitter.Node, context extractionContext, kind, name, qualified, signature string, callable, definition bool, attributes map[string]any) *declaration {
