@@ -98,7 +98,6 @@ type Timings struct {
 	CandidateMergeMS       float64 `json:"candidate_merge_ms,omitempty"`
 	ExactRecoveryMS        float64 `json:"exact_recovery_ms,omitempty"`
 	CurationMS             float64 `json:"curation_ms,omitempty"`
-	ExtractionMS           float64 `json:"extraction_ms,omitempty"`
 	AssemblyMS             float64 `json:"assembly_ms,omitempty"`
 	PackageCompilationMS   float64 `json:"package_compilation_ms,omitempty"`
 	SelectionCompilationMS float64 `json:"selection_compilation_ms,omitempty"`

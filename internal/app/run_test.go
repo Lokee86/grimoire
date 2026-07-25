@@ -11,6 +11,27 @@ import (
 	"github.com/Lokee86/grimoire/internal/index"
 )
 
+func TestRootHelpIsUseful(t *testing.T) {
+	for _, args := range [][]string{nil, {"help"}, {"-h"}, {"--help"}} {
+		var output bytes.Buffer
+		if err := Run(args, &output, &bytes.Buffer{}); err != nil {
+			t.Fatalf("Run(%v): %v", args, err)
+		}
+		for _, expected := range []string{"Usage:", "grimoire model start", "grimoire context", "Lexicon", "Arcana"} {
+			if !bytes.Contains(output.Bytes(), []byte(expected)) {
+				t.Fatalf("Run(%v) help missing %q:\n%s", args, expected, output.String())
+			}
+		}
+	}
+}
+
+func TestUnknownCommandPointsToHelp(t *testing.T) {
+	err := Run([]string{"unknown"}, &bytes.Buffer{}, &bytes.Buffer{})
+	if err == nil || !bytes.Contains([]byte(err.Error()), []byte("grimoire help")) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestIndexUsesConfiguredIgnoreFile(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, ".contextignore"), []byte("ignored.go\n"), 0o644); err != nil {

@@ -43,7 +43,6 @@ type evaluatedContextOptions struct {
 	AssemblyConfig  *assembly.Config
 	CompilerConfig  *compiler.Config
 	LexicalConfig   *retrieve.Config
-	SpanExtraction  bool
 }
 
 func evaluateContext(
@@ -157,16 +156,6 @@ func evaluateContext(
 	assembledEvidence := structural.Combined
 	effectiveBudget := options.Budget
 	var decision *assembly.Decision
-	if options.Adaptive && options.SpanExtraction {
-		extractionStart := time.Now()
-		extracted, extractionErr := extractContextCandidates(options.Query, intents, curated)
-		result.Timings.ExtractionMS = durationMS(time.Since(extractionStart))
-		if extractionErr != nil {
-			return result, fmt.Errorf("extract context candidates: %w", extractionErr)
-		}
-		assemblyInput = extracted
-		assembledCandidates = assemblyInput
-	}
 	if options.Adaptive {
 		result.RetrievalPolicy = queryshape.Activate(result.RetrievalPolicy)
 		effectiveBudget = result.RetrievalPolicy.TargetTokens
@@ -203,7 +192,7 @@ func evaluateContext(
 		)
 	}
 	result.Timings.PackageCompilationMS = durationMS(time.Since(compileStart))
-	result.Timings.SelectionCompilationMS = result.Timings.CurationMS + result.Timings.ExtractionMS + result.Timings.AssemblyMS + result.Timings.PackageCompilationMS
+	result.Timings.SelectionCompilationMS = result.Timings.CurationMS + result.Timings.AssemblyMS + result.Timings.PackageCompilationMS
 	result.Timings.TotalMS = durationMS(time.Since(totalStart)) - result.Timings.DiagnosticProbeMS
 	if result.Timings.TotalMS < 0 {
 		result.Timings.TotalMS = 0

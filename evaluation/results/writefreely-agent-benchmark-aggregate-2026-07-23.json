@@ -1,0 +1,107 @@
+{
+  "generated_date": "2026-07-23",
+  "task": "Trace how a WriteFreely post is created and persisted.",
+  "conditions": {
+    "trials_per_configuration": 3,
+    "context_package_target_tokens": 12000,
+    "discovery_call_ceiling": 55
+  },
+  "agent_campaigns": [
+    {
+      "campaign": "earlier-comparison",
+      "metric_scope": "reported configuration-level aggregates",
+      "token_accounting": "session_tokens",
+      "configurations": [
+        {
+          "name": "Bare agent",
+          "trials": 3,
+          "successful_trials": 3,
+          "discovery_calls": 54,
+          "time_seconds": 250.8,
+          "api_calls": 16,
+          "tokens": 1210653
+        },
+        {
+          "name": "Semantic Grimoire",
+          "trials": 3,
+          "successful_trials": 3,
+          "discovery_calls": 54,
+          "time_seconds": 307.6,
+          "api_calls": 19,
+          "tokens": 1309755
+        },
+        {
+          "name": "Grimoire + Lexicon",
+          "trials": 3,
+          "successful_trials": 2,
+          "discovery_calls": 44,
+          "time_seconds": 277.8,
+          "api_calls": 27,
+          "tokens": 2661177
+        },
+        {
+          "name": "Grimoire + Lexicon + Arcana",
+          "trials": 3,
+          "successful_trials": 3,
+          "discovery_calls": 54,
+          "time_seconds": 237.3,
+          "api_calls": 14,
+          "tokens": 866947
+        }
+      ]
+    },
+    {
+      "campaign": "hermes-arcana-comparison",
+      "metric_scope": "arithmetic means over three trials",
+      "runner": "Hermes",
+      "model": "gpt-5.6-luna",
+      "token_accounting": "noncached_input_plus_output",
+      "configurations": [
+        {
+          "name": "Grimoire + Arcana",
+          "trials": 3,
+          "successful_trials": 3,
+          "average_correctness_score": 10.0,
+          "correctness_scale": 10,
+          "average_discovery_calls": 48.3333333333,
+          "average_time_seconds": 268.778,
+          "average_api_calls": 16.0,
+          "average_input_tokens": 115247.0,
+          "average_output_tokens": 11332.3333333333,
+          "average_noncached_tokens": 126579.3333333333
+        },
+        {
+          "name": "Grimoire + Lexicon + Arcana",
+          "trials": 3,
+          "successful_trials": 3,
+          "average_correctness_score": 10.0,
+          "correctness_scale": 10,
+          "average_discovery_calls": 50.3333333333,
+          "average_time_seconds": 273.2786666667,
+          "average_api_calls": 21.3333333333,
+          "average_input_tokens": 91981.6666666667,
+          "average_output_tokens": 10445.0,
+          "average_noncached_tokens": 102426.6666666667
+        }
+      ]
+    }
+  ],
+  "cross_campaign_aggregates": {
+    "arcana_enabled_trials": 9,
+    "arcana_enabled_successful_trials": 9,
+    "full_stack_trials": 6,
+    "full_stack_successful_trials": 6,
+    "token_metrics_poolable_across_campaigns": false
+  },
+  "package_level_results": {
+    "standalone_vs_lexicon_assisted": "No material required/supporting recall improvement from Lexicon assistance.",
+    "provider_attribution": "Vector improved early ranking, but lexical, vector, and hybrid each finished at 2.2% final required recall on the Grimoire corpus because evidence was lost during package fitting.",
+    "adaptive_query_shape": "Adaptive sizing raised required recall from 0.0% to 2.2% and reduced irrelevant selections from 98.9% to 96.9%; this validated mechanics on a pre-calibration code state."
+  },
+  "conclusion": {
+    "arcana": "Strongest demonstrated contributor to correctness on this task.",
+    "lexicon_alone": "Not validated as an overall agent-performance improvement.",
+    "lexicon_with_arcana": "Reduced Hermes noncached tokens by 19.1% without improving correctness, time, or discovery calls.",
+    "grimoire_bottleneck": "Final evidence selection and budget fitting."
+  }
+}

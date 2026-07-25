@@ -6,7 +6,7 @@
 grimoire <command> [flags]
 ```
 
-Current top-level commands are `index`, `context`, `eval`, `model`, `vector`, and `version`.
+Current top-level commands are `index`, `context`, `eval`, `model`, `vector`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal setup-to-context workflow and exits successfully.
 
 ## `grimoire model setup`
 
@@ -301,7 +301,6 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | `--compiler-facet-file-depth <n>` | `2` | Distinct implementation files protected for eligible mechanism facets |
 | `--compiler-companion-depth <n>` | `1` | Additional same-file chunks protected for each selected facet file |
 | `--compiler-required-link-protection <bool>` | `true` | Retain complete provider-declared required source-link groups atomically |
-| `--span-extraction` | `false` | Evaluation-only language-aware source-span refinement for adaptive packages |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--structural-providers <list>` | `none` | `none`, `lexicon`, or `lexicon,arcana` |

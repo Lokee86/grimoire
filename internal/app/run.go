@@ -32,10 +32,12 @@ func (values *stringListFlag) Set(value string) error {
 
 func Run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("expected command: index, context, eval, model, vector, or version")
+		return writeRootHelp(stdout)
 	}
 
 	switch args[0] {
+	case "help", "-h", "--help":
+		return writeRootHelp(stdout)
 	case "index":
 		return runIndex(args[1:], stdout, stderr)
 	case "context":
@@ -50,8 +52,37 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		_, err := fmt.Fprintln(stdout, Version)
 		return err
 	default:
-		return fmt.Errorf("unknown command %q", args[0])
+		return fmt.Errorf("unknown command %q; run `grimoire help` for usage", args[0])
 	}
+}
+
+func writeRootHelp(writer io.Writer) error {
+	_, err := fmt.Fprint(writer, `Grimoire builds task-focused repository context from source, Lexicon facts, and Arcana graphs.
+
+Usage:
+  grimoire <command> [flags]
+
+Core workflow:
+  grimoire model setup                 Install the local embedding runtime
+  grimoire model start                 Start the managed embedding service
+  grimoire index --root .              Prepare source and Lexicon-aligned chunks
+  grimoire vector build --root .       Build or refresh semantic vectors
+  grimoire context --root . --query "Trace this behavior"
+
+Commands:
+  context   Build a context package
+  index     Prepare repository source state
+  vector    Build, search, or inspect vector state
+  model     Set up and manage the embedding runtime
+  eval      Run judged retrieval evaluation
+  version   Print the Grimoire version
+  help      Show this help
+
+Lexicon and Arcana remain independently usable components. Grimoire uses their
+repository-local state automatically when it is available and falls back safely
+when it is not.
+`)
+	return err
 }
 
 func runIndex(args []string, stdout, stderr io.Writer) error {

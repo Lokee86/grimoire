@@ -1,10 +1,10 @@
 # Grimoire
 
-Grimoire is a deterministic repository-intelligence platform and the canonical home of three independently usable components:
+Grimoire is a deterministic repository-intelligence platform. One repository now contains the complete source-to-context stack while preserving three independently usable component boundaries:
 
 | Component | Path | Responsibility |
 | --- | --- | --- |
-| **Grimoire Context** | repository root | Retrieval, ranking, query-shape analysis, token budgeting, and context-package construction |
+| **Grimoire** | repository root | Retrieval, ranking, task analysis, token budgeting, and context-package construction |
 | **Lexicon** | [`lexicon/`](lexicon/) | Polyglot language analysis, normalized source facts, immutable analysis objects, and snapshots |
 | **Arcana** | [`arcana/`](arcana/) | Repository-graph construction, packed graph storage, semantic graph indexing, traversal, impact analysis, and graph queries |
 
@@ -38,7 +38,7 @@ See [Component architecture](docs/architecture/components.md) for ownership, dep
 
 ## Current capabilities
 
-### Grimoire Context
+### Grimoire
 
 - Incremental prepared indexing with immutable content identities.
 - Local Qwen3 embeddings served by a managed `llama.cpp` runtime.
@@ -121,11 +121,17 @@ On Windows, the native vector build produces `native/vector-engine/target/releas
 
 ## Quick start
 
+The root command prints the complete normal workflow:
+
+```bash
+grimoire help
+```
+
 Install and start the managed embedding runtime:
 
 ```bash
 grimoire model setup
-grimoire model serve
+grimoire model start
 ```
 
 Prepare and vectorize a repository:
@@ -140,6 +146,8 @@ Compile an automatically sized context package:
 ```bash
 grimoire context --root . --query "Where is context-package assembly implemented?"
 ```
+
+Lexicon and Arcana state is used automatically when present. Grimoire continues with source retrieval when either component is not installed or initialized.
 
 A positive budget retains fixed fit-to-budget behavior:
 
@@ -193,6 +201,6 @@ Evaluation commands and checked-in report conventions for the context engine are
 
 ## Current status
 
-The source trees and histories of Lexicon and Arcana are now consolidated into Grimoire. The components still publish separate state, expose separate CLIs, and retain explicit ownership boundaries. Unified installation, release packaging, and top-level command orchestration remain follow-up work.
+The source trees and histories of Lexicon and Arcana are consolidated into Grimoire. The components still publish separate state, expose separate advanced CLIs, and retain explicit ownership boundaries, while the normal Grimoire workflow discovers and consumes their repository-local state automatically.
 
-Grimoire Context has working prepared indexing, local embedding setup and service control, vector persistence and search, source and structural retrieval, adaptive context assembly, and judged evaluation. Lexicon and Arcana retain their existing application behavior inside `lexicon/` and `arcana/`.
+Grimoire has working prepared indexing, managed local embedding setup and service control, vector persistence and search, source and structural retrieval, adaptive context assembly, and judged evaluation. Lexicon and Arcana retain their existing standalone behavior inside `lexicon/` and `arcana/`.

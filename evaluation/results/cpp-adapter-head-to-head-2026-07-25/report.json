@@ -1,0 +1,923 @@
+{
+  "date": "2026-07-25",
+  "lexicon_adapter": "0.5.0",
+  "cbm_commit": "97ce23f9827177fff3858831156e9795c6832b18",
+  "method": "same scoped repositories; Lexicon full C-family facts; CBM fast mode with type-aware LSP resolution",
+  "timing_note": "Repeated-run observed timing, not cold-cache; CBM graph output is materially shallower and timing is not used for the semantic verdict.",
+  "cbm_full_fixture_confirmation": "Full mode emitted the same four targeted CALLS edges as fast mode, including beta::pick misrouted to two-argument alpha::pick and child.step misrouted to Derived::step.",
+  "lexicon_build_seconds": 2.122,
+  "cases": [
+    {
+      "id": "fixture",
+      "split": "adversarial",
+      "repository": "C:\\!bin\\workspace\\cpp-benchmark-fixture",
+      "runtime_seconds": {
+        "lexicon": 0.391,
+        "cbm": 0.102
+      },
+      "nodes": {
+        "lexicon": 65,
+        "cbm": 20
+      },
+      "edges": {
+        "lexicon": 113,
+        "cbm": 31
+      },
+      "lexicon_relations": {
+        "calls": 8,
+        "contains": 2,
+        "defines": 61,
+        "extends": 2,
+        "includes": 1,
+        "possible-calls": 2,
+        "reads": 25,
+        "references": 1,
+        "writes": 11
+      },
+      "cbm_relations": {
+        "DEFINES": 16,
+        "CALLS": 4,
+        "USAGE": 4,
+        "CONTAINS_FILE": 2,
+        "INHERITS": 2,
+        "DEFINES_METHOD": 1,
+        "HAS_BRANCH": 1,
+        "IMPORTS": 1
+      },
+      "manifest": {
+        "available": false
+      },
+      "lexicon_output_sha256": "625342e742690f32c1f3aa088440efa7be4c4437d6e759818b8490514eb1a7c1",
+      "fixture_calls": {
+        "checks": [
+          {
+            "line": 14,
+            "label": "qualified overload by arity",
+            "target": "alpha::pick",
+            "lexicon": true,
+            "cbm": false,
+            "lexicon_relations": [
+              "calls"
+            ]
+          },
+          {
+            "line": 15,
+            "label": "qualified namespace",
+            "target": "beta::pick",
+            "lexicon": true,
+            "cbm": false,
+            "lexicon_relations": [
+              "calls"
+            ]
+          },
+          {
+            "line": 16,
+            "label": "typed parameter receiver",
+            "target": "Worker::work",
+            "lexicon": true,
+            "cbm": false,
+            "lexicon_relations": [
+              "calls"
+            ]
+          },
+          {
+            "line": 17,
+            "label": "explicit local receiver",
+            "target": "Worker::work",
+            "lexicon": true,
+            "cbm": false,
+            "lexicon_relations": [
+              "calls"
+            ]
+          },
+          {
+            "line": 18,
+            "label": "auto reference receiver",
+            "target": "Worker::work",
+            "lexicon": true,
+            "cbm": true,
+            "lexicon_relations": [
+              "calls"
+            ]
+          },
+          {
+            "line": 19,
+            "label": "override receiver",
+            "target": "Derived::step",
+            "lexicon": true,
+            "cbm": false,
+            "lexicon_relations": [
+              "calls"
+            ]
+          },
+          {
+            "line": 20,
+            "label": "inherited method",
+            "target": "Base::step",
+            "lexicon": true,
+            "cbm": false,
+            "lexicon_relations": [
+              "possible-calls"
+            ]
+          },
+          {
+            "line": 21,
+            "label": "template function",
+            "target": "identity",
+            "lexicon": true,
+            "cbm": true,
+            "lexicon_relations": [
+              "calls"
+            ]
+          },
+          {
+            "line": 22,
+            "label": "macro-mediated call",
+            "target": "alpha::pick",
+            "lexicon": true,
+            "cbm": false,
+            "lexicon_relations": [
+              "calls"
+            ]
+          },
+          {
+            "line": 23,
+            "label": "function-pointer parameter remains explicitly unresolved",
+            "target": "dynamic",
+            "lexicon": true,
+            "cbm": false,
+            "lexicon_relations": [
+              "unresolved-call"
+            ]
+          }
+        ],
+        "lexicon_passed": 10,
+        "cbm_passed": 2,
+        "total": 10
+      },
+      "fixture_call_evidence": {
+        "lexicon": [
+          {
+            "line": 19,
+            "relation": "calls",
+            "target_name": "step",
+            "target_qn": "Derived::step",
+            "target_parameter_count": 1,
+            "evidence": [
+              "direct-receiver-type"
+            ],
+            "candidate_count": 1
+          },
+          {
+            "line": 20,
+            "relation": "possible-calls",
+            "target_name": "step",
+            "target_qn": "Derived::step",
+            "target_parameter_count": 1,
+            "evidence": [
+              "direct-scoped-name"
+            ],
+            "candidate_count": 2
+          },
+          {
+            "line": 21,
+            "relation": "calls",
+            "target_name": "identity",
+            "target_qn": "identity",
+            "target_parameter_count": 1,
+            "evidence": [
+              "direct-scoped-name"
+            ],
+            "candidate_count": 1
+          },
+          {
+            "line": 16,
+            "relation": "calls",
+            "target_name": "work",
+            "target_qn": "Worker::work",
+            "target_parameter_count": 1,
+            "evidence": [
+              "direct-receiver-type"
+            ],
+            "candidate_count": 1
+          },
+          {
+            "line": 17,
+            "relation": "calls",
+            "target_name": "work",
+            "target_qn": "Worker::work",
+            "target_parameter_count": 1,
+            "evidence": [
+              "direct-receiver-type"
+            ],
+            "candidate_count": 1
+          },
+          {
+            "line": 20,
+            "relation": "possible-calls",
+            "target_name": "step",
+            "target_qn": "Base::step",
+            "target_parameter_count": 1,
+            "evidence": [
+              "direct-scoped-name"
+            ],
+            "candidate_count": 2
+          },
+          {
+            "line": 15,
+            "relation": "calls",
+            "target_name": "pick",
+            "target_qn": "beta::pick",
+            "target_parameter_count": 1,
+            "evidence": [
+              "explicit-qualification"
+            ],
+            "candidate_count": 1
+          },
+          {
+            "line": 14,
+            "relation": "calls",
+            "target_name": "pick",
+            "target_qn": "alpha::pick",
+            "target_parameter_count": 1,
+            "evidence": [
+              "explicit-qualification",
+              "arity-pruning"
+            ],
+            "candidate_count": 1
+          },
+          {
+            "line": 22,
+            "relation": "calls",
+            "target_name": "pick",
+            "target_qn": "alpha::pick",
+            "target_parameter_count": 1,
+            "evidence": [
+              "argument-substitution",
+              "arity-pruning",
+              "explicit-qualification",
+              "macro-body",
+              "macro-mediation"
+            ],
+            "candidate_count": 1
+          },
+          {
+            "line": 18,
+            "relation": "calls",
+            "target_name": "work",
+            "target_qn": "Worker::work",
+            "target_parameter_count": 1,
+            "evidence": [
+              "direct-scoped-name"
+            ],
+            "candidate_count": 1
+          },
+          {
+            "line": 23,
+            "relation": "unresolved-call",
+            "target_name": "callback",
+            "target_qn": null,
+            "target_parameter_count": null,
+            "evidence": [
+              "external-target"
+            ],
+            "candidate_count": null
+          },
+          {
+            "line": 20,
+            "relation": "unresolved-call",
+            "target_name": "child.step",
+            "target_qn": null,
+            "target_parameter_count": null,
+            "evidence": [
+              "ambiguous-target"
+            ],
+            "candidate_count": null
+          }
+        ],
+        "cbm": [
+          {
+            "line": 15,
+            "relation": "CALLS",
+            "target_name": "pick",
+            "target_qn": "cpp-h2h-fixture-1784998898.main.alpha.pick",
+            "target_path": "main.cpp",
+            "target_parameter_count": 2,
+            "confidence": "0.95",
+            "strategy": "lsp_scoped",
+            "candidates": "1",
+            "callee": "beta::pick"
+          },
+          {
+            "line": 18,
+            "relation": "CALLS",
+            "target_name": "work",
+            "target_qn": "cpp-h2h-fixture-1784998898.main.Worker.work",
+            "target_path": "main.cpp",
+            "target_parameter_count": 1,
+            "confidence": "0.95",
+            "strategy": "lsp_type_dispatch",
+            "candidates": "1",
+            "callee": "alias.work"
+          },
+          {
+            "line": 20,
+            "relation": "CALLS",
+            "target_name": "step",
+            "target_qn": "cpp-h2h-fixture-1784998898.main.Derived.step",
+            "target_path": "main.cpp",
+            "target_parameter_count": 1,
+            "confidence": "0.95",
+            "strategy": "lsp_type_dispatch",
+            "candidates": "1",
+            "callee": "child.step"
+          },
+          {
+            "line": 21,
+            "relation": "CALLS",
+            "target_name": "identity",
+            "target_qn": "cpp-h2h-fixture-1784998898.types.identity",
+            "target_path": "types.hpp",
+            "target_parameter_count": 1,
+            "confidence": "0.75",
+            "strategy": "unique_name",
+            "candidates": "1",
+            "callee": "identity"
+          },
+          {
+            "line": null,
+            "relation": "USAGE",
+            "target_name": "Worker",
+            "target_qn": "cpp-h2h-fixture-1784998898.types.Worker",
+            "target_path": "types.hpp",
+            "target_parameter_count": null,
+            "confidence": "",
+            "strategy": "",
+            "candidates": "",
+            "callee": "Worker"
+          },
+          {
+            "line": null,
+            "relation": "USAGE",
+            "target_name": "Derived",
+            "target_qn": "cpp-h2h-fixture-1784998898.types.Derived",
+            "target_path": "types.hpp",
+            "target_parameter_count": null,
+            "confidence": "",
+            "strategy": "",
+            "candidates": "",
+            "callee": "Derived"
+          },
+          {
+            "line": null,
+            "relation": "USAGE",
+            "target_name": "Child",
+            "target_qn": "cpp-h2h-fixture-1784998898.types.Child",
+            "target_path": "types.hpp",
+            "target_parameter_count": null,
+            "confidence": "",
+            "strategy": "",
+            "candidates": "",
+            "callee": "Child"
+          }
+        ]
+      }
+    },
+    {
+      "id": "leveldb",
+      "split": "calibration",
+      "repository": "C:\\!bin\\workspace\\corpus\\leveldb",
+      "runtime_seconds": {
+        "lexicon": 3.484,
+        "cbm": 0.654
+      },
+      "nodes": {
+        "lexicon": 9201,
+        "cbm": 2660
+      },
+      "edges": {
+        "lexicon": 40025,
+        "cbm": 9613
+      },
+      "lexicon_relations": {
+        "calls": 4855,
+        "contains": 132,
+        "defines": 9080,
+        "extends": 13,
+        "includes": 489,
+        "passes-to": 1784,
+        "possible-calls": 6834,
+        "reads": 13255,
+        "references": 359,
+        "writes": 3224
+      },
+      "cbm_relations": {
+        "CALLS": 2981,
+        "DEFINES": 2534,
+        "USAGE": 2301,
+        "DEFINES_METHOD": 790,
+        "WRITES": 494,
+        "IMPORTS": 348,
+        "CONTAINS_FILE": 113,
+        "INHERITS": 42,
+        "CONTAINS_FOLDER": 8,
+        "HAS_BRANCH": 1,
+        "HTTP_CALLS": 1
+      },
+      "manifest": {
+        "available": true,
+        "nodes": [
+          {
+            "spec": {
+              "kind": "type",
+              "name": "DBImpl",
+              "path": "db/db_impl.h",
+              "qualified_name": "leveldb::DBImpl"
+            },
+            "lexicon": true,
+            "cbm": true
+          },
+          {
+            "spec": {
+              "kind": "function",
+              "name": "Recover",
+              "path": "db/db_impl.cc",
+              "qualified_name": "leveldb::DBImpl::Recover",
+              "attributes": {
+                "definition": true
+              }
+            },
+            "lexicon": true,
+            "cbm": false
+          },
+          {
+            "spec": {
+              "kind": "type",
+              "name": "PosixFileLock",
+              "path": "util/env_posix.cc"
+            },
+            "lexicon": true,
+            "cbm": true
+          }
+        ],
+        "edges": [
+          {
+            "spec": {
+              "relation": "calls",
+              "source": {
+                "kind": "function",
+                "name": "BM_LogAndApply",
+                "path": "db/db_test.cc"
+              },
+              "target": {
+                "kind": "function",
+                "name": "LogAndApply",
+                "path": "db/version_set.cc"
+              }
+            },
+            "lexicon": true,
+            "cbm": false
+          },
+          {
+            "spec": {
+              "relation": "extends",
+              "source": {
+                "kind": "type",
+                "name": "ShardedLRUCache",
+                "path": "util/cache.cc"
+              },
+              "target": {
+                "kind": "type",
+                "name": "Cache",
+                "path": "include/leveldb/options.h"
+              }
+            },
+            "lexicon": true,
+            "cbm": true
+          },
+          {
+            "spec": {
+              "relation": "extends",
+              "source": {
+                "kind": "type",
+                "name": "PosixFileLock",
+                "path": "util/env_posix.cc"
+              },
+              "target": {
+                "kind": "type",
+                "name": "FileLock",
+                "path": "include/leveldb/env.h"
+              }
+            },
+            "lexicon": true,
+            "cbm": true
+          }
+        ],
+        "lexicon_passed": 6,
+        "cbm_passed": 4,
+        "total": 6
+      },
+      "lexicon_output_sha256": "b4a92dda9a3ff7bc8f9922a6707654074ba147a6dd30faa9efeaa886943d6d54"
+    },
+    {
+      "id": "fmt",
+      "split": "calibration",
+      "repository": "C:\\!bin\\workspace\\corpus\\fmt",
+      "runtime_seconds": {
+        "lexicon": 11.473,
+        "cbm": 3.026
+      },
+      "nodes": {
+        "lexicon": 17056,
+        "cbm": 4710
+      },
+      "edges": {
+        "lexicon": 78953,
+        "cbm": 16351
+      },
+      "lexicon_relations": {
+        "calls": 7109,
+        "contains": 70,
+        "defines": 18324,
+        "extends": 232,
+        "includes": 165,
+        "passes-to": 2801,
+        "possible-calls": 19429,
+        "reads": 17892,
+        "references": 8755,
+        "writes": 4176
+      },
+      "cbm_relations": {
+        "CALLS": 5600,
+        "DEFINES": 4613,
+        "USAGE": 3806,
+        "DEFINES_METHOD": 1392,
+        "WRITES": 484,
+        "INHERITS": 174,
+        "IMPORTS": 107,
+        "CONTAINS_FILE": 103,
+        "TESTS": 31,
+        "CONTAINS_FOLDER": 17,
+        "RAISES": 11,
+        "DECORATES": 4,
+        "HTTP_CALLS": 4,
+        "THROWS": 4,
+        "HAS_BRANCH": 1
+      },
+      "manifest": {
+        "available": true,
+        "nodes": [
+          {
+            "spec": {
+              "kind": "type",
+              "name": "formatter",
+              "path": "include/fmt/base.h"
+            },
+            "lexicon": true,
+            "cbm": true
+          },
+          {
+            "spec": {
+              "kind": "function",
+              "name": "formatted_size",
+              "path": "include/fmt/compile.h",
+              "attributes": {
+                "definition": true
+              }
+            },
+            "lexicon": true,
+            "cbm": true
+          },
+          {
+            "spec": {
+              "kind": "type",
+              "name": "basic_ostream_formatter",
+              "path": "include/fmt/ostream.h"
+            },
+            "lexicon": true,
+            "cbm": true
+          }
+        ],
+        "edges": [
+          {
+            "spec": {
+              "relation": "calls",
+              "source": {
+                "kind": "function",
+                "name": "formatted_size",
+                "path": "include/fmt/compile.h"
+              },
+              "target": {
+                "kind": "constructor",
+                "name": "counting_buffer",
+                "path": "include/fmt/base.h"
+              }
+            },
+            "lexicon": true,
+            "cbm": false
+          },
+          {
+            "spec": {
+              "relation": "extends",
+              "source": {
+                "kind": "type",
+                "name": "formatter<detail::streamed_view<T>, Char>",
+                "path": "include/fmt/ostream.h"
+              },
+              "target": {
+                "kind": "type",
+                "name": "basic_ostream_formatter",
+                "path": "include/fmt/ostream.h"
+              }
+            },
+            "lexicon": true,
+            "cbm": true
+          }
+        ],
+        "lexicon_passed": 5,
+        "cbm_passed": 4,
+        "total": 5
+      },
+      "lexicon_output_sha256": "b71dab2a28d6ba86f40a4fb3ab6a788e629c8995e8f46e2265f52c8a533207c6"
+    },
+    {
+      "id": "catch2",
+      "split": "validation",
+      "repository": "C:\\!bin\\workspace\\corpus\\catch2\\src",
+      "runtime_seconds": {
+        "lexicon": 2.38,
+        "cbm": 0.548
+      },
+      "nodes": {
+        "lexicon": 9853,
+        "cbm": 3075
+      },
+      "edges": {
+        "lexicon": 26299,
+        "cbm": 10159
+      },
+      "lexicon_relations": {
+        "calls": 2184,
+        "contains": 289,
+        "defines": 9817,
+        "extends": 87,
+        "includes": 974,
+        "passes-to": 512,
+        "possible-calls": 3314,
+        "reads": 7401,
+        "references": 361,
+        "writes": 1360
+      },
+      "cbm_relations": {
+        "CALLS": 3355,
+        "DEFINES": 2878,
+        "USAGE": 2311,
+        "DEFINES_METHOD": 578,
+        "IMPORTS": 447,
+        "WRITES": 272,
+        "CONTAINS_FILE": 186,
+        "INHERITS": 120,
+        "CONTAINS_FOLDER": 9,
+        "CONFIGURES": 2,
+        "HAS_BRANCH": 1
+      },
+      "manifest": {
+        "available": true,
+        "nodes": [
+          {
+            "spec": {
+              "kind": "type",
+              "name": "Session",
+              "path": "catch2/catch_session.hpp",
+              "qualified_name": "Catch::Session"
+            },
+            "lexicon": true,
+            "cbm": true
+          },
+          {
+            "spec": {
+              "kind": "type",
+              "name": "SonarQubeReporter",
+              "path": "catch2/reporters/catch_reporter_sonarqube.hpp"
+            },
+            "lexicon": true,
+            "cbm": true
+          },
+          {
+            "spec": {
+              "kind": "function",
+              "name": "handleFatalErrorCondition",
+              "path": "catch2/internal/catch_run_context.cpp",
+              "attributes": {
+                "definition": true
+              }
+            },
+            "lexicon": true,
+            "cbm": true
+          }
+        ],
+        "edges": [
+          {
+            "spec": {
+              "relation": "extends",
+              "source": {
+                "kind": "type",
+                "name": "Session",
+                "path": "catch2/catch_session.hpp"
+              },
+              "target": {
+                "kind": "type",
+                "name": "NonCopyable",
+                "path": "catch2/internal/catch_noncopyable.hpp"
+              }
+            },
+            "lexicon": true,
+            "cbm": true
+          },
+          {
+            "spec": {
+              "relation": "extends",
+              "source": {
+                "kind": "type",
+                "name": "SonarQubeReporter",
+                "path": "catch2/reporters/catch_reporter_sonarqube.hpp"
+              },
+              "target": {
+                "kind": "type",
+                "name": "CumulativeReporterBase",
+                "path": "catch2/reporters/catch_reporter_cumulative_base.hpp"
+              }
+            },
+            "lexicon": true,
+            "cbm": true
+          },
+          {
+            "spec": {
+              "relation": "calls",
+              "source": {
+                "kind": "function",
+                "name": "handleFatalErrorCondition",
+                "path": "catch2/internal/catch_run_context.cpp"
+              },
+              "target": {
+                "kind": "function",
+                "name": "assertionEnded",
+                "path": "catch2/internal/catch_run_context.cpp"
+              }
+            },
+            "lexicon": true,
+            "cbm": true
+          }
+        ],
+        "lexicon_passed": 6,
+        "cbm_passed": 6,
+        "total": 6
+      },
+      "lexicon_output_sha256": "30e39ee9c3b3132847e20bf45829a197ca6629289f5d7f4203316ca3eedfd8e0"
+    },
+    {
+      "id": "nlohmann-json",
+      "split": "holdout",
+      "repository": "C:\\!bin\\workspace\\corpus\\nlohmann-json\\include\\nlohmann",
+      "runtime_seconds": {
+        "lexicon": 1.893,
+        "cbm": 1.217
+      },
+      "nodes": {
+        "lexicon": 3484,
+        "cbm": 412
+      },
+      "edges": {
+        "lexicon": 17000,
+        "cbm": 1695
+      },
+      "lexicon_relations": {
+        "calls": 1857,
+        "contains": 46,
+        "defines": 4087,
+        "extends": 34,
+        "includes": 158,
+        "passes-to": 480,
+        "possible-calls": 3372,
+        "reads": 5638,
+        "references": 487,
+        "writes": 841
+      },
+      "cbm_relations": {
+        "CALLS": 901,
+        "DEFINES": 359,
+        "USAGE": 195,
+        "IMPORTS": 86,
+        "DEFINES_METHOD": 52,
+        "WRITES": 50,
+        "CONTAINS_FILE": 44,
+        "CONTAINS_FOLDER": 7,
+        "HAS_BRANCH": 1
+      },
+      "manifest": {
+        "available": true,
+        "nodes": [
+          {
+            "spec": {
+              "kind": "function",
+              "name": "parse",
+              "path": "json.hpp",
+              "attributes": {
+                "definition": true
+              }
+            },
+            "lexicon": true,
+            "cbm": true
+          },
+          {
+            "spec": {
+              "kind": "type",
+              "name": "lexer",
+              "path": "detail/input/lexer.hpp"
+            },
+            "lexicon": true,
+            "cbm": false
+          },
+          {
+            "spec": {
+              "kind": "type",
+              "name": "invalid_iterator",
+              "path": "detail/exceptions.hpp"
+            },
+            "lexicon": true,
+            "cbm": true
+          }
+        ],
+        "edges": [
+          {
+            "spec": {
+              "relation": "calls",
+              "source": {
+                "kind": "function",
+                "name": "parse",
+                "path": "json.hpp"
+              },
+              "target": {
+                "kind": "function",
+                "name": "parser",
+                "path": "json.hpp"
+              }
+            },
+            "lexicon": true,
+            "cbm": false
+          },
+          {
+            "spec": {
+              "relation": "extends",
+              "source": {
+                "kind": "type",
+                "name": "lexer",
+                "path": "detail/input/lexer.hpp"
+              },
+              "target": {
+                "kind": "type",
+                "name": "lexer_base",
+                "path": "detail/input/lexer.hpp"
+              }
+            },
+            "lexicon": true,
+            "cbm": false
+          },
+          {
+            "spec": {
+              "relation": "calls",
+              "source": {
+                "kind": "function",
+                "name": "erase",
+                "path": "json.hpp"
+              },
+              "target": {
+                "kind": "method",
+                "name": "create",
+                "path": "detail/exceptions.hpp"
+              }
+            },
+            "lexicon": true,
+            "cbm": false
+          }
+        ],
+        "lexicon_passed": 6,
+        "cbm_passed": 2,
+        "total": 6
+      },
+      "lexicon_output_sha256": "e322c9428eac44e98d2da3049f442d1b7eb170f22958e265e0252a81f119f740"
+    }
+  ],
+  "summary": {
+    "manifest_total": 23,
+    "manifest_lexicon_passed": 23,
+    "manifest_cbm_passed": 16,
+    "fixture_total": 10,
+    "fixture_lexicon_passed": 10,
+    "fixture_cbm_passed": 2,
+    "median_runtime_seconds": {
+      "lexicon": 2.38,
+      "cbm": 0.654
+    }
+  }
+}

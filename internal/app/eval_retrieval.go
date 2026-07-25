@@ -48,7 +48,6 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	compilerFacetFileDepth := flags.Int("compiler-facet-file-depth", compiler.DefaultConfig().FacetFileDepth, "distinct mechanism source files protected per eligible query facet")
 	compilerCompanionDepth := flags.Int("compiler-companion-depth", compiler.DefaultConfig().CompanionDepth, "additional protected chunks per selected facet source file")
 	compilerRequiredLinkProtection := flags.Bool("compiler-required-link-protection", compiler.DefaultConfig().ProtectRequiredLinks, "protect complete required source-link groups during final token fitting")
-	spanExtraction := flags.Bool("span-extraction", false, "refine multi-part adaptive candidates into language-aware source spans")
 	lexicalDeclarationAliasBonus := flags.Float64("lexical-declaration-alias-bonus", retrieve.DefaultConfig().DeclarationAliasBonus, "score for one repository-derived high-similarity declaration alias per absent query term")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
@@ -205,7 +204,6 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 				AssemblyConfig: &assemblyConfig,
 				CompilerConfig: &compilerConfig,
 				LexicalConfig:  &lexicalConfig,
-				SpanExtraction: *spanExtraction,
 			})
 			cancel()
 			run.Timings = executed.Timings
