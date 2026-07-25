@@ -13,6 +13,8 @@ Analysis receives:
 
 Query-only retrieval intents are emitted before candidate generation. The app layer consumes them to run bounded BM25 and exact passes, reserve mixed-query coverage, attach candidate roles, and choose the most graph-relevant structural query. Retrieval evidence may then refine breadth or ambiguity without changing the original intent plan.
 
+Focused call-chain requests may add a small deterministic implementation vocabulary when natural-language lifecycle wording rarely appears verbatim in code. Creation terms expand toward `new`, `create`, and `add`; persistence terms expand toward `persist`, `store`, `save`, `insert`, `write`, and `database`. The expansion remains attached to the original facet and does not create extra unbounded retrieval passes.
+
 ## Profile
 
 The emitted profile records intent, specificity, breadth, ambiguity, cross-system scope, evidence needs, and reasons.

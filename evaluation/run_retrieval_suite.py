@@ -144,6 +144,7 @@ def main() -> int:
     parser.add_argument("--assembly-strategy", choices=("legacy", "coverage"))
     parser.add_argument("--assembly-facet-depth", type=int)
     parser.add_argument("--compiler-facet-protection", choices=("true", "false"))
+    parser.add_argument("--compiler-facet-file-depth", type=int)
     parser.add_argument("--compiler-companion-depth", type=int)
     parser.add_argument("--lexical-declaration-alias-bonus", type=float)
     parser.add_argument("--skip-index", action="store_true")
@@ -155,7 +156,7 @@ def main() -> int:
     manifest = json.loads((grimoire / args.suite).read_text(encoding="utf-8"))
     assembly_defaults = manifest.get("assembly", {"strategy": "coverage", "facet_depth": 3})
     compiler_defaults = manifest.get(
-        "compiler", {"facet_protection": True, "companion_depth": 1}
+        "compiler", {"facet_protection": True, "facet_file_depth": 1, "companion_depth": 1}
     )
     ranking_defaults = manifest.get("ranking", {"lexical_declaration_alias_bonus": 1.0})
     lexical_declaration_alias_bonus = (
@@ -173,6 +174,11 @@ def main() -> int:
         args.compiler_facet_protection == "true"
         if args.compiler_facet_protection is not None
         else bool(compiler_defaults["facet_protection"])
+    )
+    compiler_facet_file_depth = (
+        args.compiler_facet_file_depth
+        if args.compiler_facet_file_depth is not None
+        else int(compiler_defaults.get("facet_file_depth", 1))
     )
     compiler_companion_depth = (
         args.compiler_companion_depth
@@ -206,6 +212,8 @@ def main() -> int:
             selection[key] = value
     if assembly_facet_depth < 0:
         parser.error("assembly facet depth must be non-negative")
+    if compiler_facet_file_depth < 0:
+        parser.error("compiler facet file depth must be non-negative")
     if compiler_companion_depth < 0:
         parser.error("compiler companion depth must be non-negative")
     if lexical_declaration_alias_bonus < 0:
@@ -226,6 +234,7 @@ def main() -> int:
             "--assembly-strategy", assembly_strategy,
             "--assembly-facet-depth", str(assembly_facet_depth),
             f"--compiler-facet-protection={str(compiler_facet_protection).lower()}",
+            "--compiler-facet-file-depth", str(compiler_facet_file_depth),
             "--compiler-companion-depth", str(compiler_companion_depth),
             "--lexical-declaration-alias-bonus", str(lexical_declaration_alias_bonus),
             "--output-dir", str(output_dir), "--output-prefix", prefix,
@@ -252,6 +261,7 @@ def main() -> int:
         },
         "compiler": {
             "facet_protection": compiler_facet_protection,
+            "facet_file_depth": compiler_facet_file_depth,
             "companion_depth": compiler_companion_depth,
         },
         "aggregate": aggregate(reports, args.mode),

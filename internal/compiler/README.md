@@ -11,7 +11,7 @@
 
 ## Current schema
 
-The current package version is 7. The package records:
+The current package version is 8. The package records:
 
 - query and selected budget;
 - prepared and embedding identities;
@@ -22,15 +22,17 @@ The current package version is 7. The package records:
 - selected source chunks and structural evidence;
 - facet identities and protected facet claims;
 - required linked-span group identities and protection summaries;
-- facet-protection and companion-depth summaries;
+- facet-protection, protected-file-depth, and companion-depth summaries;
 - exact token count; and
 - source, structural, facet, and required-group omission counts.
 
 ## Adaptive fitting
 
-Coverage-aware adaptive packages protect one source candidate for each available query facet before spending the remaining budget on repeated evidence. When a candidate belongs to a provider-declared required source-link group, the complete group is attempted atomically at that candidate's existing rank rather than being elevated ahead of stronger evidence. Mechanism, call-chain, and direct-location owners may also protect one same-file companion chunk when it contributes a lexical term not already represented by that owner.
+Coverage-aware adaptive packages protect one primary implementation owner for each available query facet before spending the remaining budget on repeated evidence. Tests, documentation, and configuration remain eligible later, but cannot displace a primary owner solely because their lexical score is higher. When a candidate belongs to a provider-declared required source-link group, the complete group is attempted atomically at that candidate's existing rank rather than being elevated ahead of stronger evidence.
 
-Architecture and mixed-intent owners do not receive companion completion. Calibration showed that completing those files displaced stronger evidence. Companion selection is deterministic and bounded; it does not change retrieval or ranking.
+Single-facet or exploratory mechanism investigations may protect a second distinct implementation file for the same facet. Call-chain investigations stay at one protected file because held-out calibration showed that extra call-chain breadth displaced correct route and connection evidence. Bounded multi-facet requests keep one protected file per facet so secondary files cannot consume every owner slot. Each protected mechanism, call-chain, or direct-location file may also receive one same-file companion chunk when it contributes a lexical term not already represented by that file.
+
+For semantic-only facet plans, file ranking remains authoritative, but declaration-bearing chunks are preferred within the selected file over headers or continuations. When semantic evidence provides no lexical score details, one declaration-bearing same-file companion may be retained to complete the owner. Lexical plans retain their calibrated candidate order. Architecture and mixed-intent owners do not receive this completion. All protection is deterministic and bounded; it does not change retrieval or ranking.
 
 ## Invariants
 

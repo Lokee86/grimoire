@@ -246,6 +246,7 @@ type CaseRun struct {
 	Ranking                           RankingMetrics             `json:"ranking"`
 	CandidateDiagnostics              []CandidateDiagnostic      `json:"candidate_diagnostics,omitempty"`
 	FacetProtection                   bool                       `json:"facet_protection"`
+	FacetFileDepth                    int                        `json:"facet_file_depth"`
 	FacetCompanionDepth               int                        `json:"facet_companion_depth"`
 	FacetsAvailable                   int                        `json:"facets_available"`
 	FacetsProtected                   int                        `json:"facets_protected"`

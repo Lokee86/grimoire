@@ -181,6 +181,160 @@ func TestCompileAdaptiveProtectsDistinctFacetsDuringBudgetFitting(t *testing.T) 
 	assertExactPackageCount(t, protected)
 }
 
+func TestCompileAdaptivePrefersPrimaryFacetOwnerOverSupportingEvidence(t *testing.T) {
+	supporting := facetCandidate(t, "internal/owner_test.go", strings.Repeat("matching test evidence ", 70), 10, evidence.IntentDirectLocation, "facet:location")
+	supporting.Context.Roles = []evidence.Role{evidence.RoleSupporting}
+	primary := facetCandidate(t, "internal/owner.go", strings.Repeat("matching implementation ", 70), 9, evidence.IntentDirectLocation, "facet:location")
+	candidates := []retrieve.Candidate{supporting, primary}
+	decision := assembly.Decision{CoverageAware: true, FacetCoverageDepth: 2, FacetsAvailable: 1}
+
+	var pkg Package
+	found := false
+	for budget := 250; budget < 2000; budget++ {
+		var err error
+		pkg, err = CompileAdaptiveWithEvidenceConfig(
+			"where is the owner", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"test"}, nil, nil, decision, candidates, DefaultConfig(),
+		)
+		if err == nil && len(pkg.Selections) == 1 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("no one-selection budget found: %+v", pkg)
+	}
+	if pkg.Selections[0].Path != primary.Chunk.Path || pkg.Selections[0].ProtectedFacet != "facet:location" {
+		t.Fatalf("supporting evidence displaced primary owner: %+v", pkg.Selections)
+	}
+}
+
+func TestCompileAdaptiveProtectsMultipleMechanismFilesPerFacet(t *testing.T) {
+	first := facetCandidate(t, "internal/first.go", strings.Repeat("first mechanism ", 70), 10, evidence.IntentMechanism, "facet:mechanism")
+	second := facetCandidate(t, "internal/second.go", strings.Repeat("second mechanism ", 70), 9, evidence.IntentMechanism, "facet:mechanism")
+	noise := facetCandidate(t, "internal/noise.go", strings.Repeat("noise mechanism ", 70), 8, evidence.IntentArchitecture, "facet:mechanism")
+	candidates := []retrieve.Candidate{first, second, noise}
+	decision := assembly.Decision{CoverageAware: true, FacetCoverageDepth: 3, FacetsAvailable: 1}
+	config := Config{ProtectFacets: true, FacetFileDepth: 2}
+
+	var pkg Package
+	found := false
+	for budget := 300; budget < 3000; budget++ {
+		var err error
+		pkg, err = CompileAdaptiveWithEvidenceConfig(
+			"explain both mechanism files", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"test"}, nil, nil, decision, candidates, config,
+		)
+		if err == nil && len(pkg.Selections) == 2 &&
+			pkg.Selections[0].Path == first.Chunk.Path && pkg.Selections[1].Path == second.Chunk.Path {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("no two-selection budget found: %+v", pkg)
+	}
+	if pkg.Selections[0].Path != first.Chunk.Path || pkg.Selections[1].Path != second.Chunk.Path {
+		t.Fatalf("mechanism file coverage was not protected: %+v", pkg.Selections)
+	}
+	if pkg.FacetFileDepth != 2 {
+		t.Fatalf("facet file depth = %d, want 2", pkg.FacetFileDepth)
+	}
+}
+
+func TestCompileAdaptiveDoesNotProtectSecondCallChainFile(t *testing.T) {
+	first := facetCandidate(t, "internal/first.go", strings.Repeat("first call chain ", 70), 10, evidence.IntentCallChain, "facet:chain")
+	second := facetCandidate(t, "internal/second.go", strings.Repeat("second call chain ", 70), 9, evidence.IntentCallChain, "facet:chain")
+	candidates := []retrieve.Candidate{first, second}
+	decision := assembly.Decision{
+		Scope: queryshape.ScopeExploratory, CoverageAware: true,
+		FacetCoverageDepth: 2, FacetsAvailable: 1,
+	}
+
+	pkg, err := CompileAdaptiveWithEvidenceConfig(
+		"trace the call chain", 10_000, index.FormatVersion, tokenizer.Name,
+		[]string{"test"}, nil, nil, decision, candidates,
+		Config{ProtectFacets: true, FacetFileDepth: 2},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	protected := 0
+	for _, selection := range pkg.Selections {
+		if selection.ProtectedFacet != "" {
+			protected++
+		}
+	}
+	if protected != 1 {
+		t.Fatalf("protected %d call-chain files, want one: %+v", protected, pkg.Selections)
+	}
+}
+
+func TestCompileAdaptiveDoesNotOverprotectBoundedMultiFacetFiles(t *testing.T) {
+	aPrimary := facetCandidate(t, "a/primary.go", strings.Repeat("alpha mechanism ", 70), 10, evidence.IntentMechanism, "facet:a")
+	bPrimary := facetCandidate(t, "b/primary.go", strings.Repeat("beta mechanism ", 70), 9, evidence.IntentMechanism, "facet:b")
+	aSecondary := facetCandidate(t, "a/secondary.go", strings.Repeat("alpha secondary ", 70), 8, evidence.IntentMechanism, "facet:a")
+	bSecondary := facetCandidate(t, "b/secondary.go", strings.Repeat("beta secondary ", 70), 7, evidence.IntentMechanism, "facet:b")
+	candidates := []retrieve.Candidate{aPrimary, bPrimary, aSecondary, bSecondary}
+	decision := assembly.Decision{
+		Scope: queryshape.ScopeBounded, CoverageAware: true,
+		FacetCoverageDepth: 3, FacetsAvailable: 2,
+	}
+
+	pkg, err := CompileAdaptiveWithEvidenceConfig(
+		"explain both bounded mechanisms", 10_000, index.FormatVersion, tokenizer.Name,
+		[]string{"test"}, nil, nil, decision, candidates,
+		Config{ProtectFacets: true, FacetFileDepth: 2},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	protected := 0
+	for _, selection := range pkg.Selections {
+		if selection.ProtectedFacet != "" {
+			protected++
+		}
+	}
+	if protected != 2 {
+		t.Fatalf("protected %d bounded multi-facet files, want one per facet: %+v", protected, pkg.Selections)
+	}
+	if pkg.Selections[0].ProtectedFacet != "facet:a" || pkg.Selections[1].ProtectedFacet != "facet:b" {
+		t.Fatalf("primary facet owners were not protected first: %+v", pkg.Selections)
+	}
+}
+
+func TestCompileAdaptivePrefersDeclarationForSemanticFacetOwner(t *testing.T) {
+	header := facetCandidate(t, "internal/persist.go", strings.Repeat("persistence overview ", 70), 10, evidence.IntentCallChain, "facet:chain")
+	header.Chunk.StartLine, header.Chunk.EndLine = 1, 40
+	header.ScoreDetails = nil
+	declaration := facetCandidate(t, "internal/persist.go", "func PersistPost() error { return nil }", 8, evidence.IntentCallChain, "facet:chain")
+	declaration.Chunk.StartLine, declaration.Chunk.EndLine = 82, 84
+	declaration.ScoreDetails = nil
+	candidates := []retrieve.Candidate{header, declaration}
+	decision := assembly.Decision{CoverageAware: true, FacetCoverageDepth: 2, FacetsAvailable: 1}
+
+	var pkg Package
+	found := false
+	for budget := 200; budget < 2000; budget++ {
+		var err error
+		pkg, err = CompileAdaptiveWithEvidenceConfig(
+			"trace post persistence", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"vector"}, nil, nil, decision, candidates,
+			Config{ProtectFacets: true, FacetFileDepth: 1},
+		)
+		if err == nil && len(pkg.Selections) == 1 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("no one-selection budget found: %+v", pkg)
+	}
+	if pkg.Selections[0].StartLine != declaration.Chunk.StartLine || pkg.Selections[0].ProtectedFacet != "facet:chain" {
+		t.Fatalf("semantic declaration was not selected as facet owner: %+v", pkg.Selections)
+	}
+}
+
 func TestCompileAdaptiveProtectsSameFileCompanionChunks(t *testing.T) {
 	owner := facetCandidate(t, "internal/owner.go", strings.Repeat("owner declaration ", 70), 10, evidence.IntentMechanism, "facet:mechanism")
 	owner.Chunk.StartLine, owner.Chunk.EndLine = 1, 40

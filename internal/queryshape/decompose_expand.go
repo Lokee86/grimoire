@@ -67,6 +67,12 @@ func expandRetrievalClause(query string, intent evidence.Intent) string {
 	if containsAnyText(focus, "materialize a complete snapshot") {
 		add("materialize", "snapshot", "ingest")
 	}
+	if intent == evidence.IntentCallChain && containsAnyText(focus, " create", "created", "creation") {
+		add("new", "create", "add")
+	}
+	if intent == evidence.IntentCallChain && containsAnyText(focus, "persist", "stored", "saved") {
+		add("persist", "store", "save", "insert", "write", "database")
+	}
 
 	if intent == evidence.IntentArchitecture {
 		add("owner", "package")

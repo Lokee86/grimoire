@@ -111,6 +111,18 @@ func TestPlanRetrievalIntentsKeepsDistinctMechanismActions(t *testing.T) {
 	}
 }
 
+func TestPlanRetrievalIntentsExpandsLifecycleCallChainVocabulary(t *testing.T) {
+	intents := PlanRetrievalIntents("Trace how a post is created and persisted.")
+	if len(intents) != 1 || intents[0].Intent != evidence.IntentCallChain {
+		t.Fatalf("unexpected lifecycle intent: %+v", intents)
+	}
+	for _, term := range []string{"new", "create", "insert", "store", "save", "database"} {
+		if !strings.Contains(strings.ToLower(intents[0].Query), term) {
+			t.Errorf("lifecycle query missing %q: %q", term, intents[0].Query)
+		}
+	}
+}
+
 func TestPlanRetrievalIntentsPreservesFocusedQuery(t *testing.T) {
 	query := "Where is vector snapshot freshness validated?"
 	intents := PlanRetrievalIntents(query)
