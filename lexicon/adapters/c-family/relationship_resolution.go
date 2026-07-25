@@ -25,14 +25,14 @@ func resolveCall(facts *factSet, index declarationIndex, indirectCalls indirectC
 	resolution := resolveCallCandidateResolution(index, observation)
 	candidates := resolution.Candidates
 	if len(candidates) == 1 {
-		addCallEdge(facts, observation, candidates[0], "calls", callEdgeAttributes(resolution))
+		addResolvedCallEdges(facts, index, observation, candidates[0], callEdgeAttributes(resolution))
 		return
 	}
 	if len(candidates) > 1 {
 		resolution = resolution.prune(len(observation.Arguments))
 		candidates = resolution.Candidates
 		if len(candidates) == 1 {
-			addCallEdge(facts, observation, candidates[0], "calls", callEdgeAttributes(resolution))
+			addResolvedCallEdges(facts, index, observation, candidates[0], callEdgeAttributes(resolution))
 			return
 		}
 		for _, candidate := range candidates {

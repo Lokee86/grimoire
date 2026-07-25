@@ -13,6 +13,17 @@ func callArguments(node *tree_sitter.Node, source []byte) []string {
 	return arguments
 }
 
+func callArgumentExpressions(node *tree_sitter.Node, source []byte) []string {
+	if node == nil {
+		return nil
+	}
+	expressions := make([]string, 0, node.NamedChildCount())
+	for _, child := range namedChildren(node) {
+		expressions = append(expressions, nodeText(child, source))
+	}
+	return expressions
+}
+
 func callableReferenceCandidate(node *tree_sitter.Node, source []byte) string {
 	if node == nil {
 		return ""
