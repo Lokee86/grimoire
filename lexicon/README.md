@@ -19,6 +19,7 @@ Lexicon currently provides:
 - dependency-aware scoped analysis with complete-language fallback;
 - concurrent language analysis under one process-wide CPU budget;
 - adaptive parallel semantic resolution inside the Go adapter;
+- repository-wide interstack tracing for HTTP boundaries, packet channels, and shared configuration keys;
 - deterministic post-publication consumer hooks for tools such as Arcana;
 - repeatable fixture and real-repository validation.
 
@@ -83,12 +84,13 @@ The complete flag reference and state layout are in [docs/APPLICATION.md](docs/A
 
 ## Architecture
 
-Lexicon has four explicit ownership layers:
+Lexicon has five explicit ownership layers:
 
 1. **Adapters** discover language-specific facts and emit facts-v1 JSONL.
 2. **Scan orchestration** selects complete or scoped analysis, schedules adapters, and validates their output.
-3. **Object storage** partitions facts by source owner, writes immutable binary objects, and publishes atomic manifests.
-4. **Consumers** resolve `CURRENT` and read only immutable snapshot data.
+3. **Interstack resolution** derives conservative cross-language contract nodes and edges from the candidate language facts.
+4. **Object storage** partitions facts by source owner, writes immutable binary objects, and publishes atomic manifests.
+5. **Consumers** resolve `CURRENT` and read only immutable snapshot data.
 
 JSONL is the stable adapter, export, and diagnostic boundary. Normal application scans parse each adapter stream once, then store compact binary fact objects without maintaining complete materialized JSONL libraries.
 

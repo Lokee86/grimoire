@@ -107,7 +107,10 @@ Common node kinds:
 - `constant`;
 - `parameter`;
 - `import`;
-- `test`.
+- `test`;
+- `http-endpoint`;
+- `message-channel`;
+- `config-key`.
 
 Adapters may add language-specific kinds, but consumers may reject kinds they do not support.
 
@@ -151,11 +154,18 @@ Common relations:
 - `depends-on`;
 - `tests`;
 - `documents`;
-- `generates`.
+- `generates`;
+- `calls-endpoint`;
+- `handled-by`;
+- `publishes`;
+- `consumes`;
+- `reads-config`.
 
 `calls` means one definite statically identified callable contract. Multiple sound runtime targets must use `possible-calls`. Consumers must not silently merge `possible-calls` into definite calls.
 
 `passes-to` records a proven direct value-flow step from a caller-side parameter, local, field, or constant to a callee parameter. It does not imply mutation, ownership transfer, aliasing beyond the call boundary, or flow through unsupported compound expressions.
+
+Cross-stack relationships use normalized synthetic contract nodes. `calls-endpoint` connects a request-producing callable to an `http-endpoint`; `handled-by` connects that endpoint to its repository-local handler. `publishes` and `consumes` connect callables through a `message-channel`. `reads-config` connects a callable to a shared `config-key`. These records may be emitted in a synthetic `interstack` library while referencing stable node IDs owned by other language libraries in the same snapshot. Consumers must validate those references across the complete exported snapshot, not only within one JSONL file.
 
 ## Unresolved record
 

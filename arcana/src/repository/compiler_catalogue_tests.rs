@@ -59,6 +59,28 @@ fn compiler_assigns_dense_ids_and_stable_relation_codes() {
         edge_kind_to_relation(EdgeKind(20)),
         Some(RelationKind::PassesTo)
     );
+    for (relation, code) in [
+        (RelationKind::CallsEndpoint, 25),
+        (RelationKind::HandledBy, 26),
+        (RelationKind::Publishes, 27),
+        (RelationKind::Consumes, 28),
+        (RelationKind::ReadsConfig, 29),
+    ] {
+        assert_eq!(relation_to_edge_kind(&relation), EdgeKind(code));
+        assert_eq!(edge_kind_to_relation(EdgeKind(code)), Some(relation));
+    }
+}
+
+#[test]
+fn interstack_node_kinds_round_trip() {
+    for (value, kind) in [
+        ("http-endpoint", NodeKind::HttpEndpoint),
+        ("message-channel", NodeKind::MessageChannel),
+        ("config-key", NodeKind::ConfigKey),
+    ] {
+        assert_eq!(NodeKind::parse(value), Some(kind.clone()));
+        assert_eq!(kind.as_str(), value);
+    }
 }
 
 #[test]

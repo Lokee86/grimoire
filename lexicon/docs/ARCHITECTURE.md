@@ -15,7 +15,8 @@ It is not a general graph database, retrieval engine, documentation manager, or 
 - content-addressed per-file and shared-language fact objects;
 - immutable snapshot manifests and the `CURRENT` publication pointer;
 - post-publication consumer registration and invocation;
-- deterministic export back to facts-v1 JSONL.
+- deterministic export back to facts-v1 JSONL;
+- repository-wide cross-stack contract resolution over adapter facts and source evidence.
 
 ### Lexicon does not own
 
@@ -37,6 +38,7 @@ cmd/lexicon
             -> internal/scope
             -> internal/adapters
             -> internal/objectstore
+            -> internal/interstack
             -> internal/consumer
         -> internal/watch
 
@@ -63,6 +65,14 @@ adapters/<language>
 `internal/adapters` locates and invokes the self-contained language adapters. Adapters receive a repository root, output path, optional changed and removed file scopes, and optional parallel-execution parameters. They emit one deterministic facts-v1 JSONL stream.
 
 Adapters do not write Lexicon snapshots directly and do not contain consumer-specific graph or retrieval policy.
+
+### Cross-stack resolution
+
+`internal/interstack` runs after the selected language adapters have produced a complete candidate manifest. It consumes their immutable facts, maps framework and transport declarations back to existing language-owned nodes, and emits one synthetic `interstack` facts library.
+
+The initial resolver covers HTTP requests and routes, packet/message producers and consumers, and shared environment/configuration keys. Its synthetic nodes are contracts, not replacements for language symbols. Cross-stack edges retain source evidence, confidence, and unresolved outcomes rather than converting ambiguous string matches into definite graph relationships.
+
+Arcana stores and traverses these relationships. Lexicon owns discovering them because route DSLs, packet construction, handler registration, and configuration access require source- and framework-aware analysis.
 
 ### Analysis planning
 
@@ -102,13 +112,14 @@ A normal scan performs this sequence:
 6. execute adapters under the resource scheduler;
 7. validate and parse each facts-v1 stream once;
 8. build replacement owned objects and reuse unaffected manifest entries;
-9. write missing immutable objects;
-10. write the durable `PENDING` candidate;
-11. advance the private source-state commit when required;
-12. write the immutable snapshot manifest;
-13. atomically replace `CURRENT` and remove `PENDING`;
-14. invoke registered consumers;
-15. release the lock.
+9. derive the synthetic repository-wide `interstack` library from the candidate language facts;
+10. write missing immutable objects;
+11. write the durable `PENDING` candidate;
+12. advance the private source-state commit when required;
+13. write the immutable snapshot manifest;
+14. atomically replace `CURRENT` and remove `PENDING`;
+15. invoke registered consumers;
+16. release the lock.
 
 A scan that produces the same complete manifest confirms the existing snapshot instead of publishing duplicate mutable state.
 

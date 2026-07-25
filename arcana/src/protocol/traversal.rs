@@ -43,7 +43,7 @@ impl RelationMask {
     }
 }
 
-const RELATION_ORDER: [RelationKind; 24] = [
+const RELATION_ORDER: [RelationKind; 29] = [
     RelationKind::Contains,
     RelationKind::Defines,
     RelationKind::References,
@@ -68,6 +68,11 @@ const RELATION_ORDER: [RelationKind; 24] = [
     RelationKind::Documents,
     RelationKind::Generates,
     RelationKind::SimilarTo,
+    RelationKind::CallsEndpoint,
+    RelationKind::HandledBy,
+    RelationKind::Publishes,
+    RelationKind::Consumes,
+    RelationKind::ReadsConfig,
 ];
 
 pub(crate) fn bounded_depth(depth: Option<usize>) -> usize {
@@ -132,6 +137,10 @@ pub(crate) fn call_relations(include_possible: bool) -> RelationMask {
     let mut relations = RelationMask::empty();
     relations.insert(&RelationKind::Calls);
     relations.insert(&RelationKind::ObservedCalls);
+    relations.insert(&RelationKind::CallsEndpoint);
+    relations.insert(&RelationKind::HandledBy);
+    relations.insert(&RelationKind::Publishes);
+    relations.insert(&RelationKind::Consumes);
     if include_possible {
         relations.insert(&RelationKind::PossibleCalls);
     }
@@ -145,6 +154,11 @@ pub(crate) fn impact_relations() -> RelationMask {
     relations.insert(&RelationKind::PassesTo);
     relations.insert(&RelationKind::ObservedCalls);
     relations.insert(&RelationKind::References);
+    relations.insert(&RelationKind::CallsEndpoint);
+    relations.insert(&RelationKind::HandledBy);
+    relations.insert(&RelationKind::Publishes);
+    relations.insert(&RelationKind::Consumes);
+    relations.insert(&RelationKind::ReadsConfig);
     relations
 }
 
@@ -163,6 +177,11 @@ pub(crate) fn architecture_relations() -> RelationMask {
         RelationKind::DependsOn,
         RelationKind::RoutesTo,
         RelationKind::CommunicatesWith,
+        RelationKind::CallsEndpoint,
+        RelationKind::HandledBy,
+        RelationKind::Publishes,
+        RelationKind::Consumes,
+        RelationKind::ReadsConfig,
     ] {
         relations.insert(&relation);
     }
@@ -352,5 +371,10 @@ fn relation_bit(relation: &RelationKind) -> u32 {
         RelationKind::RoutesTo => 1 << 21,
         RelationKind::CommunicatesWith => 1 << 22,
         RelationKind::SimilarTo => 1 << 23,
+        RelationKind::CallsEndpoint => 1 << 24,
+        RelationKind::HandledBy => 1 << 25,
+        RelationKind::Publishes => 1 << 26,
+        RelationKind::Consumes => 1 << 27,
+        RelationKind::ReadsConfig => 1 << 28,
     }
 }

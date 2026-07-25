@@ -75,6 +75,9 @@ func snapshotDriftLanguages(
 	present := make(map[string]struct{}, len(manifest.Languages))
 	dirty := make(map[string]struct{})
 	for _, entry := range manifest.Languages {
+		if entry.Language == "interstack" {
+			continue
+		}
 		present[entry.Language] = struct{}{}
 		if _, ok := requiredSet[entry.Language]; !ok {
 			dirty[entry.Language] = struct{}{}

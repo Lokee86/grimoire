@@ -9,7 +9,8 @@
 - loading exported normalized nodes, occurrence-level edges, and typed edge attributes;
 - ranking query-matched symbols;
 - aggregating repeated relationships without discarding bounded source sites;
-- preserving matched symbols, exact source spans, call-resolution evidence, macro expansion chains and substitutions, direct argument flow, identities, and immediate relationships as structural evidence; and
+- preserving matched symbols, exact source spans, call-resolution evidence, macro expansion chains and substitutions, direct argument flow, identities, and immediate relationships as structural evidence;
+- traversing one additional bounded hop only through normalized interstack contract nodes; and
 - mapping matched structural ranges back to prepared source candidates.
 
 ## Does not own
@@ -26,7 +27,7 @@ Repositories without Lexicon state continue through Grimoire's standalone source
 
 - `state.go` — immutable snapshot discovery and cached export publication.
 - `load.go` — exported JSONL loading.
-- `rank.go` — symbol matching and one-hop candidate expansion.
+- `rank.go` — symbol matching, one-hop candidate expansion, and bounded two-hop interstack bridging.
 - `candidates.go` — prepared-source mapping.
 - `evidence.go` — first-class symbol and aggregated relationship evidence.
 - `relationship_provenance.go` — bounded occurrence sites and typed call, macro, and argument-flow provenance.

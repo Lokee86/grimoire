@@ -5,6 +5,13 @@ import (
 	"sort"
 )
 
+// ExportLanguage returns one complete facts-v1 JSONL library for entry.
+// It is used by internal derived-analysis passes that consume immutable
+// snapshot facts without publishing intermediate files.
+func (s Store) ExportLanguage(entry LanguageEntry) ([]byte, error) {
+	return s.exportLanguage(entry)
+}
+
 func (s Store) exportLanguage(entry LanguageEntry) ([]byte, error) {
 	if entry.AdapterVersion == "" || entry.SchemaVersion != 1 || entry.Repository == "" || entry.AnalysisConfigID == "" {
 		return nil, fmt.Errorf("invalid metadata")

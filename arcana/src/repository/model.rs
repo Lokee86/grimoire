@@ -67,6 +67,9 @@ pub enum NodeKind {
     Import,
     Export,
     Test,
+    HttpEndpoint,
+    MessageChannel,
+    ConfigKey,
 }
 
 impl NodeKind {
@@ -92,6 +95,9 @@ impl NodeKind {
             Self::Import => "import",
             Self::Export => "export",
             Self::Test => "test",
+            Self::HttpEndpoint => "http-endpoint",
+            Self::MessageChannel => "message-channel",
+            Self::ConfigKey => "config-key",
         }
     }
 
@@ -117,6 +123,9 @@ impl NodeKind {
             "import" => Self::Import,
             "export" => Self::Export,
             "test" => Self::Test,
+            "http-endpoint" => Self::HttpEndpoint,
+            "message-channel" => Self::MessageChannel,
+            "config-key" => Self::ConfigKey,
             _ => return None,
         })
     }
@@ -149,6 +158,11 @@ pub enum RelationKind {
     Documents,
     Generates,
     SimilarTo,
+    CallsEndpoint,
+    HandledBy,
+    Publishes,
+    Consumes,
+    ReadsConfig,
 }
 
 impl RelationKind {
@@ -178,6 +192,11 @@ impl RelationKind {
             Self::Documents => "documents",
             Self::Generates => "generates",
             Self::SimilarTo => "similar-to",
+            Self::CallsEndpoint => "calls-endpoint",
+            Self::HandledBy => "handled-by",
+            Self::Publishes => "publishes",
+            Self::Consumes => "consumes",
+            Self::ReadsConfig => "reads-config",
         }
     }
 
@@ -207,6 +226,11 @@ impl RelationKind {
             "documents" => Self::Documents,
             "generates" => Self::Generates,
             "similar-to" => Self::SimilarTo,
+            "calls-endpoint" => Self::CallsEndpoint,
+            "handled-by" => Self::HandledBy,
+            "publishes" => Self::Publishes,
+            "consumes" => Self::Consumes,
+            "reads-config" => Self::ReadsConfig,
             _ => return None,
         })
     }

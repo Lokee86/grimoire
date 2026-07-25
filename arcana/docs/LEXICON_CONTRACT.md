@@ -15,6 +15,8 @@ Arcana accepts the common Lexicon node and relation vocabulary, including:
 - interfaces, traits, constructors, and parameters;
 - definite `calls` and conservative `possible-calls` as separate relations;
 - conversions, implementations, inheritance, trait use, overrides, reads, writes, and annotations;
+- interstack `http-endpoint`, `message-channel`, and `config-key` nodes;
+- `calls-endpoint`, `handled-by`, `publishes`, `consumes`, and `reads-config` relationships;
 - unresolved references with source spans and candidate metadata.
 
 Source spans are preserved in the catalogue and unresolved-reference store. Explicit file ownership drives Arcana's file-scoped replacement model. Binary record attributes are length-prefixed, so Arcana can skip arbitrary Lexicon `attributes` without parsing or persisting them; adding a provenance sidecar later will not require changing graph identity.

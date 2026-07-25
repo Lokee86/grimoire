@@ -83,6 +83,10 @@ func initialize(
 	if err != nil {
 		return nil, Report{}, err
 	}
+	manifest, err = scanner.refreshInterstack(manifest)
+	if err != nil {
+		return nil, Report{}, err
+	}
 	snapshotID, err := scanner.commitManifest(manifest)
 	if err != nil {
 		return nil, Report{}, err

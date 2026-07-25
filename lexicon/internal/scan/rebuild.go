@@ -60,6 +60,10 @@ func (s *Scanner) rebuild(ctx context.Context, languages []string) (Report, erro
 	if err != nil {
 		return Report{}, err
 	}
+	manifest, err = s.refreshInterstack(manifest)
+	if err != nil {
+		return Report{}, err
+	}
 	snapshotID, err := s.commitManifest(manifest)
 	if err != nil {
 		return Report{}, err
