@@ -8,7 +8,7 @@ Grimoire separates source preparation from vector construction. This keeps repos
 grimoire index --root <repository>
 ```
 
-The indexer resolves the repository and state roots, applies traversal rules, normalizes eligible text into chunks, computes immutable identities and exact token counts, reuses unchanged objects, and atomically publishes a prepared snapshot. That snapshot remains usable for lexical and exact retrieval without an embedding service.
+The indexer resolves the repository and state roots, applies traversal rules, optionally resolves the current immutable Lexicon export, normalizes eligible text into semantic declaration chunks plus fallback gaps, computes immutable identities and exact token counts, reuses unchanged objects, and atomically publishes a prepared snapshot. That snapshot remains usable for lexical and exact retrieval without an embedding service.
 
 ## Permanent exclusions
 
@@ -61,15 +61,25 @@ An eligible entry must be a regular supported file, no larger than the configure
 
 ## Incremental identity and reuse
 
-Grimoire computes SHA-256 over each eligible file. A prior file record is reused only when content hash and byte size match. Reused records retain their existing chunks, IDs, and token counts. New or changed files are fully re-chunked.
+Grimoire computes SHA-256 over each eligible file and a separate preparation hash over the chunking contract plus that file's normalized Lexicon source spans. A prior file record is reused only when content hash, byte size, and preparation hash match. Reused records retain their existing chunks, semantic metadata, IDs, and token counts. New or changed files, or files whose Lexicon boundaries changed, are fully re-chunked.
 
 A prior record is removed when its path is deleted, ignored, unsupported, oversized, binary, or otherwise absent from the eligible traversal result. Renames naturally reuse immutable content where the storage identity permits it while publishing the new path record.
 
-Changing traversal, chunking, tokenizer, or schema behavior invalidates the relevant identity and forces affected work to be rebuilt. The token-ceiling and generated-content policy use prepared-index format version 3, so older prepared state is rebuilt once on the next `grimoire index` run.
+Changing traversal, chunking, tokenizer, or schema behavior invalidates the relevant identity and forces affected work to be rebuilt. Semantic chunk metadata and preparation hashes use prepared-index format version 4, so older prepared state is rebuilt once on the next `grimoire index` run.
+
+## Lexicon-aligned semantic chunking
+
+When `<root>/.lexicon/CURRENT` exists, `grimoire index` resolves or creates the same immutable JSONL export used by structural retrieval. Declaration-level Lexicon spans become source boundaries for functions, methods, tests, and types. Nested closures and other callable-owned declarations do not fragment their owning declaration; smaller data-flow symbols remain inside the surrounding source chunk.
+
+Nested declarations are represented by their narrowest non-overlapping leaves. For example, methods are prepared independently instead of duplicating the complete containing type. Source outside those semantic ranges remains indexed through the fallback chunker, so comments, package declarations, configuration, unsupported constructs, and files without Lexicon facts are not discarded.
+
+Every semantic chunk stores the Lexicon kind and symbol name. A declaration above 1,536 tokens is split only for the hard token ceiling while retaining that semantic identity on each part.
+
+`--lexicon-facts` selects an explicit JSONL export. `--lexicon-state` and `--lexicon-command` override automatic immutable-state discovery. An unreadable explicit facts export is an error; unavailable automatically discovered state warns and preserves fallback-only indexing.
 
 ## Fallback chunking
 
-The current language-agnostic chunker:
+The language-agnostic fallback chunker:
 
 - normalizes CRLF to LF;
 - removes one final newline;
@@ -82,7 +92,7 @@ The current language-agnostic chunker:
 - falls back to token slices only when one source line alone exceeds the ceiling; and
 - derives chunk identity from path, source range, exact text, and token-slice position when required.
 
-Lexicon facts may enrich retrieval, but they do not currently replace fallback source chunk boundaries.
+Fallback boundaries are used for files with no valid Lexicon spans and for every uncovered region around semantic declarations.
 
 ## Token accounting
 
@@ -97,8 +107,10 @@ The command reports:
 - `scanned`: eligible files evaluated after filtering;
 - `reused`: scanned files using prior records;
 - `updated`: new or changed scanned files rebuilt; and
-- `removed`: prior records absent from the new snapshot; and
-- `generated_skipped`: generated files or generated-directory roots omitted by the default policy.
+- `removed`: prior records absent from the new snapshot;
+- `generated_skipped`: generated files or generated-directory roots omitted by the default policy;
+- `semantic_files`: prepared files containing at least one Lexicon-aligned chunk; and
+- `semantic_chunks`: chunks carrying a Lexicon declaration kind and name.
 
 For a successful run:
 

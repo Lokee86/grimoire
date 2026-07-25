@@ -39,24 +39,26 @@ Only non-empty shards are present. A file path is assigned to one of 256 shards 
 Each shard stores path-keyed binary file records. A record contains:
 
 - the source file's SHA-256 content hash;
+- a SHA-256 preparation hash over the chunking contract and normalized Lexicon spans;
 - source file size;
 - zero or more prepared chunks;
 - each chunk's stable ID;
 - source start and end lines;
-- exact `o200k_base` token count; and
-- exact chunk text.
+- exact `o200k_base` token count;
+- exact chunk text; and
+- optional semantic kind and symbol name for Lexicon-aligned chunks.
 
 Paths are UTF-8, repository-relative, slash-separated, and validated to reject absolute paths, backslashes, NUL bytes, empty segments, `.` segments, and `..` segments.
 
 ## Binary formats
 
-The current prepared-index format is version 2. Shard encoding remains version 1 because its path-to-record container did not change; file records are version 2 because their stored cost is now an exact token count.
+The current prepared-index format is version 4. Shard encoding remains version 1 because its path-to-record container did not change. File records are version 3 because they store preparation identity and semantic chunk metadata.
 
 | Record | Magic | Current version | Numeric byte order |
 | --- | --- | --- | --- |
-| Manifest | `GRIM` | Prepared-index format `2` | Big-endian version and tokenizer-name length |
+| Manifest | `GRIM` | Prepared-index format `4` | Big-endian version and tokenizer-name length |
 | Shard | `GRSH` | Shard format `1` | Big-endian lengths and counts |
-| File | `GRFL` | File format `2` | Big-endian lengths and metadata |
+| File | `GRFL` | File format `3` | Big-endian lengths and metadata |
 
 The manifest records `o200k_base` as the tokenizer identity. Readers reject a different identity rather than interpreting its stored counts under the wrong tokenizer.
 
@@ -68,8 +70,8 @@ These formats are internal and may change before a stable release. Readers rejec
 
 Index construction loads the previous snapshot when one exists. Each eligible source file is hashed and compared with its prior file record.
 
-- Matching content hash and size: reuse the previous record, chunks, and exact token counts.
-- New or changed file: rebuild its chunks, count them with `o200k_base`, and mark its shard dirty.
+- Matching content hash, size, and preparation hash: reuse the previous record, chunks, semantic metadata, and exact token counts.
+- New or changed file, or changed Lexicon source boundaries: rebuild its semantic and fallback chunks, count them with `o200k_base`, and mark its shard dirty.
 - Removed or newly ignored file: remove its record and mark its prior shard dirty.
 - Unaffected shard: retain the previous shard object unchanged.
 
@@ -98,7 +100,7 @@ Loading verifies:
 - the reference resolves to a tree;
 - every root entry is a regular file;
 - exactly one valid manifest is present;
-- the manifest declares prepared-index version 2 and tokenizer `o200k_base`;
+- the manifest declares prepared-index version 4 and tokenizer `o200k_base`;
 - every other entry is a valid two-digit shard name;
 - each shard decodes successfully;
 - each file is stored in its expected shard;
@@ -107,7 +109,7 @@ Loading verifies:
 
 ## Migration and legacy cleanup
 
-Version-1 prepared state contains heuristic chunk costs and is not reusable as version 2. `grimoire index` recognizes the incompatible manifest, uses the current state root as its compare-and-swap base, rebuilds all eligible file records, and publishes a version-2 snapshot without deleting the state repository first. `grimoire context` requires a compatible index and reports the incompatibility until indexing is run.
+Older prepared state does not contain the current preparation hashes and semantic chunk metadata. `grimoire index` recognizes an incompatible manifest, uses the current state root as its compare-and-swap base, rebuilds all eligible file records, and publishes a version-4 snapshot without deleting the state repository first. `grimoire context` requires a compatible index and reports the incompatibility until indexing is run.
 
 Successful saves also remove the former `.grimoire/index.json` file when present. The active prepared state is object-backed; JSON is used only for command output and context packages.
 
@@ -120,6 +122,7 @@ Successful saves also remove the former `.grimoire/index.json` file when present
 | `internal/index/objects.go` | Git blob and tree construction plus manifest encoding |
 | `internal/index/codec.go` | Shard names, shard binary format, and path validation |
 | `internal/index/file_codec.go` | File/chunk binary format |
+| `internal/index/semantic.go` | Lexicon span normalization, semantic boundaries, fallback gaps, and preparation hashes |
 | `internal/index/model.go` | In-memory snapshot, file, and chunk models |
 
 ## Related documentation

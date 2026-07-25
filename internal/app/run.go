@@ -62,6 +62,9 @@ func runIndex(args []string, stdout, stderr io.Writer) error {
 	ignoreFile := flags.String("ignore-file", "", "root-relative or absolute ignore file; defaults to .gitignore hierarchy")
 	maxFileBytes := flags.Int64("max-file-bytes", 0, "maximum indexed file size")
 	includeGenerated := flags.Bool("include-generated", false, "include generated, vendored, lock, bundled, and minified content")
+	lexiconFacts := flags.String("lexicon-facts", "", "explicit Lexicon JSONL export directory for semantic source spans")
+	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
+	lexiconCommand := flags.String("lexicon-command", "lexicon", "Lexicon executable used for immutable snapshot export")
 	var excludePaths stringListFlag
 	flags.Var(&excludePaths, "exclude", "root-relative or absolute path to exclude; may be repeated")
 	if err := flags.Parse(args); err != nil {
@@ -77,12 +80,23 @@ func runIndex(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
+	sourceSpans, lexiconSnapshot, spanErr := resolveIndexSourceSpans(
+		*root, statePath, *lexiconFacts, *lexiconState, *lexiconCommand,
+	)
+	if spanErr != nil {
+		if strings.TrimSpace(*lexiconFacts) != "" || strings.TrimSpace(*lexiconState) != "" {
+			return fmt.Errorf("resolve Lexicon semantic spans: %w", spanErr)
+		}
+		_, _ = fmt.Fprintf(stderr, "warning: Lexicon semantic spans unavailable; using line-window chunking: %v\n", spanErr)
+	}
+
 	excluded := append([]string{statePath}, excludePaths...)
 	snapshot, stats, err := index.Build(*root, previous, index.BuildOptions{
 		MaxFileBytes:     *maxFileBytes,
 		IgnoreFile:       *ignoreFile,
 		ExcludePaths:     excluded,
 		IncludeGenerated: *includeGenerated,
+		SourceSpans:      sourceSpans,
 	})
 	if err != nil {
 		return err
@@ -91,11 +105,20 @@ func runIndex(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
+	chunking := "fallback"
+	if stats.SemanticFiles > 0 {
+		chunking = "lexicon"
+	}
 	response := struct {
-		State string           `json:"state"`
-		Files int              `json:"files"`
-		Stats index.BuildStats `json:"stats"`
-	}{State: statePath, Files: len(snapshot.Files), Stats: stats}
+		State           string           `json:"state"`
+		Files           int              `json:"files"`
+		Chunking        string           `json:"chunking"`
+		LexiconSnapshot string           `json:"lexicon_snapshot,omitempty"`
+		Stats           index.BuildStats `json:"stats"`
+	}{
+		State: statePath, Files: len(snapshot.Files), Chunking: chunking,
+		LexiconSnapshot: lexiconSnapshot, Stats: stats,
+	}
 	return writeJSON(stdout, response)
 }
 

@@ -143,8 +143,11 @@ grimoire index [flags]
 | `--max-file-bytes <n>` | 2 MiB | Maximum eligible source file size |
 | `--include-generated` | `false` | Include generated, vendored, lock, bundled, and minified content |
 | `--exclude <path>` | none | Root-relative or absolute path to exclude; repeatable |
+| `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory for semantic source spans |
+| `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
+| `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
 
-The command prepares source chunks and exact token counts. Persistent embeddings are built separately by `grimoire vector build`.
+The command prepares Lexicon-aligned declaration chunks when current facts are available, fills every uncovered source region with deterministic fallback chunks, and stores exact token counts. Persistent embeddings are built separately by `grimoire vector build`.
 
 Output:
 
@@ -152,12 +155,16 @@ Output:
 {
   "state": "/absolute/path/to/repository/.grimoire",
   "files": 21,
+  "chunking": "lexicon",
+  "lexicon_snapshot": "sha256:...",
   "stats": {
     "scanned": 21,
     "reused": 20,
     "updated": 1,
     "removed": 0,
-    "generated_skipped": 4
+    "generated_skipped": 4,
+    "semantic_files": 16,
+    "semantic_chunks": 93
   }
 }
 ```

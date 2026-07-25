@@ -8,17 +8,25 @@ import (
 
 const (
 	fileMagic   = "GRFL"
-	fileVersion = byte(2)
-	fileHeader  = len(fileMagic) + 1 + 32 + 8 + 4
+	fileVersion = byte(3)
+	fileHeader  = len(fileMagic) + 1 + 32 + 32 + 8 + 4
 )
 
 func encodeFile(file FileRecord) ([]byte, error) {
 	if err := validateRecordPath(file.Path); err != nil {
 		return nil, err
 	}
-	hash, err := hex.DecodeString(file.Hash)
-	if err != nil || len(hash) != 32 {
-		return nil, fmt.Errorf("invalid content hash for %q", file.Path)
+	hash, err := decodeFileHash(file.Hash, file.Path, "content")
+	if err != nil {
+		return nil, err
+	}
+	preparationHash := file.PreparationHash
+	if preparationHash == "" {
+		preparationHash = chunkPreparationHash(file.Path, nil)
+	}
+	prepared, err := decodeFileHash(preparationHash, file.Path, "preparation")
+	if err != nil {
+		return nil, err
 	}
 	if file.Size < 0 || uint64(len(file.Chunks)) > uint64(^uint32(0)) {
 		return nil, fmt.Errorf("invalid file metadata for %q", file.Path)
@@ -30,10 +38,11 @@ func encodeFile(file FileRecord) ([]byte, error) {
 			return nil, fmt.Errorf("chunk %q belongs to %q, not %q", chunk.ID, chunk.Path, file.Path)
 		}
 		if !fitsUint32(len(chunk.ID)) || !fitsUint32(len(chunk.Text)) ||
+			!fitsUint32(len(chunk.SemanticKind)) || !fitsUint32(len(chunk.SemanticName)) ||
 			!fitsUint32(chunk.StartLine) || !fitsUint32(chunk.EndLine) || !fitsUint32(chunk.TokenCount) {
 			return nil, fmt.Errorf("chunk %q metadata is too large", chunk.ID)
 		}
-		size += 20 + len(chunk.ID) + len(chunk.Text)
+		size += 28 + len(chunk.ID) + len(chunk.Text) + len(chunk.SemanticKind) + len(chunk.SemanticName)
 	}
 
 	encoded := make([]byte, size)
@@ -41,6 +50,8 @@ func encodeFile(file FileRecord) ([]byte, error) {
 	encoded[len(fileMagic)] = fileVersion
 	offset := len(fileMagic) + 1
 	copy(encoded[offset:], hash)
+	offset += 32
+	copy(encoded[offset:], prepared)
 	offset += 32
 	binary.BigEndian.PutUint64(encoded[offset:], uint64(file.Size))
 	offset += 8
@@ -57,10 +68,18 @@ func encodeFile(file FileRecord) ([]byte, error) {
 		offset += 4
 		binary.BigEndian.PutUint32(encoded[offset:], uint32(len(chunk.Text)))
 		offset += 4
+		binary.BigEndian.PutUint32(encoded[offset:], uint32(len(chunk.SemanticKind)))
+		offset += 4
+		binary.BigEndian.PutUint32(encoded[offset:], uint32(len(chunk.SemanticName)))
+		offset += 4
 		copy(encoded[offset:], chunk.ID)
 		offset += len(chunk.ID)
 		copy(encoded[offset:], chunk.Text)
 		offset += len(chunk.Text)
+		copy(encoded[offset:], chunk.SemanticKind)
+		offset += len(chunk.SemanticKind)
+		copy(encoded[offset:], chunk.SemanticName)
+		offset += len(chunk.SemanticName)
 	}
 	return encoded, nil
 }
@@ -83,6 +102,8 @@ func decodeFile(path string, data []byte) (FileRecord, error) {
 	offset := len(fileMagic) + 1
 	hash := hex.EncodeToString(data[offset : offset+32])
 	offset += 32
+	preparationHash := hex.EncodeToString(data[offset : offset+32])
+	offset += 32
 	size := binary.BigEndian.Uint64(data[offset:])
 	offset += 8
 	if size > uint64(^uint64(0)>>1) {
@@ -90,7 +111,7 @@ func decodeFile(path string, data []byte) (FileRecord, error) {
 	}
 	count := binary.BigEndian.Uint32(data[offset:])
 	offset += 4
-	if uint64(count) > uint64((len(data)-offset)/20) {
+	if uint64(count) > uint64((len(data)-offset)/28) {
 		return FileRecord{}, fmt.Errorf("malformed file record %q: impossible chunk count", path)
 	}
 
@@ -116,11 +137,27 @@ func decodeFile(path string, data []byte) (FileRecord, error) {
 		if err != nil {
 			return FileRecord{}, err
 		}
+		kindLength, err := readFileUint32(data, &offset, path, "semantic kind length")
+		if err != nil {
+			return FileRecord{}, err
+		}
+		nameLength, err := readFileUint32(data, &offset, path, "semantic name length")
+		if err != nil {
+			return FileRecord{}, err
+		}
 		id, err := readFileField(data, &offset, idLength, path, "chunk id")
 		if err != nil {
 			return FileRecord{}, err
 		}
 		text, err := readFileField(data, &offset, textLength, path, "chunk text")
+		if err != nil {
+			return FileRecord{}, err
+		}
+		kind, err := readFileField(data, &offset, kindLength, path, "semantic kind")
+		if err != nil {
+			return FileRecord{}, err
+		}
+		name, err := readFileField(data, &offset, nameLength, path, "semantic name")
 		if err != nil {
 			return FileRecord{}, err
 		}
@@ -130,12 +167,24 @@ func decodeFile(path string, data []byte) (FileRecord, error) {
 		chunks = append(chunks, Chunk{
 			ID: string(id), Path: path, StartLine: int(start), EndLine: int(end),
 			TokenCount: int(tokens), Text: string(text),
+			SemanticKind: string(kind), SemanticName: string(name),
 		})
 	}
 	if offset != len(data) {
 		return FileRecord{}, fmt.Errorf("malformed file record %q: trailing data", path)
 	}
-	return FileRecord{Path: path, Hash: hash, Size: int64(size), Chunks: chunks}, nil
+	return FileRecord{
+		Path: path, Hash: hash, PreparationHash: preparationHash,
+		Size: int64(size), Chunks: chunks,
+	}, nil
+}
+
+func decodeFileHash(value, path, kind string) ([]byte, error) {
+	hash, err := hex.DecodeString(value)
+	if err != nil || len(hash) != 32 {
+		return nil, fmt.Errorf("invalid %s hash for %q", kind, path)
+	}
+	return hash, nil
 }
 
 func fitsUint32(value int) bool {
