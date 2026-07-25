@@ -181,6 +181,18 @@ type EvidenceStatus struct {
 	FailureStage   string   `json:"failure_stage,omitempty"`
 }
 
+type EvidenceFunnel struct {
+	Total          int `json:"total"`
+	Indexed        int `json:"indexed"`
+	BroadProbe     int `json:"broad_probe"`
+	Retrieved      int `json:"retrieved"`
+	ExactRecovered int `json:"exact_recovered"`
+	Merged         int `json:"merged"`
+	Curated        int `json:"curated"`
+	Assembled      int `json:"assembled"`
+	Included       int `json:"included"`
+}
+
 type StructuralEvidenceStatus struct {
 	Evidence     StructuralExpectation `json:"evidence"`
 	Produced     bool                  `json:"produced"`
@@ -239,6 +251,7 @@ type CaseRun struct {
 	OmittedForBudget                  int                        `json:"omitted_for_budget"`
 	OmittedStructuralForBudget        int                        `json:"omitted_structural_for_budget"`
 	Required                          []EvidenceStatus           `json:"required,omitempty"`
+	RequiredEvidenceFunnel            EvidenceFunnel             `json:"required_evidence_funnel"`
 	Supporting                        []EvidenceStatus           `json:"supporting,omitempty"`
 	RequiredStructural                []StructuralEvidenceStatus `json:"required_structural,omitempty"`
 	SupportingStructural              []StructuralEvidenceStatus `json:"supporting_structural,omitempty"`
@@ -268,6 +281,7 @@ type Aggregate struct {
 	Passes                     int                `json:"passes"`
 	PassRate                   float64            `json:"pass_rate"`
 	RequiredEvidenceRecall     float64            `json:"required_evidence_recall"`
+	RequiredEvidenceFunnel     EvidenceFunnel     `json:"required_evidence_funnel"`
 	SupportingEvidenceRecall   float64            `json:"supporting_evidence_recall"`
 	RequiredStructuralRecall   float64            `json:"required_structural_recall"`
 	SupportingStructuralRecall float64            `json:"supporting_structural_recall"`
