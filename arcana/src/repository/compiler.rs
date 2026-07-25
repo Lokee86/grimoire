@@ -169,6 +169,10 @@ pub fn relation_to_edge_kind(relation: &RelationKind) -> EdgeKind {
         RelationKind::Reads => 17,
         RelationKind::Writes => 18,
         RelationKind::Annotates => 19,
+        RelationKind::ObservedCalls => 20,
+        RelationKind::RoutesTo => 21,
+        RelationKind::CommunicatesWith => 22,
+        RelationKind::SimilarTo => 23,
     })
 }
 
@@ -194,6 +198,10 @@ pub fn edge_kind_to_relation(kind: EdgeKind) -> Option<RelationKind> {
         17 => RelationKind::Reads,
         18 => RelationKind::Writes,
         19 => RelationKind::Annotates,
+        20 => RelationKind::ObservedCalls,
+        21 => RelationKind::RoutesTo,
+        22 => RelationKind::CommunicatesWith,
+        23 => RelationKind::SimilarTo,
         _ => return None,
     })
 }

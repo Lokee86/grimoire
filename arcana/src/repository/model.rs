@@ -131,6 +131,7 @@ pub enum RelationKind {
     Imports,
     Calls,
     PossibleCalls,
+    ObservedCalls,
     ConvertsTo,
     Implements,
     Extends,
@@ -141,9 +142,12 @@ pub enum RelationKind {
     Annotates,
     Includes,
     DependsOn,
+    RoutesTo,
+    CommunicatesWith,
     Tests,
     Documents,
     Generates,
+    SimilarTo,
 }
 
 impl RelationKind {
@@ -155,6 +159,7 @@ impl RelationKind {
             Self::Imports => "imports",
             Self::Calls => "calls",
             Self::PossibleCalls => "possible-calls",
+            Self::ObservedCalls => "observed-calls",
             Self::ConvertsTo => "converts-to",
             Self::Implements => "implements",
             Self::Extends => "extends",
@@ -165,9 +170,12 @@ impl RelationKind {
             Self::Annotates => "annotates",
             Self::Includes => "includes",
             Self::DependsOn => "depends-on",
+            Self::RoutesTo => "routes-to",
+            Self::CommunicatesWith => "communicates-with",
             Self::Tests => "tests",
             Self::Documents => "documents",
             Self::Generates => "generates",
+            Self::SimilarTo => "similar-to",
         }
     }
 
@@ -179,6 +187,7 @@ impl RelationKind {
             "imports" => Self::Imports,
             "calls" => Self::Calls,
             "possible-calls" => Self::PossibleCalls,
+            "observed-calls" => Self::ObservedCalls,
             "converts-to" => Self::ConvertsTo,
             "implements" => Self::Implements,
             "extends" => Self::Extends,
@@ -189,9 +198,12 @@ impl RelationKind {
             "annotates" => Self::Annotates,
             "includes" => Self::Includes,
             "depends-on" => Self::DependsOn,
+            "routes-to" => Self::RoutesTo,
+            "communicates-with" => Self::CommunicatesWith,
             "tests" => Self::Tests,
             "documents" => Self::Documents,
             "generates" => Self::Generates,
+            "similar-to" => Self::SimilarTo,
             _ => return None,
         })
     }

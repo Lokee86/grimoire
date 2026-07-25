@@ -145,6 +145,7 @@ arcana protocol --snapshot \
 {"id":"symbol","op":"resolve_symbol","name":"ExampleFunction"}
 {"id":"chain","op":"shortest_call_chain","from_node_id":12,"to_node_id":42}
 {"id":"impact","op":"impact","node_id":42,"max_depth":8}
+{"id":"architecture","op":"architecture_summary","path_prefix":"src","min_community_size":3}
 ```
 
 Arcana also reads its legacy TSV fact format during migration. Lexicon SHA-256
@@ -154,7 +155,14 @@ snapshot-local packed IDs and rejects any detected compaction collision.
 The stable protocol identifier is `arcana.query.v1`. In addition to symbol,
 file, neighbor, unresolved, statistics, and snapshot-diff operations, it supports
 bounded multi-hop paths, entry-point reachability, transitive impact, shortest
-call chains, dead-symbol detection, and operational-role summaries.
+call chains, dead-symbol detection, operational-role summaries, and deterministic
+architecture communities. Architecture summaries can be path-scoped and relation-
+scoped, and report representative nodes, internal relation counts, and incoming or
+outgoing boundary counts.
+
+The repository fact model also accepts `observed-calls`, `routes-to`,
+`communicates-with`, and `similar-to` evidence. Runtime-observed calls participate
+in call traversal and are reported separately from static call resolution.
 
 See [`docs/LEXICON_CONTRACT.md`](docs/LEXICON_CONTRACT.md) for the exact consumer
 boundary and incremental ownership policy.

@@ -182,11 +182,19 @@ impl ProtocolSnapshot {
         let outgoing_counts = relation_counts(&outgoing);
         let callers = filtered(
             &incoming,
-            &[RelationKind::Calls, RelationKind::PossibleCalls],
+            &[
+                RelationKind::Calls,
+                RelationKind::PossibleCalls,
+                RelationKind::ObservedCalls,
+            ],
         );
         let callees = filtered(
             &outgoing,
-            &[RelationKind::Calls, RelationKind::PossibleCalls],
+            &[
+                RelationKind::Calls,
+                RelationKind::PossibleCalls,
+                RelationKind::ObservedCalls,
+            ],
         );
         let summary = role_summary(&entry.fact.name, &incoming_counts, &outgoing_counts);
 
@@ -264,12 +272,15 @@ fn role_summary(
 ) -> String {
     let callers = incoming.get("calls").copied().unwrap_or(0);
     let possible_callers = incoming.get("possible-calls").copied().unwrap_or(0);
+    let observed_callers = incoming.get("observed-calls").copied().unwrap_or(0);
     let callees = outgoing.get("calls").copied().unwrap_or(0);
     let possible_targets = outgoing.get("possible-calls").copied().unwrap_or(0);
+    let observed_targets = outgoing.get("observed-calls").copied().unwrap_or(0);
     let references = incoming.get("references").copied().unwrap_or(0);
     format!(
         "{name} has {callers} definite caller(s), {possible_callers} possible caller(s), \
-         {callees} definite callee(s), {possible_targets} possible target(s), and \
-         {references} incoming reference(s)."
+         {observed_callers} runtime-observed caller(s), {callees} definite callee(s), \
+         {possible_targets} possible target(s), {observed_targets} runtime-observed target(s), \
+         and {references} incoming reference(s)."
     )
 }
