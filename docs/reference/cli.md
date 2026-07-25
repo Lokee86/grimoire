@@ -233,7 +233,9 @@ grimoire context [flags]
 | --- | --- | --- |
 | `--root <path>` | `.` | Repository root used to resolve state |
 | `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
-| `--query <text>` | none | Required retrieval query |
+| `--query <text>` | none | Retrieval task; optional when `--diff` is set |
+| `--diff <scope>` | none | `working-tree`, `staged`, `unstaged`, or one Git revision/range |
+| `--diff-timeout <duration>` | `10s` | Complete Git diff and untracked-file discovery timeout |
 | `--budget <n>` | `0` | Maximum `o200k_base` tokens; zero selects a deterministic automatic target |
 | `--candidate-limit <n>` | `200` | Maximum merged exact plus semantic/fallback primary candidates before curation |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
@@ -253,6 +255,14 @@ grimoire context [flags]
 | `--query-max-tokens <n>` | `0` | Optional query-token limit; zero keeps the complete query |
 
 The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds the complete query as fixed non-overlapping windows grouped into bounded 64-token requests, with at most two requests active concurrently. `full` embeds the complete query once. `quality` adds the full-query vector to the split windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged before deterministic query-shape analysis. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, and expanded with bounded prepared neighbours. Automatic assembly stops after deterministic evidence coverage is reached: focused requests remain around one anchor region, bounded requests require two represented regions, and exploratory requests require three. The emitted package records the assembly decision. Explicit-budget requests retain the existing fit-to-budget behavior.
+
+Diff-aware context treats changed prepared chunks as primary candidates and emits bounded `git-diff` structural evidence for every changed span. Changed paths, hunk headings, and declaration lines are added only to the internal retrieval query so Lexicon and Arcana can locate callers, dependencies, contracts, and tests; the package retains the human-facing query. `working-tree` compares tracked files with `HEAD` and also includes untracked, non-ignored files. `staged` compares `HEAD` with the index, `unstaged` compares the index with tracked working files, and any other value is passed to Git as one revision/range argument. A diff with no changed spans is an error rather than silently producing ordinary query context.
+
+```bash
+grimoire context --diff working-tree
+grimoire context --diff HEAD~1 --query "review these changes for regressions"
+grimoire context --diff main...HEAD --query "identify affected callers and missing tests"
+```
 
 Structural enrichment is enabled by default. When Lexicon state exists, Grimoire resolves `.lexicon/CURRENT`, creates or reuses a cached `lexicon export`, and emits matched symbols, source spans, and immediate relationships as first-class package evidence. It then resolves the Arcana snapshot for the same Lexicon ID, invokes one-shot `arcana sync` when necessary, and queries Arcana's JSONL protocol for operational roles, impact, unresolved references, and shortest call chains. The component executables are independently built from `lexicon/` and `arcana/` in this repository or discovered through the configured command paths. Structural failures warn and preserve source-only retrieval. Use `--structure=false` to skip both components or the explicit state, command, and facts flags to override discovery.
 

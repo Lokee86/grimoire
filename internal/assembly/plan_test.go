@@ -35,6 +35,24 @@ func TestPlanFocusedStaysNearExactAnchor(t *testing.T) {
 	}
 }
 
+func TestPlanFocusedKeepsChangedCandidatesAcrossRegions(t *testing.T) {
+	candidates := []retrieve.Candidate{
+		candidate("internal/damage/resolve.go", "git-diff", 1),
+		candidate("internal/network/socket.go", "git-diff", 2),
+		candidate("internal/damage/model.go", "lexical", 3),
+		candidate("internal/damage/resolve_test.go", "lexical", 4),
+	}
+	result := Plan(queryshape.RetrievalPolicy{
+		Scope: queryshape.ScopeFocused, TargetTokens: 1_000_000_000,
+	}, candidates, nil)
+	if len(result.Candidates) != 4 {
+		t.Fatalf("selected %d candidates, want 4", len(result.Candidates))
+	}
+	if result.Candidates[1].Chunk.Path != "internal/network/socket.go" {
+		t.Fatalf("cross-region changed candidate was filtered: %+v", result.Candidates)
+	}
+}
+
 func TestPlanBoundedStopsAfterTwoRegionCoverage(t *testing.T) {
 	var candidates []retrieve.Candidate
 	for index := range 40 {

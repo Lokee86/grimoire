@@ -22,7 +22,9 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	flags.SetOutput(stderr)
 	root := flags.String("root", ".", "repository root")
 	state := flags.String("state", "", "prepared index repository path")
-	query := flags.String("query", "", "task or retrieval query")
+	query := flags.String("query", "", "task or retrieval query; optional when --diff is set")
+	diffSpec := flags.String("diff", "", "Git diff scope: working-tree, staged, unstaged, or one revision/range")
+	diffTimeout := flags.Duration("diff-timeout", 10*time.Second, "Git diff collection timeout")
 	budget := flags.Int("budget", 0, "maximum o200k_base tokens in the emitted package; zero selects automatically")
 	limit := flags.Int("candidate-limit", 200, "maximum ranked candidates")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
@@ -45,8 +47,11 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if *query == "" || *budget < 0 || *limit <= 0 || *timeout <= 0 || *structureTimeout <= 0 {
-		return errors.New("--query, non-negative --budget, and positive --candidate-limit, --timeout, and --structure-timeout are required")
+	if strings.TrimSpace(*query) == "" && strings.TrimSpace(*diffSpec) == "" {
+		return errors.New("--query is required unless --diff is set")
+	}
+	if *budget < 0 || *limit <= 0 || *timeout <= 0 || *structureTimeout <= 0 || *diffTimeout <= 0 {
+		return errors.New("non-negative --budget and positive --candidate-limit, --timeout, --structure-timeout, and --diff-timeout are required")
 	}
 	emitLexicon, arcanaEnabled, err := parseContextStructuralProviders(*structuralProviders)
 	if err != nil {
@@ -77,7 +82,16 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("load prepared index: %w", err)
 	}
 
-	intents := activeRetrievalIntents(*query)
+	diffContext, cancelDiff := context.WithTimeout(context.Background(), *diffTimeout)
+	diffResult, err := prepareContextDiff(diffContext, snapshot, *root, *diffSpec, *query, *limit)
+	cancelDiff()
+	if err != nil {
+		return err
+	}
+	packageQuery := diffResult.PackageQuery
+	retrievalQuery := diffResult.RetrievalQuery
+
+	intents := activeRetrievalIntents(retrievalQuery)
 	lexicalCandidates := intentLexicalCandidates(snapshot, intents, *limit)
 	semanticContext, cancelSemantic := context.WithTimeout(context.Background(), *timeout)
 	semanticCandidates, err := semanticIntentCandidates(
@@ -91,7 +105,7 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		baseCandidates = mergeRankedProviders(*limit, lexicalCandidates, semanticCandidates)
 	}
 
-	structuralIntent := structuralRetrievalIntent(*query, intents)
+	structuralIntent := structuralRetrievalIntent(retrievalQuery, intents)
 	structural := collectStructuralContext(context.Background(), snapshot, structuralIntent.Query, structuralContextOptions{
 		Enabled: emitLexicon || arcanaEnabled, ArcanaEnabled: arcanaEnabled, EmitLexicon: emitLexicon,
 		Root: *root, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
@@ -110,10 +124,11 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	if !emitLexicon {
 		lexiconCandidates = nil
 	}
-	merged := mergeContextProviders(*limit, exact, baseCandidates, lexiconCandidates)
+	merged := mergeContextProvidersWithPriority(*limit, diffResult.Candidates, exact, baseCandidates, lexiconCandidates)
+	evidence := interleaveStructuralEvidence(diffResult.Evidence, structural.Combined)
 	_, policy := queryshape.Analyze(queryshape.Input{
-		Query: *query, RequestedBudget: *budget,
-		Exact: exact, Ranked: baseCandidates, Candidates: merged, Structural: structural.Combined,
+		Query: packageQuery, RequestedBudget: *budget,
+		Exact: exact, Ranked: baseCandidates, Candidates: merged, Structural: evidence,
 	})
 	effectiveBudget := *budget
 	automatic := effectiveBudget == 0
@@ -123,12 +138,11 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	}
 	candidates := selection.Curate(snapshot, merged)
 	if automatic && *spanExtraction {
-		candidates, err = extractContextCandidates(*query, intents, candidates)
+		candidates, err = extractContextCandidates(packageQuery, intents, candidates)
 		if err != nil {
 			return fmt.Errorf("extract context candidates: %w", err)
 		}
 	}
-	evidence := structural.Combined
 
 	var result compiler.Package
 	if automatic {
@@ -136,13 +150,13 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		candidates = planned.Candidates
 		evidence = planned.Structural
 		result, err = compiler.CompileAdaptiveWithEvidence(
-			*query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
+			packageQuery, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
 			contextCandidateSources(candidates), structural.ProviderState, evidence,
 			planned.Decision, candidates,
 		)
 	} else {
 		result, err = compiler.CompileWithEvidence(
-			*query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
+			packageQuery, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
 			contextCandidateSources(candidates), structural.ProviderState, evidence, candidates,
 		)
 	}

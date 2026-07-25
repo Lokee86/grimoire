@@ -151,10 +151,18 @@ func mergeContextProviders(
 	limit int,
 	exact, base, lexicon []retrieve.Candidate,
 ) []retrieve.Candidate {
+	return mergeContextProvidersWithPriority(limit, nil, exact, base, lexicon)
+}
+
+func mergeContextProvidersWithPriority(
+	limit int,
+	priority, exact, base, lexicon []retrieve.Candidate,
+) []retrieve.Candidate {
 	frontCount := min(baseFrontCandidates, len(base))
 	lexiconCount := min(maxLexiconCandidates, len(lexicon))
 	return mergeContextCandidates(
 		limit,
+		priority,
 		exact,
 		base[:frontCount],
 		lexicon[:lexiconCount],
