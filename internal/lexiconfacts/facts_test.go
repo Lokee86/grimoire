@@ -33,7 +33,7 @@ func TestSearchMapsMatchedAndRelatedNodesToPreparedChunks(t *testing.T) {
 		}},
 	}}
 
-	result, err := SearchDetailed(snapshot, "Where does ValidateSnapshot check dimensions?", directory, 10)
+	result, err := SearchDetailed(snapshot, "Where is ValidateSnapshot implemented?", directory, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,10 @@ func TestSearchMapsMatchedAndRelatedNodesToPreparedChunks(t *testing.T) {
 	if directContext == nil || directContext.Identity != evidence.RangeIdentity("internal/manifest.go", 50, 80) ||
 		!slices.Contains(directContext.Roles, evidence.RolePrimary) ||
 		!slices.Contains(directContext.GroupIDs, nodeGroupID(Node{ID: "owner", Span: &Span{Path: "internal/manifest.go", StartLine: 50, EndLine: 80}})) ||
-		directContext.EstimatedTokens != 17 || directContext.RedundancyKey == "" {
+		directContext.EstimatedTokens != 17 || directContext.RedundancyKey == "" ||
+		directContext.Graph == nil || directContext.Graph.Distance != 0 ||
+		directContext.Graph.SymbolRole != "function" || directContext.Graph.ModuleProximity != 1 ||
+		directContext.Graph.Centrality <= 0 {
 		t.Fatalf("direct candidate descriptor missing structural metadata: %+v", directContext)
 	}
 	if len(result.Evidence) == 0 || result.Evidence[0].Node == nil {
@@ -76,7 +79,11 @@ func TestSearchMapsMatchedAndRelatedNodesToPreparedChunks(t *testing.T) {
 				t.Fatalf("unexpected relationship source: %+v", candidate)
 			}
 			if candidate.Context == nil || !slices.Contains(candidate.Context.Roles, evidence.RoleSupporting) ||
-				candidate.Context.EstimatedTokens != 13 || candidate.Context.RedundancyKey == "" {
+				candidate.Context.EstimatedTokens != 13 || candidate.Context.RedundancyKey == "" ||
+				candidate.Context.Graph == nil || candidate.Context.Graph.Distance != 1 ||
+				!slices.Contains(candidate.Context.Graph.Relations, "outgoing:calls") ||
+				candidate.Context.Graph.SymbolRole != "function" ||
+				candidate.Context.Graph.ModuleProximity != 1 || candidate.Context.Graph.Centrality <= 0 {
 				t.Fatalf("relationship candidate descriptor missing supporting metadata: %+v", candidate.Context)
 			}
 		}

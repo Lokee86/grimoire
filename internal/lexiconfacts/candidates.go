@@ -84,6 +84,7 @@ func candidateContext(entry scoredNode, chunk index.Chunk) evidence.Descriptor {
 		GroupIDs:        []string{nodeGroupID(entry.node)},
 		EstimatedTokens: max(chunk.TokenCount, 1),
 		RedundancyKey:   nodeRedundancyKey(entry.node, chunk),
+		Graph:           evidence.CloneGraphSignals(entry.graph),
 	}
 }
 

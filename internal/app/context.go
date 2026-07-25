@@ -12,6 +12,7 @@ import (
 	"github.com/Lokee86/grimoire/internal/assembly"
 	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/embedding"
+	"github.com/Lokee86/grimoire/internal/graphrank"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/selection"
@@ -111,6 +112,7 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		lexiconCandidates = nil
 	}
 	merged := mergeContextProviders(*limit, exact, baseCandidates, lexiconCandidates)
+	merged = graphrank.Rerank(merged, structuralIntent.Intent)
 	_, policy := queryshape.Analyze(queryshape.Input{
 		Query: *query, RequestedBudget: *budget,
 		Exact: exact, Ranked: baseCandidates, Candidates: merged, Structural: structural.Combined,

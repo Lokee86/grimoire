@@ -9,6 +9,8 @@ import (
 	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/evaluation"
+	"github.com/Lokee86/grimoire/internal/evidence"
+	"github.com/Lokee86/grimoire/internal/graphrank"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/queryshape"
 	"github.com/Lokee86/grimoire/internal/retrieve"
@@ -128,7 +130,10 @@ func evaluateContext(
 	result.Timings.ExactRecoveryMS = durationMS(time.Since(exactStart))
 
 	mergeStart := time.Now()
+	retrieved := mergeContextProviders(options.Limit, nil, base, structural.Lexicon.Candidates)
+	retrieved = graphrank.Rerank(retrieved, structuralIntent.Intent)
 	merged := mergeContextProviders(options.Limit, exact, base, structural.Lexicon.Candidates)
+	merged = graphrank.Rerank(merged, structuralIntent.Intent)
 	result.Timings.CandidateMergeMS += durationMS(time.Since(mergeStart))
 	profileBudget := options.Budget
 	if options.Adaptive {
@@ -210,7 +215,7 @@ func evaluateContext(
 	result.Stages = evaluation.Stages{
 		Indexed:             chunksToEvaluation(snapshot.AllChunks()),
 		BroadProbe:          candidatesToEvaluation(broad),
-		Retrieved:           candidatesToEvaluation(mergeContextProviders(options.Limit, nil, base, structural.Lexicon.Candidates)),
+		Retrieved:           candidatesToEvaluation(retrieved),
 		Exact:               candidatesToEvaluation(exact),
 		Merged:              candidatesToEvaluation(merged),
 		Curated:             candidatesToEvaluation(curated),
@@ -238,20 +243,29 @@ func chunksToEvaluation(chunks []index.Chunk) []evaluation.Candidate {
 	return result
 }
 
+func candidateGraphSignals(candidate retrieve.Candidate) *evidence.GraphSignals {
+	if candidate.Context == nil {
+		return nil
+	}
+	return candidate.Context.Graph
+}
+
 func candidatesToEvaluation(candidates []retrieve.Candidate) []evaluation.Candidate {
 	result := make([]evaluation.Candidate, 0, len(candidates))
 	for _, candidate := range candidates {
 		result = append(result, evaluation.Candidate{
-			Path:            candidate.Chunk.Path,
-			StartLine:       candidate.Chunk.StartLine,
-			EndLine:         candidate.Chunk.EndLine,
-			Text:            candidate.Chunk.Text,
-			RetrievalSource: candidate.Source,
-			ProviderRank:    candidate.Rank,
-			Score:           candidate.Score,
-			ScoreDetails:    scoreDetailsToEvaluation(candidate.ScoreDetails),
-			Reasons:         append([]string(nil), candidate.Reasons...),
-			TokenCount:      candidate.Chunk.TokenCount,
+			Path:              candidate.Chunk.Path,
+			StartLine:         candidate.Chunk.StartLine,
+			EndLine:           candidate.Chunk.EndLine,
+			Text:              candidate.Chunk.Text,
+			RetrievalSource:   candidate.Source,
+			ProviderRank:      candidate.Rank,
+			Score:             candidate.Score,
+			ScoreDetails:      scoreDetailsToEvaluation(candidate.ScoreDetails),
+			GraphScoreDetails: scoreDetailsToEvaluation(candidate.GraphScoreDetails),
+			Reasons:           append([]string(nil), candidate.Reasons...),
+			Graph:             evidence.CloneGraphSignals(candidateGraphSignals(candidate)),
+			TokenCount:        candidate.Chunk.TokenCount,
 		})
 	}
 	return result

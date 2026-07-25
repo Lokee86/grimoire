@@ -36,7 +36,7 @@ func (corpus *Corpus) SearchDetailed(snapshot index.Snapshot, query string, limi
 	if len(terms) == 0 {
 		return Result{}
 	}
-	seeds := rankNodes(corpus.facts.nodes, query, terms)
+	seeds := rankNodes(corpus.facts, query, terms)
 	if len(seeds) == 0 {
 		return Result{}
 	}
