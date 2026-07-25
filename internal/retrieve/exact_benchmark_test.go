@@ -23,7 +23,7 @@ func BenchmarkExactTenThousandChunks(b *testing.B) {
 		}
 		files = append(files, index.FileRecord{Path: path, Chunks: chunks})
 	}
-	snapshot := index.Snapshot{Version: index.FormatVersion, Files: files}
+	snapshot := index.Snapshot{Version: index.FormatVersion, Files: files}.PrepareLexical()
 
 	b.ReportAllocs()
 	b.ResetTimer()

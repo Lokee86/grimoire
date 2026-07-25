@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/Lokee86/grimoire/internal/lexical"
 	"github.com/Lokee86/grimoire/internal/tokenizer"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -55,6 +56,7 @@ func Load(path string) (Snapshot, error) {
 		return Snapshot{}, fmt.Errorf("read prepared index root: %w", err)
 	}
 	var manifestEntry *object.TreeEntry
+	var lexicalEntry *object.TreeEntry
 	for entryIndex := range root.Entries {
 		entry := &root.Entries[entryIndex]
 		if entry.Mode != filemode.Regular {
@@ -65,6 +67,13 @@ func Load(path string) (Snapshot, error) {
 				return Snapshot{}, fmt.Errorf("duplicate prepared index manifest")
 			}
 			manifestEntry = entry
+			continue
+		}
+		if entry.Name == lexicalName {
+			if lexicalEntry != nil {
+				return Snapshot{}, fmt.Errorf("duplicate prepared lexical index")
+			}
+			lexicalEntry = entry
 			continue
 		}
 		if !isShardName(entry.Name) {
@@ -78,12 +87,15 @@ func Load(path string) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, err
 	}
+	if lexicalEntry == nil {
+		return Snapshot{}, fmt.Errorf("prepared lexical index is missing")
+	}
 
 	files := make([]FileRecord, 0)
 	shards := make(map[string]string)
 	seen := make(map[string]struct{})
 	for _, entry := range root.Entries {
-		if entry.Name == manifestName {
+		if entry.Name == manifestName || entry.Name == lexicalName {
 			continue
 		}
 		data, err := readBlob(repository.Storer, entry.Hash)
@@ -111,10 +123,22 @@ func Load(path string) (Snapshot, error) {
 		shards[entry.Name] = entry.Hash.String()
 	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
-	return Snapshot{
+	lexicalData, err := readBlob(repository.Storer, lexicalEntry.Hash)
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("read prepared lexical index: %w", err)
+	}
+	lexicalIndex, err := lexical.Decode(lexicalData)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	snapshot := Snapshot{
 		Version: FormatVersion, Tokenizer: manifestTokenizer, Files: files,
-		baseRoot: ref.Hash().String(), baseShards: shards,
-	}, nil
+		baseRoot: ref.Hash().String(), baseShards: shards, lexicalIndex: lexicalIndex,
+	}
+	if err := validateLexicalIndex(snapshot, lexicalIndex); err != nil {
+		return Snapshot{}, err
+	}
+	return snapshot, nil
 }
 
 func Save(path string, snapshot Snapshot) error {
@@ -187,7 +211,15 @@ func Save(path string, snapshot Snapshot) error {
 	if err != nil {
 		return fmt.Errorf("write index manifest: %w", err)
 	}
-	root, err := writeRoot(repository.Storer, manifest, shards)
+	lexicalData, err := lexical.Encode(snapshot.LexicalIndex())
+	if err != nil {
+		return fmt.Errorf("encode prepared lexical index: %w", err)
+	}
+	lexicalHash, err := writeBlob(repository.Storer, lexicalData)
+	if err != nil {
+		return fmt.Errorf("write prepared lexical index: %w", err)
+	}
+	root, err := writeRoot(repository.Storer, manifest, lexicalHash, shards)
 	if err != nil {
 		return fmt.Errorf("write index root: %w", err)
 	}

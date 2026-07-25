@@ -1,6 +1,10 @@
 package index
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/Lokee86/grimoire/internal/lexical"
+)
 
 const FormatVersion = 4
 
@@ -11,9 +15,10 @@ type Snapshot struct {
 	Tokenizer string
 	Files     []FileRecord
 
-	baseRoot    string
-	baseShards  map[string]string
-	dirtyShards map[string]bool
+	baseRoot     string
+	baseShards   map[string]string
+	dirtyShards  map[string]bool
+	lexicalIndex *lexical.Index
 }
 
 type FileRecord struct {

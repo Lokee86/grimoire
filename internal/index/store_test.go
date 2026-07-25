@@ -40,6 +40,12 @@ func TestStoreRoundTrip(t *testing.T) {
 	if len(loaded.Files[0].Chunks) != 1 || loaded.Files[0].Chunks[0].Text == "" {
 		t.Fatalf("unexpected chunks: %+v", loaded.Files[0].Chunks)
 	}
+	if loaded.lexicalIndex == nil || loaded.lexicalIndex.DocumentCount() != 1 {
+		t.Fatalf("prepared lexical sidecar was not loaded: %+v", loaded.lexicalIndex)
+	}
+	if postings := loaded.lexicalIndex.Posting("value"); len(postings) != 1 || postings[0].Document != 0 {
+		t.Fatalf("unexpected persisted lexical postings: %+v", postings)
+	}
 }
 
 func TestStoreKeepsRootForUnchangedIndex(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Lokee86/grimoire/internal/index"
+	"github.com/Lokee86/grimoire/internal/lexical"
 )
 
 func Exact(snapshot index.Snapshot, query string, limit int) []Candidate {
@@ -12,8 +13,22 @@ func Exact(snapshot index.Snapshot, query string, limit int) []Candidate {
 	if len(signals) == 0 {
 		return nil
 	}
+	chunks := snapshot.AllChunks()
+	lexicalIndex := snapshot.LexicalIndex()
+	documents, indexed := exactCandidateDocuments(lexicalIndex, signals)
+	if !indexed {
+		documents = make([]int, len(chunks))
+		for document := range chunks {
+			documents[document] = document
+		}
+	}
+
 	candidates := make([]Candidate, 0)
-	for _, chunk := range snapshot.AllChunks() {
+	for _, document := range documents {
+		if document < 0 || document >= len(chunks) {
+			continue
+		}
+		chunk := chunks[document]
 		candidate := Candidate{Chunk: chunk, Source: "exact"}
 		for _, signal := range signals {
 			if strings.Contains(chunk.Path, signal.value) {
@@ -58,4 +73,36 @@ func Exact(snapshot index.Snapshot, query string, limit int) []Candidate {
 		candidates[i].Rank = i + 1
 	}
 	return candidates
+}
+
+func exactCandidateDocuments(lexicalIndex *lexical.Index, signals []exactSignal) ([]int, bool) {
+	seenDocuments := make(map[int]struct{})
+	for _, signal := range signals {
+		terms := uniqueLexicalTerms(signal.value)
+		if len(terms) == 0 {
+			return nil, false
+		}
+		for _, document := range lexicalIndex.CandidateDocumentsAll(terms) {
+			seenDocuments[document] = struct{}{}
+		}
+	}
+	result := make([]int, 0, len(seenDocuments))
+	for document := range seenDocuments {
+		result = append(result, document)
+	}
+	sort.Ints(result)
+	return result, true
+}
+
+func uniqueLexicalTerms(value string) []string {
+	seen := make(map[string]struct{})
+	terms := make([]string, 0)
+	for _, term := range lexical.Tokens(value) {
+		if _, exists := seen[term]; exists {
+			continue
+		}
+		seen[term] = struct{}{}
+		terms = append(terms, term)
+	}
+	return terms
 }

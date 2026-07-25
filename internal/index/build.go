@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	ignorepolicy "github.com/Lokee86/grimoire/internal/ignore"
+	"github.com/Lokee86/grimoire/internal/lexical"
 	"github.com/Lokee86/grimoire/internal/tokenizer"
 )
 
@@ -183,10 +184,16 @@ func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, Bui
 	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
 
-	return Snapshot{
+	snapshot := Snapshot{
 		Version: FormatVersion, Tokenizer: tokenizer.Name, Files: files,
 		baseRoot: baseRoot, baseShards: baseShards, dirtyShards: dirtyShards,
-	}, stats, nil
+	}
+	var previousLexical *lexical.Index
+	if previous != nil {
+		previousLexical = previous.lexicalIndex
+	}
+	snapshot.lexicalIndex = buildLexicalIndex(files, previousLexical)
+	return snapshot, stats, nil
 }
 
 func indexableFile(name string) bool {
