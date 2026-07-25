@@ -58,6 +58,20 @@ type Profile struct {
 	Ambiguity           Level    `json:"ambiguity"`
 }
 
+// TaskPlanKind identifies the deterministic retrieval plan selected for a task.
+type TaskPlanKind string
+
+const (
+	TaskPlanGeneral        TaskPlanKind = "general"
+	TaskPlanDirectLocation TaskPlanKind = "direct-location"
+	TaskPlanImplementation TaskPlanKind = "implementation"
+	TaskPlanImpact         TaskPlanKind = "impact"
+	TaskPlanTracing        TaskPlanKind = "tracing"
+	TaskPlanDebugging      TaskPlanKind = "debugging"
+	TaskPlanArchitecture   TaskPlanKind = "architecture"
+	TaskPlanVerification   TaskPlanKind = "verification"
+)
+
 // RetrievalIntent is one ordered retrieval request derived from a query.
 // Weight is relative to the other entries in the same policy and is always
 // positive for an emitted intent.
@@ -66,6 +80,15 @@ type RetrievalIntent struct {
 	Intent  evidence.Intent `json:"intent"`
 	Query   string          `json:"query"`
 	Weight  float64         `json:"weight"`
+	Task    TaskPlanKind    `json:"task_plan,omitempty"`
+	Step    string          `json:"task_step,omitempty"`
+}
+
+// TaskPlan is the query-only plan consumed before candidate generation.
+type TaskPlan struct {
+	Kind       TaskPlanKind      `json:"kind"`
+	Confidence Level             `json:"confidence"`
+	Intents    []RetrievalIntent `json:"steps"`
 }
 
 // RetrievalPolicy is the policy recommendation derived from a Profile.
@@ -78,6 +101,8 @@ type RetrievalPolicy struct {
 	TargetTokens         int               `json:"target_tokens"`
 	MaximumTokens        int               `json:"maximum_tokens"`
 	ExpansionRadius      int               `json:"expansion_radius"`
+	TaskPlan             TaskPlanKind      `json:"task_plan,omitempty"`
+	TaskPlanConfidence   Level             `json:"task_plan_confidence,omitempty"`
 	Intents              []RetrievalIntent `json:"intents"`
 	RequiredEvidence     []string          `json:"required_evidence_types"`
 	DiversityRequirement int               `json:"diversity_requirement"`

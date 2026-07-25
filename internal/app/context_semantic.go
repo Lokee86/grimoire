@@ -119,7 +119,11 @@ func semanticIntentCandidatesForEvaluation(
 		}
 		start := len(combinedPlan)
 		for index := range inputs {
-			inputs[index].Label = fmt.Sprintf("facet %s: %s", planned.Intent, inputs[index].Label)
+			label := string(planned.Intent)
+			if planned.Task != "" && planned.Step != "" {
+				label = fmt.Sprintf("%s/%s", planned.Task, planned.Step)
+			}
+			inputs[index].Label = fmt.Sprintf("facet %s: %s", label, inputs[index].Label)
 		}
 		combinedPlan = append(combinedPlan, inputs...)
 		plans = append(plans, semanticIntentPlan{

@@ -26,7 +26,7 @@ func Analyze(input Input) (Profile, RetrievalPolicy) {
 	profile.Specificity = specificityLevel(profile, configs, quoted, query)
 	profile.Breadth = breadthLevel(profile, query)
 	profile.Ambiguity = ambiguityLevel(profile, len(input.Ranked))
-	return profile, policyFor(profile, input.RequestedBudget, originalQuery, tasks)
+	return profile, policyFor(profile, input.RequestedBudget, originalQuery)
 }
 
 func specificityLevel(profile Profile, configs, quoted int, query string) Level {
@@ -165,7 +165,7 @@ func scoreLevel(score, medium, high int) Level {
 	return LevelLow
 }
 
-func policyFor(profile Profile, budget int, originalQuery string, tasks []string) RetrievalPolicy {
+func policyFor(profile Profile, budget int, originalQuery string) RetrievalPolicy {
 	scope := ScopeBounded
 	if profile.Specificity == LevelHigh && profile.Breadth == LevelLow && profile.Ambiguity != LevelHigh {
 		scope = ScopeFocused
@@ -173,16 +173,19 @@ func policyFor(profile Profile, budget int, originalQuery string, tasks []string
 		(profile.Breadth == LevelMedium && profile.Ambiguity == LevelHigh) {
 		scope = ScopeExploratory
 	}
+	plan := PlanTaskRetrieval(originalQuery)
 	policy := RetrievalPolicy{
 		Shadow: true, Scope: scope, BudgetMode: "fixed",
 		TargetTokens: budget, MaximumTokens: budget,
-		Intents: retrievalIntents(originalQuery, tasks),
+		TaskPlan: plan.Kind, TaskPlanConfidence: plan.Confidence,
+		Intents: plan.Intents,
 	}
 	if budget <= 0 {
 		policy.BudgetMode = "automatic-shadow"
 		applyAutomaticBudget(&policy)
 	}
 	applyScopePolicy(&policy)
+	applyTaskPlanPolicy(&policy)
 	return policy
 }
 

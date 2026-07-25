@@ -12,11 +12,7 @@ const maxRetrievalIntentEntries = 7
 // before candidate generation. It intentionally depends only on the request
 // text so retrieval can consume intents before full query profiling.
 func PlanRetrievalIntents(query string) []RetrievalIntent {
-	query = strings.TrimSpace(query)
-	if query == "" {
-		return nil
-	}
-	return retrievalIntents(query, recognizedTasks(strings.ToLower(query)))
+	return PlanTaskRetrieval(query).Intents
 }
 
 func retrievalIntents(query string, tasks []string) []RetrievalIntent {
@@ -84,11 +80,11 @@ func mappedIntents(tasks []string) []evidence.Intent {
 		switch task {
 		case "location":
 			intent = evidence.IntentDirectLocation
-		case "execution-flow":
+		case "execution-flow", "impact":
 			intent = evidence.IntentCallChain
 		case "architecture":
 			intent = evidence.IntentArchitecture
-		case "mechanism", "debugging":
+		case "mechanism", "debugging", "modification", "verification":
 			intent = evidence.IntentMechanism
 		default:
 			continue

@@ -25,6 +25,25 @@ The profile records:
 
 Prompt semantics are evaluated separately from candidate ranking. After retrieval, ranking confidence, path dispersion, and structural dispersion can widen or narrow the provisional scope.
 
+## Task-specific retrieval plans
+
+Before candidate generation, Grimoire selects a deterministic task plan when the query strongly indicates one of these shapes:
+
+| Plan | Focused retrieval passes |
+| --- | --- |
+| Implementation | implementation and owned state; execution context; contracts and configuration; verification |
+| Impact | change site; incoming and transitive dependents; compatibility boundaries; regression coverage |
+| Tracing | entry point; ordered call path; state and data flow; path-covering tests |
+| Debugging | failure site; propagation; state and configuration; reproduction and regression evidence |
+| Architecture | ownership and boundaries; public contracts; representative implementations; cross-boundary flow |
+| Verification | tests and benchmarks; implementation under test; integration and failure paths; compatibility contracts |
+
+Each expanded plan also keeps the original query as a low-weight task-context pass. The passes are executed through the existing lexical, exact, and semantic providers, fused with reserved facet coverage, and annotated in candidate provenance. Arcana receives the most graph-relevant planned pass.
+
+Focused location queries remain single-pass. Long structured prompts retain their more specific clause decomposition and are only labeled with the selected task plan.
+
+The emitted retrieval policy records `task_plan`, `task_plan_confidence`, and the ordered plan steps. Task-specific required-evidence and stop-condition metadata supplements the normal focused, bounded, or exploratory scope policy.
+
 ## Current tiers
 
 | Scope | Minimum | Target | Maximum | Intended shape |
