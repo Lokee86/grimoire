@@ -174,6 +174,11 @@ pub fn relation_to_edge_kind(relation: &RelationKind) -> EdgeKind {
         RelationKind::RoutesTo => 22,
         RelationKind::CommunicatesWith => 23,
         RelationKind::SimilarTo => 24,
+        RelationKind::CallsEndpoint => 25,
+        RelationKind::HandledBy => 26,
+        RelationKind::Publishes => 27,
+        RelationKind::Consumes => 28,
+        RelationKind::ReadsConfig => 29,
     })
 }
 
@@ -204,6 +209,11 @@ pub fn edge_kind_to_relation(kind: EdgeKind) -> Option<RelationKind> {
         22 => RelationKind::RoutesTo,
         23 => RelationKind::CommunicatesWith,
         24 => RelationKind::SimilarTo,
+        25 => RelationKind::CallsEndpoint,
+        26 => RelationKind::HandledBy,
+        27 => RelationKind::Publishes,
+        28 => RelationKind::Consumes,
+        29 => RelationKind::ReadsConfig,
         _ => return None,
     })
 }

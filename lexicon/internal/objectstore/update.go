@@ -45,6 +45,32 @@ func (s Store) BuildFullLanguage(
 	return entry, nil
 }
 
+// BuildSharedLanguage stores a synthetic full analysis as one shared object.
+// Derived analyses such as interstack tracing reference nodes owned by other
+// language libraries and therefore do not claim source-file ownership.
+func (s Store) BuildSharedLanguage(
+	analysis *Analysis,
+	analysisConfigID, adapterFingerprint string,
+) (LanguageEntry, error) {
+	if analysis == nil {
+		return LanguageEntry{}, fmt.Errorf("missing synthetic analysis")
+	}
+	if analysis.IsIncremental() {
+		return LanguageEntry{}, fmt.Errorf("synthetic analysis must be full")
+	}
+	records := typedRecords{}
+	for _, record := range analysis.records {
+		records.append(record.typed)
+	}
+	entry := languageMetadata(analysis.Header, analysisConfigID, adapterFingerprint)
+	sharedObjectID, err := s.writeSharedObject(entry, records)
+	if err != nil {
+		return LanguageEntry{}, err
+	}
+	entry.SharedObjectID = sharedObjectID
+	return entry, nil
+}
+
 func (s Store) BuildIncrementalLanguage(
 	previous LanguageEntry,
 	analysis *Analysis,

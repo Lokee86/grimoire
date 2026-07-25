@@ -97,5 +97,10 @@ fn relation_name(relation: &RelationKind) -> &'static str {
         RelationKind::Documents => "documents",
         RelationKind::Generates => "generates",
         RelationKind::SimilarTo => "similar-to",
+        RelationKind::CallsEndpoint => "calls-endpoint",
+        RelationKind::HandledBy => "handled-by",
+        RelationKind::Publishes => "publishes",
+        RelationKind::Consumes => "consumes",
+        RelationKind::ReadsConfig => "reads-config",
     }
 }

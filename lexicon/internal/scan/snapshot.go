@@ -31,6 +31,9 @@ func (s *Scanner) adapterDriftLanguages(manifest objectstore.Manifest) ([]string
 	}
 	drift := make([]string, 0)
 	for _, language := range manifest.Languages {
+		if language.Language == "interstack" {
+			continue
+		}
 		fingerprint, err := s.adapterFingerprint(language.Language)
 		if err != nil {
 			return nil, err

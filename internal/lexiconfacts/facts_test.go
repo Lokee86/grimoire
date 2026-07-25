@@ -93,6 +93,49 @@ func TestSearchMapsMatchedAndRelatedNodesToPreparedChunks(t *testing.T) {
 	}
 }
 
+func TestSearchTraversesInterstackContractNodesToTheOppositeStack(t *testing.T) {
+	directory := t.TempDir()
+	files := map[string]string{
+		"gdscript.jsonl": "" +
+			`{"record":"lexicon","language":"gdscript","repository":"example"}` + "\n" +
+			`{"record":"node","id":"sender","kind":"method","name":"SubmitLogin","path":"client/login.gd","qualified_name":"client/login.gd::SubmitLogin","span":{"path":"client/login.gd","start_line":10,"end_line":20}}` + "\n",
+		"ruby.jsonl": "" +
+			`{"record":"lexicon","language":"ruby","repository":"example"}` + "\n" +
+			`{"record":"node","id":"handler","kind":"method","name":"create","path":"server/sessions_controller.rb","qualified_name":"SessionsController#create","span":{"path":"server/sessions_controller.rb","start_line":5,"end_line":12}}` + "\n",
+		"interstack.jsonl": "" +
+			`{"record":"lexicon","language":"interstack","repository":"example"}` + "\n" +
+			`{"record":"node","id":"endpoint","kind":"http-endpoint","name":"POST /session/start","path":"@interstack/http/session","qualified_name":"http:server:POST /session/start"}` + "\n" +
+			`{"record":"edge","source":"sender","target":"endpoint","relation":"calls-endpoint"}` + "\n" +
+			`{"record":"edge","source":"endpoint","target":"handler","relation":"handled-by"}` + "\n",
+	}
+	for name, data := range files {
+		if err := os.WriteFile(filepath.Join(directory, name), []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	snapshot := index.Snapshot{Files: []index.FileRecord{
+		{Path: "client/login.gd", Chunks: []index.Chunk{{ID: "client", Path: "client/login.gd", StartLine: 1, EndLine: 30, TokenCount: 20}}},
+		{Path: "server/sessions_controller.rb", Chunks: []index.Chunk{{ID: "server", Path: "server/sessions_controller.rb", StartLine: 1, EndLine: 20, TokenCount: 18}}},
+	}}
+
+	result, err := SearchDetailed(snapshot, "Trace SubmitLogin", directory, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, candidate := range result.Candidates {
+		if candidate.Chunk.ID != "server" {
+			continue
+		}
+		if candidate.Context == nil || candidate.Context.Graph == nil || candidate.Context.Graph.Distance != 2 ||
+			!slices.Contains(candidate.Context.Graph.Relations, "outgoing:calls-endpoint") ||
+			!slices.Contains(candidate.Context.Graph.Relations, "outgoing:handled-by") {
+			t.Fatalf("opposite-stack candidate lost its two-hop graph path: %+v", candidate)
+		}
+		return
+	}
+	t.Fatalf("interstack path did not recover the server handler: %+v", result.Candidates)
+}
+
 func TestRelationshipsAggregateOccurrencesAndPreserveSemanticSites(t *testing.T) {
 	directory := t.TempDir()
 	data := "" +

@@ -96,11 +96,16 @@ func (s *Scanner) scan(ctx context.Context, synchronize func() error) (Report, e
 	if err != nil {
 		return Report{}, err
 	}
-	if len(changes) == 0 && len(plans) == 0 && !pruned && !legacyRemoved {
+	interstackDrift := interstackDrifted(manifest)
+	if len(changes) == 0 && len(plans) == 0 && !pruned && !legacyRemoved && !interstackDrift {
 		snapshotID, err := s.ensureSnapshot(manifest)
 		return Report{SnapshotID: snapshotID}, err
 	}
 	manifest, err = s.analyzePlans(ctx, manifest, plans)
+	if err != nil {
+		return Report{}, err
+	}
+	manifest, err = s.refreshInterstack(manifest)
 	if err != nil {
 		return Report{}, err
 	}
@@ -118,7 +123,7 @@ func (s *Scanner) languageEnabled(language string) bool {
 func (s *Scanner) pruneDisabledLanguages(manifest objectstore.Manifest) (objectstore.Manifest, bool) {
 	pruned := false
 	for _, entry := range append([]objectstore.LanguageEntry(nil), manifest.Languages...) {
-		if s.languageEnabled(entry.Language) {
+		if entry.Language == "interstack" || s.languageEnabled(entry.Language) {
 			continue
 		}
 		manifest = manifest.WithoutLanguage(entry.Language)

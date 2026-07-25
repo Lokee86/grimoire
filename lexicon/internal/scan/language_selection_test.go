@@ -72,7 +72,7 @@ func TestOpenDisablesPreviouslyAnalyzedLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(manifest.Languages) != 1 || manifest.Languages[0].Language != "python" {
+	if len(manifest.Languages) != 2 || manifest.Languages[0].Language != "interstack" || manifest.Languages[1].Language != "python" {
 		t.Fatalf("snapshot languages = %#v", manifest.Languages)
 	}
 	if len(analyzer.languages) != 0 {

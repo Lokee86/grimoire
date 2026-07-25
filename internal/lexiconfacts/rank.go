@@ -84,58 +84,109 @@ func scoreNode(node Node, query string, terms []string) (float64, []string) {
 	return score, uniqueStrings(reasons)
 }
 
+type adjacentRelationship struct {
+	relatedID string
+	direction string
+	edge      Edge
+}
+
 func expandRelationships(scored map[string]scoredNode, seeds []scoredNode, facts library) {
-	seedNodes := make(map[string]scoredNode, len(seeds))
 	degrees := graphDegrees(facts.edges)
+	adjacency := relationshipAdjacency(facts.edges)
 	for _, seed := range seeds {
-		seedNodes[seed.node.ID] = seed
-	}
-	for _, edge := range facts.edges {
-		var relatedID, direction string
-		var seed scoredNode
-		if matched, exists := seedNodes[edge.Source]; exists {
-			relatedID, direction, seed = edge.Target, "outgoing", matched
-		} else if matched, exists := seedNodes[edge.Target]; exists {
-			relatedID, direction, seed = edge.Source, "incoming", matched
-		} else {
-			continue
-		}
-		node, exists := facts.nodes[relatedID]
-		if !exists || !localNode(node) {
-			continue
-		}
-		relation := direction + ":" + edge.Relation
-		candidate := scoredNode{
-			node:  node,
-			score: seed.score*0.62 + relationBonus(edge.Relation),
-			reasons: []string{
-				"Lexicon " + edge.Relation + " relationship from matched symbol",
-			},
-			graph: &evidence.GraphSignals{
-				Distance:        1,
-				Relations:       []string{relation},
-				ModuleProximity: moduleProximity(nodePath(seed.node), nodePath(node)),
-				SymbolRole:      node.Kind,
-				Centrality:      normalizedCentrality(degrees[node.ID]),
-			},
-		}
-		if existing, exists := scored[relatedID]; exists {
-			merged := evidence.Merge(
-				evidence.Descriptor{Graph: existing.graph},
-				evidence.Descriptor{Graph: candidate.graph},
-			)
-			if existing.score >= candidate.score {
-				existing.reasons = uniqueStrings(append(existing.reasons, candidate.reasons...))
-				existing.graph = merged.Graph
-				scored[relatedID] = existing
+		for _, direct := range adjacency[seed.node.ID] {
+			directNode, exists := facts.nodes[direct.relatedID]
+			if !exists || !localNode(directNode) {
 				continue
 			}
-			candidate.reasons = uniqueStrings(append(candidate.reasons, existing.reasons...))
-			candidate.primary = existing.primary
-			candidate.graph = merged.Graph
+			firstRelation := direct.direction + ":" + direct.edge.Relation
+			firstScore := seed.score*0.62 + relationBonus(direct.edge.Relation)
+			mergeRelationshipCandidate(scored, scoredNode{
+				node: directNode, score: firstScore,
+				reasons: []string{"Lexicon " + direct.edge.Relation + " relationship from matched symbol"},
+				graph:   relationshipGraph(seed.node, directNode, degrees, 1, []string{firstRelation}),
+			})
+			if !interstackConnector(directNode.Kind) {
+				continue
+			}
+			for _, second := range adjacency[direct.relatedID] {
+				if second.relatedID == seed.node.ID {
+					continue
+				}
+				secondNode, exists := facts.nodes[second.relatedID]
+				if !exists || !localNode(secondNode) || interstackConnector(secondNode.Kind) {
+					continue
+				}
+				secondRelation := second.direction + ":" + second.edge.Relation
+				relations := []string{firstRelation, secondRelation}
+				mergeRelationshipCandidate(scored, scoredNode{
+					node:  secondNode,
+					score: firstScore*0.62 + relationBonus(second.edge.Relation),
+					reasons: []string{
+						"Lexicon interstack path through " + directNode.Name + " from matched symbol",
+					},
+					graph: relationshipGraph(seed.node, secondNode, degrees, 2, relations),
+				})
+			}
 		}
-		scored[relatedID] = candidate
 	}
+}
+
+func relationshipAdjacency(edges []Edge) map[string][]adjacentRelationship {
+	result := make(map[string][]adjacentRelationship)
+	for _, edge := range edges {
+		result[edge.Source] = append(result[edge.Source], adjacentRelationship{
+			relatedID: edge.Target, direction: "outgoing", edge: edge,
+		})
+		result[edge.Target] = append(result[edge.Target], adjacentRelationship{
+			relatedID: edge.Source, direction: "incoming", edge: edge,
+		})
+	}
+	return result
+}
+
+func interstackConnector(kind string) bool {
+	switch kind {
+	case "http-endpoint", "message-channel", "config-key":
+		return true
+	default:
+		return false
+	}
+}
+
+func relationshipGraph(
+	seed, node Node,
+	degrees map[string]int,
+	distance int,
+	relations []string,
+) *evidence.GraphSignals {
+	return &evidence.GraphSignals{
+		Distance:        distance,
+		Relations:       relations,
+		ModuleProximity: moduleProximity(nodePath(seed), nodePath(node)),
+		SymbolRole:      node.Kind,
+		Centrality:      normalizedCentrality(degrees[node.ID]),
+	}
+}
+
+func mergeRelationshipCandidate(scored map[string]scoredNode, candidate scoredNode) {
+	relatedID := candidate.node.ID
+	if existing, exists := scored[relatedID]; exists {
+		merged := evidence.Merge(
+			evidence.Descriptor{Graph: existing.graph},
+			evidence.Descriptor{Graph: candidate.graph},
+		)
+		if existing.score >= candidate.score {
+			existing.reasons = uniqueStrings(append(existing.reasons, candidate.reasons...))
+			existing.graph = merged.Graph
+			scored[relatedID] = existing
+			return
+		}
+		candidate.reasons = uniqueStrings(append(candidate.reasons, existing.reasons...))
+		candidate.primary = existing.primary
+		candidate.graph = merged.Graph
+	}
+	scored[relatedID] = candidate
 }
 
 func graphDegrees(edges []Edge) map[string]int {

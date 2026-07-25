@@ -84,9 +84,10 @@ func emptyRelationshipSite(site structure.RelationshipSite) bool {
 
 func relationshipPriority(relationship structure.Relationship) (int, int, string) {
 	priority := map[string]int{
-		"calls": 0, "possible-calls": 1, "passes-to": 2,
-		"reads": 3, "writes": 4, "references": 5,
-		"implements": 6, "extends": 7, "includes": 8,
+		"calls": 0, "calls-endpoint": 1, "handled-by": 2,
+		"publishes": 3, "consumes": 4, "possible-calls": 5,
+		"passes-to": 6, "reads": 7, "writes": 8, "reads-config": 9,
+		"references": 10, "implements": 11, "extends": 12, "includes": 13,
 	}
 	relationRank, exists := priority[relationship.Relation]
 	if !exists {

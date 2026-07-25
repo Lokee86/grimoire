@@ -69,15 +69,18 @@ func nodePath(node Node) string {
 }
 
 func localNode(node Node) bool {
+	if interstackConnector(node.Kind) {
+		return true
+	}
 	path := nodePath(node)
 	return path != "" && !strings.HasPrefix(path, "@")
 }
 
 func relationBonus(relation string) float64 {
 	switch relation {
-	case "calls", "implements", "overrides":
+	case "calls", "implements", "overrides", "calls-endpoint", "handled-by", "publishes", "consumes":
 		return 8
-	case "contains", "imports", "references":
+	case "contains", "imports", "references", "reads-config":
 		return 4
 	default:
 		return 2
