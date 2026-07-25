@@ -46,6 +46,7 @@ See [Component architecture](docs/architecture/components.md) for ownership, dep
 - Packed native vector snapshots with deterministic exact search.
 - Lexical fallback when semantic state is missing, stale, or unavailable.
 - Exact recovery for concrete paths, symbols, and identifiers.
+- Progressive agent queries for orientation, combined search, graph trace, impact, and exact handle inspection.
 - Lexicon symbol facts plus lexical- and semantic-seeded Arcana graph evidence when structural state is available.
 - Deterministic query-shape classification and automatic context budgets.
 - Evidence-coverage assembly for automatic-budget requests.
@@ -139,6 +140,13 @@ Prepare and vectorize a repository:
 ```bash
 grimoire index --root .
 grimoire vector build --root .
+```
+
+Query progressively without requiring vectors:
+
+```bash
+grimoire query orient --root .
+grimoire query search --root . --query "Where is session creation handled?"
 ```
 
 Compile an automatically sized context package:

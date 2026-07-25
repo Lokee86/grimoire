@@ -42,6 +42,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		return runIndex(args[1:], stdout, stderr)
 	case "context":
 		return runContext(args[1:], stdout, stderr)
+	case "query":
+		return runQuery(args[1:], stdout, stderr)
 	case "eval":
 		return runEval(args[1:], stdout, stderr)
 	case "model":
@@ -67,9 +69,12 @@ Core workflow:
   grimoire model start                 Start the managed embedding service
   grimoire index --root .              Prepare source and Lexicon-aligned chunks
   grimoire vector build --root .       Build or refresh semantic vectors
+  grimoire query orient --root .       Discover compact repository anchors
+  grimoire query trace --anchor <id>   Expand an exact structural handle
   grimoire context --root . --query "Trace this behavior"
 
 Commands:
+  query     Progressively orient, search, trace, impact, and inspect
   context   Build a context package
   index     Prepare repository source state
   vector    Build, search, or inspect vector state

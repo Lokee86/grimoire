@@ -6,7 +6,7 @@
 grimoire <command> [flags]
 ```
 
-Current top-level commands are `index`, `context`, `eval`, `model`, `vector`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal setup-to-context workflow and exits successfully.
+Current top-level commands are `index`, `query`, `context`, `eval`, `model`, `vector`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal workflow and exits successfully.
 
 ## `grimoire model setup`
 
@@ -126,6 +126,25 @@ arcana semantic-query --query "where is profile persistence handled?" [--limit 1
 The index is stored under `.arcana/vectors/<snapshot-digest>/<embedding-identity>/`. Building is explicit. `grimoire context` uses a matching existing Arcana index automatically when Arcana structural retrieval is enabled, but never builds the index as a query side effect. Missing vector state falls back to Lexicon-seeded deterministic Arcana traversal.
 
 See [`../../arcana/docs/vector-index.md`](../../arcana/docs/vector-index.md).
+
+## `grimoire query`
+
+Run bounded, progressive repository queries without building a one-shot context
+package or requiring vectors:
+
+```bash
+grimoire query <orient|search|trace|impact|inspect> [flags]
+```
+
+The common flags are `--root`, `--state`, `--query`, `--anchor`, `--target`,
+`--limit`, `--depth`, `--direction`, repeatable `--relation`, repeatable
+`--handle`, `--adjacent-context`, and the existing Lexicon/Arcana state and
+command overrides. `--request <json>` accepts one complete
+`grimoire.query.v1` request object. Results are JSON and every node or source
+range carries a snapshot-qualified handle accepted by later `trace`, `impact`,
+or `inspect` calls.
+
+See [Agent query API](agent-query.md) for the schema and mode behavior.
 
 ## `grimoire index`
 

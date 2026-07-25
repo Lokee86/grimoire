@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/agentquery"
 	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/index"
 )
@@ -17,7 +18,7 @@ func TestRootHelpIsUseful(t *testing.T) {
 		if err := Run(args, &output, &bytes.Buffer{}); err != nil {
 			t.Fatalf("Run(%v): %v", args, err)
 		}
-		for _, expected := range []string{"Usage:", "grimoire model start", "grimoire context", "Lexicon", "Arcana"} {
+		for _, expected := range []string{"Usage:", "grimoire model start", "grimoire query orient", "grimoire context", "Lexicon", "Arcana"} {
 			if !bytes.Contains(output.Bytes(), []byte(expected)) {
 				t.Fatalf("Run(%v) help missing %q:\n%s", args, expected, output.String())
 			}
@@ -136,5 +137,35 @@ func TestIndexThenCompileContext(t *testing.T) {
 	}
 	if !bytes.Contains(contextErrors.Bytes(), []byte("using lexical fallback")) {
 		t.Fatalf("expected fallback warning, got %q", contextErrors.String())
+	}
+}
+
+func TestQueryAcceptsVersionedJSONRequest(t *testing.T) {
+	root := t.TempDir()
+	content := "package damage\n\nfunc ResolveDamage() int { return 10 }\n"
+	if err := os.WriteFile(filepath.Join(root, "damage.go"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	request, err := json.Marshal(agentquery.Request{
+		Schema: agentquery.SchemaVersion, Mode: "search", Root: root,
+		Query: "ResolveDamage", Limit: 4,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	if err := Run([]string{"query", "--request", string(request)}, &output, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	var response agentquery.Response
+	if err := json.Unmarshal(output.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Schema != agentquery.SchemaVersion || response.Mode != "search" ||
+		len(response.Results) == 0 || response.Results[0].Node.Handle.Value == "" {
+		t.Fatalf("unexpected query response: %+v", response)
 	}
 }

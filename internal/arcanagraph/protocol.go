@@ -21,6 +21,7 @@ type protocolRequest struct {
 	Limit           int      `json:"limit,omitempty"`
 	NodeID          *uint32  `json:"node_id,omitempty"`
 	Direction       string   `json:"direction,omitempty"`
+	Relation        string   `json:"relation,omitempty"`
 	FromNodeID      *uint32  `json:"from_node_id,omitempty"`
 	ToNodeID        *uint32  `json:"to_node_id,omitempty"`
 	Relations       []string `json:"relations,omitempty"`
