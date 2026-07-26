@@ -36,7 +36,9 @@ type Status struct {
 	Lexicon                 ComponentStatus  `json:"lexicon"`
 	Arcana                  ComponentStatus  `json:"arcana"`
 	Grimoire                ComponentStatus  `json:"grimoire"`
-	Vectors                 VectorStatus     `json:"vectors"`
+	Knowledge               ComponentStatus  `json:"knowledge"`
+	ArcanaVectors           VectorStatus     `json:"arcana_vectors"`
+	KnowledgeVectors        VectorStatus     `json:"knowledge_vectors"`
 	Actions                 []Action         `json:"actions,omitempty"`
 	Warnings                []string         `json:"warnings,omitempty"`
 	DeterministicQueryReady bool             `json:"deterministic_query_ready"`
@@ -63,6 +65,10 @@ type ComponentStatus struct {
 type VectorStatus struct {
 	Status   string `json:"status"`
 	Snapshot string `json:"snapshot,omitempty"`
+	Expected string `json:"expected_snapshot,omitempty"`
+	Model    string `json:"model,omitempty"`
+	Count    int    `json:"count,omitempty"`
+	Bytes    int64  `json:"bytes,omitempty"`
 	Reason   string `json:"reason,omitempty"`
 }
 

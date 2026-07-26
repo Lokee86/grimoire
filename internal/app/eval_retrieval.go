@@ -20,8 +20,8 @@ import (
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
-var evaluationModes = []string{"fast", "full", "quality", "lexical"}
-var allowedEvaluationModes = []string{"fast", "full", "quality", "lexical", "vector", "hybrid"}
+var evaluationModes = []string{"lexical"}
+var allowedEvaluationModes = []string{"lexical"}
 
 func runEval(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 || args[0] != "retrieval" {
@@ -32,7 +32,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	casesPath := flags.String("cases", "", "judged retrieval corpus JSON")
 	root := flags.String("root", ".", "repository root")
 	state := flags.String("state", "", "prepared index repository path")
-	modesValue := flags.String("modes", strings.Join(evaluationModes, ","), "comma-separated modes: fast, full, quality, lexical, vector, hybrid")
+	modesValue := flags.String("modes", strings.Join(evaluationModes, ","), "comma-separated modes: lexical")
 	variant := flags.String("variant", "standalone", "evaluation variant label")
 	budgetOverride := flags.Int("budget", 0, "override every case token budget")
 	adaptive := flags.Bool("adaptive", false, "use automatic query-shape budgets and evidence-coverage assembly")
@@ -50,7 +50,6 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	compilerRequiredLinkProtection := flags.Bool("compiler-required-link-protection", compiler.DefaultConfig().ProtectRequiredLinks, "protect complete required source-link groups during final token fitting")
 	lexicalDeclarationAliasBonus := flags.Float64("lexical-declaration-alias-bonus", retrieve.DefaultConfig().DeclarationAliasBonus, "score for one repository-derived high-similarity declaration alias per absent query term")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
-	enginePath := flags.String("engine", "", "Rust vector engine DLL")
 	structuralProvidersValue := flags.String("structural-providers", "none", "structural providers: none, lexicon, or lexicon,arcana")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
 	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
@@ -61,10 +60,6 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	timeout := flags.Duration("timeout", 10*time.Second, "per-case retrieval timeout")
 	outputDir := flags.String("output-dir", "evaluation/results", "result directory")
 	outputPrefix := flags.String("output-prefix", "", "result filename prefix")
-	windowTokens := flags.Int("query-window-tokens", embedding.DefaultQueryWindowTokens, "tokens per fast query window")
-	batchTokens := flags.Int("query-batch-tokens", embedding.DefaultQueryBatchTokens, "maximum split-query tokens per embedding request")
-	batchConcurrency := flags.Int("query-batch-concurrency", embedding.DefaultQueryBatchConcurrency, "maximum concurrent query embedding requests")
-	maxTokens := flags.Int("query-max-tokens", embedding.DefaultQueryMaxTokens, "optional maximum query tokens embedded; zero means unlimited")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -159,22 +154,6 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 				report.Runs = append(report.Runs, run)
 				continue
 			}
-			queryOptions := embedding.DefaultQueryOptions()
-			queryOptions.WindowTokens = *windowTokens
-			queryOptions.BatchTokens = *batchTokens
-			queryOptions.BatchConcurrency = *batchConcurrency
-			queryOptions.MaxTokens = *maxTokens
-			if mode != "lexical" {
-				embeddingMode := mode
-				if mode == "vector" || mode == "hybrid" {
-					embeddingMode = string(embedding.QueryModeFast)
-				}
-				queryMode, parseErr := embedding.ParseQueryMode(embeddingMode)
-				if parseErr != nil {
-					return parseErr
-				}
-				queryOptions.Mode = queryMode
-			}
 			ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 			runStart := time.Now()
 			executed, executeErr := evaluateContext(ctx, snapshot, evaluatedContextOptions{
@@ -184,9 +163,6 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 				Adaptive:   *adaptive,
 				Limit:      *limit,
 				ProbeLimit: actualProbeLimit,
-				StatePath:  statePath,
-				Endpoint:   *endpoint,
-				EnginePath: *enginePath,
 				Structural: structuralContextOptions{
 					Enabled: structureEnabled, ArcanaEnabled: arcanaEnabled,
 					Root: absoluteRoot, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
@@ -195,7 +171,6 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 					EmbeddingEndpoint: *endpoint,
 					Limit:             *limit, Timeout: *structureTimeout,
 				},
-				QueryOptions: queryOptions,
 				SelectionConfig: &selection.Config{
 					FileRepeatPenalty:      *selectionFilePenalty,
 					SubsystemRepeatPenalty: *selectionSubsystemPenalty,

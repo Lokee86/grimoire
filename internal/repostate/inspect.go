@@ -10,10 +10,12 @@ import (
 	"strings"
 
 	"github.com/Lokee86/grimoire/internal/index"
+	"github.com/Lokee86/grimoire/internal/knowledge"
+	"github.com/Lokee86/grimoire/internal/knowledgevector"
 )
 
 type paths struct {
-	root, lexicon, arcana, grimoire string
+	root, lexicon, arcana, grimoire, knowledge string
 }
 
 type stateMarker struct {
@@ -39,9 +41,11 @@ func normalize(options Options) (paths, error) {
 		}
 		return filepath.Join(absolute, value)
 	}
+	grimoire := resolve(options.GrimoireState, ".grimoire")
 	return paths{
 		root: absolute, lexicon: resolve(options.LexiconState, ".lexicon"),
-		arcana: resolve(options.ArcanaState, ".arcana"), grimoire: resolve(options.GrimoireState, ".grimoire"),
+		arcana: resolve(options.ArcanaState, ".arcana"), grimoire: grimoire,
+		knowledge: filepath.Join(grimoire, "knowledge"),
 	}, nil
 }
 
@@ -54,11 +58,15 @@ func inspect(ctx context.Context, location paths) (Status, error) {
 	}
 	repository.SourceFingerprint = fingerprint
 	repository.GitHead, repository.GitDirty, repository.GitAvailable = gitIdentity(ctx, location.root)
-	status := Status{Version: 1, Repository: repository}
+	status := Status{Version: 2, Repository: repository}
 	status.Lexicon = inspectLexicon(location, fingerprint, repository.GitDirty)
 	status.Arcana = inspectArcana(location, status.Lexicon.Snapshot)
 	status.Grimoire = inspectGrimoire(location, fingerprint, status.Lexicon.Snapshot)
-	status.Vectors = inspectVectors(location, status.Arcana.Snapshot)
+	var currentKnowledge knowledge.Index
+	var knowledgeAvailable bool
+	status.Knowledge, currentKnowledge, knowledgeAvailable = inspectKnowledge(location)
+	status.ArcanaVectors = inspectArcanaVectors(location, status.Arcana.Snapshot)
+	status.KnowledgeVectors = inspectKnowledgeVectors(location, currentKnowledge, knowledgeAvailable)
 	status.DeterministicQueryReady = status.Grimoire.Status == "current"
 	status.ElapsedMS = elapsedMS(started)
 	return status, nil
@@ -160,7 +168,63 @@ func inspectGrimoire(location paths, fingerprint, lexiconID string) ComponentSta
 	return status
 }
 
-func inspectVectors(location paths, arcanaID string) VectorStatus {
+func inspectKnowledge(location paths) (ComponentStatus, knowledge.Index, bool) {
+	stored, err := knowledge.Load(location.knowledge)
+	if errors.Is(err, os.ErrNotExist) {
+		current, _, buildErr := knowledge.Build(location.root, nil, knowledge.BuildOptions{})
+		if buildErr != nil {
+			return ComponentStatus{Status: "failed", StaleReasons: []string{buildErr.Error()}}, knowledge.Index{}, false
+		}
+		return ComponentStatus{Status: "absent", Expected: knowledge.Identity(current), StaleReasons: []string{"knowledge index is missing"}}, current, true
+	}
+	if err != nil {
+		return ComponentStatus{Status: "failed", StaleReasons: []string{err.Error()}}, knowledge.Index{}, false
+	}
+	current, _, err := knowledge.Build(location.root, &stored, knowledge.BuildOptions{})
+	if err != nil {
+		return ComponentStatus{Status: "failed", Snapshot: knowledge.Identity(stored), StaleReasons: []string{err.Error()}}, knowledge.Index{}, false
+	}
+	actual := knowledge.Identity(stored)
+	expected := knowledge.Identity(current)
+	status := ComponentStatus{Status: "current", Snapshot: actual, Expected: expected, Prepared: true}
+	if actual != expected || stored.SourceFingerprint != expected {
+		status.Status = "stale"
+		status.Prepared = false
+		status.StaleReasons = append(status.StaleReasons, "documentation or source-link evidence changed since knowledge indexing")
+	}
+	return status, current, true
+}
+
+func inspectKnowledgeVectors(location paths, current knowledge.Index, knowledgeAvailable bool) VectorStatus {
+	if !knowledgeAvailable || len(current.Documents) == 0 {
+		return VectorStatus{Status: "missing", Reason: "no knowledge index is available"}
+	}
+	info := knowledgevector.Inspect(location.knowledge, current, "")
+	status := VectorStatus{
+		Snapshot: info.SnapshotIdentity, Expected: info.ExpectedIdentity,
+		Model: info.Model, Count: info.Count, Bytes: info.SnapshotBytes,
+	}
+	if !info.Available {
+		status.Status = "missing"
+		status.Reason = info.Error
+		if status.Reason == "" {
+			status.Reason = "documentation vector snapshot is not prepared"
+		}
+		return status
+	}
+	if info.Current {
+		status.Status = "current"
+		return status
+	}
+	status.Status = "stale"
+	status.Reason = info.Error
+	if status.Reason == "" {
+		status.Reason = "documentation vector snapshot is not current"
+	}
+	return status
+}
+
+func inspectArcanaVectors(location paths, arcanaID string) VectorStatus {
 	if arcanaID == "" || !validSnapshotID(arcanaID) {
 		return VectorStatus{Status: "missing", Reason: "no current Arcana snapshot"}
 	}

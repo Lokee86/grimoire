@@ -197,14 +197,7 @@ func retrieveKnowledge(ctx context.Context, request Request, statePath string, p
 	}
 	knowledgeState := filepath.Join(statePath, "knowledge")
 	current, loadErr := knowledge.Load(knowledgeState)
-	rebuild := loadErr != nil
-	if !rebuild {
-		if preparation.Repository.SourceFingerprint != "" {
-			rebuild = current.SourceFingerprint != preparation.Repository.SourceFingerprint
-		} else {
-			rebuild = current.GitCommit != preparation.Repository.GitHead
-		}
-	}
+	rebuild := loadErr != nil || preparation.Knowledge.Status != "current"
 	if rebuild {
 		var previous *knowledge.Index
 		if loadErr == nil {
@@ -216,7 +209,6 @@ func retrieveKnowledge(ctx context.Context, request Request, statePath string, p
 		if err != nil {
 			return nil, nil, fmt.Errorf("build knowledge index: %w", err)
 		}
-		built.SourceFingerprint = preparation.Repository.SourceFingerprint
 		if err := knowledge.Save(knowledgeState, built); err != nil {
 			return nil, nil, fmt.Errorf("save knowledge index: %w", err)
 		}

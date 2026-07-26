@@ -11,13 +11,16 @@ import (
 	"github.com/Lokee86/grimoire/internal/evaluation"
 )
 
-func TestParseEvaluationModesAcceptsVectorAndHybrid(t *testing.T) {
-	modes, err := parseEvaluationModes("lexical,vector,hybrid")
+func TestParseEvaluationModesRejectsRetiredSourceVectorModes(t *testing.T) {
+	modes, err := parseEvaluationModes("lexical")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(modes) != 3 || modes[0] != "lexical" || modes[1] != "vector" || modes[2] != "hybrid" {
+	if len(modes) != 1 || modes[0] != "lexical" {
 		t.Fatalf("unexpected modes: %v", modes)
+	}
+	if _, err := parseEvaluationModes("vector"); err == nil {
+		t.Fatal("expected retired source-vector mode to fail")
 	}
 }
 

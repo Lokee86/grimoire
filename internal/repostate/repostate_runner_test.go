@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/Lokee86/grimoire/internal/knowledge"
 )
 
 func fixtureRunner(t *testing.T, root string, mu *sync.Mutex, calls *[]string, useNewID bool) CommandRunner {
@@ -34,10 +36,27 @@ func fixtureRunnerWithLexicon(t *testing.T, root string, mu *sync.Mutex, calls *
 				t.Fatal(err)
 			}
 			writeGrimoire(t, root, currentLexicon(t, root))
+		case "grimoire:knowledge":
+			writeKnowledge(t, root)
 		default:
 			t.Fatalf("unexpected command %s %v", command, arguments)
 		}
 		return nil
+	}
+}
+
+func writeKnowledge(t *testing.T, root string) {
+	t.Helper()
+	built, _, err := knowledge.Build(root, nil, knowledge.BuildOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	state, err := knowledge.DefaultState(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := knowledge.Save(state, built); err != nil {
+		t.Fatal(err)
 	}
 }
 

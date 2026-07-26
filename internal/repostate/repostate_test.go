@@ -19,6 +19,7 @@ func TestEnsureCurrentOnlyReportsPreparedStateWithoutMutation(t *testing.T) {
 	writeLexicon(t, root, id)
 	writeArcana(t, root, id)
 	writeGrimoire(t, root, id)
+	writeKnowledge(t, root)
 	before := snapshotFiles(t, root)
 
 	status, err := Ensure(context.Background(), Options{Root: root, Mode: CurrentOnly})
@@ -28,8 +29,9 @@ func TestEnsureCurrentOnlyReportsPreparedStateWithoutMutation(t *testing.T) {
 	if status.Lexicon.Status != "current" || status.Arcana.Status != "current" || status.Grimoire.Status != "current" {
 		t.Fatalf("unexpected state: %+v", status)
 	}
-	if !status.DeterministicQueryReady || status.Vectors.Status != "missing" {
-		t.Fatalf("unexpected readiness/vector status: %+v", status)
+	if !status.DeterministicQueryReady || status.Knowledge.Status != "current" ||
+		status.ArcanaVectors.Status != "missing" || status.KnowledgeVectors.Status != "missing" {
+		t.Fatalf("unexpected readiness/knowledge/vector status: %+v", status)
 	}
 	if after := snapshotFiles(t, root); strings.Join(before, "\n") != strings.Join(after, "\n") {
 		t.Fatalf("current-only mutated state: before=%v after=%v", before, after)
@@ -47,10 +49,10 @@ func TestEnsureRefreshesAbsentStateInOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(calls, ","); got != "lexicon:init,arcana:sync,grimoire:index" {
+	if got := strings.Join(calls, ","); got != "lexicon:init,arcana:sync,grimoire:index,grimoire:knowledge" {
 		t.Fatalf("refresh order = %s", got)
 	}
-	if !status.DeterministicQueryReady || len(status.Actions) != 3 {
+	if !status.DeterministicQueryReady || status.Knowledge.Status != "current" || len(status.Actions) != 4 {
 		t.Fatalf("unexpected refresh status: %+v", status)
 	}
 }
@@ -76,7 +78,7 @@ func TestEnsureRefreshesStaleLexiconAndAlignsArcana(t *testing.T) {
 	if status.Lexicon.Snapshot != newID || status.Arcana.Snapshot != newID || status.Arcana.Expected != newID {
 		t.Fatalf("snapshots are not aligned: %+v", status)
 	}
-	if got := strings.Join(calls, ","); got != "lexicon:scan,arcana:sync,grimoire:index" {
+	if got := strings.Join(calls, ","); got != "lexicon:scan,arcana:sync,grimoire:index,grimoire:knowledge" {
 		t.Fatalf("stale refresh order = %s", got)
 	}
 }
@@ -111,13 +113,17 @@ func TestEnsureFallsBackToSourceWhenLexiconIsUnavailable(t *testing.T) {
 				writeGrimoire(t, root, "")
 				return nil
 			}
+			if command == "grimoire" && arguments[0] == "knowledge" {
+				writeKnowledge(t, root)
+				return nil
+			}
 			return errors.New("unexpected command")
 		},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(calls, ","); got != "lexicon:init,grimoire:index" {
+	if got := strings.Join(calls, ","); got != "lexicon:init,grimoire:index,grimoire:knowledge" {
 		t.Fatalf("fallback calls = %s", got)
 	}
 	if !status.DeterministicQueryReady || status.Grimoire.Status != "current" {
@@ -141,7 +147,7 @@ func TestEnsureForceRefreshesCurrentState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(calls, ","); got != "lexicon:rebuild,arcana:sync,grimoire:index" {
+	if got := strings.Join(calls, ","); got != "lexicon:rebuild,arcana:sync,grimoire:index,grimoire:knowledge" {
 		t.Fatalf("force refresh order = %s", got)
 	}
 	if !status.DeterministicQueryReady {
@@ -171,7 +177,7 @@ func TestEnsureSerializesConcurrentRefreshes(t *testing.T) {
 			t.Fatalf("concurrent refresh %d failed: status=%+v err=%v", i, statuses[i], errorsFound[i])
 		}
 	}
-	if len(calls) != 3 {
+	if len(calls) != 4 {
 		t.Fatalf("concurrent callers performed %d commands: %v", len(calls), calls)
 	}
 }

@@ -122,6 +122,17 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		return Status{}, err
 	}
 	status.Mode = mode
+	if mode == ForceRefresh || status.Knowledge.Status != "current" {
+		arguments := []string{"knowledge", "index", "--root", location.root, "--state", location.knowledge}
+		if err := perform(ctx, &status, "prepare-knowledge", options.Run, commandFor(options.GrimoireCommand, "grimoire"), arguments...); err != nil {
+			status.Warnings = append(status.Warnings, "knowledge indexing unavailable; continuing with code-only retrieval: "+err.Error())
+		}
+		status, err = reinspect(ctx, location, status, mode)
+		if err != nil {
+			return Status{}, err
+		}
+		status.Mode = mode
+	}
 	if status.Grimoire.Status == "current" {
 		if err := writeMarkers(location, status.Repository.SourceFingerprint, currentLexiconSnapshot(status)); err != nil {
 			return failStatus(status, err)

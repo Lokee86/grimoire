@@ -7,7 +7,6 @@ import (
 
 	"github.com/Lokee86/grimoire/internal/assembly"
 	"github.com/Lokee86/grimoire/internal/compiler"
-	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/graphrank"
@@ -34,11 +33,7 @@ type evaluatedContextOptions struct {
 	Adaptive        bool
 	Limit           int
 	ProbeLimit      int
-	StatePath       string
-	Endpoint        string
-	EnginePath      string
 	Structural      structuralContextOptions
-	QueryOptions    embedding.QueryOptions
 	SelectionConfig *selection.Config
 	AssemblyConfig  *assembly.Config
 	CompilerConfig  *compiler.Config
@@ -52,72 +47,24 @@ func evaluateContext(
 ) (evaluatedContext, error) {
 	var result evaluatedContext
 	totalStart := time.Now()
-	var base []retrieve.Candidate
-	var broad []retrieve.Candidate
 	intents := activeRetrievalIntents(options.Query)
 	lexicalConfig := retrieve.DefaultConfig()
 	if options.LexicalConfig != nil {
 		lexicalConfig = *options.LexicalConfig
 	}
-
-	switch options.Mode {
-	case "lexical":
-		searchStart := time.Now()
-		base = intentLexicalCandidatesWithConfig(snapshot, intents, options.Limit, lexicalConfig)
-		result.Timings.LexicalSearchMS = durationMS(time.Since(searchStart))
-		probeLimit := options.ProbeLimit
-		if probeLimit <= 0 {
-			probeLimit = options.Limit
-		}
-		probeStart := time.Now()
-		broad = intentLexicalCandidatesWithConfig(snapshot, intents, probeLimit, lexicalConfig)
-		result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
-	case "hybrid":
-		searchStart := time.Now()
-		lexical := intentLexicalCandidatesWithConfig(snapshot, intents, options.Limit, lexicalConfig)
-		result.Timings.LexicalSearchMS = durationMS(time.Since(searchStart))
-		probeLimit := options.ProbeLimit
-		if probeLimit <= 0 {
-			probeLimit = options.Limit
-		}
-		probeStart := time.Now()
-		lexicalBroad := intentLexicalCandidatesWithConfig(snapshot, intents, probeLimit, lexicalConfig)
-		result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
-
-		semantic, err := semanticIntentCandidatesForEvaluation(
-			ctx, snapshot, options.StatePath, intents, options.Endpoint,
-			options.EnginePath, options.Limit, options.ProbeLimit, options.QueryOptions,
-		)
-		if err != nil {
-			return result, err
-		}
-		mergeStart := time.Now()
-		base = mergeRankedProviders(options.Limit, lexical, semantic.Candidates)
-		broad = mergeRankedProviders(probeLimit, lexicalBroad, semantic.BroadProbe)
-		result.Timings.SnapshotValidationMS = durationMS(semantic.Metrics.SnapshotValidation)
-		result.Timings.EmbeddingMS = durationMS(semantic.Metrics.Embedding)
-		result.Timings.VectorSearchMS = durationMS(semantic.Metrics.VectorSearch)
-		result.Timings.CandidateMergeMS = durationMS(semantic.Metrics.CandidateMerge) + durationMS(time.Since(mergeStart))
-		result.Timings.DiagnosticProbeMS += durationMS(semantic.Metrics.DiagnosticProbe)
-	default:
-		semantic, err := semanticIntentCandidatesForEvaluation(
-			ctx, snapshot, options.StatePath, intents, options.Endpoint,
-			options.EnginePath, options.Limit, options.ProbeLimit, options.QueryOptions,
-		)
-		if err != nil {
-			return result, err
-		}
-		base = semantic.Candidates
-		broad = semantic.BroadProbe
-		result.Timings.SnapshotValidationMS = durationMS(semantic.Metrics.SnapshotValidation)
-		result.Timings.EmbeddingMS = durationMS(semantic.Metrics.Embedding)
-		result.Timings.VectorSearchMS = durationMS(semantic.Metrics.VectorSearch)
-		result.Timings.CandidateMergeMS = durationMS(semantic.Metrics.CandidateMerge)
-		result.Timings.DiagnosticProbeMS = durationMS(semantic.Metrics.DiagnosticProbe)
+	searchStart := time.Now()
+	base := intentLexicalCandidatesWithConfig(snapshot, intents, options.Limit, lexicalConfig)
+	result.Timings.LexicalSearchMS = durationMS(time.Since(searchStart))
+	probeLimit := options.ProbeLimit
+	if probeLimit <= 0 {
+		probeLimit = options.Limit
 	}
+	probeStart := time.Now()
+	broad := intentLexicalCandidatesWithConfig(snapshot, intents, probeLimit, lexicalConfig)
+	result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
 
 	structuralIntent := structuralRetrievalIntent(options.Query, intents)
-	structural := collectStructuralContext(context.Background(), snapshot, structuralIntent.Query, options.Structural)
+	structural := collectStructuralContext(ctx, snapshot, structuralIntent.Query, options.Structural)
 	structural = annotateStructuralIntent(structural, structuralIntent)
 	result.Warnings = append(result.Warnings, structural.Warnings...)
 	result.Timings.LexiconSearchMS = durationMS(structural.LexiconTime)

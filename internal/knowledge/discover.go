@@ -142,7 +142,9 @@ func Build(root string, previous *Index, options BuildOptions) (Index, BuildStat
 		}
 	}
 	sort.Slice(documents, func(i, j int) bool { return documents[i].Path < documents[j].Path })
-	return Index{Version: FormatVersion, Root: absolute, GitCommit: metadata.commit, GitTime: metadata.time, Documents: documents}, stats, nil
+	result := Index{Version: FormatVersion, Root: absolute, GitCommit: metadata.commit, GitTime: metadata.time, Documents: documents}
+	result.SourceFingerprint = Identity(result)
+	return result, stats, nil
 }
 
 func isKnowledgeFile(path, name string, includeConfig bool) bool {
