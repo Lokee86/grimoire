@@ -42,11 +42,12 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 	query := flags.String("query", "", "literal, symbol, or behavior query")
 	anchor := flags.String("anchor", "", "name, query anchor, or stable returned handle")
 	target := flags.String("target", "", "optional trace target name or handle")
-	limit := flags.Int("limit", 12, "maximum returned results")
+	limit := flags.Int("limit", 0, "maximum returned results; defaults to 8 for trace and 12 otherwise")
 	depth := flags.Int("depth", 3, "maximum graph traversal depth")
 	direction := flags.String("direction", "", "graph direction: incoming, outgoing, or both")
 	adjacent := flags.Int("adjacent-context", 0, "source lines adjacent to an inspected declaration")
 	codeOnly := flags.Bool("code-only", false, "exclude documentation from source and structural result lanes")
+	detail := flags.String("detail", "", "trace detail: summary or full; defaults to summary")
 	requestJSON := flags.String("request", "", "complete "+agentquery.SchemaVersion+" JSON request object")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
 	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
@@ -81,7 +82,7 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 			Schema: agentquery.SchemaVersion, Mode: *mode, Root: *root, State: *state,
 			Query: *query, Anchor: *anchor, Target: *target, Handles: handles,
 			Limit: *limit, Depth: *depth, Direction: *direction,
-			Relations: relations, Adjacent: *adjacent, CodeOnly: *codeOnly,
+			Relations: relations, Adjacent: *adjacent, CodeOnly: *codeOnly, Detail: *detail,
 			LexiconFacts: *lexiconFacts, LexiconState: *lexiconState,
 			LexiconCmd: *lexiconCommand, ArcanaState: *arcanaState, ArcanaCmd: *arcanaCommand,
 		}

@@ -21,19 +21,24 @@ grimoire query inspect --root . --handle "<handle>" --adjacent-context 3
   anchors plus suggested `search`, `trace`, or `inspect` expansions.
 - `search` combines exact, Lexicon, Arcana, and lexical results without source
   package assembly.
-- `trace` returns ordered paths with relation certainty, occurrence evidence,
-  source spans, and Arcana unresolved alternatives. Interstack
-  `calls-endpoint`, `handled-by`, `publishes`, `consumes`, and `reads-config`
-  relations are ordinary traversable edges.
+- `trace` returns behavior-ranked paths and Arcana unresolved alternatives.
+  Summary detail is the default: containment is collapsed, equivalent paths are
+  deduplicated, repeated entry-method variants are bounded, and each path
+  returns a readable summary, relation list, exact evidence handles, and stable
+  continuation handles. Use `--detail full` only when the complete node and
+  step objects are required. Interstack `calls-endpoint`, `handled-by`,
+  `publishes`, `consumes`, and `reads-config` relations are ordinary traversable
+  edges.
 - `impact` performs bounded incoming, outgoing, or bidirectional traversal with
   depth and repeatable `--relation` filters.
 - `inspect` reads the exact prepared source selected by a handle, returning its
   declaration and containing span. `--adjacent-context` is bounded to 200
   lines. A supplied handle is never fuzzily rediscovered.
 
-`--limit` is bounded to 200 and `--depth` to 16. Query state discovery matches
-the existing context workflow: `.grimoire`, `.lexicon`, and `.arcana` are found
-under `--root` unless explicit state paths are supplied.
+`trace` defaults to eight paths; other modes default to twelve. `--limit` is
+bounded to 200 and `--depth` to 16. Query state discovery matches the existing
+context workflow: `.grimoire`, `.lexicon`, and `.arcana` are found under
+`--root` unless explicit state paths are supplied.
 
 ## Request and response contract
 
@@ -45,8 +50,9 @@ grimoire query --request '{"schema":"grimoire.query.v1","mode":"search","root":"
 ```
 
 Common request fields are `mode`, `root`, `state`, `query`, `anchor`, `target`,
-`handles`, `limit`, `depth`, `direction`, `relations`, `adjacent_context`, and
-`code_only`. Provider overrides are `lexicon_facts`, `lexicon_state`,
+`handles`, `limit`, `depth`, `direction`, `relations`, `adjacent_context`,
+`code_only`, and `detail`. `detail` accepts `summary` or `full`. Provider
+overrides are `lexicon_facts`, `lexicon_state`,
 `lexicon_command`, `arcana_state`, and `arcana_command`.
 
 Every returned node and source range includes a `handle`. Its `value` is the
@@ -62,7 +68,7 @@ Responses use mode-specific arrays:
 | Mode | Primary fields |
 | --- | --- |
 | `orient`, `search` | `results`, optionally `suggestions` |
-| `trace` | `paths`, `unresolved` |
+| `trace` | `paths`, `unresolved`; compact paths contain `summary`, `relations`, `evidence`, and `continuation_handles` |
 | `impact` | `dependents` |
 | `inspect` | `inspections` |
 

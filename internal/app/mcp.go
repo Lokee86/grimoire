@@ -84,6 +84,7 @@ func agentToolInputSchema() map[string]any {
 			"relations":         map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
 			"adjacent_context":  map[string]any{"type": "integer", "minimum": 0, "maximum": 200},
 			"code_only":         map[string]any{"type": "boolean"},
+			"detail":            map[string]any{"type": "string", "enum": []string{"summary", "full"}},
 			"include_knowledge": map[string]any{"type": "boolean"},
 			"lexicon_facts":     map[string]any{"type": "string"},
 			"lexicon_state":     map[string]any{"type": "string"},

@@ -18,43 +18,63 @@ func (corpus *Corpus) Trace(
 	}
 	targets := stringSet(toIDs)
 	adjacency := queryAdjacency(corpus.facts, direction, stringSet(relations))
+	type queuedPath struct {
+		current string
+		nodes   []Node
+		edges   []PathEdge
+		visited map[string]bool
+	}
 	var result []QueryPath
+	queue := make([]queuedPath, 0, len(fromIDs))
 	for _, fromID := range fromIDs {
 		start, exists := corpus.facts.nodes[fromID]
 		if !exists {
 			continue
 		}
-		visited := map[string]bool{fromID: true}
-		var walk func(string, []Node, []PathEdge)
-		walk = func(current string, nodes []Node, edges []PathEdge) {
-			if len(result) >= limit || len(edges) >= maxDepth {
-				return
-			}
-			for _, next := range adjacency[current] {
-				if visited[next.relatedID] {
-					continue
-				}
-				node, exists := corpus.facts.nodes[next.relatedID]
-				if !exists {
-					continue
-				}
-				nextNodes := appendNode(nodes, node)
-				nextEdges := appendPathEdge(edges, pathEdge(next.edge, next.direction, corpus.facts))
-				isTarget := len(targets) > 0 && targets[next.relatedID]
-				if len(targets) == 0 || isTarget {
-					result = append(result, makeQueryPath(nextNodes, nextEdges))
-				}
-				if len(result) >= limit || isTarget {
-					continue
-				}
-				visited[next.relatedID] = true
-				walk(next.relatedID, nextNodes, nextEdges)
-				delete(visited, next.relatedID)
-			}
+		queue = append(queue, queuedPath{
+			current: fromID,
+			nodes:   []Node{start},
+			visited: map[string]bool{fromID: true},
+		})
+	}
+	for len(queue) > 0 && len(result) < limit {
+		current := queue[0]
+		queue = queue[1:]
+		if len(current.edges) >= maxDepth {
+			continue
 		}
-		walk(fromID, []Node{start}, nil)
-		if len(result) >= limit {
-			break
+		for _, next := range adjacency[current.current] {
+			if current.visited[next.relatedID] {
+				continue
+			}
+			node, exists := corpus.facts.nodes[next.relatedID]
+			if !exists {
+				continue
+			}
+			nextNodes := appendNode(current.nodes, node)
+			nextEdges := appendPathEdge(current.edges, pathEdge(next.edge, next.direction, corpus.facts))
+			isTarget := len(targets) > 0 && targets[next.relatedID]
+			shouldAppend := isTarget || (len(targets) == 0 && queryEdgesHaveBehavior(nextEdges))
+			if shouldAppend {
+				result = append(result, makeQueryPath(nextNodes, nextEdges))
+				if len(result) >= limit {
+					break
+				}
+			}
+			if isTarget || len(nextEdges) >= maxDepth {
+				continue
+			}
+			nextVisited := make(map[string]bool, len(current.visited)+1)
+			for id := range current.visited {
+				nextVisited[id] = true
+			}
+			nextVisited[next.relatedID] = true
+			queue = append(queue, queuedPath{
+				current: next.relatedID,
+				nodes:   nextNodes,
+				edges:   nextEdges,
+				visited: nextVisited,
+			})
 		}
 	}
 	return result
@@ -136,6 +156,19 @@ func queryAdjacency(facts library, direction string, relations map[string]bool) 
 		all[id] = filtered
 	}
 	return all
+}
+
+func queryEdgesHaveBehavior(edges []PathEdge) bool {
+	for _, edge := range edges {
+		relation := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(edge.Relation)), "possible-")
+		switch relation {
+		case "contains", "defines", "imports":
+			continue
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 func interstackRelationPriority(relation string) int {

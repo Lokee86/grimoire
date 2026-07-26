@@ -2,6 +2,7 @@ package agentquery
 
 import (
 	"context"
+	"strings"
 
 	"github.com/Lokee86/grimoire/internal/arcanagraph"
 	"github.com/Lokee86/grimoire/internal/lexiconfacts"
@@ -9,41 +10,53 @@ import (
 )
 
 func (engine *Engine) trace(ctx context.Context, request Request, response *Response) error {
-	from, err := engine.resolveAnchors(ctx, request.Anchor, request.Query, request.Limit)
+	requestedLimit := request.Limit
+	traceRequest := request
+	traceRequest.Limit = traceCandidateLimit(request.Limit)
+
+	from, err := engine.resolveAnchors(ctx, request.Anchor, request.Query, traceRequest.Limit)
 	if err != nil {
 		return err
 	}
 	var to resolvedAnchors
 	if request.Target != "" {
-		to, err = engine.resolveAnchors(ctx, request.Target, "", request.Limit)
+		to, err = engine.resolveAnchors(ctx, request.Target, "", traceRequest.Limit)
 		if err != nil {
 			return err
 		}
 	}
 
 	if engine.lexicon != nil && len(from.lexicon) > 0 {
+		lexiconLimit := 200
+		if request.Target != "" {
+			lexiconLimit = min(200, max(64, traceRequest.Limit*4))
+		}
 		paths := engine.lexicon.Trace(
 			identities(from.lexicon), identities(to.lexicon),
-			request.Direction, request.Relations, request.Depth, request.Limit,
+			traceRequest.Direction, traceRequest.Relations, traceRequest.Depth, lexiconLimit,
 		)
 		for _, path := range paths {
 			response.Paths = append(response.Paths, engine.lexiconPath(path, len(response.Paths)+1))
-			if len(response.Paths) == request.Limit {
-				response.Truncated = true
-				break
-			}
 		}
+		response.Truncated = response.Truncated || len(paths) == lexiconLimit
 	}
 
-	if engine.arcanaSnapshot != "" && len(response.Paths) < request.Limit {
+	needArcana := engine.arcanaSnapshot != "" &&
+		(request.Target != "" || distinctBehaviorEntries(response.Paths) < requestedLimit)
+	if needArcana {
+		arcanaResponse := Response{}
 		if len(to.arcana) > 0 {
-			if err := engine.arcanaPaths(ctx, from.arcana, to.arcana, request, response); err != nil {
+			if err := engine.arcanaPaths(ctx, from.arcana, to.arcana, traceRequest, &arcanaResponse); err != nil {
 				response.Warnings = append(response.Warnings, "Arcana trace unavailable: "+err.Error())
 			}
-		} else if err := engine.arcanaExpansion(ctx, from.arcana, request, response); err != nil {
+		} else if err := engine.arcanaExpansion(ctx, from.arcana, traceRequest, &arcanaResponse); err != nil {
 			response.Warnings = append(response.Warnings, "Arcana trace unavailable: "+err.Error())
 		}
+		response.Paths = append(response.Paths, arcanaResponse.Paths...)
+		response.Truncated = response.Truncated || arcanaResponse.Truncated
 	}
+	finalizeTraceResponse(request, response, requestedLimit)
+
 	for _, node := range from.arcana {
 		if node.NodeID == nil || len(response.Unresolved) >= request.Limit {
 			continue
@@ -138,51 +151,101 @@ func (engine *Engine) arcanaExpansion(
 	request Request,
 	response *Response,
 ) error {
+	remaining := request.Limit - len(response.Paths)
+	if remaining <= 0 {
+		return nil
+	}
+	candidateCap := min(remaining*4, 128)
+	queryContext := request.Query + " " + request.Anchor
+	type queuedPath struct {
+		nodes      []structure.Node
+		relations  []string
+		directions []string
+		visited    map[uint32]bool
+		entry      string
+	}
+	queue := make([]queuedPath, 0, len(starts))
 	for _, start := range starts {
 		if start.NodeID == nil {
 			continue
 		}
-		visited := map[uint32]bool{*start.NodeID: true}
-		var walk func([]structure.Node, []string, []string) error
-		walk = func(nodes []structure.Node, relations, directions []string) error {
-			if len(relations) >= request.Depth || len(response.Paths) >= request.Limit {
-				return nil
-			}
-			current := nodes[len(nodes)-1]
-			neighbors, err := engine.arcana.Neighbors(
-				ctx, engine.arcanaSnapshot, *current.NodeID, request.Direction, request.Relations,
-			)
-			if err != nil {
-				return err
-			}
-			for _, neighbor := range neighbors {
-				if neighbor.Node.NodeID == nil || visited[*neighbor.Node.NodeID] {
-					continue
-				}
-				nextNodes := append(append([]structure.Node(nil), nodes...), neighbor.Node)
-				nextRelations := append(append([]string(nil), relations...), neighbor.Relation)
-				nextDirections := append(append([]string(nil), directions...), neighbor.Direction)
-				response.Paths = append(response.Paths, engine.arcanaPath(
-					arcanagraph.QueryPath{
-						Nodes: nextNodes, Relations: nextRelations,
-						Directions: nextDirections,
-					},
-					len(response.Paths)+1,
-				))
-				if len(response.Paths) >= request.Limit {
-					response.Truncated = true
-					return nil
-				}
-				visited[*neighbor.Node.NodeID] = true
-				if err := walk(nextNodes, nextRelations, nextDirections); err != nil {
-					return err
-				}
-				delete(visited, *neighbor.Node.NodeID)
-			}
-			return nil
+		queue = append(queue, queuedPath{
+			nodes:   []structure.Node{start},
+			visited: map[uint32]bool{*start.NodeID: true},
+			entry:   traceStructureNodeLabel(start),
+		})
+	}
+	entryCounts := make(map[string]int)
+	var behavioral []arcanagraph.QueryPath
+	var structural []arcanagraph.QueryPath
+	for len(queue) > 0 && len(behavioral) < candidateCap {
+		current := queue[0]
+		queue = queue[1:]
+		if len(current.relations) >= request.Depth {
+			continue
 		}
-		if err := walk([]structure.Node{start}, nil, nil); err != nil {
+		tail := current.nodes[len(current.nodes)-1]
+		if tail.NodeID == nil {
+			continue
+		}
+		neighbors, err := engine.arcana.Neighbors(
+			ctx, engine.arcanaSnapshot, *tail.NodeID, request.Direction, request.Relations,
+		)
+		if err != nil {
 			return err
+		}
+		neighbors = rankTraceNeighbors(neighbors, queryContext)
+		for _, neighbor := range neighbors {
+			if neighbor.Node.NodeID == nil || current.visited[*neighbor.Node.NodeID] {
+				continue
+			}
+			nextNodes := append(append([]structure.Node(nil), current.nodes...), neighbor.Node)
+			nextRelations := append(append([]string(nil), current.relations...), neighbor.Relation)
+			nextDirections := append(append([]string(nil), current.directions...), neighbor.Direction)
+			entry := current.entry
+			if len(current.relations) == 0 && traceContextRelation(neighbor.Relation) {
+				entry = traceStructureNodeLabel(neighbor.Node)
+			}
+			path := arcanagraph.QueryPath{
+				Nodes: nextNodes, Relations: nextRelations, Directions: nextDirections,
+			}
+			behavioralPath := traceRelationsHaveBehavior(nextRelations)
+			if behavioralPath {
+				key := strings.ToLower(entry)
+				if entryCounts[key] < 4 {
+					behavioral = append(behavioral, path)
+					entryCounts[key]++
+				}
+			} else if len(structural) < candidateCap {
+				structural = append(structural, path)
+			}
+			if len(nextRelations) >= request.Depth {
+				continue
+			}
+			nextVisited := make(map[uint32]bool, len(current.visited)+1)
+			for id := range current.visited {
+				nextVisited[id] = true
+			}
+			nextVisited[*neighbor.Node.NodeID] = true
+			queue = append(queue, queuedPath{
+				nodes: nextNodes, relations: nextRelations, directions: nextDirections,
+				visited: nextVisited, entry: entry,
+			})
+			if len(behavioral) >= candidateCap {
+				break
+			}
+		}
+	}
+
+	paths := behavioral
+	if len(paths) == 0 {
+		paths = structural
+	}
+	for _, path := range paths {
+		response.Paths = append(response.Paths, engine.arcanaPath(path, len(response.Paths)+1))
+		if len(response.Paths) >= request.Limit {
+			response.Truncated = len(paths) > remaining
+			break
 		}
 	}
 	return nil
