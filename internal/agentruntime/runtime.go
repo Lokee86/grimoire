@@ -144,10 +144,10 @@ func normalizeRequest(request Request, options Options) Request {
 		request.StateMode = repostate.RefreshIfNeeded
 	}
 	if strings.TrimSpace(request.LexiconCmd) == "" {
-		request.LexiconCmd = adjacentCommand("lexicon")
+		request.LexiconCmd = resolveProviderCommand(request.Root, request.LexiconCmd, "lexicon")
 	}
 	if strings.TrimSpace(request.ArcanaCmd) == "" {
-		request.ArcanaCmd = adjacentCommand("arcana")
+		request.ArcanaCmd = resolveProviderCommand(request.Root, request.ArcanaCmd, "arcana")
 	}
 	return request
 }

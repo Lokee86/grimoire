@@ -13,7 +13,19 @@ The exposed tool is `grimoire_query`. It accepts the `grimoire.query.v1` orient,
 - `include_knowledge`: whether documentation and design-rationale retrieval is included;
 - `code_only`: an explicit override for excluding documentation from source results.
 
-The default state mode is `refresh-if-needed`. Grimoire checks the source fingerprint and repository-local `.lexicon`, `.arcana`, and `.grimoire` state before each call. Lexicon and Arcana executables are discovered beside the Grimoire executable first, then through `PATH`. Structural-provider failures become warnings and source retrieval remains available; a required Grimoire source-index refresh still fails the request if it cannot complete.
+The default state mode is `refresh-if-needed`. Grimoire checks the source fingerprint and repository-local `.lexicon`, `.arcana`, and `.grimoire` state before each call. Provider commands are resolved in this order: explicit request path, repository `.grimoire/providers.json`, executables beside Grimoire, a canonical Grimoire checkout, and finally `PATH`. Checkout discovery accepts `GRIMOIRE_HOME` and can derive the checkout from the target repository's Lexicon `adapter_root`, so child processes do not depend on inherited shell `PATH`. Structural-provider failures become warnings and source retrieval remains available; a required Grimoire source-index refresh still fails the request if it cannot complete.
+
+Repository provider configuration is optional:
+
+```json
+{
+  "version": 1,
+  "lexicon_command": "C:/tools/grimoire/bin/lexicon.exe",
+  "arcana_command": "C:/tools/grimoire/bin/arcana.exe"
+}
+```
+
+Relative command paths are resolved from the analyzed repository root.
 
 ## Progressive response behavior
 
