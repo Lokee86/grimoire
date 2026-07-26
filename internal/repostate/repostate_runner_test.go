@@ -51,6 +51,10 @@ func writeKnowledge(t *testing.T, root string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	built.SourceFingerprint, err = sourceFingerprint(root)
+	if err != nil {
+		t.Fatal(err)
+	}
 	state, err := knowledge.DefaultState(root)
 	if err != nil {
 		t.Fatal(err)

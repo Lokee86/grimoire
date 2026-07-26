@@ -13,6 +13,7 @@ import (
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/knowledge"
 	"github.com/Lokee86/grimoire/internal/knowledgevector"
+	"github.com/Lokee86/grimoire/internal/repostate"
 )
 
 func runKnowledge(args []string, stdout, stderr io.Writer) error {
@@ -69,6 +70,10 @@ func runKnowledgeIndex(args []string, stdout, stderr io.Writer) error {
 	})
 	if err != nil {
 		return err
+	}
+	built.SourceFingerprint, err = repostate.RepositoryFingerprint(*root)
+	if err != nil {
+		return fmt.Errorf("fingerprint repository for knowledge index: %w", err)
 	}
 	if err := knowledge.Save(statePath, built); err != nil {
 		return err

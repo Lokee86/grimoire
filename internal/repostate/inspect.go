@@ -64,9 +64,13 @@ func inspect(ctx context.Context, location paths) (Status, error) {
 	status.Grimoire = inspectGrimoire(location, fingerprint, status.Lexicon.Snapshot)
 	var currentKnowledge knowledge.Index
 	var knowledgeAvailable bool
-	status.Knowledge, currentKnowledge, knowledgeAvailable = inspectKnowledge(location)
+	status.Knowledge, currentKnowledge, knowledgeAvailable = inspectKnowledge(location, fingerprint)
 	status.ArcanaVectors = inspectArcanaVectors(location, status.Arcana.Snapshot)
 	status.KnowledgeVectors = inspectKnowledgeVectors(location, currentKnowledge, knowledgeAvailable)
+	if status.Knowledge.Status != "current" && status.KnowledgeVectors.Status == "current" {
+		status.KnowledgeVectors.Status = "stale"
+		status.KnowledgeVectors.Reason = "knowledge index is stale; refresh it before trusting documentation vector freshness"
+	}
 	status.DeterministicQueryReady = status.Grimoire.Status == "current"
 	status.ElapsedMS = elapsedMS(started)
 	return status, nil
@@ -168,31 +172,26 @@ func inspectGrimoire(location paths, fingerprint, lexiconID string) ComponentSta
 	return status
 }
 
-func inspectKnowledge(location paths) (ComponentStatus, knowledge.Index, bool) {
+func inspectKnowledge(location paths, repositoryFingerprint string) (ComponentStatus, knowledge.Index, bool) {
 	stored, err := knowledge.Load(location.knowledge)
 	if errors.Is(err, os.ErrNotExist) {
-		current, _, buildErr := knowledge.Build(location.root, nil, knowledge.BuildOptions{})
-		if buildErr != nil {
-			return ComponentStatus{Status: "failed", StaleReasons: []string{buildErr.Error()}}, knowledge.Index{}, false
-		}
-		return ComponentStatus{Status: "absent", Expected: knowledge.Identity(current), StaleReasons: []string{"knowledge index is missing"}}, current, true
+		return ComponentStatus{Status: "absent", StaleReasons: []string{"knowledge index is missing"}}, knowledge.Index{}, false
 	}
 	if err != nil {
 		return ComponentStatus{Status: "failed", StaleReasons: []string{err.Error()}}, knowledge.Index{}, false
 	}
-	current, _, err := knowledge.Build(location.root, &stored, knowledge.BuildOptions{})
-	if err != nil {
-		return ComponentStatus{Status: "failed", Snapshot: knowledge.Identity(stored), StaleReasons: []string{err.Error()}}, knowledge.Index{}, false
-	}
 	actual := knowledge.Identity(stored)
-	expected := knowledge.Identity(current)
-	status := ComponentStatus{Status: "current", Snapshot: actual, Expected: expected, Prepared: true}
-	if actual != expected || stored.SourceFingerprint != expected {
+	status := ComponentStatus{Status: "current", Snapshot: actual, Expected: actual, Prepared: true}
+	if stored.SourceFingerprint == "" {
 		status.Status = "stale"
 		status.Prepared = false
-		status.StaleReasons = append(status.StaleReasons, "documentation or source-link evidence changed since knowledge indexing")
+		status.StaleReasons = append(status.StaleReasons, "knowledge freshness metadata is missing")
+	} else if stored.SourceFingerprint != repositoryFingerprint {
+		status.Status = "stale"
+		status.Prepared = false
+		status.StaleReasons = append(status.StaleReasons, "repository content changed since knowledge indexing")
 	}
-	return status, current, true
+	return status, stored, true
 }
 
 func inspectKnowledgeVectors(location paths, current knowledge.Index, knowledgeAvailable bool) VectorStatus {

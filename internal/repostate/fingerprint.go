@@ -15,6 +15,12 @@ import (
 
 const maxFingerprintFileBytes int64 = 2 << 20
 
+// RepositoryFingerprint returns the source identity used by repository state
+// and knowledge-link freshness checks.
+func RepositoryFingerprint(root string) (string, error) {
+	return sourceFingerprint(root)
+}
+
 func sourceFingerprint(root string) (string, error) {
 	paths, ok := gitSourcePaths(root)
 	if !ok {

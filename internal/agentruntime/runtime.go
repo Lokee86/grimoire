@@ -209,6 +209,7 @@ func retrieveKnowledge(ctx context.Context, request Request, statePath string, p
 		if err != nil {
 			return nil, nil, fmt.Errorf("build knowledge index: %w", err)
 		}
+		built.SourceFingerprint = preparation.Repository.SourceFingerprint
 		if err := knowledge.Save(knowledgeState, built); err != nil {
 			return nil, nil, fmt.Errorf("save knowledge index: %w", err)
 		}
