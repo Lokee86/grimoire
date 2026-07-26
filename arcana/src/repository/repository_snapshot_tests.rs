@@ -42,6 +42,66 @@ fn binds_graph_catalogue_unresolved_and_source_facts() {
 }
 
 #[test]
+fn precompiled_publication_matches_standalone_validation_without_recompiling() {
+    let legacy = test_directory();
+    let optimized = test_directory();
+    let facts = sample_facts();
+    compiler::reset_compile_invocation_count();
+    let compiled = compile_repository_facts(&facts).unwrap();
+    assert_eq!(compiler::compile_invocation_count(), 1);
+
+    let legacy_checksums = write_compiled_artifacts(&legacy, &compiled, &facts);
+    let optimized_checksums = write_compiled_artifacts(&optimized, &compiled, &facts);
+    assert_eq!(optimized_checksums, legacy_checksums);
+
+    let request = || PublishRepositorySnapshot {
+        graph_manifest_file: std::path::Path::new("graph.manifest"),
+        catalogue_file: std::path::Path::new("catalogue.tsv"),
+        unresolved_file: std::path::Path::new("unresolved.tsv"),
+        facts_file: std::path::Path::new("facts.tsv"),
+        adapter_name: "test",
+        adapter_version: "1",
+        created_unix_seconds: 7,
+    };
+    let optimized_manifest = publish_precompiled_repository_snapshot(
+        optimized.join(REPOSITORY_MANIFEST_FILE),
+        request(),
+        &compiled,
+        &facts,
+        optimized_checksums,
+    )
+    .unwrap();
+    assert_eq!(
+        compiler::compile_invocation_count(),
+        1,
+        "precompiled publication must reuse the caller's compilation"
+    );
+
+    let legacy_manifest =
+        publish_repository_snapshot(legacy.join(REPOSITORY_MANIFEST_FILE), request()).unwrap();
+    assert_eq!(compiler::compile_invocation_count(), 2);
+    assert_eq!(optimized_manifest, legacy_manifest);
+    for file in [
+        "graph.arcana",
+        "graph.manifest",
+        "catalogue.tsv",
+        "unresolved.tsv",
+        "facts.tsv",
+        REPOSITORY_MANIFEST_FILE,
+    ] {
+        assert_eq!(
+            fs::read(optimized.join(file)).unwrap(),
+            fs::read(legacy.join(file)).unwrap(),
+            "{file} differs"
+        );
+    }
+
+    RepositorySnapshot::open(optimized.join(REPOSITORY_MANIFEST_FILE)).unwrap();
+    fs::remove_dir_all(legacy).unwrap();
+    fs::remove_dir_all(optimized).unwrap();
+}
+
+#[test]
 fn protocol_parts_transfer_owned_components() {
     let directory = test_directory();
     let facts = sample_facts();
@@ -75,6 +135,34 @@ fn protocol_parts_transfer_owned_components() {
     assert_eq!(catalogue.len(), 3);
     assert_eq!(unresolved.unresolved, compiled.unresolved);
     fs::remove_dir_all(directory).unwrap();
+}
+
+fn write_compiled_artifacts(
+    directory: &std::path::Path,
+    compiled: &CompiledRepository,
+    facts: &RepositoryFacts,
+) -> RepositoryArtifactChecksums {
+    write_packed(directory.join("graph.arcana"), &compiled.dataset).unwrap();
+    publish_snapshot(directory.join("graph.manifest"), "graph.arcana", None, 7).unwrap();
+
+    let catalogue = compiled.catalogue.encode().unwrap();
+    let catalogue_checksum = repository_artifact_checksum(catalogue.as_bytes());
+    fs::write(directory.join("catalogue.tsv"), catalogue).unwrap();
+
+    let unresolved =
+        RepositoryFacts::with_unresolved(vec![], vec![], compiled.unresolved.clone()).encode();
+    let unresolved_checksum = repository_artifact_checksum(unresolved.as_bytes());
+    fs::write(directory.join("unresolved.tsv"), unresolved).unwrap();
+
+    let encoded_facts = facts.encode();
+    let facts_checksum = repository_artifact_checksum(encoded_facts.as_bytes());
+    fs::write(directory.join("facts.tsv"), encoded_facts).unwrap();
+
+    RepositoryArtifactChecksums {
+        catalogue: catalogue_checksum,
+        unresolved: unresolved_checksum,
+        facts: facts_checksum,
+    }
 }
 
 fn sample_facts() -> RepositoryFacts {

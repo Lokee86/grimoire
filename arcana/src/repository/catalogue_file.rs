@@ -15,10 +15,12 @@ const HEADER_V1: &str = "version\t1";
 const HEADER_V2: &str = "version\t2";
 
 pub(super) fn encode(catalogue: &RepositoryCatalogue) -> Result<String, CatalogueError> {
-    let validated = RepositoryCatalogue::new(catalogue.entries().to_vec())?;
     let mut output = String::from(HEADER_V2);
     output.push('\n');
-    for entry in validated.entries() {
+    // RepositoryCatalogue can only be constructed through its validating
+    // constructor or decoder, so rebuilding all of its indexes here only
+    // duplicates every node's strings during snapshot publication.
+    for entry in catalogue.entries() {
         output.push_str("N\t");
         push_field(&mut output, &entry.node_id.0.to_string());
         output.push('\t');

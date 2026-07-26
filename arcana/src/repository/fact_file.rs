@@ -13,9 +13,11 @@ const HEADER_V3: &str = "version\t3";
 
 /// Encodes repository facts as canonical tab-separated UTF-8 lines.
 pub fn encode_facts(facts: &RepositoryFacts) -> String {
-    let mut nodes = facts.nodes.clone();
-    let mut edges = facts.edges.clone();
-    let mut unresolved = facts.unresolved.clone();
+    // Sort lightweight references instead of cloning every owned string in the
+    // normalized fact set. The encoded order and bytes remain unchanged.
+    let mut nodes = facts.nodes.iter().collect::<Vec<_>>();
+    let mut edges = facts.edges.iter().collect::<Vec<_>>();
+    let mut unresolved = facts.unresolved.iter().collect::<Vec<_>>();
     nodes.sort_unstable();
     edges.sort_unstable();
     unresolved.sort_unstable();

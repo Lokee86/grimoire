@@ -6,7 +6,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use arcana::repository::{
     CatalogueError, CompiledRepository, FactFileError, IncrementalError, PublishRepositorySnapshot,
-    RepositoryCompileError, RepositoryFacts, RepositorySnapshotError, publish_repository_snapshot,
+    RepositoryArtifactChecksums, RepositoryCompileError, RepositoryFacts, RepositorySnapshotError,
+    publish_precompiled_repository_snapshot, repository_artifact_checksum,
 };
 use arcana::snapshot::{OverlayError, SnapshotError, publish_snapshot};
 use arcana::storage::{PackedError, QueryError};
@@ -195,12 +196,23 @@ pub(crate) fn write_repository_metadata(
     adapter_name: &str,
     adapter_version: &str,
 ) -> Result<(), CliCommandError> {
-    arcana::repository::write_catalogue(output.join("catalogue.tsv"), &compiled.catalogue)?;
+    let catalogue = compiled.catalogue.encode()?;
+    let catalogue_checksum = repository_artifact_checksum(catalogue.as_bytes());
+    fs::write(output.join("catalogue.tsv"), catalogue)?;
+
     let unresolved =
         RepositoryFacts::with_unresolved(Vec::new(), Vec::new(), compiled.unresolved.clone());
-    fs::write(output.join("unresolved.tsv"), unresolved.encode())?;
-    fs::write(output.join("facts.tsv"), facts.canonicalized().encode())?;
-    publish_repository_snapshot(
+    let unresolved = unresolved.encode();
+    let unresolved_checksum = repository_artifact_checksum(unresolved.as_bytes());
+    fs::write(output.join("unresolved.tsv"), unresolved)?;
+
+    // encode() is already canonical. Calling canonicalized() first cloned and
+    // sorted the complete fact set twice.
+    let encoded_facts = facts.encode();
+    let facts_checksum = repository_artifact_checksum(encoded_facts.as_bytes());
+    fs::write(output.join("facts.tsv"), encoded_facts)?;
+
+    publish_precompiled_repository_snapshot(
         output.join("repository.manifest"),
         PublishRepositorySnapshot {
             graph_manifest_file: Path::new("graph.manifest"),
@@ -210,6 +222,13 @@ pub(crate) fn write_repository_metadata(
             adapter_name,
             adapter_version,
             created_unix_seconds: timestamp()?,
+        },
+        compiled,
+        facts,
+        RepositoryArtifactChecksums {
+            catalogue: catalogue_checksum,
+            unresolved: unresolved_checksum,
+            facts: facts_checksum,
         },
     )?;
     Ok(())

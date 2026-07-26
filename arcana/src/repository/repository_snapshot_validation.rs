@@ -6,7 +6,7 @@ use crate::snapshot::GraphSnapshot;
 use crate::storage::{StableHasher, dataset_checksum};
 
 use super::{
-    NodeKind, RepositoryCatalogue, RepositoryFacts, RepositorySnapshotError,
+    CompiledRepository, NodeKind, RepositoryCatalogue, RepositoryFacts, RepositorySnapshotError,
     RepositorySnapshotManifest, compile_repository_facts,
 };
 
@@ -21,6 +21,44 @@ pub(super) fn validate_components(
         return Err(RepositorySnapshotError::InvalidUnresolvedArtifact);
     }
     let compiled = compile_repository_facts(facts)?;
+    validate_compiled_components(manifest, graph, &compiled, repository_identity(facts))?;
+    if &compiled.catalogue != catalogue {
+        return Err(RepositorySnapshotError::ArtifactMismatch {
+            field: "catalogue_contents",
+            expected: manifest.catalogue_checksum,
+            actual: 0,
+        });
+    }
+    if compiled.unresolved != unresolved.unresolved {
+        return Err(RepositorySnapshotError::ArtifactMismatch {
+            field: "unresolved_contents",
+            expected: manifest.unresolved_checksum,
+            actual: 0,
+        });
+    }
+    Ok(())
+}
+
+pub(super) fn validate_precompiled_components(
+    manifest: &RepositorySnapshotManifest,
+    graph: &GraphSnapshot,
+    compiled: &CompiledRepository,
+    facts: &RepositoryFacts,
+) -> Result<(), RepositorySnapshotError> {
+    validate_compiled_components(
+        manifest,
+        graph,
+        compiled,
+        repository_identity_from_checksum(facts, manifest.facts_checksum),
+    )
+}
+
+fn validate_compiled_components(
+    manifest: &RepositorySnapshotManifest,
+    graph: &GraphSnapshot,
+    compiled: &CompiledRepository,
+    actual_repository_id: u64,
+) -> Result<(), RepositorySnapshotError> {
     compare(
         "graph_snapshot_id",
         manifest.graph_snapshot_id,
@@ -39,29 +77,14 @@ pub(super) fn validate_components(
     )?;
     compare(
         "catalogue_length",
-        catalogue.len() as u64,
+        compiled.catalogue.len() as u64,
         graph.node_count() as u64,
     )?;
-    if &compiled.catalogue != catalogue {
-        return Err(RepositorySnapshotError::ArtifactMismatch {
-            field: "catalogue_contents",
-            expected: manifest.catalogue_checksum,
-            actual: 0,
-        });
-    }
-    if compiled.unresolved != unresolved.unresolved {
-        return Err(RepositorySnapshotError::ArtifactMismatch {
-            field: "unresolved_contents",
-            expected: manifest.unresolved_checksum,
-            actual: 0,
-        });
-    }
     compare(
         "unresolved_count",
         manifest.unresolved_count,
-        unresolved.unresolved.len() as u64,
+        compiled.unresolved.len() as u64,
     )?;
-    let actual_repository_id = repository_identity(facts);
     if manifest.repository_id != actual_repository_id {
         return Err(RepositorySnapshotError::RepositoryIdentityMismatch {
             expected: manifest.repository_id,
@@ -72,6 +95,17 @@ pub(super) fn validate_components(
 }
 
 pub(super) fn repository_identity(facts: &RepositoryFacts) -> u64 {
+    unique_repository_identity(facts).unwrap_or_else(|| checksum(facts.encode().as_bytes()))
+}
+
+pub(super) fn repository_identity_from_checksum(
+    facts: &RepositoryFacts,
+    facts_checksum: u64,
+) -> u64 {
+    unique_repository_identity(facts).unwrap_or(facts_checksum)
+}
+
+fn unique_repository_identity(facts: &RepositoryFacts) -> Option<u64> {
     let mut repositories = facts
         .nodes
         .iter()
@@ -80,9 +114,9 @@ pub(super) fn repository_identity(facts: &RepositoryFacts) -> u64 {
     if let Some(repository) = first
         && repositories.next().is_none()
     {
-        repository.key.0
+        Some(repository.key.0)
     } else {
-        checksum(facts.encode().as_bytes())
+        None
     }
 }
 

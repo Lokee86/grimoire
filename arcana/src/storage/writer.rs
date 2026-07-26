@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::ffi::OsString;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufWriter, Seek, SeekFrom, Write};
@@ -8,7 +9,7 @@ use crate::synthetic::{Edge, GraphDataset};
 
 use super::dataset::{canonical_edges, dataset_checksum};
 use super::format::{HEADER_LEN, Header, Layout, StableHasher};
-use super::{Direction, PackedError};
+use super::{DatasetError, Direction, PackedError};
 
 static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
@@ -48,7 +49,7 @@ fn write_then_commit(
     temp_path: &Path,
     dataset: &GraphDataset,
 ) -> Result<WriteSummary, PackedError> {
-    let mut edges = canonical_edges(dataset)?;
+    let edges = edges_for_write(dataset)?;
     let edge_count = u64::try_from(edges.len()).map_err(|_| PackedError::SizeOverflow)?;
     let layout = Layout::for_counts(dataset.node_count, edge_count)?;
     let dataset_checksum = dataset_checksum(dataset.node_count, &edges);
@@ -69,10 +70,11 @@ fn write_then_commit(
         &layout,
     )?;
 
-    edges.sort_unstable_by_key(|edge| (edge.target, edge.source, edge.kind));
+    let mut reverse_edges = edges.into_owned();
+    reverse_edges.sort_unstable_by_key(|edge| (edge.target, edge.source, edge.kind));
     write_direction(
         &mut payload,
-        &edges,
+        &reverse_edges,
         dataset.node_count,
         Direction::Reverse,
         &layout,
@@ -100,6 +102,36 @@ fn write_then_commit(
         dataset_checksum,
         file_len: layout.file_len,
     })
+}
+
+fn edges_for_write(dataset: &GraphDataset) -> Result<Cow<'_, [Edge]>, DatasetError> {
+    if is_canonical(dataset)? {
+        Ok(Cow::Borrowed(&dataset.edges))
+    } else {
+        canonical_edges(dataset).map(Cow::Owned)
+    }
+}
+
+fn is_canonical(dataset: &GraphDataset) -> Result<bool, DatasetError> {
+    let mut previous = None;
+    for &edge in &dataset.edges {
+        if edge.source.0 >= dataset.node_count || edge.target.0 >= dataset.node_count {
+            return Err(DatasetError::EndpointOutOfRange {
+                edge,
+                node_count: dataset.node_count,
+            });
+        }
+        if let Some(previous) = previous {
+            if previous == edge {
+                return Err(DatasetError::DuplicateEdge { edge });
+            }
+            if previous > edge {
+                return Ok(false);
+            }
+        }
+        previous = Some(edge);
+    }
+    Ok(true)
 }
 
 fn write_direction(
@@ -208,4 +240,38 @@ fn temporary_path(path: &Path) -> PathBuf {
         .map_or_else(|| OsString::from("arcana"), OsString::from);
     name.push(format!(".tmp.{}.{}", std::process::id(), sequence));
     path.with_file_name(name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::synthetic::{EdgeKind, NodeId};
+
+    #[test]
+    fn canonical_compiler_output_uses_borrowed_forward_edges() {
+        let dataset = GraphDataset {
+            node_count: 3,
+            edges: vec![
+                Edge {
+                    source: NodeId(0),
+                    target: NodeId(1),
+                    kind: EdgeKind(1),
+                },
+                Edge {
+                    source: NodeId(1),
+                    target: NodeId(2),
+                    kind: EdgeKind(2),
+                },
+            ],
+        };
+
+        assert!(matches!(
+            edges_for_write(&dataset).unwrap(),
+            Cow::Borrowed(_)
+        ));
+
+        let mut reversed = dataset.clone();
+        reversed.edges.reverse();
+        assert!(matches!(edges_for_write(&reversed).unwrap(), Cow::Owned(_)));
+    }
 }

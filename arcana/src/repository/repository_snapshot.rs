@@ -1,4 +1,5 @@
-use std::fs;
+use std::fs::{self, File};
+use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 
 use crate::snapshot::GraphSnapshot;
@@ -7,10 +8,12 @@ use crate::synthetic::GraphDataset;
 
 use super::fact_file::FACT_SCHEMA_VERSION;
 use super::repository_snapshot_validation::{
-    checksum, read_verified, repository_identity, text, validate_components, write_immutable,
+    checksum, compare, read_verified, repository_identity, repository_identity_from_checksum, text,
+    validate_components, validate_precompiled_components, write_immutable,
 };
 use super::{
-    RepositoryCatalogue, RepositoryFacts, RepositorySnapshotError, RepositorySnapshotManifest,
+    CompiledRepository, RepositoryCatalogue, RepositoryFacts, RepositorySnapshotError,
+    RepositorySnapshotManifest,
 };
 
 pub const REPOSITORY_MANIFEST_FILE: &str = "repository.manifest";
@@ -120,6 +123,20 @@ pub struct PublishRepositorySnapshot<'a> {
     pub created_unix_seconds: u64,
 }
 
+/// Checksums of canonical repository artifacts already written by a trusted
+/// compiler path.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RepositoryArtifactChecksums {
+    pub catalogue: u64,
+    pub unresolved: u64,
+    pub facts: u64,
+}
+
+/// Computes the checksum stored for a repository artifact.
+pub fn repository_artifact_checksum(bytes: &[u8]) -> u64 {
+    checksum(bytes)
+}
+
 pub fn publish_repository_snapshot(
     manifest_path: impl AsRef<Path>,
     request: PublishRepositorySnapshot<'_>,
@@ -173,6 +190,90 @@ pub fn publish_repository_snapshot(
     validate_components(&manifest, &graph, &catalogue, &facts, &unresolved)?;
     write_immutable(manifest_path, manifest.encode()?.as_bytes())?;
     Ok(manifest)
+}
+
+/// Publishes artifacts produced from an already validated compilation.
+///
+/// This is the full-rebuild fast path. The caller supplies checksums computed
+/// from the exact canonical bytes it wrote. Publication verifies those bytes
+/// with bounded streaming reads, avoiding full artifact materialization,
+/// parsing, and a second compilation. Opening the resulting standalone
+/// snapshot still performs the ordinary full validation.
+pub fn publish_precompiled_repository_snapshot(
+    manifest_path: impl AsRef<Path>,
+    request: PublishRepositorySnapshot<'_>,
+    compiled: &CompiledRepository,
+    facts: &RepositoryFacts,
+    checksums: RepositoryArtifactChecksums,
+) -> Result<RepositorySnapshotManifest, RepositorySnapshotError> {
+    let manifest_path = manifest_path.as_ref();
+    let root = manifest_path
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    for (file, expected, field) in [
+        (
+            request.catalogue_file,
+            checksums.catalogue,
+            "catalogue_checksum",
+        ),
+        (
+            request.unresolved_file,
+            checksums.unresolved,
+            "unresolved_checksum",
+        ),
+        (request.facts_file, checksums.facts, "facts_checksum"),
+    ] {
+        compare(field, expected, checksum_file(&root.join(file))?)?;
+    }
+    let graph = GraphSnapshot::open(root.join(request.graph_manifest_file))?;
+    let graph_manifest_checksum = checksum(&fs::read(root.join(request.graph_manifest_file))?);
+    let repository_id = repository_identity_from_checksum(facts, checksums.facts);
+    let snapshot_id = derive_repository_snapshot_id(
+        repository_id,
+        graph.snapshot_id(),
+        checksums.catalogue,
+        checksums.unresolved,
+        checksums.facts,
+        request.adapter_name,
+        request.adapter_version,
+    );
+    let manifest = RepositorySnapshotManifest {
+        snapshot_id,
+        created_unix_seconds: request.created_unix_seconds,
+        repository_id,
+        adapter_name: request.adapter_name.to_owned(),
+        adapter_version: request.adapter_version.to_owned(),
+        fact_schema_version: FACT_SCHEMA_VERSION,
+        node_count: graph.node_count(),
+        edge_count: graph.edge_count(),
+        unresolved_count: compiled.unresolved.len() as u64,
+        graph_snapshot_id: graph.snapshot_id(),
+        graph_manifest_checksum,
+        catalogue_checksum: checksums.catalogue,
+        unresolved_checksum: checksums.unresolved,
+        facts_checksum: checksums.facts,
+        graph_manifest_file: request.graph_manifest_file.to_path_buf(),
+        catalogue_file: request.catalogue_file.to_path_buf(),
+        unresolved_file: request.unresolved_file.to_path_buf(),
+        facts_file: request.facts_file.to_path_buf(),
+    };
+    validate_precompiled_components(&manifest, &graph, compiled, facts)?;
+    write_immutable(manifest_path, manifest.encode()?.as_bytes())?;
+    Ok(manifest)
+}
+
+fn checksum_file(path: &Path) -> Result<u64, RepositorySnapshotError> {
+    let mut reader = BufReader::new(File::open(path)?);
+    let mut hasher = StableHasher::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let count = reader.read(&mut buffer)?;
+        if count == 0 {
+            return Ok(hasher.finish());
+        }
+        hasher.update(&buffer[..count]);
+    }
 }
 
 pub fn derive_repository_snapshot_id(

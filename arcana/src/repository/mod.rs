@@ -40,8 +40,9 @@ pub use model::{ContentId, EdgeFact, NodeFact, NodeKey, NodeKind, RelationKind, 
 pub use ownership::{FactOwnershipError, FactPartitions, partition_facts, replace_changed_files};
 pub use path::{RepositoryPathError, normalize_repository_path};
 pub use repository_snapshot::{
-    PublishRepositorySnapshot, REPOSITORY_MANIFEST_FILE, RepositorySnapshot,
-    derive_repository_snapshot_id, publish_repository_snapshot,
+    PublishRepositorySnapshot, REPOSITORY_MANIFEST_FILE, RepositoryArtifactChecksums,
+    RepositorySnapshot, derive_repository_snapshot_id, publish_precompiled_repository_snapshot,
+    publish_repository_snapshot, repository_artifact_checksum,
 };
 pub use repository_snapshot_error::RepositorySnapshotError;
 pub use repository_snapshot_format::{REPOSITORY_MANIFEST_VERSION, RepositorySnapshotManifest};

@@ -6,6 +6,11 @@ use crate::synthetic::{Edge, EdgeKind, GraphDataset, NodeId};
 use super::catalogue::{CatalogueEntry, CatalogueError, RepositoryCatalogue};
 use super::{NodeFact, NodeKey, RelationKind, RepositoryFacts, UnresolvedReferenceFact};
 
+#[cfg(test)]
+std::thread_local! {
+    static COMPILE_INVOCATIONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 /// The compiled graph and its metadata catalogue.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CompiledRepository {
@@ -78,6 +83,9 @@ impl std::error::Error for RepositoryCompileError {
 pub fn compile_repository_facts(
     facts: &RepositoryFacts,
 ) -> Result<CompiledRepository, RepositoryCompileError> {
+    #[cfg(test)]
+    COMPILE_INVOCATIONS.with(|count| count.set(count.get() + 1));
+
     let nodes = unique_nodes(&facts.nodes)?;
     let node_count =
         u32::try_from(nodes.len()).map_err(|_| RepositoryCompileError::NodeIdOverflow)?;
@@ -138,6 +146,16 @@ pub fn compile_repository_facts(
         catalogue,
         unresolved,
     })
+}
+
+#[cfg(test)]
+pub(super) fn reset_compile_invocation_count() {
+    COMPILE_INVOCATIONS.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+pub(super) fn compile_invocation_count() -> usize {
+    COMPILE_INVOCATIONS.with(std::cell::Cell::get)
 }
 
 /// Short alias for compiling a repository fact set.
