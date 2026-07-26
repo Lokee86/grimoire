@@ -72,6 +72,8 @@ The July 23, 2026 provider-attribution runs established that vector retrieval pr
 
 The query-shape comparison demonstrated deterministic profile agreement and zero adaptive-assembly loss on its judged 12-case run after reserve calibration. Its package targets remain calibration choices, not universal optima.
 
+The July 26, 2026 documentation corpus produced 100% pass rate, 100% required-section recall, 0.938 MRR, and 100% required recall within five results for the BM25 baseline. Enabling documentation vectors changed none of those ranking metrics while increasing median latency from 4.5 ms to 36.9 ms and p95 latency from 10.8 ms to 342.4 ms. Documentation vectors therefore remain available for explicit experiments but are disabled by default in CLI, evaluator, and MCP knowledge retrieval.
+
 The detailed dated JSON and Markdown files under `evaluation/results/` are authoritative for those measurements. Do not copy percentages into product claims without the corresponding corpus and variant.
 
 ## Interpreting failures

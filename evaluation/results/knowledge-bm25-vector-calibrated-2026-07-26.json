@@ -1,0 +1,791 @@
+{
+  "version": 1,
+  "generated_at": "2026-07-26T02:37:15.4624207-07:00",
+  "repository": "grimoire",
+  "scope": "checked-in documentation retrieval seam",
+  "root": "C:\\!bin\\workspace\\grimoire",
+  "state": "C:\\!bin\\workspace\\grimoire\\.grimoire\\knowledge",
+  "cases_file": "evaluation/knowledge/grimoire.json",
+  "variant": "bm25-vector",
+  "vectors": true,
+  "top_k": 5,
+  "recall_at_k": [
+    1,
+    3,
+    5
+  ],
+  "cases": [
+    {
+      "case_id": "architecture-knowledge-separate-lane",
+      "query": "why does Grimoire index repository rationale separately from production source chunks",
+      "category": "architecture-rationale",
+      "pass": true,
+      "required_section_recall": 1,
+      "recall_at_k": [
+        {
+          "k": 1,
+          "value": 1
+        },
+        {
+          "k": 3,
+          "value": 1
+        },
+        {
+          "k": 5,
+          "value": 1
+        }
+      ],
+      "mrr": 1,
+      "first_relevant_rank": 1,
+      "relevant_selections": 2,
+      "irrelevant_selections": 3,
+      "irrelevant_selection_rate": 0.6,
+      "forbidden_selections": 0,
+      "result_count": 5,
+      "vector_used": true,
+      "latency_ms": 342.3902,
+      "results": [
+        {
+          "handle": "knowledge://docs/reference/knowledge.md#17431ba0ce8033c7",
+          "path": "docs/reference/knowledge.md",
+          "heading": "Knowledge retrieval",
+          "score": 25.888136731116614,
+          "rank": 1,
+          "required": true,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/reference/vector-store.md#7edb86a9f2b081fe",
+          "path": "docs/reference/vector-store.md",
+          "heading": "Vector store",
+          "score": 12.895711784176802,
+          "rank": 2,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/reference/indexing.md#525241e195822eba",
+          "path": "docs/reference/indexing.md",
+          "heading": "Documentation indexing and vectors",
+          "score": 12.781468030159937,
+          "rank": 3,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/reference/indexing.md#ec787e76b4bd373c",
+          "path": "docs/reference/indexing.md",
+          "heading": "Prepared source index",
+          "score": 12.49798723269635,
+          "rank": 4,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/development/testing-and-benchmarks.md#3df21f021274a5f3",
+          "path": "docs/development/testing-and-benchmarks.md",
+          "heading": "Prepared source and knowledge-vector smoke test",
+          "score": 11.617319754729484,
+          "rank": 5,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        }
+      ],
+      "required_matched": [
+        {
+          "path": "docs/reference/knowledge.md",
+          "heading": "Knowledge retrieval"
+        }
+      ]
+    },
+    {
+      "case_id": "architecture-vector-supplement",
+      "query": "why are documentation vectors supplemental to deterministic BM25",
+      "category": "architecture-rationale",
+      "pass": true,
+      "required_section_recall": 1,
+      "recall_at_k": [
+        {
+          "k": 1,
+          "value": 0
+        },
+        {
+          "k": 3,
+          "value": 0
+        },
+        {
+          "k": 5,
+          "value": 1
+        }
+      ],
+      "mrr": 1,
+      "first_relevant_rank": 1,
+      "relevant_selections": 2,
+      "irrelevant_selections": 3,
+      "irrelevant_selection_rate": 0.6,
+      "forbidden_selections": 0,
+      "result_count": 5,
+      "vector_used": true,
+      "latency_ms": 59.0623,
+      "results": [
+        {
+          "handle": "knowledge://internal/app/README.md#cad73445541d2734",
+          "path": "internal/app/README.md",
+          "heading": "Knowledge pipeline",
+          "score": 23.10027676280921,
+          "rank": 1,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/reference/knowledge.md#4f2280ae810f389f",
+          "path": "docs/reference/knowledge.md",
+          "heading": "Judged documentation evaluation",
+          "score": 21.165448253501136,
+          "rank": 2,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/development/retrieval-quality.md#fcfe14a6c0bff8a7",
+          "path": "docs/development/retrieval-quality.md",
+          "heading": "Judged documentation retrieval",
+          "score": 20.55037759097754,
+          "rank": 3,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/reference/cli.md#fb602335a134e602",
+          "path": "docs/reference/cli.md",
+          "heading": "`grimoire knowledge`",
+          "score": 20.346399013099777,
+          "rank": 4,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/reference/knowledge.md#3571ef9ac9f34910",
+          "path": "docs/reference/knowledge.md",
+          "heading": "Search",
+          "score": 19.84683946456509,
+          "rank": 5,
+          "required": true,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": true
+        }
+      ],
+      "required_matched": [
+        {
+          "path": "docs/reference/knowledge.md",
+          "heading": "Search"
+        }
+      ]
+    },
+    {
+      "case_id": "command-knowledge-index",
+      "query": "which command builds the independent documentation rationale index",
+      "category": "command-behavior",
+      "pass": true,
+      "required_section_recall": 1,
+      "recall_at_k": [
+        {
+          "k": 1,
+          "value": 1
+        },
+        {
+          "k": 3,
+          "value": 1
+        },
+        {
+          "k": 5,
+          "value": 1
+        }
+      ],
+      "mrr": 1,
+      "first_relevant_rank": 1,
+      "relevant_selections": 4,
+      "irrelevant_selections": 1,
+      "irrelevant_selection_rate": 0.2,
+      "forbidden_selections": 0,
+      "result_count": 5,
+      "vector_used": true,
+      "latency_ms": 30.6668,
+      "results": [
+        {
+          "handle": "knowledge://docs/reference/cli.md#fb602335a134e602",
+          "path": "docs/reference/cli.md",
+          "heading": "`grimoire knowledge`",
+          "score": 17.241489123850208,
+          "rank": 1,
+          "required": true,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://internal/app/README.md#9e4bf529be3daf7d",
+          "path": "internal/app/README.md",
+          "heading": "Commands",
+          "score": 12.38794861930366,
+          "rank": 2,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://README.md#8110d8bc0da83982",
+          "path": "README.md",
+          "heading": "Quick start",
+          "score": 11.18380178996443,
+          "rank": 3,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/reference/indexing.md#525241e195822eba",
+          "path": "docs/reference/indexing.md",
+          "heading": "Documentation indexing and vectors",
+          "score": 10.67857090507552,
+          "rank": 4,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/reference/knowledge.md#17431ba0ce8033c7",
+          "path": "docs/reference/knowledge.md",
+          "heading": "Knowledge retrieval",
+          "score": 10.415195039692891,
+          "rank": 5,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        }
+      ],
+      "required_matched": [
+        {
+          "path": "docs/reference/cli.md",
+          "heading": "`grimoire knowledge`"
+        }
+      ]
+    },
+    {
+      "case_id": "command-bm25-only",
+      "query": "how can knowledge search be forced to use BM25 only",
+      "category": "command-behavior",
+      "pass": true,
+      "required_section_recall": 1,
+      "recall_at_k": [
+        {
+          "k": 1,
+          "value": 0
+        },
+        {
+          "k": 3,
+          "value": 0
+        },
+        {
+          "k": 5,
+          "value": 1
+        }
+      ],
+      "mrr": 1,
+      "first_relevant_rank": 1,
+      "relevant_selections": 2,
+      "irrelevant_selections": 3,
+      "irrelevant_selection_rate": 0.6,
+      "forbidden_selections": 0,
+      "result_count": 5,
+      "vector_used": true,
+      "latency_ms": 32.7094,
+      "results": [
+        {
+          "handle": "knowledge://docs/reference/knowledge.md#3571ef9ac9f34910",
+          "path": "docs/reference/knowledge.md",
+          "heading": "Search",
+          "score": 19.961686500915505,
+          "rank": 1,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/reference/indexing.md#525241e195822eba",
+          "path": "docs/reference/indexing.md",
+          "heading": "Documentation indexing and vectors",
+          "score": 19.57410978237898,
+          "rank": 2,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://internal/app/README.md#cad73445541d2734",
+          "path": "internal/app/README.md",
+          "heading": "Knowledge pipeline",
+          "score": 18.82853016424577,
+          "rank": 3,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/limits/current-limitations.md#9cb2a3924967853f",
+          "path": "docs/limits/current-limitations.md",
+          "heading": "The Go native loader is Windows-only",
+          "score": 17.233955388660547,
+          "rank": 4,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/reference/cli.md#fb602335a134e602",
+          "path": "docs/reference/cli.md",
+          "heading": "`grimoire knowledge`",
+          "score": 16.497530356353973,
+          "rank": 5,
+          "required": true,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": true
+        }
+      ],
+      "required_matched": [
+        {
+          "path": "docs/reference/cli.md",
+          "heading": "`grimoire knowledge`"
+        }
+      ]
+    },
+    {
+      "case_id": "failure-stale-vector",
+      "query": "what happens when documentation vectors are stale unavailable or incompatible",
+      "category": "failure-fallback",
+      "pass": true,
+      "required_section_recall": 1,
+      "recall_at_k": [
+        {
+          "k": 1,
+          "value": 1
+        },
+        {
+          "k": 3,
+          "value": 1
+        },
+        {
+          "k": 5,
+          "value": 1
+        }
+      ],
+      "mrr": 1,
+      "first_relevant_rank": 1,
+      "relevant_selections": 3,
+      "irrelevant_selections": 2,
+      "irrelevant_selection_rate": 0.4,
+      "forbidden_selections": 0,
+      "result_count": 5,
+      "vector_used": true,
+      "latency_ms": 36.9664,
+      "results": [
+        {
+          "handle": "knowledge://docs/reference/vector-store.md#a3a3e1890c753b7e",
+          "path": "docs/reference/vector-store.md",
+          "heading": "Compatibility and discovery",
+          "score": 17.025217572919153,
+          "rank": 1,
+          "required": true,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://internal/app/README.md#cad73445541d2734",
+          "path": "internal/app/README.md",
+          "heading": "Knowledge pipeline",
+          "score": 16.326804740348486,
+          "rank": 2,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/reference/indexing.md#525241e195822eba",
+          "path": "docs/reference/indexing.md",
+          "heading": "Documentation indexing and vectors",
+          "score": 14.53350189696356,
+          "rank": 3,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/reference/knowledge.md#3571ef9ac9f34910",
+          "path": "docs/reference/knowledge.md",
+          "heading": "Search",
+          "score": 14.455644812200326,
+          "rank": 4,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/development/retrieval-quality.md#fcfe14a6c0bff8a7",
+          "path": "docs/development/retrieval-quality.md",
+          "heading": "Judged documentation retrieval",
+          "score": 13.639820013043732,
+          "rank": 5,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        }
+      ],
+      "required_matched": [
+        {
+          "path": "docs/reference/vector-store.md",
+          "heading": "Compatibility and discovery"
+        }
+      ]
+    },
+    {
+      "case_id": "failure-source-preserved",
+      "query": "does missing documentation vector state fail knowledge retrieval",
+      "category": "failure-fallback",
+      "pass": true,
+      "required_section_recall": 1,
+      "recall_at_k": [
+        {
+          "k": 1,
+          "value": 0
+        },
+        {
+          "k": 3,
+          "value": 1
+        },
+        {
+          "k": 5,
+          "value": 1
+        }
+      ],
+      "mrr": 1,
+      "first_relevant_rank": 1,
+      "relevant_selections": 3,
+      "irrelevant_selections": 2,
+      "irrelevant_selection_rate": 0.4,
+      "forbidden_selections": 0,
+      "result_count": 5,
+      "vector_used": true,
+      "latency_ms": 27.6957,
+      "results": [
+        {
+          "handle": "knowledge://docs/architecture/system-overview.md#084c4d36cb34f24e",
+          "path": "docs/architecture/system-overview.md",
+          "heading": "Failure and fallback boundaries",
+          "score": 14.8056806436324,
+          "rank": 1,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/limits/current-limitations.md#9c9393bf5cd9c921",
+          "path": "docs/limits/current-limitations.md",
+          "heading": "State maintenance is explicit",
+          "score": 14.007131717954136,
+          "rank": 2,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/reference/knowledge.md#3571ef9ac9f34910",
+          "path": "docs/reference/knowledge.md",
+          "heading": "Search",
+          "score": 13.700522118674023,
+          "rank": 3,
+          "required": true,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://internal/app/README.md#9e4bf529be3daf7d",
+          "path": "internal/app/README.md",
+          "heading": "Commands",
+          "score": 13.452069251567682,
+          "rank": 4,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/development/testing-and-benchmarks.md#2d8e1b7650eefa89",
+          "path": "docs/development/testing-and-benchmarks.md",
+          "heading": "Judged retrieval evaluation",
+          "score": 13.344969859898324,
+          "rank": 5,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        }
+      ],
+      "required_matched": [
+        {
+          "path": "docs/reference/knowledge.md",
+          "heading": "Search"
+        }
+      ]
+    },
+    {
+      "case_id": "ownership-knowledge-bm25",
+      "query": "how does internal knowledge rank every query with deterministic BM25 and preserve results when an optional vector ranker fails",
+      "category": "ownership-boundary",
+      "pass": true,
+      "required_section_recall": 1,
+      "recall_at_k": [
+        {
+          "k": 1,
+          "value": 1
+        },
+        {
+          "k": 3,
+          "value": 1
+        },
+        {
+          "k": 5,
+          "value": 1
+        }
+      ],
+      "mrr": 1,
+      "first_relevant_rank": 1,
+      "relevant_selections": 3,
+      "irrelevant_selections": 2,
+      "irrelevant_selection_rate": 0.4,
+      "forbidden_selections": 0,
+      "result_count": 5,
+      "vector_used": true,
+      "latency_ms": 36.8798,
+      "results": [
+        {
+          "handle": "knowledge://internal/knowledge/README.md#e6a48cee77705ead",
+          "path": "internal/knowledge/README.md",
+          "heading": "Responsibilities",
+          "score": 39.19712584672998,
+          "rank": 1,
+          "required": true,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://internal/app/README.md#cad73445541d2734",
+          "path": "internal/app/README.md",
+          "heading": "Knowledge pipeline",
+          "score": 30.764051428189507,
+          "rank": 2,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/reference/knowledge.md#3571ef9ac9f34910",
+          "path": "docs/reference/knowledge.md",
+          "heading": "Search",
+          "score": 28.629461462431546,
+          "rank": 3,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/development/retrieval-quality.md#fcfe14a6c0bff8a7",
+          "path": "docs/development/retrieval-quality.md",
+          "heading": "Judged documentation retrieval",
+          "score": 28.079794620193795,
+          "rank": 4,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://internal/knowledgeevaluation/README.md#65ead7190dab8c33",
+          "path": "internal/knowledgeevaluation/README.md",
+          "heading": "Responsibilities",
+          "score": 27.53619435752689,
+          "rank": 5,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        }
+      ],
+      "required_matched": [
+        {
+          "path": "internal/knowledge/README.md",
+          "heading": "Responsibilities"
+        }
+      ]
+    },
+    {
+      "case_id": "ownership-knowledge-vectors",
+      "query": "which package owns optional documentation semantic ranking and what remains BM25",
+      "category": "ownership-boundary",
+      "pass": true,
+      "required_section_recall": 1,
+      "recall_at_k": [
+        {
+          "k": 1,
+          "value": 0
+        },
+        {
+          "k": 3,
+          "value": 0
+        },
+        {
+          "k": 5,
+          "value": 1
+        }
+      ],
+      "mrr": 0.5,
+      "first_relevant_rank": 2,
+      "relevant_selections": 2,
+      "irrelevant_selections": 3,
+      "irrelevant_selection_rate": 0.6,
+      "forbidden_selections": 0,
+      "result_count": 5,
+      "vector_used": true,
+      "latency_ms": 39.404,
+      "results": [
+        {
+          "handle": "knowledge://docs/architecture/system-overview.md#3eb29302044bbb62",
+          "path": "docs/architecture/system-overview.md",
+          "heading": "Query-time construction",
+          "score": 20.62156483892132,
+          "rank": 1,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/architecture/system-overview.md#1575b0a0ea9a709b",
+          "path": "docs/architecture/system-overview.md",
+          "heading": "Knowledge state",
+          "score": 19.191318291174415,
+          "rank": 2,
+          "required": false,
+          "supporting": true,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://docs/architecture/system-overview.md#150427e04a368c4a",
+          "path": "docs/architecture/system-overview.md",
+          "heading": "Retrieval and ranking",
+          "score": 18.547188752591843,
+          "rank": 3,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        },
+        {
+          "handle": "knowledge://docs/reference/vector-store.md#f74b463ccd7fa6b4",
+          "path": "docs/reference/vector-store.md",
+          "heading": "Ownership boundary",
+          "score": 18.097358924924652,
+          "rank": 4,
+          "required": true,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": true
+        },
+        {
+          "handle": "knowledge://README.md#8d20443af6442638",
+          "path": "README.md",
+          "heading": "System flow",
+          "score": 17.91449739275979,
+          "rank": 5,
+          "required": false,
+          "supporting": false,
+          "forbidden": false,
+          "relevant": false
+        }
+      ],
+      "required_matched": [
+        {
+          "path": "docs/reference/vector-store.md",
+          "heading": "Ownership boundary"
+        }
+      ]
+    }
+  ],
+  "aggregate": {
+    "cases": 8,
+    "passes": 8,
+    "pass_rate": 1,
+    "required_section_recall": 1,
+    "recall_at_k": [
+      {
+        "k": 1,
+        "value": 0.5
+      },
+      {
+        "k": 3,
+        "value": 0.625
+      },
+      {
+        "k": 5,
+        "value": 1
+      }
+    ],
+    "mrr": 0.9375,
+    "irrelevant_selections": 19,
+    "irrelevant_selection_rate": 0.475,
+    "vector_used_cases": 8,
+    "vector_usage_rate": 1,
+    "vector_error_cases": 0,
+    "median_latency_ms": 36.8798,
+    "p95_latency_ms": 342.3902
+  }
+}
