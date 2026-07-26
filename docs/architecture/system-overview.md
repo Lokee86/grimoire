@@ -100,7 +100,7 @@ Structural failures are non-fatal to source retrieval.
 
 ### Evaluation
 
-`internal/evaluation` owns corpus validation, source and structural scoring, pipeline-loss attribution, aggregate metrics, and report publication. Historical source-vector modes remain available only for controlled experiments; they are not the production source-retrieval path.
+`internal/evaluation` owns deterministic source and structural corpus validation, pipeline-loss attribution, aggregate metrics, and report publication. `internal/knowledgeevaluation` independently owns judged documentation retrieval. The retired repository-wide source-vector evaluator and implementation have been removed.
 
 ## Failure and fallback boundaries
 

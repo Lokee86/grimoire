@@ -147,27 +147,32 @@ def test() -> None:
     run([cargo, "test", "--workspace", "--locked", "--manifest-path", str(ROOT / "native" / "vector-engine" / "Cargo.toml")], ROOT)
 
 
-def install(source: Path, bin_dir: Path) -> None:
-    """Install the combined build layout beside the caller-selected bin directory."""
+def install(source: Path, bin_dir: Path, components: Sequence[str] = ("grimoire", "lexicon", "arcana")) -> None:
+    """Install selected components from one combined build layout."""
     source = source.resolve()
     bin_dir = bin_dir.resolve()
     source_bin = source / "bin"
     source_native = source / "native"
-    required = [executable_name(name) for name in ("grimoire", "lexicon", "arcana")]
+    selected = list(dict.fromkeys(components))
+    allowed = {"grimoire", "lexicon", "arcana"}
+    if not selected or any(component not in allowed for component in selected):
+        raise ValueError("components must contain one or more of: grimoire, lexicon, arcana")
+    required = [executable_name(name) for name in selected]
     for name in required:
         if not (source_bin / name).is_file():
             raise FileNotFoundError(f"combined build is missing {source_bin / name}")
     library = source_native / native_library_name()
-    if not library.is_file():
+    if "grimoire" in selected and not library.is_file():
         raise FileNotFoundError(f"combined build is missing {library}")
 
     bin_dir.mkdir(parents=True, exist_ok=True)
     for name in required:
         copy_file(source_bin / name, bin_dir / name)
-    # The DLL/shared library is deliberately beside grimoire so the existing
-    # discovery rules work without setting GRIMOIRE_VECTOR_ENGINE.
-    copy_file(library, bin_dir / library.name)
-    print(f"installed grimoire, lexicon, arcana, and {library.name} to {bin_dir}")
+    if "grimoire" in selected:
+        # Keep the native library beside Grimoire so existing discovery works
+        # without setting GRIMOIRE_VECTOR_ENGINE.
+        copy_file(library, bin_dir / library.name)
+    print(f"installed {', '.join(selected)} to {bin_dir}")
 
 
 def _fixed_zip(source: Path, archive: Path) -> None:
@@ -273,6 +278,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     install_parser = subparsers.add_parser("install", help="install a combined build into a selected bin directory")
     install_parser.add_argument("--source", type=Path, default=DEFAULT_BUILD)
     install_parser.add_argument("--bin-dir", type=Path, required=True)
+    install_parser.add_argument("--component", action="append", choices=("grimoire", "lexicon", "arcana"), dest="components", help="component to install; repeatable; defaults to all")
 
     release_parser = subparsers.add_parser("release", help="test, build, package, and checksum a release")
     release_parser.add_argument("--version", required=True)
@@ -290,7 +296,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "test":
             test()
         elif args.command == "install":
-            install(args.source, args.bin_dir)
+            install(args.source, args.bin_dir, args.components or ("grimoire", "lexicon", "arcana"))
         elif args.command == "release":
             test()
             release(args.version, args.output)

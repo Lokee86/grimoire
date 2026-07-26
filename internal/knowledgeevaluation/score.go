@@ -21,8 +21,8 @@ func ScoreCase(entry Case, response knowledge.SearchResponse, latency time.Durat
 		LatencyMS:   float64(latency) / float64(time.Millisecond),
 		Results:     make([]Result, 0, len(response.Results)),
 	}
-	if result.LatencyMS < 0 {
-		result.LatencyMS = 0
+	if result.LatencyMS < 0.001 {
+		result.LatencyMS = 0.001
 	}
 
 	requiredMatched := make([]bool, len(entry.Required))

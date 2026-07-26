@@ -55,6 +55,12 @@ class WorkflowSmokeTests(unittest.TestCase):
             self.assertEqual((installed / "grimoire.exe").read_bytes(), b"grimoire.exe")
             self.assertTrue((installed / "grimoire_vector_ffi.dll").is_file())
 
+            subset = root / "lexicon-only"
+            workflow.install(build, subset, ("lexicon",))
+            self.assertTrue((subset / "lexicon.exe").is_file())
+            self.assertFalse((subset / "grimoire.exe").exists())
+            self.assertFalse((subset / "grimoire_vector_ffi.dll").exists())
+
     def test_version_validation_rejects_path_values(self) -> None:
         with self.assertRaises(ValueError):
             workflow.validate_version("../outside")

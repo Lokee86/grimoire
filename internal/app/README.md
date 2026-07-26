@@ -10,7 +10,8 @@
 - `vector build|info` — aliases for documentation-vector workflows.
 - `query` and `mcp` — progressive code and knowledge retrieval.
 - `context` — deterministic source, structural, policy, assembly, and package orchestration.
-- `eval retrieval` — judged source-corpus execution and report publication.
+- `eval retrieval` — judged deterministic source/structural corpus execution and report publication.
+- `eval knowledge` — judged documentation retrieval with optional vector supplementation.
 - `investigation create|status|close` — persistent discovery-ledger lifecycle.
 - `version` — build identity.
 
@@ -40,9 +41,10 @@ Repository-wide source vectors are not part of this path. Provider failures beco
 - `model*.go` — runtime setup, discovery, serving, and endpoint probes.
 - `knowledge.go` and `knowledge_vectors.go` — knowledge CLI and documentation vectors.
 - `context.go` — public deterministic context command.
-- `context_evaluation.go` and `context_semantic.go` — judged experimental retrieval modes, including historical source-vector comparisons.
+- `context_evaluation.go` — judged production source/structural retrieval execution.
 - `context_structure.go` — Lexicon/Arcana discovery, scheduling, and composition.
-- `eval_retrieval.go` — corpus flags, run matrix, and report output.
+- `eval_retrieval.go` — deterministic source/structural corpus flags and reports.
+- `eval_knowledge.go` — documentation corpus execution and reports.
 - `investigation.go` — investigation-ledger lifecycle commands.
 
 ## Boundary

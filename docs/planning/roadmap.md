@@ -17,25 +17,25 @@ This page contains work that is not yet complete. Implemented behavior is docume
 - Evidence-coverage assembly and fixed-versus-adaptive evaluation.
 - Version 8 exact-budget context packages with adaptive assembly, facet protection, and required-link-group fitting.
 - Lexicon-aligned semantic source preparation with complete fallback coverage and per-file preparation identities.
+- Judged documentation retrieval with an eight-case frozen self-corpus, BM25/vector attribution, recall@k, MRR, irrelevant-selection, latency, and per-case reports.
+- Unified status schema for source, knowledge, Arcana vectors, and documentation vectors, with incremental refresh of all deterministic state.
+- Repository-wide source-vector implementation and evaluator removed; source retrieval now has one production path.
+- Root build/test orchestration, coordinated version injection, subset installation, independent component archives, combined bundles, and checksums.
+- Git-aware repository fingerprints that reuse index blob identities and hash only changed working-tree content.
 
 ## Near-term priorities
 
-1. Add root-level build, test, and release orchestration that verifies all three components without collapsing their build systems.
-2. Define coordinated versioning and component-specific release artifacts from the monorepo.
-3. Add a judged documentation-retrieval corpus and calibrate the BM25/vector blend against actual rationale-discovery tasks.
-4. Re-run source ranking and adaptive-package calibration after all merged retrieval changes and tune targets against representative recall.
-5. Expand frozen judged corpora across additional repositories, languages, sizes, and task categories.
-6. Improve task-oriented evidence roles and stopping conditions without hiding decisions in opaque scoring.
-7. Add stronger diagnostics for runtime selection, provider failures, state compatibility, and native-engine errors.
-8. Add documentation knowledge/vector freshness to the unified status contract and expose maintenance commands suitable for Warlock supervision.
+1. Calibrate the documentation BM25/vector blend on external repositories and rationale-discovery tasks beyond the current self-corpus.
+2. Re-run source ranking and adaptive-package calibration after all merged retrieval changes and tune targets against representative recall.
+3. Expand frozen judged corpora across additional repositories, languages, sizes, and task categories.
+4. Improve task-oriented evidence roles and stopping conditions without hiding decisions in opaque scoring.
+5. Add stable diagnostic codes for runtime selection, provider failures, state compatibility, and native-engine errors.
 
 ## Monorepo and distribution work
 
 - Decide whether the former Arcana and Lexicon repositories should become automated subtree mirrors for compatibility.
-- Preserve independently installable `arcana`, `lexicon`, and `grimoire` artifacts.
 - Define canonical module/package import paths before a stable release.
-- Add one installer that can install any subset of the components.
-- Add repository-wide contribution and release documentation.
+- Add repository-wide contribution guidance beyond the implemented build and release documentation.
 
 ## Retrieval and package quality
 
@@ -48,7 +48,6 @@ This page contains work that is not yet complete. Implemented behavior is docume
 
 ## Prepared-state maintenance
 
-- Use Git-aware changed-file detection as a fast path while preserving non-Git fallback.
 - Add optional repository watching or Warlock-fed change events without making one-shot commands dependent on a daemon.
 - Add lazy or bounded prepared-state reads for very large repositories.
 - Make file eligibility and generated-content policy configurable without weakening permanent state exclusions.

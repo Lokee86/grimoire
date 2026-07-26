@@ -125,6 +125,8 @@ discovery rules work without setting `GRIMOIRE_VECTOR_ENGINE`:
 
 ```bash
 python scripts/workflow.py install --source build --bin-dir /path/to/bin
+python scripts/workflow.py install --source build --bin-dir /path/to/bin --component grimoire
+python scripts/workflow.py install --source build --bin-dir /path/to/bin --component lexicon --component arcana
 # Windows example:
 python scripts/workflow.py install --source build --bin-dir C:/Users/<user>/bin
 ```

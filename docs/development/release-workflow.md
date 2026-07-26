@@ -37,9 +37,11 @@ Install the collected binaries into an explicit directory:
 
 ```text
 python scripts/workflow.py install --source build --bin-dir PATH
+python scripts/workflow.py install --source build --bin-dir PATH --component grimoire
+python scripts/workflow.py install --source build --bin-dir PATH --component lexicon --component arcana
 ```
 
-The native library is copied beside `grimoire`. This is important on Windows:
+Omitting `--component` installs all three applications. Repeating it installs only the selected subset. The native library is copied beside `grimoire` whenever Grimoire is selected. This is important on Windows:
 the `grimoire_vector_ffi.dll` is then discoverable by normal DLL lookup without
 setting `GRIMOIRE_VECTOR_ENGINE`. The installer does not modify `PATH` or user
 configuration.
@@ -67,8 +69,7 @@ SHA256SUMS.txt
 The Grimoire artifact includes its native library beside the executable. The
 vector-engine artifact contains the library and diagnostic native CLI. The
 combined bundle contains `bin/`, `native/`, `install.py`, and `VERSION`; run
-the included installer with `python install.py --source . --bin-dir PATH` after
-extracting it. Archives use fixed timestamps and sorted entries for
+the included installer with `python install.py --bin-dir PATH` after extracting it. The extracted bundle directory is the default source, and the same repeatable `--component` flag selects a subset. Archives use fixed timestamps and sorted entries for
 deterministic packaging. The command only creates local files: it does not
 publish, tag, or push a release.
 

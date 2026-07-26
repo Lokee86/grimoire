@@ -18,7 +18,7 @@ grimoire status --root <repository> --refresh
 grimoire status --root <repository> --refresh --force
 ```
 
-The command emits versioned JSON with Git/source identity, snapshot identities, stale reasons, performed actions, elapsed times, warnings, deterministic-query readiness, and vector availability. `status` is read-only by default. `--refresh` incrementally runs the existing Lexicon, Arcana, and Grimoire preparation commands only when needed; `--force` refreshes all three regardless of current state. Vector indexes are reported but never built by this command.
+The command emits status schema version 2 with Git/source identity, Lexicon, Arcana, prepared-source, knowledge-index, Arcana-vector, and documentation-vector freshness; it also reports stale reasons, performed actions, elapsed times, warnings, and deterministic-query readiness. `status` is read-only by default. `--refresh` incrementally prepares Lexicon, Arcana, Grimoire source state, and the documentation knowledge index only when needed; `--force` refreshes all deterministic state. Vector indexes are inspected but never built by this command.
 
 ## `grimoire knowledge`
 
@@ -341,8 +341,8 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | --- | --- | --- |
 | `--cases <path>` | none | Required judged corpus JSON |
 | `--root <path>` | `.` | Repository being evaluated |
-| `--state <path>` | `<root>/.grimoire` | Prepared source state; historical vector modes use legacy source-vector state |
-| `--modes <list>` | `fast,full,quality,lexical` | Comma-separated modes to execute |
+| `--state <path>` | `<root>/.grimoire` | Prepared source state |
+| `--modes <list>` | `lexical` | Production deterministic source-retrieval mode |
 | `--variant <name>` | `standalone` | Result label for paired comparisons |
 | `--budget <n>` | case budget | Optional fixed budget override for every case |
 | `--adaptive` | `false` | Replace case budgets with query-shape targets and evidence-coverage assembly |
@@ -355,8 +355,7 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | `--compiler-facet-file-depth <n>` | `2` | Distinct implementation files protected for eligible mechanism facets |
 | `--compiler-companion-depth <n>` | `1` | Additional same-file chunks protected for each selected facet file |
 | `--compiler-required-link-protection <bool>` | `true` | Retain complete provider-declared required source-link groups atomically |
-| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint for experimental vector modes and Arcana semantic seeds |
-| `--engine <path>` | discovered DLL | Rust vector-engine library for experimental vector modes |
+| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint used only by optional Arcana semantic graph seeds |
 | `--structural-providers <list>` | `none` | `none`, `lexicon`, or `lexicon,arcana` |
 | `--structure-timeout <duration>` | `30s` | Per-case structural-provider timeout |
 | `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
@@ -367,7 +366,6 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | `--timeout <duration>` | `10s` | Per-case source-retrieval timeout |
 | `--output-dir <path>` | `evaluation/results` | JSON and Markdown result directory |
 | `--output-prefix <name>` | generated | Shared result filename prefix |
-| query planning flags | context defaults | Window, batch, concurrency, and optional max-token settings |
 
 The corpus is separate from deterministic unit-test fixtures. A case may require source evidence, structural evidence, or both. Source expectations use `required`, `supporting`, and `forbidden`. Structural expectations use `required_structural`, `supporting_structural`, and `forbidden_structural`.
 
@@ -375,11 +373,11 @@ Structural expectations require `provider` and `kind`. Optional assertions inclu
 
 `--structural-providers none` runs the source-only baseline. `lexicon` executes immutable Lexicon export and symbol matching. `lexicon,arcana` additionally synchronizes and queries Arcana against the same snapshot. Arcana cannot be enabled without Lexicon because Lexicon-matched symbols are its bounded graph-query seeds.
 
-For each case and mode the runner records source and structural timings, provider warnings, selected source chunks, retained structural facts, immutable provider snapshots, final serialized package tokens, separate source and structural recall, separate irrelevant-evidence rates, and failure attribution. `--adaptive` also records the selected automatic budget, curated and assembled candidate counts, represented evidence coverage, and the assembly stop reason. Source and structural failures distinguish adaptive assembly loss from later budget-fitting loss. `--adaptive` cannot be combined with a fixed `--budget` override. The broad source-ranking probe does not contribute to reported context latency.
+For each case the runner records source and structural timings, provider warnings, selected source chunks, retained structural facts, immutable provider snapshots, final serialized package tokens, separate source and structural recall, separate irrelevant-evidence rates, and failure attribution. `--adaptive` also records the selected automatic budget, curated and assembled candidate counts, represented evidence coverage, and the assembly stop reason. Source and structural failures distinguish adaptive assembly loss from later budget-fitting loss. `--adaptive` cannot be combined with a fixed `--budget` override. The broad source-ranking probe does not contribute to reported context latency.
 
 The three `--selection-*` flags substitute explicit values into the production curation implementation for judged experiments. They do not exist on `grimoire context`, and omitting them evaluates the current production defaults. This keeps calibration on the real algorithm rather than a parallel evaluator-only implementation.
 
-Outputs are a machine-readable JSON report and a concise Markdown comparison grouped by mode and category. Package comparison includes median and p95 tokens, median selected chunks, and median budget utilization. A case passes only when every required source and structural expectation survives into the final context package.
+Outputs are a machine-readable JSON report and a concise Markdown comparison grouped by category. Package comparison includes median and p95 tokens, median selected chunks, and median budget utilization. A case passes only when every required source and structural expectation survives into the final context package.
 
 ## `grimoire version`
 
