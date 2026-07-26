@@ -2,8 +2,8 @@
   "version": 1,
   "repository": "grimoire",
   "scope": "checked-in documentation retrieval seam",
-  "top_k": 10,
-  "recall_at_k": [1, 3, 5, 10],
+  "top_k": 5,
+  "recall_at_k": [1, 3, 5],
   "cases": [
     {
       "id": "architecture-knowledge-separate-lane",
@@ -11,6 +11,11 @@
       "category": "architecture-rationale",
       "required": [
         {"path": "docs/reference/knowledge.md", "heading": "Knowledge retrieval"}
+      ],
+      "supporting": [
+        {"path": "docs/reference/indexing.md", "heading": "Documentation indexing and vectors"},
+        {"path": "docs/architecture/system-overview.md", "heading": "Knowledge state"},
+        {"path": "internal/knowledge/README.md", "heading": "Boundary"}
       ],
       "notes": "The knowledge lane is deliberately independent from source context retrieval."
     },
@@ -20,6 +25,11 @@
       "category": "architecture-rationale",
       "required": [
         {"path": "docs/reference/knowledge.md", "heading": "Search"}
+      ],
+      "supporting": [
+        {"path": "internal/app/README.md", "heading": "Knowledge pipeline"},
+        {"path": "docs/reference/vector-store.md", "heading": "Snapshot reads and search"},
+        {"path": "internal/knowledgevector/README.md", "heading": "Boundary"}
       ]
     },
     {
@@ -27,7 +37,12 @@
       "query": "which command builds the independent documentation rationale index",
       "category": "command-behavior",
       "required": [
-        {"path": "docs/reference/knowledge.md", "heading": "Knowledge retrieval"}
+        {"path": "docs/reference/cli.md", "heading": "`grimoire knowledge`"}
+      ],
+      "supporting": [
+        {"path": "docs/reference/knowledge.md", "heading": "Knowledge retrieval"},
+        {"path": "docs/reference/indexing.md", "heading": "Documentation indexing and vectors"},
+        {"path": "README.md", "heading": "Quick start"}
       ]
     },
     {
@@ -35,7 +50,11 @@
       "query": "how can knowledge search be forced to use BM25 only",
       "category": "command-behavior",
       "required": [
-        {"path": "docs/reference/knowledge.md", "heading": "Search"}
+        {"path": "docs/reference/cli.md", "heading": "`grimoire knowledge`"}
+      ],
+      "supporting": [
+        {"path": "docs/reference/knowledge.md", "heading": "Search"},
+        {"path": "docs/reference/vector-store.md", "heading": "Snapshot reads and search"}
       ]
     },
     {
@@ -43,7 +62,12 @@
       "query": "what happens when documentation vectors are stale unavailable or incompatible",
       "category": "failure-fallback",
       "required": [
-        {"path": "docs/reference/knowledge.md", "heading": "Search"}
+        {"path": "docs/reference/vector-store.md", "heading": "Compatibility and discovery"}
+      ],
+      "supporting": [
+        {"path": "docs/reference/knowledge.md", "heading": "Search"},
+        {"path": "internal/app/README.md", "heading": "Knowledge pipeline"},
+        {"path": "docs/limits/current-limitations.md", "heading": "State maintenance is explicit"}
       ]
     },
     {
@@ -51,6 +75,10 @@
       "query": "does missing documentation vector state fail knowledge retrieval",
       "category": "failure-fallback",
       "required": [
+        {"path": "docs/reference/knowledge.md", "heading": "Search"}
+      ],
+      "supporting": [
+        {"path": "docs/architecture/system-overview.md", "heading": "Failure and fallback boundaries"},
         {"path": "docs/limits/current-limitations.md", "heading": "State maintenance is explicit"}
       ]
     },
@@ -60,6 +88,11 @@
       "category": "ownership-boundary",
       "required": [
         {"path": "internal/knowledge/README.md", "heading": "Responsibilities"}
+      ],
+      "supporting": [
+        {"path": "internal/app/README.md", "heading": "Knowledge pipeline"},
+        {"path": "docs/reference/knowledge.md", "heading": "Search"},
+        {"path": "docs/architecture/system-overview.md", "heading": "Knowledge state"}
       ]
     },
     {
@@ -67,7 +100,13 @@
       "query": "which package owns optional documentation semantic ranking and what remains BM25",
       "category": "ownership-boundary",
       "required": [
-        {"path": "internal/knowledgevector/README.md", "heading": "Boundary"}
+        {"path": "docs/reference/vector-store.md", "heading": "Ownership boundary"}
+      ],
+      "supporting": [
+        {"path": "internal/knowledgevector/README.md", "heading": "Boundary"},
+        {"path": "internal/knowledgevector/README.md", "heading": "Knowledge-vector package"},
+        {"path": "docs/architecture/system-overview.md", "heading": "Knowledge state"},
+        {"path": "internal/app/README.md", "heading": "Knowledge pipeline"}
       ]
     }
   ]

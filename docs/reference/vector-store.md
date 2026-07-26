@@ -39,7 +39,7 @@ A failed build does not publish an incomplete manifest, while objects completed 
 
 ## Snapshot reads and search
 
-`grimoire knowledge search` always performs BM25 and supplements it with vector scores when a current snapshot exists. Use `--vectors=false` to force BM25-only retrieval.
+`grimoire knowledge search` always performs BM25. Pass `--vectors=true` to supplement it with vector scores from a current snapshot; the default path does not embed the query.
 
 The engine performs exact inner-product search over normalized 512-dimensional vectors. The packed format is an exact-search representation, not an approximate nearest-neighbour index.
 

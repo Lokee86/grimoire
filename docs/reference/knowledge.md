@@ -22,7 +22,7 @@ Optional vectors live under `.grimoire/knowledge/vectors/<embedding-identity>/`.
 
 Knowledge search always runs deterministic BM25 first. It supports `--path`, `--kind`, `--heading`, `--commit`, `--since`, and `--until` filters and returns cited section text, stable handles, ranking reasons, and exact code-link hints when documented symbols, repository paths, endpoints, messages, or configuration contract names also occur in repository files.
 
-When a current documentation-vector snapshot exists, search embeds the query and adds a bounded supplemental vector score through the `knowledge.VectorRanker` seam. BM25 remains the primary ranking path. Use `--vectors=false` to force lexical-only search.
+Search is BM25-only by default. Pass `--vectors=true` to embed the query and add a bounded supplemental vector score through the `knowledge.VectorRanker` seam when a current snapshot exists. BM25 remains the primary ranking path.
 
 Missing, stale, incompatible, timed-out, or unavailable vectors do not fail knowledge retrieval. The response keeps BM25 results, sets `vector_used` to false, and exposes the failure through `vector_error`. Freshness is validated before query embedding.
 
@@ -30,7 +30,7 @@ Missing, stale, incompatible, timed-out, or unavailable vectors do not fail know
 
 The vector builder deduplicates identical section text, reuses immutable content-addressed vector objects, writes successful batches immediately, and publishes a packed exact-search snapshot only after all required vectors are available. A failed build leaves completed objects reusable by the next run. An unchanged current snapshot returns immediately without object probes or rematerialization.
 
-Documentation vectors are consumed by `knowledge search` and the MCP knowledge lane only. They never enter source-context ranking and never affect `grimoire context` readiness or warnings.
+Documentation vectors are consumed only when explicitly requested by `knowledge search --vectors=true` or MCP `use_knowledge_vectors: true`. They never enter source-context ranking and never affect `grimoire context` readiness or warnings.
 
 ## Judged documentation evaluation
 

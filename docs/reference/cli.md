@@ -22,7 +22,7 @@ The command emits status schema version 2 with Git/source identity, Lexicon, Arc
 
 ## `grimoire knowledge`
 
-`knowledge index` builds the independent documentation/rationale index under `<root>/.grimoire/knowledge`; `knowledge search` returns exact cited sections as JSON; `knowledge inspect` reports state or one document/section; and `knowledge vector build|info` owns optional documentation embeddings. Search always uses deterministic BM25 and supplements it with the current documentation vector snapshot when available. Use `--vectors=false` for BM25-only retrieval. See [Knowledge retrieval](knowledge.md).
+`knowledge index` builds the independent documentation/rationale index under `<root>/.grimoire/knowledge`; `knowledge search` returns exact cited sections as JSON; `knowledge inspect` reports state or one document/section; and `knowledge vector build|info` owns optional documentation embeddings. Search uses deterministic BM25 by default. Pass `--vectors=true` to opt into the current documentation vector snapshot as a supplemental ranker. See [Knowledge retrieval](knowledge.md).
 
 ## `grimoire investigation`
 
@@ -311,14 +311,14 @@ grimoire eval knowledge \
   --vectors=false
 ```
 
-The command loads an existing `grimoire knowledge index`, executes every frozen case in corpus order, and writes a JSON report plus a Markdown review under `evaluation/results/`. Knowledge search always runs BM25. With `--vectors` enabled (the default), the current documentation vector snapshot is passed through the supplemental `knowledge.VectorRanker` seam; vector failures are recorded per case while BM25 results remain scoreable. Use `--vectors=false` for the deterministic lexical baseline.
+The command loads an existing `grimoire knowledge index`, executes every frozen case in corpus order, and writes a JSON report plus a Markdown review under `evaluation/results/`. Knowledge search always runs BM25. Vectors are disabled by default; pass `--vectors=true` for a paired supplemental-vector run. Vector failures are recorded per case while BM25 results remain scoreable.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `--cases <path>` | none | Frozen documentation corpus JSON |
 | `--root <path>` | `.` | Repository being evaluated |
 | `--state <path>` | `<root>/.grimoire/knowledge` | Prepared knowledge state |
-| `--vectors` | `true` | Attempt optional documentation vectors as a BM25 supplement |
+| `--vectors` | `false` | Attempt optional documentation vectors as a BM25 supplement |
 | `--top-k <n>` | corpus value | Override the corpus result limit |
 | `--recall-at-k <list>` | corpus value | Override ordered cutoffs such as `1,3,5,10` |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint for vector queries |

@@ -11,6 +11,7 @@ The exposed tool is `grimoire_query`. It accepts the `grimoire.query.v1` orient,
 - `state_mode`: `current-only`, `refresh-if-needed`, or `force-refresh`;
 - `session`: a stable investigation name used to deduplicate evidence across calls;
 - `include_knowledge`: whether documentation and design-rationale retrieval is included;
+- `use_knowledge_vectors`: whether the optional documentation-vector ranker is used; the default is BM25-only;
 - `code_only`: an explicit override for excluding documentation from source results.
 
 The default state mode is `refresh-if-needed`. Grimoire checks the source fingerprint and repository-local `.lexicon`, `.arcana`, and `.grimoire` state before each call. Provider commands are resolved in this order: explicit request path, repository `.grimoire/providers.json`, executables beside Grimoire, a canonical Grimoire checkout, and finally `PATH`. Checkout discovery accepts `GRIMOIRE_HOME` and can derive the checkout from the target repository's Lexicon `adapter_root`, so child processes do not depend on inherited shell `PATH`. Structural-provider failures become warnings and source retrieval remains available; a required Grimoire source-index refresh still fails the request if it cannot complete.

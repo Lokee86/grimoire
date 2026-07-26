@@ -33,6 +33,20 @@ func TestExecuteReturnsFullEvidenceWithoutSession(t *testing.T) {
 	}
 }
 
+func TestKnowledgeVectorsAreExplicitOptIn(t *testing.T) {
+	if useKnowledgeVectors(Request{}) {
+		t.Fatal("knowledge vectors should be disabled by default")
+	}
+	enabled := true
+	if !useKnowledgeVectors(Request{UseKnowledgeVectors: &enabled}) {
+		t.Fatal("explicit knowledge vector opt-in was ignored")
+	}
+	disabled := false
+	if useKnowledgeVectors(Request{UseKnowledgeVectors: &disabled}) {
+		t.Fatal("explicit knowledge vector disable was ignored")
+	}
+}
+
 func TestCompactKnowledgeResultsBoundsAgentPayload(t *testing.T) {
 	links := make([]knowledge.CodeLink, 12)
 	for index := range links {

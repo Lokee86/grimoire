@@ -33,7 +33,7 @@ Repository-wide source vectors are not part of this path. Provider failures beco
 
 ## Knowledge pipeline
 
-`knowledge search` always uses BM25. When a current documentation vector snapshot exists, `internal/knowledgevector` supplies supplemental scores through the existing `knowledge.VectorRanker` seam. Missing, stale, or unavailable vectors leave BM25 results intact and expose a vector warning in the response.
+`knowledge search` always uses BM25. Documentation vectors are opt-in; when requested and current, `internal/knowledgevector` supplies supplemental scores through the existing `knowledge.VectorRanker` seam. Missing, stale, or unavailable vectors leave BM25 results intact and expose a vector warning in the response.
 
 ## File map
 

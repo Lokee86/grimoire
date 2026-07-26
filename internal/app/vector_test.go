@@ -100,7 +100,7 @@ func TestKnowledgeVectorBuildReusesObjectsAndSearches(t *testing.T) {
 
 	var output bytes.Buffer
 	if err := Run([]string{
-		"knowledge", "search", "--root", root, "--endpoint", server.URL,
+		"knowledge", "search", "--root", root, "--endpoint", server.URL, "--vectors=true",
 		"--query", "how is damage resolved", "--top-k", "1",
 	}, &output, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
@@ -137,7 +137,7 @@ func TestKnowledgeVectorBuildReusesObjectsAndSearches(t *testing.T) {
 	requestsBeforeStaleSearch := embeddingRequests.Load()
 	output.Reset()
 	if err := Run([]string{
-		"knowledge", "search", "--root", root, "--endpoint", server.URL,
+		"knowledge", "search", "--root", root, "--endpoint", server.URL, "--vectors=true",
 		"--query", "how is damage resolved", "--top-k", "1",
 	}, &output, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)

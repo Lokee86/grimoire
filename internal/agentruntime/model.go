@@ -13,9 +13,10 @@ const SchemaVersion = "grimoire.agent.v1"
 
 type Request struct {
 	agentquery.Request
-	Session          string         `json:"session,omitempty"`
-	StateMode        repostate.Mode `json:"state_mode,omitempty"`
-	IncludeKnowledge *bool          `json:"include_knowledge,omitempty"`
+	Session             string         `json:"session,omitempty"`
+	StateMode           repostate.Mode `json:"state_mode,omitempty"`
+	IncludeKnowledge    *bool          `json:"include_knowledge,omitempty"`
+	UseKnowledgeVectors *bool          `json:"use_knowledge_vectors,omitempty"`
 }
 
 type Response struct {

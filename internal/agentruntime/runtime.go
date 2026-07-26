@@ -180,6 +180,10 @@ func splitHandles(handles []string) (knowledgeHandles, codeHandles []string) {
 	return knowledgeHandles, codeHandles
 }
 
+func useKnowledgeVectors(request Request) bool {
+	return request.UseKnowledgeVectors != nil && *request.UseKnowledgeVectors
+}
+
 func includeKnowledge(request Request) bool {
 	if request.IncludeKnowledge != nil {
 		return *request.IncludeKnowledge
@@ -246,7 +250,7 @@ func retrieveKnowledge(ctx context.Context, request Request, statePath string, p
 		topK = 8
 	}
 	searchOptions := knowledge.SearchOptions{TopK: topK}
-	if knowledgevector.Available(knowledgeState) {
+	if useKnowledgeVectors(request) && knowledgevector.Available(knowledgeState) {
 		searchOptions.Vector = knowledgevector.Ranker{State: knowledgeState, Index: current, Endpoint: embedding.DefaultEndpoint}
 	}
 	searched, err := knowledge.Search(ctx, current, query, searchOptions)

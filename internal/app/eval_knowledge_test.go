@@ -73,7 +73,7 @@ func TestEvalKnowledgeRecordsVectorFallbackWithoutReplacingBM25(t *testing.T) {
 	if err := os.WriteFile(corpusPath, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := Run([]string{"eval", "knowledge", "--root", root, "--cases", corpusPath, "--output-dir", "results", "--output-prefix", "vector-fallback"}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+	if err := Run([]string{"eval", "knowledge", "--root", root, "--cases", corpusPath, "--vectors=true", "--output-dir", "results", "--output-prefix", "vector-fallback"}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(filepath.Join(root, "results", "vector-fallback.json"))

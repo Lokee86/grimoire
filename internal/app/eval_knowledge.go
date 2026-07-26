@@ -23,7 +23,7 @@ func runEvalKnowledge(args []string, stdout, stderr io.Writer) error {
 	casesPath := flags.String("cases", "", "frozen judged documentation corpus JSON")
 	root := flags.String("root", ".", "repository root")
 	state := flags.String("state", "", "knowledge state directory")
-	vectors := flags.Bool("vectors", true, "attempt the current documentation vector snapshot as a BM25 supplement")
+	vectors := flags.Bool("vectors", false, "attempt the current documentation vector snapshot as a BM25 supplement")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
 	topK := flags.Int("top-k", 0, "override the corpus result limit; zero uses corpus top_k")

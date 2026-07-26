@@ -99,7 +99,7 @@ func runKnowledgeSearch(args []string, stdout, stderr io.Writer) error {
 	commit := flags.String("commit", "", "commit identity filter")
 	since := flags.String("since", "", "minimum commit time in RFC3339 format")
 	until := flags.String("until", "", "maximum commit time in RFC3339 format")
-	useVectors := flags.Bool("vectors", true, "supplement BM25 with the current documentation vector snapshot")
+	useVectors := flags.Bool("vectors", false, "supplement BM25 with the current documentation vector snapshot")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
 	enginePath := flags.String("engine", "", "Rust vector engine DLL")
 	timeout := flags.Duration("timeout", 2*time.Minute, "knowledge search timeout")
