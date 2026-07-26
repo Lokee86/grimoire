@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use arcana::repository::RelationKind;
 use arcana::vector::DEFAULT_ENDPOINT;
 
-pub const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds\n    import-facts     Compile facts into a verified repository snapshot\n    update-facts     Replace changed-file facts and create a graph overlay\n    sync             Synchronize from Lexicon's current immutable snapshot\n    query            Query exact node names from a packed graph\n    protocol         Serve machine-readable JSONL snapshot queries\n    vectorize        Build an optional semantic index for the current graph\n    semantic-query   Search the current semantic graph index\n\nImport facts:\n    arcana import-facts --facts <FILE> --output <NEW-DIRECTORY> [--adapter <NAME>] [--adapter-version <VERSION>]\n\nUpdate facts:\n    arcana update-facts --base <repository.manifest> --facts <FILE> --changed <PATH>... --output <NEW-DIRECTORY>\n\nSync:\n    arcana sync [--lexicon <DIRECTORY>] [--state <DIRECTORY>] [--register]\n\nQuery:\n    arcana query --graph <FILE> --catalogue <FILE> --name <EXACT-NAME> [--reverse] [--relation <RELATION>]\n\nProtocol:\n    arcana protocol --snapshot <DIRECTORY>\n\nVectorize:\n    arcana vectorize [--state <DIRECTORY>] [--endpoint <URL>] [--batch-size <N>]\n\nSemantic query:\n    arcana semantic-query --query <TEXT> [--state <DIRECTORY>] [--expected-snapshot <ID>] [--endpoint <URL>] [--limit <N>] [--json]";
+pub const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds\n    import-facts     Compile facts into a verified repository snapshot\n    update-facts     Replace changed-file facts and create a graph overlay\n    sync             Synchronize from Lexicon's current immutable snapshot\n    query            Query exact node names from a packed graph\n    protocol         Serve machine-readable JSONL snapshot queries\n    vectorize        Build an optional semantic index for the current graph\n    semantic-query   Search the current semantic graph index\n\nImport facts:\n    arcana import-facts --facts <FILE> --output <NEW-DIRECTORY> [--adapter <NAME>] [--adapter-version <VERSION>]\n\nUpdate facts:\n    arcana update-facts --base <repository.manifest> --facts <FILE> --changed <PATH>... --output <NEW-DIRECTORY>\n\nSync:\n    arcana sync [--lexicon <DIRECTORY>] [--state <DIRECTORY>] [--register]\n\nQuery:\n    arcana query --graph <FILE> --catalogue <FILE> --name <EXACT-NAME> [--reverse] [--relation <RELATION>]\n\nProtocol:\n    arcana protocol --snapshot <DIRECTORY>\n\nVectorize:\n    arcana vectorize [--state <DIRECTORY>] [--endpoint <URL>] [--batch-size <N>] [--batch-concurrency <N>]\n\nSemantic query:\n    arcana semantic-query --query <TEXT> [--state <DIRECTORY>] [--expected-snapshot <ID>] [--endpoint <URL>] [--limit <N>] [--json]";
 
 #[derive(Debug)]
 pub enum Command {
@@ -62,6 +62,7 @@ pub struct VectorizeCommand {
     pub state: PathBuf,
     pub endpoint: String,
     pub batch_size: usize,
+    pub batch_concurrency: usize,
 }
 
 #[derive(Debug)]
@@ -239,16 +240,23 @@ fn parse_vectorize(arguments: Vec<String>) -> Result<VectorizeCommand, CliParseE
     let mut state = None;
     let mut endpoint = None;
     let mut batch_size = None;
+    let mut batch_concurrency = None;
     parse_options(arguments, |option, value| match option {
         "--state" => set_path(&mut state, value.as_deref(), "--state"),
         "--endpoint" => set_string(&mut endpoint, value.as_deref(), "--endpoint"),
         "--batch-size" => set_usize(&mut batch_size, value.as_deref(), "--batch-size"),
+        "--batch-concurrency" => set_usize(
+            &mut batch_concurrency,
+            value.as_deref(),
+            "--batch-concurrency",
+        ),
         option => Err(CliParseError::UnknownFlag(option.to_owned())),
     })?;
     Ok(VectorizeCommand {
         state: state.unwrap_or_else(|| PathBuf::from(".arcana")),
         endpoint: endpoint.unwrap_or_else(|| DEFAULT_ENDPOINT.to_owned()),
         batch_size: batch_size.unwrap_or(32),
+        batch_concurrency: batch_concurrency.unwrap_or(1),
     })
 }
 

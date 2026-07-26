@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 use crate::repository::{
     EdgeFact, NodeFact, NodeKey, NodeKind, PublishRepositorySnapshot, RelationKind,
@@ -9,9 +10,11 @@ use crate::repository::{
 use crate::snapshot::publish_snapshot;
 use crate::storage::write_packed;
 
+use super::build::replace_index;
 use super::{
-    Embedder, EmbeddingError, IndexManifest, build_current_index, current_index_directory,
-    search_current_index, search_expected_index,
+    BuildOptions, Embedder, EmbeddingError, IndexManifest, build_current_index,
+    build_current_index_with_options, current_index_directory, search_current_index,
+    search_expected_index,
 };
 
 #[test]
@@ -44,6 +47,11 @@ fn builds_reuses_and_searches_current_graph_index() {
     let built = build_current_index(&state, &embedder, 1).unwrap();
     assert_eq!(built.mode, "built");
     assert_eq!(built.item_count, 2);
+    assert_eq!(built.embedded_vectors, 2);
+    assert_eq!(built.reused_vectors, 0);
+    assert_eq!(built.request_count, 2);
+    assert!(!built.cached_snapshot);
+    assert!(built.snapshot_bytes > 32);
     assert_eq!(built.dimensions, 4);
     assert_eq!(
         built.directory,
@@ -52,6 +60,9 @@ fn builds_reuses_and_searches_current_graph_index() {
 
     let reused = build_current_index(&state, &embedder, 2).unwrap();
     assert_eq!(reused.mode, "existing");
+    assert!(reused.cached_snapshot);
+    assert_eq!(reused.embedded_vectors, 0);
+    assert_eq!(reused.reused_vectors, 2);
 
     fs::write(built.directory.join("nodes.jsonl"), b"").unwrap();
     let repaired = build_current_index(&state, &embedder, 2).unwrap();
@@ -92,6 +103,171 @@ fn builds_reuses_and_searches_current_graph_index() {
     assert!(error.to_string().contains("stale"));
 }
 
+#[test]
+fn exact_snapshot_reuse_makes_no_embedding_requests() {
+    let directory = TestDirectory::new();
+    let state = directory.path.join(".arcana");
+    let digest = "b".repeat(64);
+    publish_state_snapshot(
+        &state,
+        &digest,
+        &isolated_facts(&[(1, "alpha"), (2, "beta"), (3, "gamma")]),
+    );
+    let embedder = TrackingEmbedder::new(0, Duration::ZERO);
+
+    let built = build_current_index_with_options(
+        &state,
+        &embedder,
+        BuildOptions {
+            batch_size: 2,
+            batch_concurrency: 2,
+        },
+    )
+    .unwrap();
+    assert_eq!(built.embedded_vectors, 3);
+    assert_eq!(built.request_count, 2);
+    assert_eq!(embedder.calls.load(Ordering::SeqCst), 2);
+
+    let reused = build_current_index_with_options(
+        &state,
+        &embedder,
+        BuildOptions {
+            batch_size: 1,
+            batch_concurrency: 4,
+        },
+    )
+    .unwrap();
+    assert!(reused.cached_snapshot);
+    assert_eq!(reused.reused_vectors, 3);
+    assert_eq!(reused.request_count, 0);
+    assert_eq!(embedder.calls.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn cross_snapshot_reuses_only_identical_rendered_documents() {
+    let directory = TestDirectory::new();
+    let state = directory.path.join(".arcana");
+    let first_digest = "c".repeat(64);
+    publish_state_snapshot(
+        &state,
+        &first_digest,
+        &isolated_facts(&[(1, "stable"), (2, "renamed")]),
+    );
+    let embedder = TrackingEmbedder::new(0, Duration::ZERO);
+    build_current_index(&state, &embedder, 8).unwrap();
+
+    let second_digest = "d".repeat(64);
+    // A new node key does not affect rendered content, while a changed name does.
+    publish_state_snapshot(
+        &state,
+        &second_digest,
+        &isolated_facts(&[(9, "stable"), (2, "changed")]),
+    );
+    let rebuilt = build_current_index(&state, &embedder, 8).unwrap();
+    assert!(!rebuilt.cached_snapshot);
+    assert_eq!(rebuilt.embedded_vectors, 1);
+    assert_eq!(rebuilt.reused_vectors, 1);
+    assert_eq!(rebuilt.request_count, 1);
+}
+
+#[test]
+fn interrupted_build_resumes_from_persisted_batch_objects() {
+    let directory = TestDirectory::new();
+    let state = directory.path.join(".arcana");
+    let digest = "e".repeat(64);
+    publish_state_snapshot(
+        &state,
+        &digest,
+        &isolated_facts(&[(1, "one"), (2, "two"), (3, "three")]),
+    );
+    let embedder = TrackingEmbedder::new(2, Duration::ZERO);
+    let options = BuildOptions {
+        batch_size: 1,
+        batch_concurrency: 1,
+    };
+
+    let error = build_current_index_with_options(&state, &embedder, options).unwrap_err();
+    assert!(error.to_string().contains("intentional interruption"));
+    assert_eq!(embedder.calls.load(Ordering::SeqCst), 2);
+
+    let resumed = build_current_index_with_options(&state, &embedder, options).unwrap();
+    assert_eq!(resumed.embedded_vectors, 2);
+    assert_eq!(resumed.reused_vectors, 1);
+    assert_eq!(resumed.request_count, 2);
+    assert_eq!(embedder.calls.load(Ordering::SeqCst), 4);
+}
+
+#[test]
+fn embedding_batch_concurrency_is_bounded() {
+    let directory = TestDirectory::new();
+    let state = directory.path.join(".arcana");
+    let digest = "f".repeat(64);
+    publish_state_snapshot(
+        &state,
+        &digest,
+        &isolated_facts(&[
+            (1, "one"),
+            (2, "two"),
+            (3, "three"),
+            (4, "four"),
+            (5, "five"),
+            (6, "six"),
+        ]),
+    );
+    let embedder = TrackingEmbedder::new(0, Duration::from_millis(30));
+
+    let built = build_current_index_with_options(
+        &state,
+        &embedder,
+        BuildOptions {
+            batch_size: 1,
+            batch_concurrency: 2,
+        },
+    )
+    .unwrap();
+    assert_eq!(built.request_count, 6);
+    assert_eq!(embedder.max_active.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn corrupted_cache_object_is_reembedded_and_repaired() {
+    let directory = TestDirectory::new();
+    let state = directory.path.join(".arcana");
+    let digest = "1".repeat(64);
+    publish_state_snapshot(&state, &digest, &isolated_facts(&[(1, "repair")]));
+    let embedder = TrackingEmbedder::new(0, Duration::ZERO);
+    let built = build_current_index(&state, &embedder, 8).unwrap();
+    assert_eq!(embedder.calls.load(Ordering::SeqCst), 1);
+
+    fs::remove_dir_all(&built.directory).unwrap();
+    let object = first_cache_object(&state.join("vector-cache")).unwrap();
+    let mut bytes = fs::read(&object).unwrap();
+    *bytes.last_mut().unwrap() ^= 0xff;
+    fs::write(&object, bytes).unwrap();
+
+    let repaired = build_current_index(&state, &embedder, 8).unwrap();
+    assert_eq!(repaired.embedded_vectors, 1);
+    assert_eq!(repaired.reused_vectors, 0);
+    assert_eq!(embedder.calls.load(Ordering::SeqCst), 2);
+    assert!(
+        build_current_index(&state, &embedder, 8)
+            .unwrap()
+            .cached_snapshot
+    );
+}
+
+#[test]
+fn publication_failure_restores_the_previous_index() {
+    let directory = TestDirectory::new();
+    let target = directory.path.join("published");
+    fs::create_dir(&target).unwrap();
+    fs::write(target.join("marker"), "prior").unwrap();
+    let missing_temp = directory.path.join("missing-temp");
+
+    assert!(replace_index(&missing_temp, &target).is_err());
+    assert_eq!(fs::read_to_string(target.join("marker")).unwrap(), "prior");
+}
+
 fn publish_test_snapshot(directory: &Path, facts: &RepositoryFacts) {
     let compiled = compile_repository_facts(facts).unwrap();
     write_packed(directory.join("graph.arcana"), &compiled.dataset).unwrap();
@@ -114,6 +290,45 @@ fn publish_test_snapshot(directory: &Path, facts: &RepositoryFacts) {
         },
     )
     .unwrap();
+}
+
+fn publish_state_snapshot(state: &Path, digest: &str, facts: &RepositoryFacts) {
+    let snapshot_directory = state.join("snapshots").join(digest);
+    fs::create_dir_all(&snapshot_directory).unwrap();
+    publish_test_snapshot(&snapshot_directory, facts);
+    fs::write(state.join("CURRENT"), format!("sha256:{digest}\n")).unwrap();
+}
+
+fn isolated_facts(nodes: &[(u64, &str)]) -> RepositoryFacts {
+    RepositoryFacts {
+        nodes: nodes
+            .iter()
+            .map(|(key, name)| node(NodeKey::from_u64(*key), name, &format!("src/{name}.rs")))
+            .collect(),
+        edges: Vec::new(),
+        unresolved: Vec::new(),
+    }
+}
+
+fn first_cache_object(root: &Path) -> Option<PathBuf> {
+    for identity in fs::read_dir(root).ok()? {
+        let objects = identity.ok()?.path().join("objects");
+        let Ok(prefixes) = fs::read_dir(objects) else {
+            continue;
+        };
+        for prefix in prefixes.flatten() {
+            for object in fs::read_dir(prefix.path()).ok()?.flatten() {
+                if object
+                    .path()
+                    .extension()
+                    .is_some_and(|value| value == "avec")
+                {
+                    return Some(object.path());
+                }
+            }
+        }
+    }
+    None
 }
 
 fn node(key: NodeKey, name: &str, path: &str) -> NodeFact {
@@ -154,6 +369,58 @@ impl Embedder for FakeEmbedder {
                 }
             })
             .collect())
+    }
+
+    fn embed_query(&self, _query: &str) -> Result<Vec<f32>, EmbeddingError> {
+        Ok(vec![1.0, 0.0, 0.0, 0.0])
+    }
+}
+
+struct TrackingEmbedder {
+    calls: AtomicUsize,
+    active: AtomicUsize,
+    max_active: AtomicUsize,
+    fail_on_call: usize,
+    delay: Duration,
+}
+
+impl TrackingEmbedder {
+    fn new(fail_on_call: usize, delay: Duration) -> Self {
+        Self {
+            calls: AtomicUsize::new(0),
+            active: AtomicUsize::new(0),
+            max_active: AtomicUsize::new(0),
+            fail_on_call,
+            delay,
+        }
+    }
+}
+
+impl Embedder for TrackingEmbedder {
+    fn model(&self) -> &str {
+        "tracking-model"
+    }
+
+    fn identity(&self) -> &str {
+        "tracking-4d"
+    }
+
+    fn dimensions(&self) -> usize {
+        4
+    }
+
+    fn embed_documents(&self, documents: &[String]) -> Result<Vec<Vec<f32>>, EmbeddingError> {
+        let call = self.calls.fetch_add(1, Ordering::SeqCst) + 1;
+        let active = self.active.fetch_add(1, Ordering::SeqCst) + 1;
+        self.max_active.fetch_max(active, Ordering::SeqCst);
+        std::thread::sleep(self.delay);
+        self.active.fetch_sub(1, Ordering::SeqCst);
+        if call == self.fail_on_call {
+            return Err(EmbeddingError::Service(
+                "intentional interruption".to_owned(),
+            ));
+        }
+        Ok(documents.iter().map(|_| vec![1.0, 0.0, 0.0, 0.0]).collect())
     }
 
     fn embed_query(&self, _query: &str) -> Result<Vec<f32>, EmbeddingError> {

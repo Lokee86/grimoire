@@ -24,6 +24,8 @@ pub struct IndexManifest {
     pub identity: String,
     pub dimensions: usize,
     pub item_count: usize,
+    #[serde(default)]
+    pub unique_vectors: usize,
     pub records_file: String,
     pub records_sha256: String,
     pub vectors_file: String,
@@ -114,6 +116,11 @@ pub(crate) fn read_manifest(directory: &Path) -> Result<IndexManifest, VectorInd
             "vector index dimensions must be greater than zero".to_owned(),
         ));
     }
+    if manifest.unique_vectors > manifest.item_count {
+        return Err(VectorIndexError::CorruptIndex(
+            "vector index unique-vector count exceeds its item count".to_owned(),
+        ));
+    }
     if manifest.records_file != RECORDS_FILE || manifest.vectors_file != VECTORS_FILE {
         return Err(VectorIndexError::CorruptIndex(
             "vector index uses unsupported data filenames".to_owned(),
@@ -191,6 +198,29 @@ pub(crate) fn validate_files(
     Ok(())
 }
 
+pub(crate) fn validate_open_files(
+    directory: &Path,
+    manifest: &IndexManifest,
+) -> Result<(), VectorIndexError> {
+    let expected = manifest
+        .item_count
+        .checked_mul(manifest.dimensions)
+        .and_then(|values| values.checked_mul(4))
+        .ok_or_else(|| VectorIndexError::CorruptIndex("vector file size overflow".to_owned()))?;
+    let actual = fs::metadata(directory.join(&manifest.vectors_file))?.len();
+    if actual != expected as u64 {
+        return Err(VectorIndexError::CorruptIndex(format!(
+            "vector file is {actual} bytes; expected {expected}"
+        )));
+    }
+    if !directory.join(&manifest.records_file).is_file() {
+        return Err(VectorIndexError::CorruptIndex(
+            "vector node records are missing".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn file_sha256(path: &Path) -> Result<String, VectorIndexError> {
     let mut file = File::open(path)?;
     let mut hasher = Sha256::new();
@@ -212,7 +242,7 @@ fn valid_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
-fn validate_record(record: &IndexRecord, index: usize) -> Result<(), VectorIndexError> {
+pub(crate) fn validate_record(record: &IndexRecord, index: usize) -> Result<(), VectorIndexError> {
     if record.node_key.len() != 16
         || !record
             .node_key

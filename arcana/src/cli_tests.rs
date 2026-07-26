@@ -99,6 +99,7 @@ fn parses_vector_commands() {
         "--endpoint=http://127.0.0.1:9999/v1".to_owned(),
         "--batch-size".to_owned(),
         "16".to_owned(),
+        "--batch-concurrency=3".to_owned(),
     ])
     .unwrap();
     let Command::Vectorize(command) = command else {
@@ -107,6 +108,7 @@ fn parses_vector_commands() {
     assert_eq!(command.state, PathBuf::from("graph-state"));
     assert_eq!(command.endpoint, "http://127.0.0.1:9999/v1");
     assert_eq!(command.batch_size, 16);
+    assert_eq!(command.batch_concurrency, 3);
 
     let command = cli::parse([
         "semantic-query".to_owned(),

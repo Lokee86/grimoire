@@ -1,6 +1,7 @@
 //! Optional semantic indexing over deterministic Arcana graph facts.
 
 mod build;
+mod cache;
 mod client;
 mod documents;
 mod error;
@@ -8,7 +9,9 @@ mod http;
 mod index;
 mod search;
 
-pub use build::{BuildSummary, build_current_index};
+pub use build::{
+    BuildOptions, BuildSummary, build_current_index, build_current_index_with_options,
+};
 pub use client::{
     DEFAULT_DIMENSIONS, DEFAULT_ENDPOINT, DEFAULT_IDENTITY, DEFAULT_MODEL, Embedder,
     EmbeddingClient,

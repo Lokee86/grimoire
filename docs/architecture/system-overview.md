@@ -17,7 +17,8 @@ Repository source
   -> immutable Lexicon facts and snapshot
   -> Arcana graph compilation
   -> immutable Arcana graph snapshot
-  -> optional Arcana semantic graph index
+  -> content-addressed graph-document vector objects
+  -> optional Arcana semantic graph snapshot index
 
 Repository documentation
   -> independent Grimoire knowledge index
@@ -58,7 +59,7 @@ The query profile and retrieval policy are computed after source and structural 
 
 ### Arcana
 
-`arcana/` owns Lexicon snapshot ingestion, repository graph construction, packed graph storage, overlays, compaction, graph-derived semantic documents and vector indexes, semantic graph search, traversal, impact analysis, path queries, and the graph protocol. Arcana calls the shared embedding endpoint but stores and invalidates its index inside `.arcana/`.
+`arcana/` owns Lexicon snapshot ingestion, repository graph construction, packed graph storage, overlays, compaction, graph-derived semantic documents, immutable content-addressed vector objects, snapshot index materialization, semantic graph search, traversal, impact analysis, path queries, and the graph protocol. Arcana calls the shared embedding endpoint but stores, validates, and invalidates its vector state inside `.arcana/`.
 
 ### Context application orchestration
 
@@ -117,6 +118,6 @@ Structural failures are non-fatal to source retrieval.
 - `.grimoire/` — prepared source state, investigations, and independent knowledge state.
 - `.grimoire/knowledge/vectors/<model>/` — optional documentation vector objects and packed snapshot.
 - `.lexicon/` — Lexicon immutable analysis state.
-- `.arcana/` — Arcana graph state and optional graph-vector indexes.
+- `.arcana/` — Arcana graph state, reusable graph-document vector objects, and optional graph-vector snapshot indexes.
 
 These formats remain independently versioned and owned. Integration occurs through manifests, exports, and protocols rather than direct cross-component mutation.

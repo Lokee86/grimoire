@@ -181,11 +181,14 @@ arcana vectorize
 arcana semantic-query --query "where is profile persistence handled?"
 ```
 
-The index lives under
-`.arcana/vectors/<snapshot-digest>/<embedding-identity>/`. Each vector represents
-a graph node plus a bounded immediate neighborhood. Semantic matches provide
-entry points; exact Arcana traversal remains authoritative for relationships,
-impact, and call chains.
+The packed index lives under
+`.arcana/vectors/<snapshot-digest>/<embedding-identity>/`. Immutable graph-document
+vectors live under `.arcana/vector-cache/<embedding-identity>/` and are reused
+across snapshots when rendered content is byte-identical. Successful concurrent
+embedding batches persist immediately, so interrupted builds resume without
+repeating completed work. Each vector represents a graph node plus a bounded
+immediate neighborhood. Semantic matches provide entry points; exact Arcana
+traversal remains authoritative for relationships, impact, and call chains.
 
 Grimoire Context automatically uses a matching existing Arcana semantic index
 when Arcana structural retrieval is enabled. It never builds the index as a side

@@ -7,7 +7,7 @@ use fs2::FileExt;
 use super::Embedder;
 use super::index::{
     IndexRecord, SearchHit, VectorIndexError, current_snapshot_directory, index_directory,
-    manifest_matches, read_manifest, validate_embedder, validate_files,
+    manifest_matches, read_manifest, validate_embedder, validate_open_files, validate_record,
 };
 use crate::repository::{REPOSITORY_MANIFEST_FILE, RepositorySnapshot};
 
@@ -74,7 +74,9 @@ fn search_index(
         .open(parent.join(format!(".{}.lock", embedder.identity())))?;
     FileExt::lock_shared(&lock)?;
     let manifest = read_manifest(&directory)?;
-    validate_files(&directory, &manifest)?;
+    // Full checksums and whole-file finite-value scans are build/status work. Query open
+    // validates fixed metadata, then validates records and values in the scoring pass.
+    validate_open_files(&directory, &manifest)?;
     let snapshot = RepositorySnapshot::open(snapshot_directory.join(REPOSITORY_MANIFEST_FILE))?;
     if !manifest_matches(
         &manifest,
@@ -118,16 +120,20 @@ fn search_index(
             ));
         }
         let record: IndexRecord = serde_json::from_str(&line?)?;
+        validate_record(&record, index)?;
         vectors.read_exact(&mut buffer).map_err(|error| {
             VectorIndexError::CorruptIndex(format!("cannot read vector {index}: {error}"))
         })?;
-        let score = buffer
-            .chunks_exact(4)
-            .zip(&query_vector)
-            .map(|(bytes, query)| {
-                f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) * query
-            })
-            .sum();
+        let mut score = 0.0_f32;
+        for (position, (bytes, query)) in buffer.chunks_exact(4).zip(&query_vector).enumerate() {
+            let value = f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+            if !value.is_finite() {
+                return Err(VectorIndexError::CorruptIndex(format!(
+                    "vector index contains a non-finite value at vector {index}, position {position}"
+                )));
+            }
+            score += value * query;
+        }
         hits.push(SearchHit {
             score,
             node_key: record.node_key,

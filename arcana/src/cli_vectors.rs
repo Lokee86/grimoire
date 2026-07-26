@@ -3,20 +3,34 @@ use std::fmt::Write as FmtWrite;
 use serde::Serialize;
 
 use arcana::vector::{
-    EmbeddingClient, VectorIndexError, build_current_index, search_current_index,
-    search_expected_index,
+    BuildOptions, EmbeddingClient, VectorIndexError, build_current_index_with_options,
+    search_current_index, search_expected_index,
 };
 
 use crate::cli::{SemanticQueryCommand, VectorizeCommand};
 
 pub fn run_vectorize(command: &VectorizeCommand) -> Result<String, VectorIndexError> {
     let client = EmbeddingClient::new(&command.endpoint);
-    let summary = build_current_index(&command.state, &client, command.batch_size)?;
+    let summary = build_current_index_with_options(
+        &command.state,
+        &client,
+        BuildOptions {
+            batch_size: command.batch_size,
+            batch_concurrency: command.batch_concurrency,
+        },
+    )?;
     Ok(format!(
-        "Arcana vectors: mode={} nodes={} dimensions={} directory={}\n",
+        "Arcana vectors: mode={} nodes={} unique_vectors={} dimensions={} embedded_vectors={} reused_vectors={} cached_snapshot={} request_count={} snapshot_bytes={} duration_ms={:.3} directory={}\n",
         summary.mode,
         summary.item_count,
+        summary.unique_vectors,
         summary.dimensions,
+        summary.embedded_vectors,
+        summary.reused_vectors,
+        summary.cached_snapshot,
+        summary.request_count,
+        summary.snapshot_bytes,
+        summary.duration.as_secs_f64() * 1000.0,
         summary.directory.display()
     ))
 }

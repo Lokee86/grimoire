@@ -9,7 +9,7 @@ pub const DEFAULT_IDENTITY: &str = "qwen3-embedding-0.6b-q8_0-512d";
 pub const DEFAULT_DIMENSIONS: usize = 512;
 const QUERY_INSTRUCTION: &str = "Given a software development query, retrieve relevant source code and documentation from a repository";
 
-pub trait Embedder {
+pub trait Embedder: Sync {
     fn model(&self) -> &str;
     fn identity(&self) -> &str;
     fn dimensions(&self) -> usize;

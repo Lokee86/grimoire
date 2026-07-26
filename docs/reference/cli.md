@@ -153,7 +153,7 @@ Arcana uses the same running embedding endpoint; no second model installation or
 Build an index for the current `.arcana/CURRENT` graph snapshot:
 
 ```bash
-arcana vectorize [--state .arcana] [--endpoint http://127.0.0.1:9876/v1] [--batch-size 32]
+arcana vectorize [--state .arcana] [--endpoint http://127.0.0.1:9876/v1] [--batch-size 32] [--batch-concurrency 1]
 ```
 
 Search the graph index:
@@ -162,7 +162,9 @@ Search the graph index:
 arcana semantic-query --query "where is profile persistence handled?" [--limit 10] [--json]
 ```
 
-The index is stored under `.arcana/vectors/<snapshot-digest>/<embedding-identity>/`. Building is explicit. `grimoire context` uses a validated index matching the exact resolved Arcana snapshot when Arcana structural retrieval is enabled, but never builds the index as a query side effect. Missing, stale, corrupt, or concurrently invalidated vector state falls back to Lexicon-seeded deterministic Arcana traversal. `grimoire status` reports the matching default-model index as `current` only after validating its graph identity, embedding contract, data sizes, record count, and data checksums.
+The index is stored under `.arcana/vectors/<snapshot-digest>/<embedding-identity>/`; content-addressed graph-document vectors are stored under `.arcana/vector-cache/<embedding-identity>/` and reused across snapshots only for byte-identical rendered content and the same embedding contract. `--batch-concurrency` bounds simultaneous endpoint requests. Successful batches persist immediately for resume, while deterministic snapshot materialization and atomic publication remain serialized. Output reports embedded/reused vectors, exact-snapshot reuse, request count, snapshot bytes, and duration.
+
+Building is explicit. `grimoire context` uses an index matching the exact resolved Arcana snapshot when Arcana structural retrieval is enabled, but never builds the index as a query side effect. Missing, stale, corrupt, or concurrently invalidated vector state falls back to Lexicon-seeded deterministic Arcana traversal. `grimoire status` reports the matching default-model index as `current` only after validating its graph identity, embedding contract, data sizes, record count, and data checksums. Query scoring reads the vector file once; full-file checksums and exhaustive finite-value scans are not repeated per query.
 
 See [`../../arcana/docs/vector-index.md`](../../arcana/docs/vector-index.md).
 

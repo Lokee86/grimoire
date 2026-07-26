@@ -27,7 +27,8 @@ Options:
 arcana vectorize \
   [--state <DIRECTORY>] \
   [--endpoint <URL>] \
-  [--batch-size <N>]
+  [--batch-size <N>] \
+  [--batch-concurrency <N>]
 ```
 
 Defaults:
@@ -35,10 +36,15 @@ Defaults:
 - state: `.arcana`
 - endpoint: `http://127.0.0.1:9876/v1`
 - batch size: `32`
+- batch concurrency: `1`
 - model identity: `qwen3-embedding-0.6b-q8_0-512d`
 - retained dimensions: `512`
 
-The command reuses an index only after validating its manifest, fixed data filenames, vector byte length, node-record count, and node-record identities. It rebuilds incomplete or corrupt state and also rebuilds when the current Arcana graph snapshot, graph identity, model, model identity, or dimensions differ. Build publication is serialized per snapshot and model, preserves the prior index if replacement fails, and aborts with a retry message rather than publishing under the wrong snapshot if `.arcana/CURRENT` changes during embedding.
+The command first validates an exact existing snapshot. Otherwise it resolves every graph document to the immutable content-addressed cache, sends only missing documents to the endpoint, and materializes the snapshot files from cache objects. `--batch-concurrency` bounds simultaneous embedding requests; each successful batch writes and synchronizes its objects immediately, so a retry after an endpoint or process interruption resumes from completed work. Snapshot materialization remains serialized and deterministic.
+
+Build output reports node and unique-vector counts, embedded and reused vectors, exact-snapshot reuse, embedding request count, snapshot bytes, elapsed milliseconds, and the published directory. The exact-snapshot path makes no embedding request. Cross-snapshot reuse occurs only when rendered graph-document bytes and the complete embedding contract are identical.
+
+Build validation covers the manifest, fixed data filenames, vector byte length, finite values, node-record count and identities, and data checksums. Incomplete or corrupt snapshots are rebuilt. Publication is serialized per snapshot and embedding identity, preserves the prior index if replacement fails, and aborts with a retry message rather than publishing under the wrong snapshot if `.arcana/CURRENT` changes during embedding.
 
 ## Indexed objects
 
@@ -53,10 +59,15 @@ The embedding finds a relevant graph neighborhood. Arcana's exact graph protocol
 
 ## Storage
 
-Indexes are stored by Arcana snapshot and model identity:
+Reusable vector objects are stored independently from indexes, which remain keyed by Arcana snapshot and model identity:
 
 ```text
 .arcana/
+  vector-cache/
+    qwen3-embedding-0.6b-q8_0-512d/
+      objects/
+        <digest-prefix>/
+          <document-and-embedding-digest>.avec
   vectors/
     <arcana-snapshot-digest>/
       qwen3-embedding-0.6b-q8_0-512d/
@@ -64,6 +75,8 @@ Indexes are stored by Arcana snapshot and model identity:
         nodes.jsonl
         vectors.f32
 ```
+
+The cache key is SHA-256 over a domain separator, rendered graph-document bytes, model reference, stable embedding identity, and dimensions. Node keys are intentionally absent from rendered documents, so a node-key rename can reuse an object; a changed name, path, span, relationship neighborhood, unresolved reference, model, identity, or dimension cannot. Objects contain their content key, dimensions, vector checksum, and normalized little-endian `f32` values. Invalid objects are re-embedded and atomically repaired. Cache objects are immutable once valid.
 
 `manifest.json` binds the index to:
 
@@ -73,7 +86,7 @@ Indexes are stored by Arcana snapshot and model identity:
 - vector dimensions; and
 - item count, fixed data filenames, and SHA-256 checksums of both data files.
 
-`vectors.f32` contains normalized little-endian `f32` vectors. `nodes.jsonl` maps vector positions back to Arcana node keys, kinds, paths, and names.
+`vectors.f32` contains normalized little-endian `f32` vectors materialized in deterministic node order. `nodes.jsonl` maps vector positions back to Arcana node keys, kinds, paths, and names. A snapshot manifest also records the unique-vector count when produced by the incremental builder.
 
 The current index format is version 2. Version 1 manifests do not carry data checksums and are rebuilt rather than reused.
 
@@ -109,6 +122,8 @@ The JSON response has this shape:
   ]
 }
 ```
+
+Semantic query performs cheap manifest and file-size checks when opening the pinned snapshot, then decodes and finite-checks each vector in the same single scoring pass. It does not checksum or pre-scan the complete vector file on every query. Full checksums and exhaustive structural validation remain build and `grimoire status` boundary work.
 
 ## Grimoire Context integration
 
