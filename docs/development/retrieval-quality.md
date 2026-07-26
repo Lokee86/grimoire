@@ -27,6 +27,11 @@ For source evidence, the evaluator records whether each judged item was:
 
 Structural evidence has parallel stages for provider production, composition, adaptive assembly, and final inclusion. This separates search failure from loss introduced later in the package pipeline.
 
+Arcana semantic graph entry points also have a separate paired evaluator. It
+scores the ranked seed list before graph expansion and the final Arcana evidence
+after expansion, allowing an index to improve seed recall while exposing any
+later structural-evidence loss.
+
 ## Failure classes
 
 Source failures include stale/incomplete index, embedding or vector-ranking miss, exact-recovery miss, candidate-merge loss, curation loss, adaptive-assembly loss, and budget-fitting loss.
@@ -52,6 +57,11 @@ Before execution, the runner validates referenced source paths and symbols paire
 Final-package metrics include required/supporting source and structural recall, forbidden violations, irrelevant-selection rates, package tokens, selected chunks, and budget utilization.
 
 Pre-curation ranking metrics include required recall at 10 and 20, mean reciprocal rank, and judged relevance at 10 and 20.
+
+The Arcana pair records required seed recall, configurable seed recall@k, seed
+MRR, final required structural recall, latency, serialized seed-plus-evidence
+payload bytes, and evaluator-visible provider calls. Its baseline bypasses the
+vector index while retaining the same Lexicon and Arcana snapshots.
 
 Policy metrics include profile agreement, selected scope and target, curated versus assembled counts, represented regions and roles, stop reason, and evidence lost specifically during assembly.
 

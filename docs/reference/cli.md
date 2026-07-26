@@ -329,6 +329,46 @@ The command loads an existing `grimoire knowledge index`, executes every frozen 
 
 Reports include pass rate, required-section recall, recall@k, MRR, irrelevant selections, vector usage/errors, per-case latency, aggregate median/p95 latency, and deterministic per-case rankings. This path does not invoke source retrieval or the legacy source evaluator.
 
+## `grimoire eval arcana`
+
+Run the checked-in judged graph-seed corpus as one paired comparison:
+
+```bash
+grimoire eval arcana \
+  --root . \
+  --cases evaluation/arcana/grimoire.json
+```
+
+The command requires existing prepared Grimoire state, an immutable Lexicon
+export, a matching Arcana graph snapshot, and a matching Arcana vector index.
+For each case it runs `lexicon-seeds`, which bypasses semantic lookup, and
+`lexicon-plus-vector`, which interleaves semantic and Lexicon seeds before the
+same deterministic graph expansion. It does not create or modify vector state.
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--cases <path>` | none | Frozen judged Arcana seed and structural-evidence corpus |
+| `--root <path>` | `.` | Repository being evaluated |
+| `--state <path>` | `<root>/.grimoire` | Prepared source state used for Lexicon candidate localization |
+| `--top-k <n>` | corpus value | Seed limit, bounded to the production maximum of six |
+| `--recall-at-k <list>` | corpus value | Override ordered seed-recall cutoffs such as `1,3,6` |
+| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint used by Arcana semantic query |
+| `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
+| `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
+| `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
+| `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph and vector state directory |
+| `--arcana-command <path>` | `arcana` | Executable used for graph synchronization and queries |
+| `--timeout <duration>` | `30s` | Per-mode provider timeout |
+| `--variant <name>` | `paired` | Report label |
+| `--output-dir <path>` | `evaluation/results` | JSON and Markdown result directory |
+| `--output-prefix <name>` | generated | Shared result filename prefix |
+
+Reports include seed recall, recall@k, MRR, final structural-evidence recall,
+latency, serialized seed-plus-evidence payload size, evaluator-visible provider
+calls, complete seed rankings, and vector-minus-baseline deltas. Semantic or
+graph provider errors remain case results instead of silently converting the
+vector mode into another baseline run.
+
 ## `grimoire eval retrieval`
 
 Run a repository-owned judged retrieval corpus against one or more query modes:

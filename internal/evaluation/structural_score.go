@@ -75,6 +75,12 @@ func structuralExpectationMatches(expected StructuralExpectation, item structure
 	return true
 }
 
+// StructuralExpectationMatches exposes the judged structural matcher to
+// specialized evaluation lanes without making it part of runtime retrieval.
+func StructuralExpectationMatches(expected StructuralExpectation, item structure.Evidence) bool {
+	return structuralExpectationMatches(expected, item)
+}
+
 func evidenceHasSubject(item structure.Evidence, symbol, path string) bool {
 	if item.Node != nil && nodeMatches(*item.Node, symbol, path) {
 		return true

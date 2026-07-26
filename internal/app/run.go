@@ -50,6 +50,9 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	case "query":
 		return runQuery(args[1:], stdout, stderr)
 	case "eval":
+		if len(args) > 1 && args[1] == "arcana" {
+			return runEvalArcana(args[2:], stdout, stderr)
+		}
 		if len(args) > 1 && args[1] == "knowledge" {
 			return runEvalKnowledge(args[2:], stdout, stderr)
 		}
@@ -84,6 +87,7 @@ Core workflow:
   grimoire knowledge search --query .  Retrieve cited documentation with BM25 and vectors
   grimoire vector build --root .       Build or refresh documentation vectors
   grimoire eval knowledge --cases ...  Judge documentation retrieval against a frozen corpus
+  grimoire eval arcana --cases ...     Compare Arcana graph retrieval with and without vectors
   grimoire query orient --root .       Discover compact repository anchors
   grimoire query trace --anchor <id>   Expand an exact structural handle
   grimoire mcp --root .                Serve the progressive agent tool over stdio

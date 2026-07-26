@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "repository": "Grimoire",
+  "source_url": "https://github.com/Lokee86/grimoire",
+  "revision": "42c461b2590010c5717d8f1191a9a85e9c5ff202",
+  "scope": ".",
+  "judged_at": "2026-07-26",
+  "top_k": 6,
+  "recall_at_k": [
+    1,
+    3,
+    6
+  ],
+  "cases": [
+    {
+      "id": "arcana-semantic-seeds",
+      "query": "How does an optional concept search turn ranked graph matches into bounded structural entry points without building new state?",
+      "category": "mechanism-explanation",
+      "required_seeds": [
+        {
+          "name": "SemanticSeeds",
+          "path": "internal/arcanagraph/semantic.go",
+          "kind": "function",
+          "reason": "This is the Grimoire-side boundary that checks for an existing Arcana vector index, invokes semantic-query, deduplicates matches, and returns graph nodes."
+        }
+      ],
+      "supporting_seeds": [
+        {
+          "name": "semanticIndexExists",
+          "path": "internal/arcanagraph/semantic.go",
+          "kind": "function",
+          "reason": "This helper enforces the no-build, existing-index-only contract."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "SemanticSeeds",
+          "path": "internal/arcanagraph/semantic.go",
+          "reason": "Final graph evidence must retain the semantic seed provider's operational neighborhood."
+        }
+      ],
+      "notes": "The query deliberately avoids the exact CLI phrase semantic-query to test conceptual graph entry-point retrieval."
+    },
+    {
+      "id": "arcana-seed-composition",
+      "query": "Where are vocabulary-derived symbols and conceptual graph matches balanced before deterministic relationship expansion?",
+      "category": "mechanism-explanation",
+      "required_seeds": [
+        {
+          "name": "collectStructuralContext",
+          "path": "internal/app/context_structure.go",
+          "kind": "function",
+          "reason": "This function owns the complete provider composition path."
+        },
+        {
+          "name": "mergeArcanaSeeds",
+          "path": "internal/app/context_structure.go",
+          "kind": "function",
+          "reason": "This helper interleaves semantic and Lexicon seeds under the production six-seed bound."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "collectStructuralContext",
+          "path": "internal/app/context_structure.go",
+          "relation": "calls",
+          "direction": "outgoing",
+          "target_symbol": "mergeArcanaSeeds",
+          "target_path": "internal/app/context_structure.go",
+          "reason": "Final evidence must connect provider collection to bounded seed composition."
+        }
+      ],
+      "notes": "This is the primary paired case for whether semantic seeds add useful entry points beyond Lexicon vocabulary."
+    },
+    {
+      "id": "arcana-deterministic-expansion",
+      "query": "Which boundary resolves a few graph anchors and then asks for roles, dependents, uncertain references, and short execution paths?",
+      "category": "mechanism-explanation",
+      "required_seeds": [
+        {
+          "name": "Search",
+          "path": "internal/arcanagraph/client.go",
+          "kind": "function",
+          "reason": "Client.Search resolves bounded seeds and requests all deterministic Arcana evidence shapes."
+        }
+      ],
+      "supporting_seeds": [
+        {
+          "name": "resolveSeeds",
+          "path": "internal/arcanagraph/client.go",
+          "kind": "function",
+          "reason": "Seed resolution chooses exact-path matches before broad symbol matches."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "Search",
+          "path": "internal/arcanagraph/client.go",
+          "reason": "Final evidence must retain the deterministic graph expansion owner."
+        }
+      ],
+      "notes": "Uses conceptual synonyms for impact, unresolved references, and call chains."
+    },
+    {
+      "id": "arcana-graph-documents",
+      "query": "Where is each repository graph entity rendered with bounded inbound, outbound, and unresolved neighborhood text for embeddings?",
+      "category": "direct-location",
+      "required_seeds": [
+        {
+          "name": "graph_documents",
+          "path": "arcana/src/vector/documents.rs",
+          "kind": "function",
+          "reason": "This function builds one deterministic semantic document per graph node."
+        },
+        {
+          "name": "render_document",
+          "path": "arcana/src/vector/documents.rs",
+          "kind": "function",
+          "reason": "This function renders node identity, bounded relationships, and unresolved references."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "graph_documents",
+          "path": "arcana/src/vector/documents.rs",
+          "reason": "Final evidence must retain the graph-document construction owner."
+        }
+      ],
+      "notes": "Measures whether semantic entry points recover the Rust implementation behind conceptual graph-document language."
+    },
+    {
+      "id": "arcana-vector-search",
+      "query": "How is a conceptual task embedded, checked against immutable graph identity, scored over packed node vectors, and returned in stable order?",
+      "category": "mechanism-explanation",
+      "required_seeds": [
+        {
+          "name": "search_current_index",
+          "path": "arcana/src/vector/search.rs",
+          "kind": "function",
+          "reason": "This function validates the current index, embeds the query, scores every node vector, and deterministically ranks hits."
+        }
+      ],
+      "supporting_seeds": [
+        {
+          "name": "manifest_matches",
+          "path": "arcana/src/vector/index.rs",
+          "kind": "function",
+          "reason": "This helper binds semantic results to graph and model identity."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "search_current_index",
+          "path": "arcana/src/vector/search.rs",
+          "reason": "Final evidence must retain the semantic graph search implementation owner."
+        }
+      ],
+      "notes": "Covers the Arcana-owned vector search rather than Grimoire documentation vectors."
+    }
+  ]
+}

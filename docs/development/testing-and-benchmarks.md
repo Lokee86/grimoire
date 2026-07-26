@@ -160,6 +160,38 @@ grimoire eval retrieval \
 
 `--adaptive` cannot be combined with a fixed `--budget` override.
 
+## Paired Arcana semantic graph evaluation
+
+Prepare one immutable source index, Lexicon export, Arcana graph snapshot, and
+matching Arcana vector index, then run the checked-in judged corpus:
+
+```bash
+grimoire index --root .
+arcana sync
+arcana vectorize
+grimoire eval arcana \
+  --root . \
+  --cases evaluation/arcana/grimoire.json \
+  --variant paired
+```
+
+`grimoire eval arcana` executes both modes for every case against those same
+snapshots. `lexicon-seeds` bypasses semantic lookup. `lexicon-plus-vector`
+interleaves Arcana semantic matches with the same Lexicon seeds under the
+production six-seed bound, then both modes use the same deterministic Arcana
+graph expansion. The evaluator requires an existing matching vector manifest
+and never builds vector state. A semantic-query failure fails the vector-mode
+measurement rather than exercising the runtime fallback, because a fallback
+would make the paired comparison invalid.
+
+The report records required seed recall, seed recall@k, seed MRR, final required
+structural-evidence recall, evaluator-visible provider calls, latency, and
+serialized payload bytes. Payload is the ranked seed JSON plus final Arcana
+structural-evidence JSON. Provider calls count Lexicon seed search, optional
+Arcana semantic query, and Arcana graph expansion; they do not claim to count
+internal HTTP requests or JSONL batch lines. JSON and Markdown include
+vector-minus-baseline deltas and complete per-case seed rankings.
+
 Documentation evaluation is an independent production path:
 
 ```bash
@@ -174,7 +206,7 @@ Use `--vectors` (the default) to compare the same BM25 run with the optional cur
 
 ## Report outputs
 
-The evaluators write JSON and Markdown under `evaluation/results/`. Source reports include source and structural recall, irrelevant-selection rates, ranking recall and MRR, query-profile agreement, latency, package size, budget utilization, provider warnings, and loss attribution through retrieval, merge, curation, adaptive assembly, and final fitting. Documentation reports include required-section recall, recall@k, MRR, irrelevant selections, vector usage/errors, per-case latency, and deterministic rankings.
+The evaluators write JSON and Markdown under `evaluation/results/`. Source reports include source and structural recall, irrelevant-selection rates, ranking recall and MRR, query-profile agreement, latency, package size, budget utilization, provider warnings, and loss attribution through retrieval, merge, curation, adaptive assembly, and final fitting. Arcana paired reports include seed and final structural recall, recall@k, MRR, latency, payload size, provider calls, and vector-minus-baseline deltas. Documentation reports include required-section recall, recall@k, MRR, irrelevant selections, vector usage/errors, per-case latency, and deterministic rankings.
 
 Important report families include ranking calibration baselines/current runs, query-profile reports, fixed/adaptive query-shape comparisons, and standalone/Lexicon/Lexicon-plus-Arcana comparisons.
 
