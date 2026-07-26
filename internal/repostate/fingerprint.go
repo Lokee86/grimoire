@@ -22,46 +22,112 @@ func RepositoryFingerprint(root string) (string, error) {
 }
 
 func sourceFingerprint(root string) (string, error) {
-	paths, ok := gitSourcePaths(root)
-	if !ok {
-		var err error
-		paths, err = walkedSourcePaths(root)
-		if err != nil {
-			return "", err
-		}
+	if fingerprint, ok, err := gitFingerprint(root); ok || err != nil {
+		return fingerprint, err
+	}
+	paths, err := walkedSourcePaths(root)
+	if err != nil {
+		return "", err
 	}
 	sort.Strings(paths)
 	hash := sha256.New()
 	for _, relative := range paths {
-		path := filepath.Join(root, filepath.FromSlash(relative))
-		info, err := os.Lstat(path)
-		if os.IsNotExist(err) {
-			continue
-		}
-		if err != nil {
+		if err := hashWorkingFile(hash, root, relative, "file"); err != nil {
 			return "", err
 		}
-		if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() > maxFingerprintFileBytes {
-			continue
-		}
-		file, err := os.Open(path)
-		if err != nil {
-			return "", err
-		}
-		fileHash := sha256.New()
-		_, copyErr := io.Copy(fileHash, file)
-		closeErr := file.Close()
-		if copyErr != nil {
-			return "", copyErr
-		}
-		if closeErr != nil {
-			return "", closeErr
-		}
-		_, _ = hash.Write([]byte(relative))
-		_, _ = hash.Write([]byte{0})
-		_, _ = hash.Write(fileHash.Sum(nil))
 	}
 	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func gitFingerprint(root string) (string, bool, error) {
+	indexData, err := exec.Command("git", "-C", root, "ls-files", "-s", "-z").Output()
+	if err != nil {
+		return "", false, nil
+	}
+	hash := sha256.New()
+	for _, raw := range strings.Split(string(indexData), "\x00") {
+		metadata, relative, ok := strings.Cut(raw, "\t")
+		if !ok || !fingerprintPath(relative) {
+			continue
+		}
+		fields := strings.Fields(metadata)
+		if len(fields) != 3 || fields[2] != "0" || strings.HasPrefix(fields[0], "120") {
+			continue
+		}
+		path := filepath.Join(root, filepath.FromSlash(relative))
+		if info, statErr := os.Lstat(path); statErr == nil && info.Size() > maxFingerprintFileBytes {
+			continue
+		}
+		_, _ = io.WriteString(hash, "index\x00"+filepath.ToSlash(relative)+"\x00"+fields[1]+"\x00")
+	}
+
+	changed, err := gitPathList(root, "diff", "--name-only", "-z")
+	if err != nil {
+		return "", true, err
+	}
+	untracked, err := gitPathList(root, "ls-files", "--others", "--exclude-standard", "-z")
+	if err != nil {
+		return "", true, err
+	}
+	for _, group := range []struct {
+		name  string
+		paths []string
+	}{{"worktree", changed}, {"untracked", untracked}} {
+		sort.Strings(group.paths)
+		for _, relative := range group.paths {
+			if !fingerprintPath(relative) {
+				continue
+			}
+			if err := hashWorkingFile(hash, root, relative, group.name); err != nil {
+				return "", true, err
+			}
+		}
+	}
+	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), true, nil
+}
+
+func gitPathList(root string, arguments ...string) ([]string, error) {
+	data, err := exec.Command("git", append([]string{"-C", root}, arguments...)...).Output()
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[string]bool)
+	result := make([]string, 0)
+	for _, raw := range strings.Split(string(data), "\x00") {
+		relative := filepath.ToSlash(strings.TrimSpace(raw))
+		if relative != "" && !seen[relative] {
+			seen[relative] = true
+			result = append(result, relative)
+		}
+	}
+	return result, nil
+}
+
+func hashWorkingFile(hash io.Writer, root, relative, kind string) error {
+	path := filepath.Join(root, filepath.FromSlash(relative))
+	info, err := os.Lstat(path)
+	if os.IsNotExist(err) {
+		_, _ = io.WriteString(hash, kind+"\x00"+filepath.ToSlash(relative)+"\x00deleted\x00")
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() > maxFingerprintFileBytes {
+		return nil
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	fileHash := sha256.New()
+	if _, err := io.Copy(fileHash, file); err != nil {
+		return err
+	}
+	_, _ = io.WriteString(hash, kind+"\x00"+filepath.ToSlash(relative)+"\x00")
+	_, _ = hash.Write(fileHash.Sum(nil))
+	return nil
 }
 
 func gitSourcePaths(root string) ([]string, bool) {
