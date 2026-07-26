@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Lokee86/grimoire/internal/agentruntime"
 	"github.com/Lokee86/grimoire/internal/arcanaevaluation"
 	"github.com/Lokee86/grimoire/internal/arcanagraph"
 	"github.com/Lokee86/grimoire/internal/embedding"
@@ -34,9 +35,9 @@ func runEvalArcana(args []string, stdout, stderr io.Writer) error {
 	state := flags.String("state", "", "prepared Grimoire index repository path")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
 	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
-	lexiconCommand := flags.String("lexicon-command", "lexicon", "Lexicon executable used to export immutable state")
+	lexiconCommand := flags.String("lexicon-command", "", "Lexicon executable override; discovered when omitted")
 	arcanaState := flags.String("arcana-state", "", "Arcana state directory; defaults to <root>/.arcana")
-	arcanaCommand := flags.String("arcana-command", "arcana", "Arcana executable used to synchronize and query graph state")
+	arcanaCommand := flags.String("arcana-command", "", "Arcana executable override; discovered when omitted")
 	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint used by Arcana semantic query")
 	topK := flags.Int("top-k", 0, "override the corpus seed limit; zero uses corpus top_k")
 	recallAtK := flags.String("recall-at-k", "", "override seed recall cutoffs, for example 1,3,6")
@@ -87,11 +88,13 @@ func runEvalArcana(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("load prepared index: %w", err)
 	}
+	resolvedLexiconCommand := agentruntime.ResolveProviderCommand(absoluteRoot, *lexiconCommand, "lexicon")
+	resolvedArcanaCommand := agentruntime.ResolveProviderCommand(absoluteRoot, *arcanaCommand, "arcana")
 
 	setupContext, cancelSetup := context.WithTimeout(context.Background(), *timeout)
 	exportDirectory, lexiconSnapshot, err := lexiconfacts.ResolveExport(setupContext, lexiconfacts.ExportOptions{
 		Root: absoluteRoot, GrimoireState: statePath, ExplicitDirectory: *lexiconFacts,
-		LexiconState: *lexiconState, Command: *lexiconCommand,
+		LexiconState: *lexiconState, Command: resolvedLexiconCommand,
 	})
 	if err != nil {
 		cancelSetup()
@@ -103,7 +106,7 @@ func runEvalArcana(args []string, stdout, stderr io.Writer) error {
 	}
 	arcanaSnapshot, arcanaSnapshotID, err := arcanagraph.ResolveSnapshot(setupContext, arcanagraph.StateOptions{
 		Root: absoluteRoot, State: *arcanaState, LexiconState: *lexiconState,
-		ExpectedLexiconSnapshot: lexiconSnapshot, Command: *arcanaCommand,
+		ExpectedLexiconSnapshot: lexiconSnapshot, Command: resolvedArcanaCommand,
 	})
 	cancelSetup()
 	if err != nil {
@@ -117,14 +120,14 @@ func runEvalArcana(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	client := arcanagraph.Client{Command: *arcanaCommand}
+	client := arcanagraph.Client{Command: resolvedArcanaCommand}
 	providers := arcanaEvaluationProviders{
 		Lexicon: func(query string, limit int) ([]structure.Node, error) {
 			result, searchErr := lexiconfacts.SearchDetailed(prepared, query, exportDirectory, limit)
 			return result.Seeds, searchErr
 		},
 		Semantic: func(ctx context.Context, query string, limit int) ([]structure.Node, error) {
-			return client.SemanticSeeds(ctx, resolvedArcanaState, *endpoint, query, limit)
+			return client.SemanticSeeds(ctx, resolvedArcanaState, arcanaSnapshotID, *endpoint, query, limit)
 		},
 		Graph: func(ctx context.Context, seeds []structure.Node) ([]structure.Evidence, error) {
 			return client.Search(ctx, arcanaSnapshot, seeds)
