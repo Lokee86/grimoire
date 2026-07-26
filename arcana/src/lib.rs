@@ -15,8 +15,12 @@ pub mod vector;
 /// Product name presented by the Arcana library and CLI.
 pub const PROJECT_NAME: &str = "Arcana";
 
-/// Package version supplied by Cargo.
-pub const PROJECT_VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Package version supplied by the release workflow or, for standalone Cargo
+/// builds, by the package manifest.
+pub const PROJECT_VERSION: &str = match option_env!("GRIMOIRE_RELEASE_VERSION") {
+    Some(version) => version,
+    None => env!("CARGO_PKG_VERSION"),
+};
 
 /// Returns the short project description used by integrations.
 pub const fn about() -> &'static str {

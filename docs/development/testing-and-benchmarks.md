@@ -6,6 +6,18 @@ Grimoire uses component-owned unit and integration suites for deterministic cont
 
 The repository contains multiple build roots. A root Go or Cargo command does not verify Lexicon or Arcana automatically.
 
+The portable root orchestration runs each owning suite explicitly and is the
+preferred local smoke path:
+
+```bash
+python scripts/workflow.py test
+python scripts/workflow.py smoke
+```
+
+The smoke command is deterministic and uses temporary fixture files to verify
+archive layout, checksums, combined-bundle contents, and Windows-style DLL
+installation. It does not replace the compiler-backed matrix below.
+
 Grimoire Context and native vector engine, from the repository root:
 
 ```bash

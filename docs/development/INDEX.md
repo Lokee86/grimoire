@@ -3,6 +3,7 @@
 Development documentation defines how Grimoire is verified and how retrieval claims are measured.
 
 - [Testing and benchmarks](testing-and-benchmarks.md) — test suites, evaluation commands, and report artifacts.
+- [Release workflow](release-workflow.md) — root orchestration, local installation, version injection, and release artifacts.
 - [Retrieval quality](retrieval-quality.md) — corpus schema, pipeline-loss attribution, and metric interpretation.
 - [Ranking calibration corpus](ranking-calibration-corpus.md) — judged case design and expansion rules.
 

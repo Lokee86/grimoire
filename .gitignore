@@ -11,3 +11,7 @@ coverage.out
 /native/vector-engine/target/
 /.tmp/
 /bin/
+/build/
+/dist/
+__pycache__/
+*.pyc

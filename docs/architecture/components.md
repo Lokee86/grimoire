@@ -82,14 +82,13 @@ The canonical source of truth is now:
 - `github.com/Lokee86/grimoire/arcana`
 - `github.com/Lokee86/grimoire/lexicon`
 
-## Release direction
+## Release workflow
 
-The immediate consolidation changes source ownership, not every distribution surface. Current CLIs and state directories remain valid. Follow-up work may provide:
-
-- one coordinated release manifest;
-- root-level build and test orchestration;
-- component-specific release artifacts;
-- optional subtree mirrors for compatibility;
-- one Grimoire installer that can install any subset of the components.
-
-Those are release tasks, not reasons to weaken the component APIs now.
+The root `scripts/workflow.py` command coordinates builds and tests while
+delegating compilation to each component's existing Go or Cargo build root.
+`build` produces a collected layout, `install` copies the three CLI binaries
+and the native library into a caller-selected bin directory, and `release`
+creates independently usable component archives plus a combined bundle and
+SHA-256 checksums. These conveniences do not merge component APIs or state
+ownership; each application remains directly buildable and usable from its
+own directory.

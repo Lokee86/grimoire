@@ -92,30 +92,45 @@ See [System overview](docs/architecture/system-overview.md).
 
 ## Build
 
-The components keep separate build boundaries inside the monorepo.
-
-Grimoire Context requires Go 1.26.5 and Rust 1.90 or newer:
+The components keep separate build boundaries inside the monorepo. The root
+workflow delegates to each owning Go or Cargo project and collects the outputs
+without turning the repository into one build system. It requires Python,
+Go 1.26.5, and Rust 1.90 or newer:
 
 ```bash
-cargo build --manifest-path native/vector-engine/Cargo.toml -p grimoire-vector-ffi --release
+python scripts/workflow.py build --version 0.1.0-dev
+```
+
+The default output is `build/`, containing `bin/grimoire`, `bin/lexicon`,
+`bin/arcana`, and `native/grimoire_vector_ffi` plus the native vector CLI.
+On Windows the executable and library names have `.exe` and `.dll` suffixes.
+The component build roots remain independently usable:
+
+```bash
 go build ./cmd/grimoire
+cd lexicon && go build -o bin/lexicon ./cmd/lexicon
+cd ../arcana && cargo build --release
+cargo build --manifest-path native/vector-engine/Cargo.toml -p grimoire-vector-ffi --release
 ```
 
-Lexicon:
+Run all owning test suites from the root:
 
 ```bash
-cd lexicon
-go build -o bin/lexicon ./cmd/lexicon
+python scripts/workflow.py test
 ```
 
-Arcana:
+For a local install, select the destination explicitly. The native vector
+library is copied beside `grimoire`, including the Windows DLL, so the existing
+discovery rules work without setting `GRIMOIRE_VECTOR_ENGINE`:
 
 ```bash
-cd arcana
-cargo build --release
+python scripts/workflow.py install --source build --bin-dir /path/to/bin
+# Windows example:
+python scripts/workflow.py install --source build --bin-dir C:/Users/<user>/bin
 ```
 
-On Windows, the native vector build produces `native/vector-engine/target/release/grimoire_vector_ffi.dll`. Grimoire discovers the DLL in the workspace, beside the executable, or through `GRIMOIRE_VECTOR_ENGINE`.
+Use `py -3` instead of `python` when that is the Windows launcher configured on
+the machine.
 
 ## Quick start
 
@@ -210,17 +225,18 @@ Reference documentation describes implemented behavior. Unimplemented work belon
 
 ## Development
 
-Run each component from its own build root:
+The root smoke check validates release layout, deterministic archives, version
+validation, and Windows-style installation paths without requiring a compiler:
 
 ```bash
-go test ./...
-cargo test --manifest-path native/vector-engine/Cargo.toml
-
-cd lexicon && python evaluation/run_tests.py
-cd ../arcana && cargo test --all-targets
+python scripts/workflow.py smoke
 ```
 
-Evaluation commands and checked-in report conventions for the context engine are documented in [Testing and benchmarks](docs/development/testing-and-benchmarks.md).
+The complete component matrix is run with `python scripts/workflow.py test`.
+Evaluation commands and checked-in report conventions for the context engine
+are documented in [Testing and benchmarks](docs/development/testing-and-benchmarks.md).
+Release packaging and artifact verification are documented in
+[Release workflow](docs/development/release-workflow.md).
 
 ## Current status
 

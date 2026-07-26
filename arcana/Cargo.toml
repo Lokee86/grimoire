@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "An independent repository-graph foundation"
 publish = false
+build = "build.rs"
 
 [lib]
 name = "arcana"

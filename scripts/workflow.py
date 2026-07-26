@@ -1,0 +1,307 @@
+#!/usr/bin/env python3
+"""Root build, test, install, and release workflow for the Grimoire monorepo."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import platform
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import zipfile
+from pathlib import Path
+from typing import Iterable, Sequence
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_BUILD = ROOT / "build"
+DEFAULT_DIST = ROOT / "dist"
+VERSION_PATTERN = re.compile(r"^[0-9A-Za-z][0-9A-Za-z.+_-]*$")
+
+
+def executable_name(name: str, platform_name: str | None = None) -> str:
+    return name + ".exe" if (platform_name or platform.system()).lower() == "windows" else name
+
+
+def native_library_name(platform_name: str | None = None) -> str:
+    name = (platform_name or platform.system()).lower()
+    if name == "windows":
+        return "grimoire_vector_ffi.dll"
+    if name == "darwin":
+        return "libgrimoire_vector_ffi.dylib"
+    return "libgrimoire_vector_ffi.so"
+
+
+def target_label(platform_name: str | None = None, machine: str | None = None) -> str:
+    system = (platform_name or platform.system()).lower()
+    machine_name = (machine or platform.machine()).lower().replace(" ", "-")
+    aliases = {"amd64": "x86_64", "x64": "x86_64", "arm64": "aarch64"}
+    return f"{system}-{aliases.get(machine_name, machine_name)}"
+
+
+def validate_version(version: str) -> str:
+    if not VERSION_PATTERN.fullmatch(version):
+        raise ValueError("version must contain only letters, numbers, '.', '+', '_', or '-'")
+    return version
+
+
+def run(command: Sequence[str], cwd: Path, env: dict[str, str] | None = None) -> None:
+    print("+", " ".join(str(part) for part in command))
+    subprocess.run(list(command), cwd=cwd, env=env, check=True)
+
+
+def cargo_command() -> str:
+    found = shutil.which("cargo")
+    if found:
+        return found
+    candidate = Path.home() / ".cargo" / "bin" / executable_name("cargo")
+    if candidate.is_file():
+        return str(candidate)
+    raise FileNotFoundError("cargo executable not found on PATH or in ~/.cargo/bin")
+
+
+def copy_file(source: Path, destination: Path) -> None:
+    if not source.is_file():
+        raise FileNotFoundError(f"expected build output was not found: {source}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+
+
+def write_utf8(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(content.encode("utf-8"))
+
+
+def build(version: str, output: Path) -> Path:
+    """Build every owning component into one disposable layout."""
+    validate_version(version)
+    output = output.resolve()
+    if output == ROOT:
+        raise ValueError("build output must not replace the source tree")
+    if output.exists():
+        shutil.rmtree(output)
+    bin_dir = output / "bin"
+    native_dir = output / "native"
+    bin_dir.mkdir(parents=True)
+    native_dir.mkdir(parents=True)
+
+    go_ldflags = f"-X github.com/Lokee86/grimoire/internal/app.Version={version}"
+    run(
+        ["go", "build", "-trimpath", "-buildvcs=false", "-ldflags", go_ldflags,
+         "-o", str(bin_dir / executable_name("grimoire")), "./cmd/grimoire"],
+        ROOT,
+    )
+
+    lexicon_ldflags = f"-X github.com/Lokee86/lexicon/internal/cli.version={version}"
+    run(
+        ["go", "build", "-trimpath", "-buildvcs=false", "-ldflags", lexicon_ldflags,
+         "-o", str(bin_dir / executable_name("lexicon")), "./cmd/lexicon"],
+        ROOT / "lexicon",
+    )
+
+    release_env = os.environ.copy()
+    release_env["GRIMOIRE_RELEASE_VERSION"] = version
+    cargo = cargo_command()
+    run(
+        [cargo, "build", "--release", "--locked", "--manifest-path", str(ROOT / "arcana" / "Cargo.toml")],
+        ROOT,
+        release_env,
+    )
+    copy_file(ROOT / "arcana" / "target" / "release" / executable_name("arcana"), bin_dir / executable_name("arcana"))
+
+    native_manifest = ROOT / "native" / "vector-engine" / "Cargo.toml"
+    run([cargo, "build", "--release", "--locked", "--manifest-path", str(native_manifest), "-p", "grimoire-vector-ffi"], ROOT, release_env)
+    run([cargo, "build", "--release", "--locked", "--manifest-path", str(native_manifest), "-p", "grimoire-vector-cli"], ROOT, release_env)
+    native_target = ROOT / "native" / "vector-engine" / "target" / "release"
+    copy_file(native_target / native_library_name(), native_dir / native_library_name())
+    copy_file(native_target / executable_name("grimoire-vector"), native_dir / executable_name("grimoire-vector"))
+
+    verify_versions(output, version)
+    return output
+
+
+def verify_versions(build_root: Path, version: str) -> None:
+    """Exercise all three version commands after a build."""
+    commands = [
+        ([build_root / "bin" / executable_name("grimoire"), "version"], version),
+        ([build_root / "bin" / executable_name("lexicon"), "version"], f"lexicon version {version}"),
+        ([build_root / "bin" / executable_name("arcana"), "--version"], f"Arcana {version}"),
+    ]
+    for command, expected in commands:
+        completed = subprocess.run(command, cwd=build_root, check=True, capture_output=True, text=True)
+        actual = completed.stdout.strip()
+        if actual != expected:
+            raise RuntimeError(f"{command[0]} reported {actual!r}; expected {expected!r}")
+
+
+def test() -> None:
+    """Run each component's owning test command from its own build root."""
+    cargo = cargo_command()
+    run(["go", "test", "./..."], ROOT)
+    run(["go", "test", "./..."], ROOT / "lexicon")
+    run([cargo, "test", "--all-targets", "--locked", "--manifest-path", str(ROOT / "arcana" / "Cargo.toml")], ROOT)
+    run([cargo, "test", "--workspace", "--locked", "--manifest-path", str(ROOT / "native" / "vector-engine" / "Cargo.toml")], ROOT)
+
+
+def install(source: Path, bin_dir: Path) -> None:
+    """Install the combined build layout beside the caller-selected bin directory."""
+    source = source.resolve()
+    bin_dir = bin_dir.resolve()
+    source_bin = source / "bin"
+    source_native = source / "native"
+    required = [executable_name(name) for name in ("grimoire", "lexicon", "arcana")]
+    for name in required:
+        if not (source_bin / name).is_file():
+            raise FileNotFoundError(f"combined build is missing {source_bin / name}")
+    library = source_native / native_library_name()
+    if not library.is_file():
+        raise FileNotFoundError(f"combined build is missing {library}")
+
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    for name in required:
+        copy_file(source_bin / name, bin_dir / name)
+    # The DLL/shared library is deliberately beside grimoire so the existing
+    # discovery rules work without setting GRIMOIRE_VECTOR_ENGINE.
+    copy_file(library, bin_dir / library.name)
+    print(f"installed grimoire, lexicon, arcana, and {library.name} to {bin_dir}")
+
+
+def _fixed_zip(source: Path, archive: Path) -> None:
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    executable_names = {
+        "grimoire", "grimoire.exe", "lexicon", "lexicon.exe",
+        "arcana", "arcana.exe", "grimoire-vector", "grimoire-vector.exe",
+        "install.py",
+    }
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as output:
+        for path in sorted(source.rglob("*")):
+            if not path.is_file():
+                continue
+            relative = path.relative_to(source).as_posix()
+            info = zipfile.ZipInfo(relative, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            mode = 0o100755 if path.name in executable_names else 0o100644
+            info.external_attr = mode << 16
+            output.writestr(info, path.read_bytes())
+
+
+def _stage_files(stage: Path, files: Iterable[tuple[Path, str]], version: str) -> None:
+    stage.mkdir(parents=True, exist_ok=True)
+    for source, relative in files:
+        copy_file(source, stage / relative)
+    write_utf8(stage / "VERSION", version + "\n")
+
+
+def package_artifacts(build_root: Path, output: Path, version: str, platform_name: str | None = None, machine: str | None = None) -> Path:
+    """Create independent component archives, a combined archive, and SHA-256 sums."""
+    validate_version(version)
+    build_root = build_root.resolve()
+    output = output.resolve()
+    release_root = output / version
+    if release_root.exists():
+        shutil.rmtree(release_root)
+    release_root.mkdir(parents=True)
+    target = target_label(platform_name, machine)
+    exe = lambda name: executable_name(name, platform_name)
+    library = native_library_name(platform_name)
+    archives: list[Path] = []
+
+    with tempfile.TemporaryDirectory(prefix="grimoire-release-") as temporary:
+        staging = Path(temporary)
+        specs = {
+            "grimoire": [(build_root / "bin" / exe("grimoire"), exe("grimoire")),
+                         (build_root / "native" / library, library)],
+            "lexicon": [(build_root / "bin" / exe("lexicon"), exe("lexicon"))],
+            "arcana": [(build_root / "bin" / exe("arcana"), exe("arcana"))],
+            "vector-engine": [(build_root / "native" / library, library),
+                               (build_root / "native" / exe("grimoire-vector"), exe("grimoire-vector"))],
+        }
+        for component, files in specs.items():
+            component_stage = staging / component
+            _stage_files(component_stage, files, version)
+            archive = release_root / f"{component}-{version}-{target}.zip"
+            _fixed_zip(component_stage, archive)
+            archives.append(archive)
+
+        combined_stage = staging / "combined"
+        _stage_files(combined_stage, [], version)
+        for relative in ("bin", "native"):
+            shutil.copytree(build_root / relative, combined_stage / relative)
+        copy_file(ROOT / "scripts" / "install.py", combined_stage / "install.py")
+        combined_archive = release_root / f"grimoire-bundle-{version}-{target}.zip"
+        _fixed_zip(combined_stage, combined_archive)
+        archives.append(combined_archive)
+
+    manifest = {
+        "version": version,
+        "target": target,
+        "artifacts": [archive.name for archive in archives],
+        "combined_layout": {"executables": "bin/", "native_vector_engine": "native/", "installer": "install.py"},
+    }
+    write_utf8(release_root / "release-manifest.json", json.dumps(manifest, indent=2) + "\n")
+    checksum_lines = []
+    for archive in sorted(archives):
+        checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
+        checksum_lines.append(f"{checksum}  {archive.name}")
+    write_utf8(release_root / "SHA256SUMS.txt", "\n".join(checksum_lines) + "\n")
+    return release_root
+
+
+def release(version: str, output: Path) -> Path:
+    validate_version(version)
+    output = output.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="grimoire-release-build-") as temporary:
+        build_root = build(version, Path(temporary) / "build")
+        return package_artifacts(build_root, output, version)
+
+
+def parse_args(argv: Sequence[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    build_parser = subparsers.add_parser("build", help="build all components into one disposable layout")
+    build_parser.add_argument("--version", default="dev")
+    build_parser.add_argument("--output", type=Path, default=DEFAULT_BUILD)
+
+    subparsers.add_parser("test", help="run all component-owned test suites")
+
+    install_parser = subparsers.add_parser("install", help="install a combined build into a selected bin directory")
+    install_parser.add_argument("--source", type=Path, default=DEFAULT_BUILD)
+    install_parser.add_argument("--bin-dir", type=Path, required=True)
+
+    release_parser = subparsers.add_parser("release", help="test, build, package, and checksum a release")
+    release_parser.add_argument("--version", required=True)
+    release_parser.add_argument("--output", type=Path, default=DEFAULT_DIST)
+
+    subparsers.add_parser("smoke", help="run deterministic workflow packaging and install smoke checks")
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parse_args(argv or sys.argv[1:])
+    try:
+        if args.command == "build":
+            build(args.version, args.output)
+        elif args.command == "test":
+            test()
+        elif args.command == "install":
+            install(args.source, args.bin_dir)
+        elif args.command == "release":
+            test()
+            release(args.version, args.output)
+        elif args.command == "smoke":
+            from test_workflow import run_smoke
+            run_smoke()
+    except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as error:
+        print(f"workflow: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

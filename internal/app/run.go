@@ -13,7 +13,8 @@ import (
 	"github.com/Lokee86/grimoire/internal/index"
 )
 
-const Version = "0.1.0-dev"
+// Version is overridden for release builds with Go's -ldflags -X option.
+var Version = "0.1.0-dev"
 
 type stringListFlag []string
 
