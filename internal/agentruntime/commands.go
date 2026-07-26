@@ -25,6 +25,11 @@ func adjacentCommand(name string) string {
 	return adjacentCommandFrom(executable, name)
 }
 
+// ResolveProviderCommand applies the shared explicit/configured/adjacent/checkout/PATH discovery order.
+func ResolveProviderCommand(root, requested, name string) string {
+	return resolveProviderCommand(root, requested, name)
+}
+
 func resolveProviderCommand(root, requested, name string) string {
 	if requested = strings.TrimSpace(requested); requested != "" {
 		return requested
