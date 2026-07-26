@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io"
+	"os"
 
 	"github.com/Lokee86/grimoire/internal/repostate"
 )
@@ -13,7 +15,7 @@ func runStatus(args []string, stdout, stderr io.Writer) error {
 	flags.SetOutput(stderr)
 	root := flags.String("root", ".", "repository root")
 	refresh := flags.Bool("refresh", false, "refresh missing or stale repository state")
-	force := flags.Bool("force", false, "force-refresh Lexicon, Arcana, and Grimoire state")
+	force := flags.Bool("force", false, "force-refresh Lexicon, Arcana, Grimoire source, and knowledge state")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -24,7 +26,15 @@ func runStatus(args []string, stdout, stderr io.Writer) error {
 	if *force {
 		mode = repostate.ForceRefresh
 	}
-	status, err := repostate.Ensure(context.Background(), repostate.Options{Root: *root, Mode: mode})
+	options := repostate.Options{Root: *root, Mode: mode}
+	if mode != repostate.CurrentOnly {
+		current, executableErr := os.Executable()
+		if executableErr != nil {
+			return fmt.Errorf("resolve current Grimoire executable: %w", executableErr)
+		}
+		options.GrimoireCommand = current
+	}
+	status, err := repostate.Ensure(context.Background(), options)
 	if status.Version != 0 {
 		if writeErr := writeJSON(stdout, status); writeErr != nil && err == nil {
 			return writeErr
