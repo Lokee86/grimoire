@@ -83,8 +83,9 @@ impl ProtocolSnapshot {
             RequestCommand::ListNodes {
                 kind,
                 path_prefix,
+                offset,
                 limit,
-            } => self.list_nodes(kind.as_deref(), path_prefix.as_deref(), limit),
+            } => self.list_nodes(kind.as_deref(), path_prefix.as_deref(), offset, limit),
             RequestCommand::Neighbors {
                 node_id,
                 direction,

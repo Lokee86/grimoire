@@ -27,6 +27,7 @@ pub(crate) enum RequestCommand {
     ListNodes {
         kind: Option<String>,
         path_prefix: Option<String>,
+        offset: Option<usize>,
         limit: Option<usize>,
     },
     Neighbors {

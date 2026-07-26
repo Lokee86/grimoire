@@ -56,6 +56,7 @@ impl ProtocolSnapshot {
         &self,
         kind: Option<&str>,
         path_prefix: Option<&str>,
+        offset: Option<usize>,
         limit: Option<usize>,
     ) -> Result<Value, RequestFailure> {
         let kind = parse_kind(kind)?;
@@ -77,7 +78,7 @@ impl ProtocolSnapshot {
                 intersect_sorted_ids(&path_ids, self.catalogue.node_ids_by_kind(&kind))
             }
         };
-        Ok(node_list(self, matches, limit))
+        Ok(node_list_page(self, matches, offset, limit))
     }
 
     pub(crate) fn neighbors(
@@ -202,10 +203,21 @@ impl ProtocolSnapshot {
 }
 
 fn node_list(snapshot: &ProtocolSnapshot, matches: Vec<NodeId>, limit: Option<usize>) -> Value {
+    node_list_page(snapshot, matches, None, limit)
+}
+
+fn node_list_page(
+    snapshot: &ProtocolSnapshot,
+    matches: Vec<NodeId>,
+    offset: Option<usize>,
+    limit: Option<usize>,
+) -> Value {
     let total = matches.len();
+    let offset = offset.unwrap_or(0).min(total);
     let limit = bounded_limit(limit);
     let nodes = matches
         .into_iter()
+        .skip(offset)
         .take(limit)
         .map(|node_id| {
             node_value(
@@ -215,10 +227,14 @@ fn node_list(snapshot: &ProtocolSnapshot, matches: Vec<NodeId>, limit: Option<us
             )
         })
         .collect::<Vec<_>>();
+    let next_offset = offset + nodes.len();
+    let truncated = next_offset < total;
     json!({
         "count": total,
+        "offset": offset,
         "returned": nodes.len(),
-        "truncated": total > nodes.len(),
+        "truncated": truncated,
+        "next_offset": truncated.then_some(next_offset),
         "nodes": nodes,
     })
 }

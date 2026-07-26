@@ -39,9 +39,23 @@ fn serves_repository_queries_and_snapshot_diffs() {
 
     let nodes = request(
         &snapshot,
-        r#"{"op":"list_nodes","kind":"function","path_prefix":"src"}"#,
+        r#"{"op":"list_nodes","kind":"function","path_prefix":"src","limit":1}"#,
     );
     assert_eq!(nodes["result"]["count"], 2);
+    assert_eq!(nodes["result"]["offset"], 0);
+    assert_eq!(nodes["result"]["returned"], 1);
+    assert_eq!(nodes["result"]["truncated"], true);
+    assert_eq!(nodes["result"]["next_offset"], 1);
+
+    let next_nodes = request(
+        &snapshot,
+        r#"{"op":"list_nodes","kind":"function","path_prefix":"src","offset":1,"limit":1}"#,
+    );
+    assert_eq!(next_nodes["result"]["count"], 2);
+    assert_eq!(next_nodes["result"]["offset"], 1);
+    assert_eq!(next_nodes["result"]["returned"], 1);
+    assert_eq!(next_nodes["result"]["truncated"], false);
+    assert_eq!(next_nodes["result"]["next_offset"], Value::Null);
 
     let neighbors = request(
         &snapshot,
