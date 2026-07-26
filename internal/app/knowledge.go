@@ -10,12 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/knowledge"
+	"github.com/Lokee86/grimoire/internal/knowledgevector"
 )
 
 func runKnowledge(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("expected knowledge command: index, search, or inspect")
+		return errors.New("expected knowledge command: index, search, inspect, or vector")
 	}
 	switch args[0] {
 	case "index":
@@ -24,6 +26,8 @@ func runKnowledge(args []string, stdout, stderr io.Writer) error {
 		return runKnowledgeSearch(args[1:], stdout, stderr)
 	case "inspect":
 		return runKnowledgeInspect(args[1:], stdout, stderr)
+	case "vector":
+		return runKnowledgeVector(args[1:], stdout, stderr)
 	default:
 		return fmt.Errorf("unknown knowledge command %q", args[0])
 	}
@@ -90,11 +94,15 @@ func runKnowledgeSearch(args []string, stdout, stderr io.Writer) error {
 	commit := flags.String("commit", "", "commit identity filter")
 	since := flags.String("since", "", "minimum commit time in RFC3339 format")
 	until := flags.String("until", "", "maximum commit time in RFC3339 format")
+	useVectors := flags.Bool("vectors", true, "supplement BM25 with the current documentation vector snapshot")
+	endpoint := flags.String("endpoint", embedding.DefaultEndpoint, "OpenAI-compatible embeddings endpoint")
+	enginePath := flags.String("engine", "", "Rust vector engine DLL")
+	timeout := flags.Duration("timeout", 2*time.Minute, "knowledge search timeout")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if strings.TrimSpace(*query) == "" || *topK <= 0 {
-		return errors.New("--query and positive --top-k are required")
+	if strings.TrimSpace(*query) == "" || *topK <= 0 || *timeout <= 0 {
+		return errors.New("--query, positive --top-k, and positive --timeout are required")
 	}
 	statePath, err := resolveKnowledgeState(*root, *state)
 	if err != nil {
@@ -111,7 +119,12 @@ func runKnowledgeSearch(args []string, stdout, stderr io.Writer) error {
 	if options.Until, err = parseKnowledgeTime(*until); err != nil {
 		return fmt.Errorf("--until: %w", err)
 	}
-	response, err := knowledge.Search(context.Background(), index, *query, options)
+	if *useVectors && knowledgevector.Available(statePath) {
+		options.Vector = knowledgevector.Ranker{State: statePath, Index: index, Endpoint: *endpoint, EnginePath: *enginePath}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
+	response, err := knowledge.Search(ctx, index, *query, options)
 	if err != nil {
 		return err
 	}

@@ -53,7 +53,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	case "model":
 		return runModel(args[1:], stdout, stderr)
 	case "vector":
-		return runVector(args[1:], stdout, stderr)
+		return runKnowledgeVector(args[1:], stdout, stderr)
 	case "investigation":
 		return runInvestigation(args[1:], stdout, stderr)
 	case "mcp":
@@ -77,8 +77,8 @@ Core workflow:
   grimoire model start                 Start the managed embedding service
   grimoire index --root .              Prepare source and Lexicon-aligned chunks
   grimoire knowledge index --root .    Index repository rationale and documentation
-  grimoire knowledge search --query .  Cite exact knowledge sections with BM25
-  grimoire vector build --root .       Build or refresh semantic vectors
+  grimoire knowledge search --query .  Retrieve cited documentation with BM25 and vectors
+  grimoire vector build --root .       Build or refresh documentation vectors
   grimoire query orient --root .       Discover compact repository anchors
   grimoire query trace --anchor <id>   Expand an exact structural handle
   grimoire mcp --root .                Serve the progressive agent tool over stdio
@@ -89,8 +89,8 @@ Commands:
   context   Build a context package
   index     Prepare repository source state
   status    Inspect or prepare repository analysis state
-  knowledge Index, search, or inspect repository knowledge
-  vector    Build, search, or inspect vector state
+  knowledge Index, search, inspect, or vectorize repository knowledge
+  vector    Build or inspect documentation vector state
   investigation  Create, inspect, or close an agent investigation ledger session
   mcp       Serve the unified progressive agent query tool over stdio
   model     Set up and manage the embedding runtime

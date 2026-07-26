@@ -153,8 +153,8 @@ func TestIndexThenCompileContext(t *testing.T) {
 	if result.Selections[0].RetrievalSource != "lexical" || result.Selections[0].RetrievalRank != 1 {
 		t.Fatalf("unexpected fallback provenance: %+v", result.Selections[0])
 	}
-	if !bytes.Contains(contextErrors.Bytes(), []byte("using lexical fallback")) {
-		t.Fatalf("expected fallback warning, got %q", contextErrors.String())
+	if contextErrors.Len() != 0 {
+		t.Fatalf("unexpected context warning: %q", contextErrors.String())
 	}
 }
 

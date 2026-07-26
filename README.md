@@ -43,8 +43,8 @@ See [Component architecture](docs/architecture/components.md) for ownership, dep
 - Incremental prepared indexing with immutable content identities.
 - Local Qwen3 embeddings served by a managed `llama.cpp` runtime.
 - CPU, Vulkan, and CUDA runtime selection on Windows x64.
-- Packed native vector snapshots with deterministic exact search.
-- Lexical fallback when semantic state is missing, stale, or unavailable.
+- Packed native documentation-vector snapshots with deterministic exact search.
+- Deterministic BM25 source retrieval, exact recovery, Lexicon facts, and Arcana graph evidence.
 - Exact recovery for concrete paths, symbols, and identifiers.
 - Progressive agent queries for orientation, code-first search, graph trace, impact, and exact handle inspection.
 - A single stdio MCP tool that automatically refreshes deterministic state, separates code evidence from repository knowledge, and returns stable expansion handles.
@@ -73,24 +73,19 @@ See [Component architecture](docs/architecture/components.md) for ownership, dep
 Repository preparation and context construction remain explicit stages:
 
 ```text
-Repository
+Repository source
   -> Grimoire prepared source index
-  -> embedding batches
-  -> content-addressed vector objects
-  -> packed vector snapshot
+  -> lexical and exact retrieval
+  -> Lexicon facts and Arcana graph evidence
+  -> deterministic context package
 
-Repository
-  -> Lexicon immutable analysis snapshot
-  -> Arcana immutable graph snapshot
-  -> optional Arcana semantic graph index through the shared embedding server
+Repository documentation
+  -> independent knowledge index
+  -> BM25 plus optional documentation vectors
+  -> cited knowledge sections
 
-Query
-  -> semantic, lexical, exact, and structural retrieval
-  -> candidate merge and deterministic ranking
-  -> query-shape analysis
-  -> automatic policy activation or explicit fixed budget
-  -> evidence-aware assembly
-  -> versioned context package
+Arcana graph snapshot
+  -> optional semantic graph index through the shared embedding server
 ```
 
 See [System overview](docs/architecture/system-overview.md).
@@ -137,12 +132,15 @@ grimoire model setup
 grimoire model start
 ```
 
-Prepare and vectorize a repository:
+Prepare source and documentation state, then optionally vectorize documentation:
 
 ```bash
 grimoire index --root .
+grimoire knowledge index --root .
 grimoire vector build --root .
 ```
+
+Source retrieval does not require or consume repository-wide code embeddings. `grimoire vector build` owns only the independent documentation knowledge lane.
 
 Inspect or automatically prepare deterministic analysis state without building vectors:
 
@@ -228,4 +226,4 @@ Evaluation commands and checked-in report conventions for the context engine are
 
 The source trees and histories of Lexicon and Arcana are consolidated into Grimoire. The components still publish separate state, expose separate advanced CLIs, and retain explicit ownership boundaries, while the normal Grimoire workflow discovers and consumes their repository-local state automatically.
 
-Grimoire has working prepared indexing, managed local embedding setup and service control, vector persistence and search, source and structural retrieval, adaptive context assembly, and judged evaluation. Lexicon and Arcana retain their existing standalone behavior inside `lexicon/` and `arcana/`.
+Grimoire has working prepared indexing, managed local embedding setup and service control, documentation-vector persistence, deterministic source and structural retrieval, adaptive context assembly, and judged evaluation. Lexicon and Arcana retain their existing standalone behavior inside `lexicon/` and `arcana/`.

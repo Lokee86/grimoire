@@ -14,7 +14,7 @@ type Engine struct {
 	library *Library
 	handle  uint64
 
-	mu     sync.RWMutex
+	mu     sync.Mutex
 	closed bool
 }
 
@@ -28,8 +28,8 @@ type ffiResult struct {
 }
 
 func (engine *Engine) Info() (Info, error) {
-	engine.mu.RLock()
-	defer engine.mu.RUnlock()
+	engine.mu.Lock()
+	defer engine.mu.Unlock()
 	if engine.closed {
 		return Info{}, errors.New("vector snapshot is closed")
 	}
@@ -55,8 +55,8 @@ func (engine *Engine) Info() (Info, error) {
 }
 
 func (engine *Engine) Search(query []float32, topK int) ([]Hit, error) {
-	engine.mu.RLock()
-	defer engine.mu.RUnlock()
+	engine.mu.Lock()
+	defer engine.mu.Unlock()
 	if engine.closed {
 		return nil, errors.New("vector snapshot is closed")
 	}

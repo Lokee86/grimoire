@@ -10,8 +10,10 @@ import (
 	"unicode/utf8"
 
 	"github.com/Lokee86/grimoire/internal/agentquery"
+	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/investigation"
 	"github.com/Lokee86/grimoire/internal/knowledge"
+	"github.com/Lokee86/grimoire/internal/knowledgevector"
 	"github.com/Lokee86/grimoire/internal/repostate"
 )
 
@@ -250,7 +252,11 @@ func retrieveKnowledge(ctx context.Context, request Request, statePath string, p
 	if topK <= 0 || topK > 8 {
 		topK = 8
 	}
-	searched, err := knowledge.Search(ctx, current, query, knowledge.SearchOptions{TopK: topK})
+	searchOptions := knowledge.SearchOptions{TopK: topK}
+	if knowledgevector.Available(knowledgeState) {
+		searchOptions.Vector = knowledgevector.Ranker{State: knowledgeState, Index: current, Endpoint: embedding.DefaultEndpoint}
+	}
+	searched, err := knowledge.Search(ctx, current, query, searchOptions)
 	if err != nil {
 		return nil, nil, fmt.Errorf("search knowledge: %w", err)
 	}

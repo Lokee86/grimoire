@@ -24,7 +24,7 @@ Arcana does not own language adapters, the embedding model runtime, or Grimoire'
 
 Location: repository root, primarily `cmd/grimoire`, `internal`, and `native/vector-engine`.
 
-The context engine owns source preparation, the shared embedding model runtime, source-vector storage, exact and lexical retrieval, structural-provider orchestration, deterministic ranking, query-shape analysis, evidence assembly, token accounting, and context-package serialization.
+The context engine owns source preparation, the shared embedding model runtime, deterministic exact and lexical source retrieval, independent documentation knowledge and vector state, structural-provider orchestration, deterministic ranking, query-shape analysis, evidence assembly, token accounting, and context-package serialization.
 
 It consumes Lexicon and Arcana through their application and state contracts rather than importing their domain internals.
 
@@ -58,7 +58,7 @@ The components continue to publish separate repository-local state:
 
 - `.lexicon/` — immutable language-analysis state.
 - `.arcana/` — immutable graph state plus optional snapshot- and model-bound semantic graph indexes.
-- `.grimoire/` — prepared source and vector state.
+- `.grimoire/` — prepared source state, investigation state, and independent documentation knowledge state; optional documentation vectors live under `.grimoire/knowledge/vectors/`.
 
 Co-location does not permit one component to mutate another component's state format directly. Integration occurs through versioned manifests, exports, protocols, and explicit command boundaries.
 

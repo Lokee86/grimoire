@@ -7,16 +7,17 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/compiler"
+	"github.com/Lokee86/grimoire/internal/knowledge"
+	"github.com/Lokee86/grimoire/internal/knowledgevector"
 	"github.com/Lokee86/grimoire/internal/vectorstore"
 )
 
-func TestVectorBuildReusesObjectsAndSearches(t *testing.T) {
+func TestKnowledgeVectorBuildReusesObjectsAndSearches(t *testing.T) {
 	if _, err := vectorstore.FindLibrary(""); err != nil {
 		t.Skipf("Rust vector DLL is not built: %v", err)
 	}
@@ -47,11 +48,22 @@ func TestVectorBuildReusesObjectsAndSearches(t *testing.T) {
 	defer server.Close()
 
 	root := t.TempDir()
-	content := "package damage\n\nfunc ResolveDamage() int { return 10 }\n"
-	if err := os.WriteFile(filepath.Join(root, "damage.go"), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "damage.go"), []byte("package damage\n\nfunc ResolveDamage() int { return 10 }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "docs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "docs", "damage.md"), []byte("# Damage resolution\n\nDamage is resolved by ResolveDamage before health is updated.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "docs", "architecture.md"), []byte("# Architecture\n\nThe repository separates source analysis from documentation knowledge.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := Run([]string{"knowledge", "index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -59,61 +71,52 @@ func TestVectorBuildReusesObjectsAndSearches(t *testing.T) {
 	if err := Run([]string{"vector", "build", "--root", root, "--endpoint", server.URL}, &first, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	var firstBuild struct {
-		PreparedIdentity string `json:"prepared_identity"`
-		Embedded         int    `json:"embedded"`
-		Reused           int    `json:"reused"`
-	}
+	var firstBuild knowledgevector.BuildResult
 	if err := json.Unmarshal(first.Bytes(), &firstBuild); err != nil {
 		t.Fatal(err)
 	}
-	if firstBuild.PreparedIdentity == "" || firstBuild.Embedded != 1 || firstBuild.Reused != 0 {
+	if firstBuild.KnowledgeIdentity == "" || firstBuild.Sections != 2 || firstBuild.EmbeddedVectors != 2 || firstBuild.ReusedVectors != 0 {
 		t.Fatalf("unexpected first build: %+v", firstBuild)
 	}
-	if _, err := os.Stat(resolveVectorPaths(filepath.Join(root, ".grimoire")).Manifest); err != nil {
-		t.Fatalf("vector snapshot manifest was not published: %v", err)
+	knowledgeState, err := knowledge.DefaultState(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(knowledgevector.ResolvePaths(knowledgeState).Manifest); err != nil {
+		t.Fatalf("knowledge vector manifest was not published: %v", err)
 	}
 
 	var second bytes.Buffer
 	if err := Run([]string{"vector", "build", "--root", root, "--endpoint", server.URL}, &second, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	var secondBuild struct {
-		Embedded int `json:"embedded"`
-		Reused   int `json:"reused"`
-	}
+	var secondBuild knowledgevector.BuildResult
 	if err := json.Unmarshal(second.Bytes(), &secondBuild); err != nil {
 		t.Fatal(err)
 	}
-	if secondBuild.Embedded != 0 || secondBuild.Reused != 1 {
+	if secondBuild.EmbeddedVectors != 0 || secondBuild.ReusedVectors != 2 || !secondBuild.CachedSnapshot {
 		t.Fatalf("unexpected second build: %+v", secondBuild)
 	}
 
 	var output bytes.Buffer
 	if err := Run([]string{
-		"vector", "search", "--root", root,
-		"--endpoint", server.URL, "--query", "where is damage resolved", "--top-k", "1",
+		"knowledge", "search", "--root", root, "--endpoint", server.URL,
+		"--query", "how is damage resolved", "--top-k", "1",
 	}, &output, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	var result struct {
-		Results []struct {
-			Path  string  `json:"path"`
-			Score float32 `json:"score"`
-		} `json:"results"`
-	}
+	var result knowledge.SearchResponse
 	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Results) != 1 || result.Results[0].Path != "damage.go" || result.Results[0].Score < 0.99 {
-		t.Fatalf("unexpected vector search: %+v", result.Results)
+	if !result.VectorUsed || result.VectorError != "" || len(result.Results) != 1 || result.Results[0].Path != "docs/damage.md" {
+		t.Fatalf("unexpected knowledge vector search: %+v", result)
 	}
 
-	var contextOutput bytes.Buffer
-	var contextErrors bytes.Buffer
+	var contextOutput, contextErrors bytes.Buffer
 	if err := Run([]string{
-		"context", "--root", root, "--endpoint", server.URL,
-		"--query", "where is damage resolved", "--candidate-limit", "1", "--budget", "500",
+		"context", "--root", root, "--query", "where is damage resolved",
+		"--candidate-limit", "1", "--budget", "500", "--structure=false",
 	}, &contextOutput, &contextErrors); err != nil {
 		t.Fatal(err)
 	}
@@ -121,58 +124,31 @@ func TestVectorBuildReusesObjectsAndSearches(t *testing.T) {
 	if err := json.Unmarshal(contextOutput.Bytes(), &contextPackage); err != nil {
 		t.Fatal(err)
 	}
-	if contextErrors.Len() != 0 {
-		t.Fatalf("unexpected context warning: %s", contextErrors.String())
-	}
-	if !slices.Contains(contextPackage.RetrievalSources, "lexical") ||
-		!slices.Contains(contextPackage.RetrievalSources, "vector") {
-		t.Fatalf("expected fused lexical and vector retrieval, got %+v", contextPackage.RetrievalSources)
-	}
-	if len(contextPackage.Selections) != 1 {
-		t.Fatalf("expected one fused selection, got %+v", contextPackage.Selections)
-	}
-	selection := contextPackage.Selections[0]
-	if selection.Path != "damage.go" || selection.RetrievalRank != 1 || selection.Score <= 0 ||
-		!slices.Contains(selection.Reasons, "reciprocal-rank fusion from vector rank 1") {
-		t.Fatalf("unexpected fused context selection: %+v", selection)
+	if contextErrors.Len() != 0 || len(contextPackage.RetrievalSources) != 1 || contextPackage.RetrievalSources[0] != "lexical" {
+		t.Fatalf("source context should remain lexical-only: warnings=%q sources=%+v", contextErrors.String(), contextPackage.RetrievalSources)
 	}
 
-	changed := "package damage\n\nfunc ResolveDamage() int { return 20 }\n"
-	if err := os.WriteFile(filepath.Join(root, "damage.go"), []byte(changed), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "docs", "damage.md"), []byte("# Damage resolution\n\nDamage now resolves through ApplyDamage.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+	if err := Run([]string{"knowledge", "index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
 	requestsBeforeStaleSearch := embeddingRequests.Load()
+	output.Reset()
 	if err := Run([]string{
-		"vector", "search", "--root", root,
-		"--endpoint", server.URL, "--query", "where is damage resolved", "--top-k", "1",
-	}, &bytes.Buffer{}, &bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), "vector snapshot was built from prepared index") {
-		t.Fatalf("expected exact stale-vector rejection, got %v", err)
-	}
-	if embeddingRequests.Load() != requestsBeforeStaleSearch {
-		t.Fatal("stale vector search embedded the query before validating freshness")
-	}
-
-	contextOutput.Reset()
-	contextErrors.Reset()
-	if err := Run([]string{
-		"context", "--root", root, "--endpoint", server.URL,
-		"--query", "resolve damage", "--candidate-limit", "1", "--budget", "500",
-	}, &contextOutput, &contextErrors); err != nil {
+		"knowledge", "search", "--root", root, "--endpoint", server.URL,
+		"--query", "how is damage resolved", "--top-k", "1",
+	}, &output, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := json.Unmarshal(contextOutput.Bytes(), &contextPackage); err != nil {
+	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if len(contextPackage.RetrievalSources) != 1 || contextPackage.RetrievalSources[0] != "lexical" {
-		t.Fatalf("expected stale-vector fallback, got %+v", contextPackage.RetrievalSources)
-	}
-	if !strings.Contains(contextErrors.String(), "vector snapshot was built from prepared index") {
-		t.Fatalf("expected exact stale-vector warning, got %q", contextErrors.String())
+	if result.VectorUsed || !strings.Contains(result.VectorError, "knowledge vector snapshot was built from") {
+		t.Fatalf("expected stale knowledge vectors to fall back to BM25: %+v", result)
 	}
 	if embeddingRequests.Load() != requestsBeforeStaleSearch {
-		t.Fatal("stale context retrieval embedded the query before falling back")
+		t.Fatal("stale knowledge vector search embedded the query before validating freshness")
 	}
 }

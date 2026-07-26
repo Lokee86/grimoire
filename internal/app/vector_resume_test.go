@@ -10,10 +10,11 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/knowledgevector"
 	"github.com/Lokee86/grimoire/internal/vectorstore"
 )
 
-func TestVectorBuildResumesAfterFailedBatch(t *testing.T) {
+func TestKnowledgeVectorBuildResumesAfterFailedBatch(t *testing.T) {
 	if _, err := vectorstore.FindLibrary(""); err != nil {
 		t.Skipf("Rust vector DLL is not built: %v", err)
 	}
@@ -47,14 +48,14 @@ func TestVectorBuildResumesAfterFailedBatch(t *testing.T) {
 
 	root := t.TempDir()
 	for name, content := range map[string]string{
-		"alpha.go": "package alpha\n\nfunc Alpha() int { return 1 }\n",
-		"beta.go":  "package beta\n\nfunc Beta() int { return 2 }\n",
+		"alpha.md": "# Alpha\n\nAlpha design rationale.\n",
+		"beta.md":  "# Beta\n\nBeta design rationale.\n",
 	} {
 		if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+	if err := Run([]string{"knowledge", "index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
 	args := []string{
@@ -77,15 +78,11 @@ func TestVectorBuildResumesAfterFailedBatch(t *testing.T) {
 	if requests.Load()-beforeResume != 1 {
 		t.Fatalf("resume made %d requests, expected 1", requests.Load()-beforeResume)
 	}
-	var result struct {
-		Chunks   int `json:"chunks"`
-		Embedded int `json:"embedded"`
-		Reused   int `json:"reused"`
-	}
+	var result knowledgevector.BuildResult
 	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if result.Chunks != 2 || result.Embedded != 1 || result.Reused != 1 {
+	if result.Sections != 2 || result.EmbeddedVectors != 1 || result.ReusedVectors != 1 {
 		t.Fatalf("unexpected resumed build: %+v", result)
 	}
 }

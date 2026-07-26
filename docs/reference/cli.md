@@ -22,7 +22,7 @@ The command emits versioned JSON with Git/source identity, snapshot identities, 
 
 ## `grimoire knowledge`
 
-`knowledge index` builds the independent documentation/rationale index under `<root>/.grimoire/knowledge`; `knowledge search` returns exact cited sections as JSON; and `knowledge inspect` reports state or one document/section. Search is deterministic BM25 and supports path, kind, heading, commit, and commit-time filters. It does not require the embedding runtime or vector state. See [Knowledge retrieval](knowledge.md).
+`knowledge index` builds the independent documentation/rationale index under `<root>/.grimoire/knowledge`; `knowledge search` returns exact cited sections as JSON; `knowledge inspect` reports state or one document/section; and `knowledge vector build|info` owns optional documentation embeddings. Search always uses deterministic BM25 and supplements it with the current documentation vector snapshot when available. Use `--vectors=false` for BM25-only retrieval. See [Knowledge retrieval](knowledge.md).
 
 ## `grimoire investigation`
 
@@ -205,7 +205,7 @@ grimoire index [flags]
 | `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
 | `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
 
-The command prepares Lexicon-aligned declaration chunks when current facts are available, fills every uncovered source region with deterministic fallback chunks, and stores exact token counts. Persistent embeddings are built separately by `grimoire vector build`.
+The command prepares Lexicon-aligned declaration chunks when current facts are available, fills every uncovered source region with deterministic fallback chunks, and stores exact token counts. Source chunks are not embedded; source retrieval is lexical, exact, and structural.
 
 Output:
 
@@ -229,66 +229,40 @@ Output:
 
 ## `grimoire vector build`
 
-Embed missing prepared chunks and publish the current packed vector snapshot:
+Build or refresh the optional documentation vector snapshot for the independent knowledge index:
 
 ```bash
-grimoire vector build [flags]
+grimoire knowledge index --root <repository>
+grimoire vector build --root <repository> [flags]
 ```
+
+`grimoire vector build` is an alias for `grimoire knowledge vector build`. It never embeds source-code chunks.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `--root <path>` | `.` | Repository root |
-| `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
+| `--state <path>` | `<root>/.grimoire/knowledge` | Knowledge-state directory |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
 | `--engine <path>` | discovered DLL | Rust vector-engine library |
-| `--batch-size <n>` | `4` | Documents per embedding request; matches the default four server slots |
-| `--batch-concurrency <n>` | `1` | Concurrent embedding requests; ingestion remains serialized |
+| `--batch-size <n>` | `8` | Documentation sections per embedding request |
+| `--batch-concurrency <n>` | `1` | Concurrent embedding requests; object ingestion remains serialized |
 | `--timeout <duration>` | `30m` | Complete build timeout |
 
-The command returns the existing snapshot immediately when the prepared-index identity and vector manifest already match. Changed builds deduplicate identical chunk text, reuse source identities recorded by the previous manifest without probing the object store, check only newly introduced source hashes, embed only genuinely missing vectors, persist completed batches immediately, and materialize a sorted memory-mapped snapshot. Progress and throughput are written to stderr while the final JSON result remains on stdout.
-
-The local llama.cpp server already distributes one request across its four slots, so the defaults send four documents in one request and avoid competing request queues. Higher request concurrency remains available for remote providers; object-store ingestion stays serialized and deterministic. The result reports chunk and unique-vector counts, embedded and reused counts, object checks, cache-hit status, duration, snapshot size, and peak memory.
-
-## `grimoire vector search`
-
-Run exact semantic search over the packed snapshot:
-
-```bash
-grimoire vector search --query <text> [flags]
-```
-
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--root <path>` | `.` | Repository root used to resolve state |
-| `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
-| `--query <text>` | none | Required semantic query |
-| `--top-k <n>` | `20` | Maximum results |
-| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings base URL |
-| `--engine <path>` | discovered DLL | Rust vector-engine library |
-| `--timeout <duration>` | `2m` | Query embedding timeout |
-| `--query-embedding-mode <mode>` | `fast` | `fast`, `full`, or `quality` query plan |
-| `--query-window-tokens <n>` | `16` | Tokens per split-query window |
-| `--query-batch-tokens <n>` | `64` | Maximum split-query tokens per embedding request |
-| `--query-batch-concurrency <n>` | `2` | Maximum concurrent query embedding requests |
-| `--query-max-tokens <n>` | `0` | Optional query-token limit; zero keeps the complete query |
-
-`fast` mechanically partitions the complete query into non-overlapping windows, groups those windows into requests capped at 64 query tokens, runs at most two requests concurrently, searches the returned vectors concurrently, and merges duplicate results. `full` embeds the complete query once. `quality` embeds both the full query and every split window. `--query-max-tokens` remains an optional explicit safety limit; its default of zero does not truncate the query.
-
-Results contain chunk identity, source path, line range, and the best exact dot-product score across the query vectors that matched each chunk.
+The builder deduplicates identical section text, reuses immutable content-addressed vector objects, persists successful batches immediately, and publishes a packed snapshot bound to the exact knowledge-index identity. A changed knowledge index makes the old snapshot stale; knowledge search then falls back to BM25 without embedding the query.
 
 ## `grimoire vector info`
 
-Report native-library and snapshot availability:
+Inspect documentation-vector availability and freshness:
 
 ```bash
 grimoire vector info [--root <path>] [--state <path>] [--engine <path>]
 ```
 
-When a snapshot exists, the result includes its embedding identity, dimensions, and vector count.
+The result reports the knowledge identity, expected identity, snapshot identity, model, dimensions, count, size, and whether the snapshot is current. Semantic documentation search is performed through `grimoire knowledge search`; there is no separate source-vector search command.
 
 ## `grimoire context`
 
-Compile a bounded semantic context package from prepared and vector state:
+Compile a bounded deterministic context package from prepared source and structural state:
 
 ```bash
 grimoire context [flags]
@@ -302,9 +276,8 @@ grimoire context [flags]
 | `--diff <scope>` | none | `working-tree`, `staged`, `unstaged`, or one Git revision/range |
 | `--diff-timeout <duration>` | `10s` | Complete Git diff and untracked-file discovery timeout |
 | `--budget <n>` | `0` | Maximum `o200k_base` tokens; zero selects a deterministic automatic target |
-| `--candidate-limit <n>` | `200` | Maximum merged exact plus semantic/fallback primary candidates before curation |
+| `--candidate-limit <n>` | `200` | Maximum merged exact, lexical, and structural candidates before curation |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
-| `--engine <path>` | discovered DLL | Rust vector-engine library |
 | `--structure <bool>` | `true` | Include available Lexicon and Arcana structural evidence |
 | `--structure-timeout <duration>` | `30s` | Complete structural-provider timeout |
 | `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
@@ -312,14 +285,8 @@ grimoire context [flags]
 | `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
 | `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph-state directory |
 | `--arcana-command <path>` | `arcana` | Executable used for graph synchronization and protocol queries |
-| `--timeout <duration>` | `2s` | Complete semantic retrieval timeout |
-| `--query-embedding-mode <mode>` | `fast` | `fast`, `full`, or `quality` query plan |
-| `--query-window-tokens <n>` | `16` | Tokens per split-query window |
-| `--query-batch-tokens <n>` | `64` | Maximum split-query tokens per embedding request |
-| `--query-batch-concurrency <n>` | `2` | Maximum concurrent query embedding requests |
-| `--query-max-tokens <n>` | `0` | Optional query-token limit; zero keeps the complete query |
 
-The command validates the vector snapshot manifest against the exact content-addressed prepared-index identity before query embedding, then validates model identity, dimensions, and vector count and performs exact vector retrieval. `fast` embeds the complete query as fixed non-overlapping windows grouped into bounded 64-token requests, with at most two requests active concurrently. `full` embeds the complete query once. `quality` adds the full-query vector to the split windows. Concrete literal signals also activate targeted exact recovery. Provider candidates are merged before deterministic query-shape analysis. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, and expanded with bounded prepared neighbours. Automatic assembly stops after deterministic evidence coverage is reached: focused requests remain around one anchor region, bounded requests require two represented regions, and exploratory requests require three. The emitted package records the assembly decision. Explicit-budget requests retain the existing fit-to-budget behavior.
+The command retrieves source evidence with deterministic BM25, targeted exact recovery, Lexicon facts, and Arcana graph evidence. Repository-wide source embeddings are not built or queried. Provider candidates are merged before deterministic query-shape analysis. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, and expanded with bounded prepared neighbours. Automatic assembly stops after deterministic evidence coverage is reached; the emitted package records the assembly decision. Explicit-budget requests retain the existing fit-to-budget behavior.
 
 Diff-aware context treats changed prepared chunks as primary candidates and emits bounded `git-diff` structural evidence for every changed span. Changed paths, hunk headings, and declaration lines are added only to the internal retrieval query so Lexicon and Arcana can locate callers, dependencies, contracts, and tests; the package retains the human-facing query. `working-tree` compares tracked files with `HEAD` and also includes untracked, non-ignored files. `staged` compares `HEAD` with the index, `unstaged` compares the index with tracked working files, and any other value is passed to Git as one revision/range argument. A diff with no changed spans is an error rather than silently producing ordinary query context.
 
@@ -331,7 +298,7 @@ grimoire context --diff main...HEAD --query "identify affected callers and missi
 
 Structural enrichment is enabled by default. When Lexicon state exists, Grimoire resolves `.lexicon/CURRENT`, creates or reuses a cached `lexicon export`, and emits matched symbols, source spans, and immediate relationships as first-class package evidence. It then resolves the Arcana snapshot for the same Lexicon ID, invokes one-shot `arcana sync` when necessary, and queries Arcana's JSONL protocol for operational roles, impact, unresolved references, and shortest call chains. The component executables are independently built from `lexicon/` and `arcana/` in this repository or discovered through the configured command paths. Structural failures warn and preserve source-only retrieval. Use `--structure=false` to skip both components or the explicit state, command, and facts flags to override discovery.
 
-If the vector path is missing, stale, incompatible, or unavailable, the command writes a warning to stderr and substitutes the deterministic lexical fallback before the same exact-recovery and curation stages. Structural evidence can still be emitted during semantic fallback.
+Documentation vectors are intentionally independent of context assembly. Missing or stale documentation vectors affect only the knowledge lane and never produce context warnings.
 
 ## `grimoire eval retrieval`
 
@@ -345,7 +312,7 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | --- | --- | --- |
 | `--cases <path>` | none | Required judged corpus JSON |
 | `--root <path>` | `.` | Repository being evaluated |
-| `--state <path>` | `<root>/.grimoire` | Prepared and vector state |
+| `--state <path>` | `<root>/.grimoire` | Prepared source state; historical vector modes use legacy source-vector state |
 | `--modes <list>` | `fast,full,quality,lexical` | Comma-separated modes to execute |
 | `--variant <name>` | `standalone` | Result label for paired comparisons |
 | `--budget <n>` | case budget | Optional fixed budget override for every case |
@@ -359,8 +326,8 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | `--compiler-facet-file-depth <n>` | `2` | Distinct implementation files protected for eligible mechanism facets |
 | `--compiler-companion-depth <n>` | `1` | Additional same-file chunks protected for each selected facet file |
 | `--compiler-required-link-protection <bool>` | `true` | Retain complete provider-declared required source-link groups atomically |
-| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint |
-| `--engine <path>` | discovered DLL | Rust vector-engine library |
+| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint for experimental vector modes and Arcana semantic seeds |
+| `--engine <path>` | discovered DLL | Rust vector-engine library for experimental vector modes |
 | `--structural-providers <list>` | `none` | `none`, `lexicon`, or `lexicon,arcana` |
 | `--structure-timeout <duration>` | `30s` | Per-case structural-provider timeout |
 | `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |

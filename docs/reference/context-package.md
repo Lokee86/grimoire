@@ -17,7 +17,8 @@ The current package version is `8`.
   "token_count": 1184,
   "index_version": 2,
   "retrieval_sources": [
-    "vector"
+    "lexical",
+    "arcana"
   ],
   "structural_sources": [
     "lexicon",
@@ -120,10 +121,10 @@ The current package version is `8`.
       "start_line": 1,
       "end_line": 72,
       "score": 0.8125,
-      "retrieval_source": "vector",
+      "retrieval_source": "lexical",
       "retrieval_rank": 1,
       "reasons": [
-        "semantic vector similarity from split window 1/1"
+        "BM25 term resolution"
       ],
       "token_count": 214,
       "content": "..."
@@ -200,7 +201,7 @@ A relationship site may include resolution `evidence`, `candidate_count`, indire
 | `start_line` | integer | One-based inclusive source start line |
 | `end_line` | integer | One-based inclusive source end line |
 | `score` | number | Provider-native ranking score |
-| `retrieval_source` | string | Source that produced the candidate, such as `exact`, `vector`, `lexical`, `lexicon`, `arcana`, or `adjacent` |
+| `retrieval_source` | string | Source that produced the candidate, such as `exact`, `lexical`, `lexicon`, `arcana`, or `adjacent` |
 | `retrieval_rank` | integer | One-based provider rank before curation; adjacent expansion uses zero |
 | `reasons` | string array | Inspectable provider explanation |
 | `facet_ids` | string array | Query facets represented by the candidate, when available |
@@ -248,11 +249,11 @@ If the budget cannot fit package metadata with no evidence or selections, the co
 
 ## Source retrieval behavior
 
-The normal source path uses the configured embedding endpoint and exact vector snapshot. Before query embedding, Grimoire requires the vector manifest's prepared identity to match the current content-addressed prepared-index root. It then validates model identity, dimensions, vector count, and returned chunk IDs.
+The production source path uses deterministic BM25 over the prepared lexical sidecar, targeted exact recovery for concrete paths and identifiers, Lexicon symbol matches, and Arcana graph-derived candidates. Repository-wide source embeddings are not built or queried.
 
-Fast mode divides the complete query into non-overlapping windows and sends bounded requests. Full mode submits the complete query once. Quality mode submits both forms. Concrete repository literals also activate targeted exact recovery. Exact, semantic or fallback, Lexicon-derived, and Arcana graph-derived source candidates are merged before deterministic curation. Lexicon and Arcana source candidates use reciprocal-rank fusion when both providers locate the same prepared chunk; a single structural provider preserves its native rank and score.
+Exact, lexical, Lexicon-derived, and Arcana-derived source candidates are merged before deterministic curation. Lexicon and Arcana source candidates use reciprocal-rank fusion when both providers locate the same prepared chunk; a single structural provider preserves its native rank and score.
 
-When semantic retrieval is unavailable or incompatible, `context` writes a warning to stderr and substitutes deterministic lexical retrieval. Structural enrichment can still run independently.
+Source retrieval requires no embedding endpoint. The optional documentation-vector snapshot belongs to the independent knowledge lane and never enters context-package ranking or produces context warnings.
 
 ## Compatibility
 

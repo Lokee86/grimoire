@@ -6,7 +6,7 @@ These constraints apply to the merged system. They are not descriptions of futur
 
 Grimoire has judged source and structural evaluation, but the primary corpora remain small relative to the variety of languages, repository layouts, and development tasks the product may encounter. A passing Grimoire or Gum corpus does not establish equivalent recall elsewhere.
 
-Semantic, lexical, exact, structural, ranking, curation, assembly, and fitting stages can fail independently. Use per-case attribution rather than treating low final recall as one undifferentiated search problem.
+Knowledge-vector, lexical, exact, structural, ranking, curation, assembly, and fitting stages can fail independently. Use per-case attribution rather than treating low final recall as one undifferentiated search problem.
 
 ## Automatic policy is deterministic heuristic policy
 
@@ -26,19 +26,19 @@ Backend detection is capability-based and cannot guarantee that a detected GPU b
 
 ## The model service is external process state
 
-`grimoire model serve` is blocking. Grimoire does not supervise it as a persistent daemon or automatically restart it. Source indexing remains available without the service, but vector builds and semantic queries require a live compatible endpoint.
+`grimoire model serve` is blocking. Grimoire does not supervise it as a persistent daemon or automatically restart it. Source indexing and context retrieval remain available without the service, but documentation-vector builds, vector-supplemented knowledge queries, and Arcana semantic graph queries require a live compatible endpoint.
 
 ## The Go native loader is Windows-only
 
-The Rust vector engine is portable, but the production Go dynamic-library loader currently targets a Windows DLL. Non-Windows Go builds return `ErrUnavailable`; `context` can fall back to lexical retrieval, while direct vector commands cannot.
+The Rust vector engine is portable, but the production Go dynamic-library loader currently targets a Windows DLL. Non-Windows Go builds return `ErrUnavailable`; source context remains unaffected, while documentation-vector commands are unavailable and knowledge search remains BM25-only.
 
-## Vector search is exact float32 scanning
+## Documentation vector search is exact float32 scanning
 
 Snapshot format version 1 stores aligned `float32` vectors and performs exact inner-product scanning. It does not use float16, int8, specialized quantized kernels, or approximate-nearest-neighbour indexes. Exact search is deterministic but may become material for very large corpora.
 
 ## Immutable vector objects are not garbage-collected
 
-Deleted or replaced chunks disappear from the current manifest and snapshot, but immutable vector objects remain in the object store for possible reuse. There is no reachability-based cleanup across retained snapshots.
+Deleted or replaced documentation sections disappear from the current manifest and snapshot, but immutable vector objects remain in the object store for possible reuse. There is no reachability-based cleanup across retained snapshots.
 
 ## Object ingestion is serialized
 
@@ -66,7 +66,7 @@ Supported extensions and extensionless names are compiled into Grimoire. There i
 
 ## State maintenance is explicit
 
-Grimoire does not continuously watch repositories or automatically build vectors. Callers can use `grimoire status --refresh` to prepare missing or stale deterministic Lexicon, Arcana, and Grimoire state; vector construction remains an explicit `grimoire vector build` operation. Compatibility checks prevent silently using mismatched vector state.
+Grimoire does not continuously watch repositories or automatically build documentation vectors. Callers can use `grimoire status --refresh` to prepare missing or stale deterministic Lexicon, Arcana, and source state. Documentation indexing and vector construction remain explicit `grimoire knowledge index` and `grimoire vector build` operations. Freshness checks prevent silently using mismatched knowledge vectors.
 
 ## Structural components remain optional runtime dependencies
 
@@ -88,4 +88,4 @@ Errors are human-readable, but diagnostic codes, JSON error envelopes, and exit-
 
 ## Package compatibility is pre-release
 
-The current context package version is 5. Consumers must reject unsupported versions rather than infer compatibility from field presence. CLI, prepared-state, vector-state, and package migration policy are not yet stable release promises.
+The current context package version is 8. Consumers must reject unsupported versions rather than infer compatibility from field presence. CLI, prepared-state, vector-state, and package migration policy are not yet stable release promises.

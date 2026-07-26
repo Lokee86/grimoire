@@ -40,7 +40,7 @@ func TestContextSelectsAutomaticBudgetWhenOmitted(t *testing.T) {
 	}
 }
 
-func TestContextUsesExactRecoveryDuringSemanticFallback(t *testing.T) {
+func TestContextUsesExactRecoveryWithLexicalSourceRetrieval(t *testing.T) {
 	root := t.TempDir()
 	content := "package damage\n\nfunc ResolveDamage() int { return 10 }\n"
 	if err := os.WriteFile(filepath.Join(root, "damage.go"), []byte(content), 0o644); err != nil {
@@ -75,7 +75,7 @@ func TestContextUsesExactRecoveryDuringSemanticFallback(t *testing.T) {
 	if !strings.Contains(strings.Join(pkg.Selections[0].Reasons, "\n"), "also retrieved by lexical rank 1") {
 		t.Fatalf("missing lexical provider evidence: %+v", pkg.Selections[0].Reasons)
 	}
-	if !strings.Contains(errors.String(), "using lexical fallback") {
-		t.Fatalf("expected fallback warning, got %q", errors.String())
+	if errors.Len() != 0 {
+		t.Fatalf("unexpected context warning: %q", errors.String())
 	}
 }

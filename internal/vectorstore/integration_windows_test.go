@@ -3,8 +3,10 @@
 package vectorstore
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 )
 
@@ -53,6 +55,36 @@ func TestRustABIBuildOpenSearchClose(t *testing.T) {
 	if len(hits) != 2 || hits[0].ID != "alpha" || hits[1].ID != "beta" {
 		t.Fatalf("unexpected hits: %+v", hits)
 	}
+
+	var wait sync.WaitGroup
+	errors := make(chan error, 16)
+	for worker := range 16 {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			query := []float32{1, 0}
+			if worker%2 == 1 {
+				query = []float32{0, 1}
+			}
+			for iteration := 0; iteration < 50; iteration++ {
+				concurrentHits, searchErr := engine.Search(query, 2)
+				if searchErr != nil {
+					errors <- searchErr
+					return
+				}
+				if len(concurrentHits) != 2 {
+					errors <- fmt.Errorf("worker %d iteration %d returned %d hits", worker, iteration, len(concurrentHits))
+					return
+				}
+			}
+		}()
+	}
+	wait.Wait()
+	close(errors)
+	for concurrentErr := range errors {
+		t.Fatal(concurrentErr)
+	}
+
 	if err := engine.Close(); err != nil {
 		t.Fatal(err)
 	}

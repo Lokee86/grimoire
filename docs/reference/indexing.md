@@ -1,6 +1,6 @@
 # Indexing
 
-Grimoire separates source preparation from vector construction. This keeps repository scanning, embedding availability, and vector publication independently diagnosable.
+Grimoire separates source preparation from documentation indexing and optional documentation-vector construction. Source retrieval remains usable without an embedding service.
 
 ## Prepared source index
 
@@ -120,24 +120,19 @@ For a successful run:
 scanned = reused + updated
 ```
 
-## Vector construction
+## Documentation indexing and vectors
 
-Start the local model service, then run:
+Source preparation does not embed source chunks. To build the independent knowledge lane:
 
 ```bash
+grimoire knowledge index --root <repository>
 grimoire vector build --root <repository>
 ```
 
-The builder validates prepared state, returns immediately when the current vector manifest already matches, deduplicates identical chunk text, reuses source identities recorded by the previous manifest, checks only newly introduced source hashes, embeds genuinely missing text in bounded concurrent request batches, ingests completed batches serially into the immutable native object store, writes the complete chunk-to-source manifest, and materializes a sorted packed snapshot.
+The knowledge index discovers documentation and rationale, extracts stable sections, and publishes BM25 terms plus exact citation handles under `.grimoire/knowledge/`. The optional vector builder deduplicates identical section text, reuses immutable content-addressed objects, embeds only missing sections, persists successful batches immediately, and publishes a packed snapshot bound to the exact knowledge-index identity.
 
-The defaults are four documents per embedding request and one active request. Increase `--batch-concurrency` for a provider that benefits from independent requests. Object ingestion remains serialized, while content addresses and sorted materialization make publication deterministic regardless of embedding completion order.
+A documentation change can make the vector snapshot stale without affecting the prepared source index. `knowledge search` validates freshness before query embedding and falls back to BM25 when vectors are missing, stale, or unavailable. `context` never consumes documentation vectors.
 
-The first embedding or ingestion error cancels outstanding request work and prevents publication of a new manifest. Immutable objects already written remain reusable by later builds.
-
-## State compatibility
-
-Query commands verify prepared snapshot identity, embedding identity, dimensions, and vector count. Missing, stale, or incompatible vector state causes `context` to warn and use lexical fallback. `vector search` requires valid semantic state and returns an error instead.
-
-Run `grimoire index` after relevant source or indexing-rule changes and `grimoire vector build` after the prepared identity or embedding contract changes. Use `grimoire vector info` to inspect snapshot availability.
+Run `grimoire index` after relevant source or source-indexing changes. Run `grimoire knowledge index` after documentation changes and `grimoire vector build` when semantic documentation ranking is desired. Use `grimoire vector info` to inspect snapshot freshness.
 
 The `.grimoire/` directory is generated state and must not be treated as authored repository content.

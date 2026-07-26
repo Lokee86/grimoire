@@ -48,7 +48,7 @@ Lexicon adapter and snapshot coverage is documented in [`lexicon/docs/DEVELOPMEN
 | Runtime backend selection | `internal/embedding/setup_backend_test.go`, app model tests |
 | Native object, snapshot, and search behavior | `native/vector-engine/crates/*` tests |
 | Go-to-Rust ABI | `internal/vectorstore/integration_windows_test.go` |
-| Vector build, reuse, and concurrency | `internal/app/vector*_test.go` |
+| Documentation-vector build, reuse, stale fallback, and concurrency | `internal/app/vector*_test.go`, `internal/knowledgevector` |
 | Exact, lexical, and merged retrieval | `internal/retrieve/*_test.go`, app context tests |
 | Curation and neighbour expansion | `internal/selection/*_test.go` |
 | Query profiling and assembly | `internal/queryshape/*_test.go`, `internal/assembly/*_test.go` |
@@ -76,16 +76,17 @@ grimoire vector info --root .
 
 `model info` verifies discovery only. `model probe` sends a real query/document pair to the running endpoint.
 
-## Prepared and vector smoke test
+## Prepared source and knowledge-vector smoke test
 
 ```bash
 grimoire index --root .
+grimoire knowledge index --root .
 grimoire vector build --root .
-grimoire vector search --root . --query "where is context compilation implemented"
+grimoire knowledge search --root . --query "why is context compilation structured this way"
 grimoire context --root . --query "explain context compilation"
 ```
 
-The last command exercises automatic policy. Add a positive `--budget` to exercise fixed fitting.
+The knowledge search exercises BM25 plus optional documentation vectors. The context command remains lexical/exact/structural and exercises automatic policy; add a positive `--budget` to exercise fixed fitting.
 
 ## Warm algorithm benchmarks
 
@@ -95,7 +96,7 @@ go test ./internal/retrieve ./internal/selection \
   -benchmem
 ```
 
-These isolate lexical fallback, conditional exact recovery, and bounded candidate curation. They exclude repository loading, embedding inference, native vector scanning, and package serialization unless the benchmark explicitly includes them.
+These isolate deterministic source BM25, conditional exact recovery, and bounded candidate curation. They exclude repository loading, documentation embedding inference, native vector scanning, and package serialization unless the benchmark explicitly includes them.
 
 ## Live query-embedding benchmarks
 
@@ -222,7 +223,7 @@ Selection values were established in the earlier bounded grid; facet depth was s
 
 ## Calibration discipline
 
-1. Remove `.grimoire/` and rebuild prepared and vector state for a fresh baseline after implementation changes that affect indexed content, chunking, or embedding identity.
+1. Remove `.grimoire/` and rebuild prepared source state for a fresh source baseline. Rebuild `.grimoire/knowledge/` and its vector snapshot separately for knowledge-vector experiments.
 2. Record index reuse counts and run compared variants against that same immutable rebuilt state.
 3. Preserve corpus, command parameters, and provider set with the report.
 4. Inspect per-case failure stages before acting on aggregate recall.
