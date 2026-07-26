@@ -5,7 +5,7 @@ This directory maps the Grimoire platform, its context engine, operating contrac
 ## Sections
 
 - [Architecture](architecture/INDEX.md) — component boundaries, system flow, state ownership, and prepared-index design.
-- [Reference](reference/INDEX.md) — context CLI commands, embedding runtime, indexing, vector storage, query policy, and package schema.
+- [Reference](reference/INDEX.md) — CLI commands, deterministic source retrieval, independent knowledge retrieval, documentation vectors, query policy, and package schemas.
 - [Development](development/INDEX.md) — tests, judged corpora, benchmark procedure, and retrieval-quality interpretation.
 - [Limits](limits/INDEX.md) — constraints and failure modes that exist now.
 - [Planning](planning/INDEX.md) — work that is not yet implemented.
@@ -19,7 +19,7 @@ This directory maps the Grimoire platform, its context engine, operating contrac
 | --- | --- | --- |
 | Lexicon | [`lexicon/`](../lexicon/) | Language analysis, normalized facts, adapters, immutable analysis snapshots |
 | Arcana | [`arcana/`](../arcana/) | Graph ingestion, packed graph state, traversal, impact, paths, and graph protocol |
-| Grimoire Context | repository root | Retrieval, ranking, budgeting, evidence assembly, context packages, and investigation-ledger orchestration |
+| Grimoire | repository root | Deterministic source retrieval, independent documentation knowledge, ranking, budgeting, evidence assembly, context packages, and investigation-ledger orchestration |
 
 See [Component architecture](architecture/components.md) for the dependency and independent-use rules.
 
@@ -30,16 +30,21 @@ See [Component architecture](architecture/components.md) for the dependency and 
 | [`internal/app`](../internal/app/README.md) | CLI orchestration and cross-package workflows |
 | [`internal/index`](../internal/index/README.md) | Prepared source state, chunk identities, and incremental rebuilds |
 | [`internal/ignore`](../internal/ignore/README.md) | Repository traversal exclusions and Git-ignore semantics |
-| [`internal/embedding`](../internal/embedding/README.md) | Fixed model contract, managed runtime, HTTP client, and query batching |
-| [`internal/vectorstore`](../internal/vectorstore/README.md) | Native vector-engine binding, object ingestion, and snapshot access |
-| [`internal/retrieve`](../internal/retrieve/README.md) | Lexical fallback, exact recovery, and shared candidate provenance |
+| [`internal/embedding`](../internal/embedding/README.md) | Fixed model contract, managed runtime, HTTP client, and embedding requests |
+| [`internal/knowledge`](../internal/knowledge/README.md) | Documentation discovery, section identities, BM25 ranking, filters, citations, and code links |
+| [`internal/knowledgevector`](../internal/knowledgevector/README.md) | Optional documentation-vector construction, freshness, and supplemental ranking |
+| [`internal/vectorstore`](../internal/vectorstore/README.md) | Native vector-engine binding, object ingestion, serialized snapshot access, and exact scanning |
+| [`internal/retrieve`](../internal/retrieve/README.md) | Deterministic source BM25, exact recovery, and shared candidate provenance |
 | [`internal/selection`](../internal/selection/README.md) | Deterministic deduplication, diversification, and neighbour expansion |
 | [`internal/queryshape`](../internal/queryshape/README.md) | Prompt profile and retrieval-policy selection |
 | [`internal/assembly`](../internal/assembly/README.md) | Scope-specific evidence coverage and automatic candidate limits |
 | [`internal/structure`](../internal/structure/README.md) | Common structural-provider contracts and evidence composition |
 | [`internal/lexiconfacts`](../internal/lexiconfacts/README.md) | Immutable Lexicon export matching |
 | [`internal/arcanagraph`](../internal/arcanagraph/README.md) | Arcana synchronization and graph protocol queries |
-| [`internal/repostate`](../internal/repostate/README.md) | Repository identity inspection and serialized analysis-state preparation |
+| [`internal/repostate`](../internal/repostate/README.md) | Repository identity inspection, deterministic state preparation, and Arcana-vector availability |
+| [`internal/agentquery`](../internal/agentquery/README.md) | Progressive orient, search, trace, impact, and inspect contracts |
+| [`internal/agentruntime`](../internal/agentruntime/README.md) | Unified code/knowledge query orchestration and investigation-handle reuse |
+| [`internal/investigation`](../internal/investigation/README.md) | Persistent snapshot-bound evidence ledger |
 | [`internal/compiler`](../internal/compiler/README.md) | Token accounting and versioned package serialization |
 | [`internal/evaluation`](../internal/evaluation/README.md) | Judged corpus model, scoring, aggregation, and reports |
 | [`native/vector-engine`](../native/vector-engine/README.md) | Content-addressed vector objects and packed exact-search snapshots |

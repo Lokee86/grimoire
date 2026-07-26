@@ -7,26 +7,27 @@ This page contains work that is not yet complete. Implemented behavior is docume
 - Lexicon and Arcana source trees and histories consolidated into the Grimoire repository while retaining independent applications and state boundaries.
 - Content-addressed prepared source index with exact token counts.
 - Managed local Qwen3 embedding setup and service commands.
-- Content-addressed vector objects and packed exact-search snapshots.
-- Incremental vector reuse and concurrent embedding requests with serialized deterministic ingestion.
-- Semantic, lexical, and concrete exact retrieval.
+- Content-addressed documentation-vector objects and packed exact-search snapshots, plus Arcana-owned semantic graph indexes.
+- Incremental documentation-vector reuse, resumable concurrent embedding requests, serialized deterministic ingestion, and current-snapshot fast reuse.
+- Deterministic source BM25, concrete exact recovery, Lexicon facts, and Arcana graph retrieval without repository-wide source embeddings.
 - Deterministic ranking, judged curation calibration, and prepared-neighbour expansion.
 - Lexicon facts and Arcana graph evidence as optional query-time enrichment.
 - Source and structural judged evaluation with pipeline-loss attribution.
 - Deterministic query-shape profiling and automatic budgets.
 - Evidence-coverage assembly and fixed-versus-adaptive evaluation.
-- Version 5 exact-budget context packages.
+- Version 8 exact-budget context packages with adaptive assembly, facet protection, and required-link-group fitting.
 - Lexicon-aligned semantic source preparation with complete fallback coverage and per-file preparation identities.
 
 ## Near-term priorities
 
 1. Add root-level build, test, and release orchestration that verifies all three components without collapsing their build systems.
 2. Define coordinated versioning and component-specific release artifacts from the monorepo.
-3. Re-run ranking and adaptive-package calibration after all merged retrieval changes and tune targets against representative recall.
-4. Expand frozen judged corpora across additional repositories, languages, sizes, and task categories.
-5. Improve task-oriented evidence roles and stopping conditions without hiding decisions in opaque scoring.
-6. Add stronger diagnostics for runtime selection, provider failures, state compatibility, and native-engine errors.
-7. Add explicit prepared/vector/structural state status and maintenance commands suitable for Warlock supervision.
+3. Add a judged documentation-retrieval corpus and calibrate the BM25/vector blend against actual rationale-discovery tasks.
+4. Re-run source ranking and adaptive-package calibration after all merged retrieval changes and tune targets against representative recall.
+5. Expand frozen judged corpora across additional repositories, languages, sizes, and task categories.
+6. Improve task-oriented evidence roles and stopping conditions without hiding decisions in opaque scoring.
+7. Add stronger diagnostics for runtime selection, provider failures, state compatibility, and native-engine errors.
+8. Add documentation knowledge/vector freshness to the unified status contract and expose maintenance commands suitable for Warlock supervision.
 
 ## Monorepo and distribution work
 
@@ -73,7 +74,7 @@ This page contains work that is not yet complete. Implemented behavior is docume
 ## Operational and compatibility work
 
 - Add stable machine-readable diagnostics and documented exit classes.
-- Define prepared-index, vector-index, Lexicon, Arcana, embedding-runtime, and context-package migration policy.
+- Define prepared-index, documentation-vector, Arcana-vector, Lexicon, Arcana, embedding-runtime, and context-package migration policy.
 - Add managed runtime artifacts for additional platforms.
 - Add Warlock lifecycle integration for model service, component discovery, and state maintenance while keeping every component independently usable.
 - Establish release gates for latency, memory, retrieval quality, determinism, adapter correctness, graph correctness, and ABI stress.
