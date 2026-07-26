@@ -1,0 +1,341 @@
+{
+  "version": 1,
+  "repository": "Space Rocks",
+  "source_url": "https://github.com/Lokee86/space-rocks",
+  "revision": "65123c548c5f9eac3e9215ff689789b82abc453f",
+  "scope": ".",
+  "judged_at": "2026-07-26",
+  "top_k": 6,
+  "recall_at_k": [
+    1,
+    3,
+    6
+  ],
+  "cases": [
+    {
+      "id": "space-rocks-room-player-activation",
+      "query": "Where does a connected lobby roster become live authoritative avatars while preserving per-connection identity and rolling back partial binds?",
+      "category": "lifecycle-ownership",
+      "required_seeds": [
+        {
+          "name": "activateRoomPlayers",
+          "path": "services/game-server/internal/networking/player_activation.go",
+          "kind": "function",
+          "reason": "This networking boundary turns connected room members into game players, binds each websocket session to its player identity, and removes partial additions when a bind fails."
+        }
+      ],
+      "supporting_seeds": [
+        {
+          "name": "setGamePlayerIDForRoom",
+          "path": "services/game-server/internal/networking/session_context.go",
+          "kind": "method",
+          "reason": "This helper atomically binds the live player identity to the matching room session."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "activateRoomPlayers",
+          "path": "services/game-server/internal/networking/player_activation.go",
+          "reason": "Final evidence must retain the room-to-gameplay activation owner and its AddPlayer, session-binding, rollback, and room-activation neighborhood."
+        }
+      ],
+      "notes": "The question avoids the implementation's activateRoomPlayers vocabulary and describes the lifecycle transition in domain terms."
+    },
+    {
+      "id": "space-rocks-realtime-lane-commit",
+      "query": "Which server boundary refuses stale round context, reserves transport capacity for an entire update batch, and advances client baselines only after successful sends?",
+      "category": "networking-mechanism",
+      "required_seeds": [
+        {
+          "name": "writeGameplayLaneProtocolMessage",
+          "path": "services/game-server/internal/networking/websocket_write.go",
+          "kind": "function",
+          "reason": "This function validates session and match identity, preflights WebRTC lane capacity, sends the encoded batch, and commits lane metadata only after successful writes."
+        }
+      ],
+      "supporting_seeds": [
+        {
+          "name": "AdvanceMetadataForSuccessfulWrite",
+          "path": "services/game-server/internal/protocol/realtime/baseline.go",
+          "kind": "function",
+          "reason": "This helper computes the next acknowledged lane metadata after a successful transport write."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "writeGameplayLaneProtocolMessage",
+          "path": "services/game-server/internal/networking/websocket_write.go",
+          "reason": "Final evidence must retain the outbound lane commit owner and its context, backpressure, transport, and baseline neighborhood."
+        }
+      ],
+      "notes": "The query uses transactional delivery language instead of the exact function or protocol-lane identifier."
+    },
+    {
+      "id": "space-rocks-client-inbound-binding",
+      "query": "Where are decoded control signals and unreliable gameplay families connected to their application and presentation consumers without making the network facade own packet application?",
+      "category": "networking-ownership",
+      "required_seeds": [
+        {
+          "name": "configure",
+          "path": "client/scripts/networking/inbound/client_inbound_coordinator.gd",
+          "kind": "function",
+          "reason": "This generic GDScript composition method wires dispatcher signals to application handlers, WebRTC control handling, and the realtime packet pipeline."
+        }
+      ],
+      "supporting_seeds": [
+        {
+          "name": "_connect_dispatcher_signal",
+          "path": "client/scripts/networking/inbound/client_inbound_coordinator.gd",
+          "kind": "function",
+          "reason": "This helper makes the dispatcher-consumer binding idempotent and tolerant of absent collaborators."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "configure",
+          "path": "client/scripts/networking/inbound/client_inbound_coordinator.gd",
+          "reason": "Final evidence must identify the client inbound composition boundary despite its generic symbol name."
+        }
+      ],
+      "notes": "The expected seed is intentionally named configure, so exact symbol vocabulary provides almost no useful ranking signal."
+    },
+    {
+      "id": "space-rocks-client-gameplay-reset",
+      "query": "Which client session owner stops accepting game traffic and clears both the presentation bridge and gameplay composition before replay or route changes?",
+      "category": "lifecycle-ownership",
+      "required_seeds": [
+        {
+          "name": "reset",
+          "path": "client/scripts/session/gameplay_session_controller.gd",
+          "kind": "function",
+          "reason": "This reset gate disables gameplay packet acceptance and delegates cleanup to both presentation and gameplay composition owners."
+        }
+      ],
+      "supporting_seeds": [
+        {
+          "name": "_on_gameplay_replay_requested",
+          "path": "client/scripts/session/gameplay_session_controller.gd",
+          "kind": "function",
+          "reason": "The replay route closes the connection, invokes the reset gate, clears session state, and emits the replay request."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "reset",
+          "path": "client/scripts/session/gameplay_session_controller.gd",
+          "reason": "Final evidence must disambiguate the gameplay-session reset from the many unrelated reset functions in the client."
+        }
+      ],
+      "notes": "The generic reset symbol is omitted from the query; the case depends on semantic ownership and neighborhood text."
+    },
+    {
+      "id": "space-rocks-webrtc-channel-recovery",
+      "query": "What client path replaces an unreliable transport after one lane closes, bounds the retry window, and emits a terminal recovery outcome instead of reconnecting forever?",
+      "category": "networking-recovery",
+      "required_seeds": [
+        {
+          "name": "_replace_transport_for_recovery",
+          "path": "client/scripts/networking/webrtc/realtime_transport_session.gd",
+          "kind": "function",
+          "reason": "This function closes and replaces the transport and converts restart failure into the bounded recovery failure path."
+        }
+      ],
+      "supporting_seeds": [
+        {
+          "name": "_on_channel_closed",
+          "path": "client/scripts/networking/webrtc/realtime_transport_session.gd",
+          "kind": "function",
+          "reason": "This handler begins bounded lane recovery and establishes its deadline."
+        },
+        {
+          "name": "_fail_recovery",
+          "path": "client/scripts/networking/webrtc/realtime_transport_session.gd",
+          "kind": "function",
+          "reason": "This terminal path closes failed state and emits recovery_failed."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "_replace_transport_for_recovery",
+          "path": "client/scripts/networking/webrtc/realtime_transport_session.gd",
+          "reason": "Final evidence must retain the replacement step inside the lane-closure, restart, and terminal-failure neighborhood."
+        }
+      ],
+      "notes": "The query describes bounded recovery behavior without naming WebRTC, the session class, or any recovery helper."
+    },
+    {
+      "id": "space-rocks-client-process-shutdown",
+      "query": "Where does a window-close request gracefully mark the server connection, stop a hosted local process, and then terminate the scene tree without pretending this is a room leave?",
+      "category": "lifecycle-ownership",
+      "required_seeds": [
+        {
+          "name": "request_shutdown",
+          "path": "client/scripts/session/app_shutdown_controller.gd",
+          "kind": "function",
+          "reason": "This app-shell lifecycle method coordinates graceful connection close, local server stop, and scene-tree quit."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "request_shutdown",
+          "path": "client/scripts/session/app_shutdown_controller.gd",
+          "reason": "Final evidence must retain the narrow process-exit owner and its three shutdown collaborators."
+        }
+      ],
+      "notes": "The query distinguishes process exit from room/session navigation while avoiding the exact request_shutdown name."
+    },
+    {
+      "id": "space-rocks-account-result-persistence",
+      "query": "How does a completed round's per-player outcome cross the in-process persistence boundary, route online accounts over HTTP, and update cumulative Rails statistics exactly once?",
+      "category": "cross-language-ownership",
+      "required_seeds": [
+        {
+          "name": "ReportMatchResult",
+          "path": "services/game-server/internal/matchreporting/runtime_reporter.go",
+          "kind": "method",
+          "reason": "The game-server reporter converts an authoritative summary into player-data commands and accepts duplicate responses as successful delivery."
+        },
+        {
+          "name": "RecordMatchResult",
+          "path": "services/player-data/playerdata/rails_store.go",
+          "kind": "method",
+          "reason": "The account store owns the authenticated-account HTTP request and decodes accepted or duplicate Rails results."
+        },
+        {
+          "name": "call",
+          "path": "services/api-server/app/services/player_stats/apply_match_result.rb",
+          "kind": "method",
+          "reason": "The Rails service owns the transaction, result_id deduplication, result record, and cumulative player-stat mutation."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "ReportMatchResult",
+          "path": "services/game-server/internal/matchreporting/runtime_reporter.go",
+          "reason": "Final evidence must retain the game-server-to-player-data reporting boundary."
+        },
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "RecordMatchResult",
+          "path": "services/player-data/playerdata/rails_store.go",
+          "reason": "Final evidence must retain the player-data-to-Rails account persistence boundary."
+        },
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "call",
+          "path": "services/api-server/app/services/player_stats/apply_match_result.rb",
+          "reason": "Final evidence must retain the Ruby transaction owner despite its generic method name."
+        }
+      ],
+      "notes": "The question avoids ReportMatchResult, RecordMatchResult, ApplyMatchResult, and call while judging all three ownership hops."
+    },
+    {
+      "id": "space-rocks-observability-contract-fanout",
+      "query": "Which source-of-truth fanout validates one telemetry contract and plans deterministic outputs for the Go services, Godot client, Rails API, JSON fixtures, and reference docs?",
+      "category": "cross-language-observability",
+      "required_seeds": [
+        {
+          "name": "plan_observability_updates",
+          "path": "tools/data_sync/data_sync/observability_sync.py",
+          "kind": "function",
+          "reason": "This planner validates the split contract, selects each language renderer, and produces ordered file updates for every configured target."
+        }
+      ],
+      "supporting_seeds": [
+        {
+          "name": "generate_observability_go",
+          "path": "tools/data_sync/data_sync/generators/observability_go.py",
+          "kind": "function",
+          "reason": "This renderer materializes the shared contract for Go consumers."
+        },
+        {
+          "name": "generate_observability_gds",
+          "path": "tools/data_sync/data_sync/generators/observability_gds.py",
+          "kind": "function",
+          "reason": "This renderer materializes the shared contract for the Godot client."
+        },
+        {
+          "name": "generate_observability_ruby",
+          "path": "tools/data_sync/data_sync/generators/observability_ruby.py",
+          "kind": "function",
+          "reason": "This renderer materializes the shared contract for Rails."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "plan_observability_updates",
+          "path": "tools/data_sync/data_sync/observability_sync.py",
+          "reason": "Final evidence must retain the single validated cross-language generation planner."
+        }
+      ],
+      "notes": "The query uses source-of-truth and telemetry language instead of the planner's exact observability-update vocabulary."
+    },
+    {
+      "id": "space-rocks-canonical-event-admission",
+      "query": "Where do the Go service layer, Godot client, and Rails worker each enforce the same event admission, redaction, size, identity, serialization, and degraded-write rules before accepting a canonical record?",
+      "category": "cross-language-observability",
+      "required_seeds": [
+        {
+          "name": "emit",
+          "path": "shared/go/observabilityevent/emitter.go",
+          "kind": "method",
+          "reason": "The shared Go emitter's internal method applies the canonical contract before writing and updating status."
+        },
+        {
+          "name": "_emit_definition",
+          "path": "client/scripts/logging/observability_emitter.gd",
+          "kind": "function",
+          "reason": "The Godot emitter applies equivalent canonical validation, redaction, serialization, write-failure, and status behavior."
+        },
+        {
+          "name": "emit_definition",
+          "path": "services/api-server/app/lib/observability/emitter.rb",
+          "kind": "method",
+          "reason": "The Rails emitter applies the same contract around process identity and worker-local writing."
+        }
+      ],
+      "required_structural": [
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "emit",
+          "path": "shared/go/observabilityevent/emitter.go",
+          "reason": "Final evidence must retain the Go canonical event-admission implementation."
+        },
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "_emit_definition",
+          "path": "client/scripts/logging/observability_emitter.gd",
+          "reason": "Final evidence must retain the GDScript canonical event-admission implementation."
+        },
+        {
+          "provider": "arcana",
+          "kind": "operational_role",
+          "symbol": "emit_definition",
+          "path": "services/api-server/app/lib/observability/emitter.rb",
+          "reason": "Final evidence must retain the Ruby canonical event-admission implementation."
+        }
+      ],
+      "notes": "The three internal entry points use different generic names; the query judges behavior and ownership rather than identifier overlap."
+    }
+  ]
+}

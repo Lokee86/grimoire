@@ -85,3 +85,19 @@ func TestCheckedInArcanaCorpusReferencesCurrentSymbols(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckedInSpaceRocksArcanaCorpusReferencesExternalSymbols(t *testing.T) {
+	root := strings.TrimSpace(os.Getenv("GRIMOIRE_ARCANA_SPACE_ROCKS_ROOT"))
+	if root == "" {
+		t.Skip("set GRIMOIRE_ARCANA_SPACE_ROCKS_ROOT to validate the external Space Rocks checkout")
+	}
+	corpus, err := arcanaevaluation.LoadCorpus(filepath.Join("..", "..", "evaluation", "arcana", "space-rocks.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range corpus.Cases {
+		if err := validateArcanaEvaluationCase(root, entry); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

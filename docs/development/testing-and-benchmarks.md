@@ -175,6 +175,33 @@ grimoire eval arcana \
   --variant paired
 ```
 
+The external Space Rocks corpus is checked in at
+[`evaluation/arcana/space-rocks.json`](../../evaluation/arcana/space-rocks.json).
+It contains semantic Go, GDScript, Ruby, cross-language ownership, lifecycle,
+networking, and observability cases pinned to the revision recorded in the
+corpus. From the Grimoire checkout, validate every referenced path and symbol
+against a live Space Rocks checkout without running vector retrieval:
+
+```bash
+GRIMOIRE_ARCANA_SPACE_ROCKS_ROOT=C:/!bin/workspace/space-rocks \
+  go test ./internal/app \
+  -run TestCheckedInSpaceRocksArcanaCorpusReferencesExternalSymbols
+```
+
+The schema and semantic coverage gate runs with the normal Go suite in
+`internal/arcanaevaluation`. Once the matching Arcana vector cache is available,
+run the paired evaluator from the Grimoire checkout with:
+
+```bash
+grimoire eval arcana \
+  --root C:/!bin/workspace/space-rocks \
+  --cases evaluation/arcana/space-rocks.json \
+  --variant paired
+```
+
+No Space Rocks vector report is checked in with the corpus. A judged corpus is
+an input contract, not evidence that either retrieval mode has passed.
+
 `grimoire eval arcana` executes both modes for every case against those same
 snapshots. `lexicon-seeds` bypasses semantic lookup. `lexicon-plus-vector`
 interleaves Arcana semantic matches with the same Lexicon seeds under the

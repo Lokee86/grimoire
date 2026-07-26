@@ -30,7 +30,9 @@ Structural evidence has parallel stages for provider production, composition, ad
 Arcana semantic graph entry points also have a separate paired evaluator. It
 scores the ranked seed list before graph expansion and the final Arcana evidence
 after expansion, allowing an index to improve seed recall while exposing any
-later structural-evidence loss.
+later structural-evidence loss. Checked-in paired corpora cover Grimoire itself
+and the external Space Rocks repository; each corpus pins the judged revision
+and keeps reports separate from the judgments.
 
 ## Failure classes
 

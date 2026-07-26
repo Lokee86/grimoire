@@ -7,6 +7,6 @@ Development documentation defines how Grimoire is verified and how retrieval cla
 - [Retrieval quality](retrieval-quality.md) — corpus schema, pipeline-loss attribution, and metric interpretation.
 - [Ranking calibration corpus](ranking-calibration-corpus.md) — judged case design and expansion rules.
 
-The checked-in documentation evaluation corpus is [`evaluation/knowledge/grimoire.json`](../../evaluation/knowledge/grimoire.json). The paired Arcana graph-seed corpus is [`evaluation/arcana/grimoire.json`](../../evaluation/arcana/grimoire.json). Their execution paths are documented in [Testing and benchmarks](testing-and-benchmarks.md).
+The checked-in documentation evaluation corpus is [`evaluation/knowledge/grimoire.json`](../../evaluation/knowledge/grimoire.json). Paired Arcana graph-seed corpora are checked in for [Grimoire](../../evaluation/arcana/grimoire.json) and the external [Space Rocks](../../evaluation/arcana/space-rocks.json) repository. Their execution and validation paths are documented in [Testing and benchmarks](testing-and-benchmarks.md).
 
 Checked-in evaluation reports are evidence for the exact repository and state recorded by the report. They are not permanent product guarantees and must not be summarized without their mode, corpus, provider set, and date.
