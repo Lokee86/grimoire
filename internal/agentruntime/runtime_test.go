@@ -4,9 +4,12 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/Lokee86/grimoire/internal/agentquery"
+	"github.com/Lokee86/grimoire/internal/knowledge"
 	"github.com/Lokee86/grimoire/internal/repostate"
 )
 
@@ -27,6 +30,35 @@ func TestExecuteReturnsFullEvidenceWithoutSession(t *testing.T) {
 	}
 	if response.Delta != nil {
 		t.Fatalf("unexpected session delta: %#v", response.Delta)
+	}
+}
+
+func TestCompactKnowledgeResultsBoundsAgentPayload(t *testing.T) {
+	links := make([]knowledge.CodeLink, 12)
+	for index := range links {
+		links[index] = knowledge.CodeLink{Kind: "symbol", Value: "Symbol", SourcePath: "pkg/file.go"}
+	}
+	result := knowledge.Result{
+		Text:      strings.Repeat("évidence ", 300),
+		Reasons:   []string{"one", "two", "three", "four", "five"},
+		CodeLinks: links,
+	}
+
+	compacted := compactKnowledgeResults([]knowledge.Result{result})
+	if len(compacted) != 1 {
+		t.Fatalf("result count = %d", len(compacted))
+	}
+	if len(compacted[0].Text) > 1203 || !utf8.ValidString(compacted[0].Text) || !strings.HasSuffix(compacted[0].Text, "…") {
+		t.Fatalf("text was not compacted safely: bytes=%d valid=%v suffix=%q", len(compacted[0].Text), utf8.ValidString(compacted[0].Text), compacted[0].Text[len(compacted[0].Text)-3:])
+	}
+	if len(compacted[0].CodeLinks) != 8 {
+		t.Fatalf("code links = %d, want 8", len(compacted[0].CodeLinks))
+	}
+	if len(compacted[0].Reasons) != 4 {
+		t.Fatalf("reasons = %d, want 4", len(compacted[0].Reasons))
+	}
+	if len(result.CodeLinks) != 12 || len(result.Reasons) != 5 {
+		t.Fatal("compaction mutated caller-owned result")
 	}
 }
 

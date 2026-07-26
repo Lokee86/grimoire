@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/Lokee86/grimoire/internal/agentquery"
 	"github.com/Lokee86/grimoire/internal/investigation"
@@ -253,12 +254,46 @@ func retrieveKnowledge(ctx context.Context, request Request, statePath string, p
 	if err != nil {
 		return nil, nil, fmt.Errorf("search knowledge: %w", err)
 	}
-	results = appendUniqueKnowledge(results, searched.Results...)
+	results = appendUniqueKnowledge(results, compactKnowledgeResults(searched.Results)...)
 	warnings := []string(nil)
 	if searched.VectorError != "" {
 		warnings = append(warnings, "knowledge vector ranking unavailable: "+searched.VectorError)
 	}
 	return results, warnings, nil
+}
+
+func compactKnowledgeResults(results []knowledge.Result) []knowledge.Result {
+	const maxTextBytes = 1200
+	const maxCodeLinks = 8
+	const maxReasons = 4
+	compacted := append([]knowledge.Result(nil), results...)
+	for index := range compacted {
+		result := &compacted[index]
+		result.Text = compactKnowledgeText(result.Text, maxTextBytes)
+		if len(result.CodeLinks) > maxCodeLinks {
+			result.CodeLinks = result.CodeLinks[:maxCodeLinks]
+		}
+		if len(result.Reasons) > maxReasons {
+			result.Reasons = result.Reasons[:maxReasons]
+		}
+	}
+	return compacted
+}
+
+func compactKnowledgeText(text string, maxBytes int) string {
+	text = strings.TrimSpace(text)
+	if len(text) <= maxBytes {
+		return text
+	}
+	cut := maxBytes
+	for cut > 0 && !utf8.RuneStart(text[cut]) {
+		cut--
+	}
+	text = strings.TrimSpace(text[:cut])
+	if boundary := strings.LastIndexAny(text, "\n.!? "); boundary >= maxBytes/2 {
+		text = strings.TrimSpace(text[:boundary])
+	}
+	return text + "…"
 }
 
 func appendUniqueKnowledge(existing []knowledge.Result, values ...knowledge.Result) []knowledge.Result {

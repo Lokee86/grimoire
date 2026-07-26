@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 )
@@ -163,6 +164,15 @@ func TestCorruptManifestAndRecordFailSafely(t *testing.T) {
 	}
 	if _, err := Open(root, "record"); !errors.Is(err, ErrCorrupt) {
 		t.Fatalf("corrupt record = %v", err)
+	}
+}
+
+func TestLockContentionRecognizesPlatformDirectoryRaces(t *testing.T) {
+	if !lockContention(os.ErrExist) {
+		t.Fatal("existing lock directory was not recognized as contention")
+	}
+	if runtime.GOOS == "windows" && !lockContention(os.ErrPermission) {
+		t.Fatal("Windows access-denied directory race was not recognized as contention")
 	}
 }
 

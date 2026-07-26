@@ -29,7 +29,7 @@ Relative command paths are resolved from the analyzed repository root.
 
 ## Progressive response behavior
 
-Without `session`, the response contains full typed query evidence and full knowledge sections. Returned query handles can be passed to later `trace`, `impact`, or `inspect` calls. Knowledge sections return `knowledge://` handles that can be inspected through the same tool.
+Without `session`, the response contains typed query evidence and bounded knowledge excerpts. Search and orientation results include at most 1,200 bytes of section text, four ranking reasons, and eight code-link hints. Returned query handles can be passed to later `trace`, `impact`, or `inspect` calls. Inspecting a `knowledge://` handle returns the complete exact section.
 
 With `session`, Grimoire records evidence under `.grimoire/investigations/<session>/`. The first call returns new nodes, source ranges, graph paths, documents, questions, and accepted or rejected branches. Repeated evidence is replaced with prior ledger handles rather than replayed content. Query handles and suggestions remain available so the caller can continue expanding the investigation.
 

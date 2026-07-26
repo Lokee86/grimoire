@@ -108,6 +108,7 @@ func TestResolveProviderCommandUsesGrimoireHomeBeforePATH(t *testing.T) {
 }
 
 func TestResolveProviderCommandUsesPATHAsFinalFallback(t *testing.T) {
+	t.Chdir(t.TempDir())
 	directory := t.TempDir()
 	providerPath := writeProvider(t, directory, "lexicon")
 	t.Setenv("GRIMOIRE_HOME", "")

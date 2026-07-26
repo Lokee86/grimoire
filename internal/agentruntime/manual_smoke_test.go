@@ -4,13 +4,36 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/agentquery"
 	"github.com/Lokee86/grimoire/internal/repostate"
 )
+
+func pathWithoutProviders(value string) string {
+	kept := make([]string, 0)
+	for _, directory := range filepath.SplitList(value) {
+		containsProvider := false
+		for _, provider := range []string{"lexicon", "arcana"} {
+			name := provider
+			if runtime.GOOS == "windows" {
+				name += ".exe"
+			}
+			if regularFile(filepath.Join(directory, name)) {
+				containsProvider = true
+				break
+			}
+		}
+		if !containsProvider {
+			kept = append(kept, directory)
+		}
+	}
+	return strings.Join(kept, string(os.PathListSeparator))
+}
 
 func TestManualRepositorySmoke(t *testing.T) {
 	root := os.Getenv("GRIMOIRE_SMOKE_ROOT")
@@ -25,18 +48,28 @@ func TestManualRepositorySmoke(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	providerDir := filepath.Dir(command)
-	lexiconCommand := filepath.Join(providerDir, "lexicon.exe")
-	arcanaCommand := filepath.Join(providerDir, "arcana.exe")
+	if os.Getenv("GRIMOIRE_SMOKE_CLEAR_PATH") != "" {
+		pathValue := pathWithoutProviders(os.Getenv("PATH"))
+		t.Setenv("PATH", pathValue)
+		if _, err := exec.LookPath("git"); err != nil {
+			t.Fatalf("provider-isolation PATH removed required git dependency: %v", err)
+		}
+		for _, provider := range []string{"lexicon", "arcana"} {
+			if path, err := exec.LookPath(provider); err == nil {
+				t.Fatalf("provider %s remains discoverable through PATH at %s", provider, path)
+			}
+		}
+	}
 	options := Options{GrimoireCommand: command}
 	search, err := Execute(context.Background(), Request{
 		Request: agentquery.Request{
 			Mode: "search", Root: absolute, Query: "player movement realtime snapshot lifecycle", Limit: 8,
-			LexiconCmd: lexiconCommand, ArcanaCmd: arcanaCommand,
 		},
 		StateMode: repostate.RefreshIfNeeded,
 	}, options)
 	if err != nil {
+		encoded, _ := json.MarshalIndent(search, "", "  ")
+		t.Log(string(encoded))
 		t.Fatal(err)
 	}
 	if search.Query == nil || len(search.Query.Results) == 0 {
@@ -50,14 +83,13 @@ func TestManualRepositorySmoke(t *testing.T) {
 			t.Fatalf("code lane returned documentation: %+v", result)
 		}
 	}
-	encoded, _ := json.MarshalIndent(search, "", "  ")
-	t.Log(string(encoded))
+	encoded, _ := json.Marshal(search)
+	t.Logf("search response bytes=%d code_results=%d knowledge_results=%d", len(encoded), len(search.Query.Results), len(search.Knowledge))
 
 	anchor := search.Query.Results[0].Node.Handle.Value
 	inspection, err := Execute(context.Background(), Request{
 		Request: agentquery.Request{
 			Mode: "inspect", Root: absolute, Handles: []string{anchor}, Adjacent: 2,
-			LexiconCmd: lexiconCommand, ArcanaCmd: arcanaCommand,
 		},
 		StateMode: repostate.RefreshIfNeeded,
 	}, options)
@@ -67,6 +99,6 @@ func TestManualRepositorySmoke(t *testing.T) {
 	if inspection.Query == nil || len(inspection.Query.Inspections) != 1 || inspection.Query.Inspections[0].Source == "" {
 		t.Fatalf("inspect did not return exact code: %#v", inspection)
 	}
-	inspectionJSON, _ := json.MarshalIndent(inspection, "", "  ")
-	t.Log(string(inspectionJSON))
+	inspectionJSON, _ := json.Marshal(inspection)
+	t.Logf("inspect response bytes=%d inspections=%d", len(inspectionJSON), len(inspection.Query.Inspections))
 }
