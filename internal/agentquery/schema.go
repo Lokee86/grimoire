@@ -19,6 +19,7 @@ type Request struct {
 	Relations    []string `json:"relations,omitempty"`
 	Adjacent     int      `json:"adjacent_context,omitempty"`
 	CodeOnly     bool     `json:"code_only,omitempty"`
+	Detail       string   `json:"detail,omitempty"`
 	LexiconFacts string   `json:"lexicon_facts,omitempty"`
 	LexiconState string   `json:"lexicon_state,omitempty"`
 	LexiconCmd   string   `json:"lexicon_command,omitempty"`
@@ -84,9 +85,22 @@ type Result struct {
 }
 
 type Path struct {
-	Rank  int        `json:"rank"`
-	Nodes []Node     `json:"nodes"`
-	Steps []PathStep `json:"steps"`
+	Rank                int             `json:"rank"`
+	Score               float64         `json:"score,omitempty"`
+	Summary             string          `json:"summary,omitempty"`
+	ContinuationHandles []string        `json:"continuation_handles,omitempty"`
+	Relations           []string        `json:"relations,omitempty"`
+	Evidence            []TraceEvidence `json:"evidence,omitempty"`
+	Nodes               []Node          `json:"nodes,omitempty"`
+	Steps               []PathStep      `json:"steps,omitempty"`
+}
+
+type TraceEvidence struct {
+	Relation  string `json:"relation"`
+	Path      string `json:"path,omitempty"`
+	StartLine int    `json:"start_line,omitempty"`
+	EndLine   int    `json:"end_line,omitempty"`
+	Handle    string `json:"handle,omitempty"`
 }
 
 type PathStep struct {

@@ -115,7 +115,11 @@ func normalizeRequest(request Request) Request {
 		request.Root = "."
 	}
 	if request.Limit == 0 {
-		request.Limit = 12
+		if request.Mode == "trace" {
+			request.Limit = 8
+		} else {
+			request.Limit = 12
+		}
 	}
 	if request.Depth == 0 {
 		request.Depth = 3
@@ -133,6 +137,10 @@ func normalizeRequest(request Request) Request {
 	}
 	if request.ArcanaCmd == "" {
 		request.ArcanaCmd = "arcana"
+	}
+	request.Detail = strings.ToLower(strings.TrimSpace(request.Detail))
+	if request.Mode == "trace" && request.Detail == "" {
+		request.Detail = "summary"
 	}
 	return request
 }
@@ -166,6 +174,9 @@ func validateRequest(request Request) error {
 	}
 	if request.Adjacent < 0 || request.Adjacent > 200 {
 		return errors.New("adjacent_context must be between 0 and 200")
+	}
+	if request.Detail != "" && request.Detail != "summary" && request.Detail != "full" {
+		return errors.New("detail must be summary or full")
 	}
 	switch request.Direction {
 	case "incoming", "outgoing", "both":

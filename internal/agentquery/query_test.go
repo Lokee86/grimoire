@@ -87,7 +87,7 @@ func TestTraceFollowsInterstackEndpointFromReturnedHandle(t *testing.T) {
 
 	trace, err := Execute(context.Background(), Request{
 		Schema: SchemaVersion, Mode: "trace", Root: root,
-		Anchor: anchor, LexiconFacts: facts, Depth: 3, Limit: 10,
+		Anchor: anchor, LexiconFacts: facts, Depth: 3, Limit: 10, Detail: "full",
 	})
 	if err != nil {
 		t.Fatal(err)

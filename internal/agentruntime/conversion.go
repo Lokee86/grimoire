@@ -99,8 +99,18 @@ func investigationResponse(query agentquery.Response, documents []knowledge.Resu
 				addRange(ranges, span, "")
 			}
 		}
+		if len(graph.Nodes) == 0 {
+			graph.Nodes = append(graph.Nodes, path.ContinuationHandles...)
+			graph.Edges = append(graph.Edges, path.Relations...)
+			for _, evidence := range path.Evidence {
+				addTraceEvidence(ranges, evidence)
+			}
+		}
 		graph.ID = graphPathID(graph.Nodes, graph.Edges)
-		graph.Label = query.Mode
+		graph.Label = path.Summary
+		if graph.Label == "" {
+			graph.Label = query.Mode
+		}
 		response.GraphPaths = append(response.GraphPaths, graph)
 	}
 	for _, dependent := range query.Dependents {
@@ -163,6 +173,19 @@ func investigationResponse(query agentquery.Response, documents []knowledge.Resu
 		})
 	}
 	return response
+}
+
+func addTraceEvidence(target map[string]investigation.SourceRange, value agentquery.TraceEvidence) {
+	if value.Path == "" || value.StartLine <= 0 || value.EndLine < value.StartLine {
+		return
+	}
+	key := value.Handle
+	if key == "" {
+		key = value.Path + ":" + strconv.Itoa(value.StartLine) + ":" + strconv.Itoa(value.EndLine)
+	}
+	target[key] = investigation.SourceRange{
+		Path: value.Path, StartLine: value.StartLine, EndLine: value.EndLine,
+	}
 }
 
 func addRange(target map[string]investigation.SourceRange, value agentquery.Range, text string) {
