@@ -1,13 +1,16 @@
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use fs2::FileExt;
 
 use super::Embedder;
 use super::documents::graph_documents;
 use super::index::{
     INDEX_VERSION, IndexManifest, IndexRecord, MANIFEST_FILE, RECORDS_FILE, VECTORS_FILE,
-    VectorIndexError, current_index_directory, current_snapshot_directory, manifest_matches,
-    read_manifest, validate_files,
+    VectorIndexError, current_snapshot_directory, file_sha256, index_directory, manifest_matches,
+    read_manifest, validate_embedder, validate_files,
 };
 use crate::repository::{REPOSITORY_MANIFEST_FILE, RepositorySnapshot};
 
@@ -30,9 +33,21 @@ pub fn build_current_index(
         ));
     }
     let state = state.as_ref();
-    let (_, snapshot_directory) = current_snapshot_directory(state)?;
+    validate_embedder(embedder)?;
+    let (digest, snapshot_directory) = current_snapshot_directory(state)?;
     let snapshot = RepositorySnapshot::open(snapshot_directory.join(REPOSITORY_MANIFEST_FILE))?;
-    let target = current_index_directory(state, embedder.identity())?;
+    let target = index_directory(state, &digest, embedder.identity());
+    let parent = target.parent().ok_or_else(|| {
+        VectorIndexError::InvalidState("vector index has no parent directory".to_owned())
+    })?;
+    fs::create_dir_all(parent)?;
+    let lock = File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(parent.join(format!(".{}.lock", embedder.identity())))?;
+    FileExt::lock_exclusive(&lock)?;
 
     if let Ok(manifest) = read_manifest(&target)
         && manifest_matches(
@@ -52,14 +67,12 @@ pub fn build_current_index(
     }
 
     let documents = graph_documents(snapshot.facts());
-    let parent = target.parent().ok_or_else(|| {
-        VectorIndexError::InvalidState("vector index has no parent directory".to_owned())
-    })?;
-    fs::create_dir_all(parent)?;
+    static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
     let temp = parent.join(format!(
-        ".{}.tmp-{}",
+        ".{}.tmp-{}-{}",
         embedder.identity(),
-        std::process::id()
+        std::process::id(),
+        TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
     ));
     if temp.try_exists()? {
         fs::remove_dir_all(&temp)?;
@@ -71,16 +84,54 @@ pub fn build_current_index(
         let _ = fs::remove_dir_all(&temp);
         return Err(error);
     }
-    if target.try_exists()? {
-        fs::remove_dir_all(&target)?;
+    let (current_digest, _) = current_snapshot_directory(state)?;
+    if current_digest != digest {
+        fs::remove_dir_all(&temp)?;
+        return Err(VectorIndexError::InvalidState(
+            "Arcana CURRENT changed while the vector index was being built; retry vectorize"
+                .to_owned(),
+        ));
     }
-    fs::rename(&temp, &target)?;
+    if let Err(error) = replace_index(&temp, &target) {
+        let _ = fs::remove_dir_all(&temp);
+        return Err(error);
+    }
+    let (published_digest, _) = current_snapshot_directory(state)?;
+    if published_digest != digest {
+        return Err(VectorIndexError::InvalidState(
+            "Arcana CURRENT changed while the vector index was being published; retry vectorize"
+                .to_owned(),
+        ));
+    }
     Ok(BuildSummary {
         directory: target,
         item_count: documents.len(),
         dimensions: embedder.dimensions(),
         mode: "built",
     })
+}
+
+fn replace_index(temp: &Path, target: &Path) -> Result<(), VectorIndexError> {
+    if !target.try_exists()? {
+        fs::rename(temp, target)?;
+        return Ok(());
+    }
+    let backup = target.with_extension(format!("old-{}", std::process::id()));
+    if backup.try_exists()? {
+        fs::remove_dir_all(&backup)?;
+    }
+    fs::rename(target, &backup)?;
+    if let Err(error) = fs::rename(temp, target) {
+        let rollback = fs::rename(&backup, target);
+        return match rollback {
+            Ok(()) => Err(error.into()),
+            Err(rollback) => Err(VectorIndexError::InvalidState(format!(
+                "cannot publish vector index ({error}) and cannot restore the previous index ({rollback})"
+            ))),
+        };
+    }
+    fs::remove_dir_all(backup)?;
+    Ok(())
 }
 
 fn write_index(
@@ -143,7 +194,9 @@ fn write_index(
         dimensions: embedder.dimensions(),
         item_count: documents.len(),
         records_file: RECORDS_FILE.to_owned(),
+        records_sha256: file_sha256(&directory.join(RECORDS_FILE))?,
         vectors_file: VECTORS_FILE.to_owned(),
+        vectors_sha256: file_sha256(&directory.join(VECTORS_FILE))?,
     };
     let mut bytes = serde_json::to_vec_pretty(&manifest)?;
     bytes.push(b'\n');

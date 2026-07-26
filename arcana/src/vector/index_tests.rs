@@ -11,7 +11,7 @@ use crate::storage::write_packed;
 
 use super::{
     Embedder, EmbeddingError, IndexManifest, build_current_index, current_index_directory,
-    search_current_index,
+    search_current_index, search_expected_index,
 };
 
 #[test]
@@ -53,10 +53,31 @@ fn builds_reuses_and_searches_current_graph_index() {
     let reused = build_current_index(&state, &embedder, 2).unwrap();
     assert_eq!(reused.mode, "existing");
 
+    fs::write(built.directory.join("nodes.jsonl"), b"").unwrap();
+    let repaired = build_current_index(&state, &embedder, 2).unwrap();
+    assert_eq!(repaired.mode, "built");
+
+    let vectors_path = built.directory.join("vectors.f32");
+    let mut vectors = fs::read(&vectors_path).unwrap();
+    vectors[3] = 0x3e;
+    fs::write(&vectors_path, vectors).unwrap();
+    let checksum_repaired = build_current_index(&state, &embedder, 2).unwrap();
+    assert_eq!(checksum_repaired.mode, "built");
+
     let hits = search_current_index(&state, &embedder, "create profile", 1).unwrap();
     assert_eq!(hits.len(), 1);
     assert_eq!(hits[0].name, "create_profile");
     assert_eq!(hits[0].score, 1.0);
+
+    let error = search_expected_index(
+        &state,
+        &format!("sha256:{}", "b".repeat(64)),
+        &embedder,
+        "create profile",
+        1,
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("expected snapshot"));
 
     let manifest_path = built.directory.join("manifest.json");
     let mut manifest: IndexManifest =

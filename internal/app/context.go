@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Lokee86/grimoire/internal/agentruntime"
 	"github.com/Lokee86/grimoire/internal/assembly"
 	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/embedding"
@@ -33,9 +34,9 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	structuralProviders := flags.String("structural-providers", "lexicon,arcana", "structural evidence providers: none, lexicon, arcana, or lexicon,arcana")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
 	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
-	lexiconCommand := flags.String("lexicon-command", "lexicon", "Lexicon executable used to export the current snapshot")
+	lexiconCommand := flags.String("lexicon-command", "", "Lexicon executable override; discovered when omitted")
 	arcanaState := flags.String("arcana-state", "", "Arcana state directory; defaults to <root>/.arcana")
-	arcanaCommand := flags.String("arcana-command", "arcana", "Arcana executable used to synchronize and query graph state")
+	arcanaCommand := flags.String("arcana-command", "", "Arcana executable override; discovered when omitted")
 	structureTimeout := flags.Duration("structure-timeout", 30*time.Second, "complete structural-provider timeout")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -62,6 +63,8 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("load prepared index: %w", err)
 	}
+	resolvedLexiconCommand := agentruntime.ResolveProviderCommand(*root, *lexiconCommand, "lexicon")
+	resolvedArcanaCommand := agentruntime.ResolveProviderCommand(*root, *arcanaCommand, "arcana")
 
 	diffContext, cancelDiff := context.WithTimeout(context.Background(), *diffTimeout)
 	diffResult, err := prepareContextDiff(diffContext, snapshot, *root, *diffSpec, *query, *limit)
@@ -79,8 +82,8 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	structural := collectStructuralContext(context.Background(), snapshot, structuralIntent.Query, structuralContextOptions{
 		Enabled: emitLexicon || arcanaEnabled, ArcanaEnabled: arcanaEnabled, EmitLexicon: emitLexicon,
 		Root: *root, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
-		LexiconState: *lexiconState, LexiconCommand: *lexiconCommand,
-		ArcanaState: *arcanaState, ArcanaCommand: *arcanaCommand,
+		LexiconState: *lexiconState, LexiconCommand: resolvedLexiconCommand,
+		ArcanaState: *arcanaState, ArcanaCommand: resolvedArcanaCommand,
 		EmbeddingEndpoint: *endpoint,
 		Limit:             *limit, Timeout: *structureTimeout,
 	})

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Lokee86/grimoire/internal/agentruntime"
 	"github.com/Lokee86/grimoire/internal/assembly"
 	"github.com/Lokee86/grimoire/internal/compiler"
 	"github.com/Lokee86/grimoire/internal/embedding"
@@ -53,9 +54,9 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	structuralProvidersValue := flags.String("structural-providers", "none", "structural providers: none, lexicon, or lexicon,arcana")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
 	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
-	lexiconCommand := flags.String("lexicon-command", "lexicon", "Lexicon executable used to export immutable state")
+	lexiconCommand := flags.String("lexicon-command", "", "Lexicon executable override; discovered when omitted")
 	arcanaState := flags.String("arcana-state", "", "Arcana state directory; defaults to <root>/.arcana")
-	arcanaCommand := flags.String("arcana-command", "arcana", "Arcana executable used to synchronize and query graph state")
+	arcanaCommand := flags.String("arcana-command", "", "Arcana executable override; discovered when omitted")
 	structureTimeout := flags.Duration("structure-timeout", 30*time.Second, "per-case structural-provider timeout")
 	timeout := flags.Duration("timeout", 10*time.Second, "per-case retrieval timeout")
 	outputDir := flags.String("output-dir", "evaluation/results", "result directory")
@@ -112,6 +113,8 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("load prepared index: %w", err)
 	}
+	resolvedLexiconCommand := agentruntime.ResolveProviderCommand(absoluteRoot, *lexiconCommand, "lexicon")
+	resolvedArcanaCommand := agentruntime.ResolveProviderCommand(absoluteRoot, *arcanaCommand, "arcana")
 	actualProbeLimit := min(*probeLimit, len(snapshot.AllChunks()))
 	if actualProbeLimit < *limit {
 		actualProbeLimit = min(*limit, len(snapshot.AllChunks()))
@@ -166,8 +169,8 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 				Structural: structuralContextOptions{
 					Enabled: structureEnabled, ArcanaEnabled: arcanaEnabled,
 					Root: absoluteRoot, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
-					LexiconState: *lexiconState, LexiconCommand: *lexiconCommand,
-					ArcanaState: *arcanaState, ArcanaCommand: *arcanaCommand,
+					LexiconState: *lexiconState, LexiconCommand: resolvedLexiconCommand,
+					ArcanaState: *arcanaState, ArcanaCommand: resolvedArcanaCommand,
 					EmbeddingEndpoint: *endpoint,
 					Limit:             *limit, Timeout: *structureTimeout,
 				},

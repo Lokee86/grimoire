@@ -38,7 +38,7 @@ Defaults:
 - model identity: `qwen3-embedding-0.6b-q8_0-512d`
 - retained dimensions: `512`
 
-The command reuses a complete matching index. It rebuilds when the current Arcana graph snapshot, graph identity, model, model identity, or dimensions differ.
+The command reuses an index only after validating its manifest, fixed data filenames, vector byte length, node-record count, and node-record identities. It rebuilds incomplete or corrupt state and also rebuilds when the current Arcana graph snapshot, graph identity, model, model identity, or dimensions differ. Build publication is serialized per snapshot and model, preserves the prior index if replacement fails, and aborts with a retry message rather than publishing under the wrong snapshot if `.arcana/CURRENT` changes during embedding.
 
 ## Indexed objects
 
@@ -71,9 +71,11 @@ Indexes are stored by Arcana snapshot and model identity:
 - graph snapshot ID;
 - embedding model and stable model identity;
 - vector dimensions; and
-- item count and data filenames.
+- item count, fixed data filenames, and SHA-256 checksums of both data files.
 
 `vectors.f32` contains normalized little-endian `f32` vectors. `nodes.jsonl` maps vector positions back to Arcana node keys, kinds, paths, and names.
+
+The current index format is version 2. Version 1 manifests do not carry data checksums and are rebuilt rather than reused.
 
 ## Query the index
 
@@ -110,7 +112,9 @@ The JSON response has this shape:
 
 ## Grimoire Context integration
 
-When Arcana is enabled for a context request, Grimoire checks for a vector index matching Arcana's current snapshot and the configured embedding identity.
+Process integrations can pass `--expected-snapshot sha256:<digest>` to `semantic-query`. Arcana then rejects the query if `.arcana/CURRENT` no longer matches the graph snapshot that the caller already resolved. This prevents semantic seeds from one graph snapshot being expanded through another.
+
+When Arcana is enabled for a context request, Grimoire checks for a vector index matching the exact Arcana snapshot already selected for deterministic traversal and the configured embedding identity.
 
 If present, Grimoire:
 
@@ -119,4 +123,4 @@ If present, Grimoire:
 3. resolves the combined seeds through `arcana.query.v1`; and
 4. requests deterministic operational-role, impact, unresolved-reference, and call-chain evidence.
 
-Grimoire does not automatically build the Arcana vector index. If no matching index exists, it silently continues with Lexicon-seeded Arcana traversal. If semantic querying fails after a matching index is found, Grimoire warns and continues with the remaining structural and source retrieval paths.
+Grimoire does not automatically build the Arcana vector index. If no matching index exists, it silently continues with Lexicon-seeded Arcana traversal. If semantic querying fails after a matching index is found, including a concurrent snapshot change, Grimoire warns and continues with the remaining structural and source retrieval paths. Provider discovery uses explicit command overrides, repository configuration, executables installed beside Grimoire, a discoverable Grimoire checkout, and only then `PATH`.

@@ -2,6 +2,7 @@ package repostate
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/index"
 )
 
@@ -35,6 +37,55 @@ func TestEnsureCurrentOnlyReportsPreparedStateWithoutMutation(t *testing.T) {
 	}
 	if after := snapshotFiles(t, root); strings.Join(before, "\n") != strings.Join(after, "\n") {
 		t.Fatalf("current-only mutated state: before=%v after=%v", before, after)
+	}
+}
+
+func TestEnsureReportsOnlyValidatedCurrentArcanaVectors(t *testing.T) {
+	root := t.TempDir()
+	writeSource(t, root, "package main\n")
+	id := testID('a')
+	writeLexicon(t, root, id)
+	writeArcana(t, root, id)
+	writeGrimoire(t, root, id)
+	writeKnowledge(t, root)
+	writeArcanaVectors(t, root, id)
+
+	status, err := Ensure(context.Background(), Options{Root: root, Mode: CurrentOnly})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.ArcanaVectors.Status != "current" || status.ArcanaVectors.Count != 1 || status.ArcanaVectors.Bytes != int64(embedding.Dimensions*4) {
+		t.Fatalf("validated Arcana vector status = %+v", status.ArcanaVectors)
+	}
+
+	directory := arcanaVectorDirectory(root, id)
+	vectorsPath := filepath.Join(directory, "vectors.f32")
+	vectors, err := os.ReadFile(vectorsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vectors[0] = 1
+	if err := os.WriteFile(vectorsPath, vectors, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	status, err = Ensure(context.Background(), Options{Root: root, Mode: CurrentOnly})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.ArcanaVectors.Status != "stale" || !strings.Contains(status.ArcanaVectors.Reason, "checksum") {
+		t.Fatalf("checksum-mismatched Arcana vector status = %+v", status.ArcanaVectors)
+	}
+
+	writeArcanaVectors(t, root, id)
+	if err := os.WriteFile(filepath.Join(directory, "nodes.jsonl"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	status, err = Ensure(context.Background(), Options{Root: root, Mode: CurrentOnly})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.ArcanaVectors.Status != "stale" || !strings.Contains(status.ArcanaVectors.Reason, "node records") {
+		t.Fatalf("corrupt Arcana vector status = %+v", status.ArcanaVectors)
 	}
 }
 
@@ -227,6 +278,51 @@ func writeArcana(t *testing.T, root, id string) {
 	if err := os.WriteFile(filepath.Join(state, "CURRENT"), []byte(id+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func writeArcanaVectors(t *testing.T, root, id string) {
+	t.Helper()
+	snapshotDirectory := filepath.Join(root, ".arcana", "snapshots", strings.TrimPrefix(id, "sha256:"))
+	repositoryManifest := "version=1\nsnapshot_id=1111111111111111\ngraph_snapshot_id=2222222222222222\nnode_count=1\n"
+	if err := os.WriteFile(filepath.Join(snapshotDirectory, "repository.manifest"), []byte(repositoryManifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	directory := arcanaVectorDirectory(root, id)
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	record := []byte("{\"node_key\":\"0000000000000001\",\"kind\":\"function\",\"path\":\"main.go\",\"name\":\"main\"}\n")
+	if err := os.WriteFile(filepath.Join(directory, "nodes.jsonl"), record, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "vectors.f32"), make([]byte, embedding.Dimensions*4), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	recordsHash, err := fileSHA256(filepath.Join(directory, "nodes.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	vectorsHash, err := fileSHA256(filepath.Join(directory, "vectors.f32"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := arcanaVectorManifest{
+		Version: 2, RepositorySnapshotID: "1111111111111111", GraphSnapshotID: "2222222222222222",
+		Model: embedding.ModelReference, Identity: embedding.Identity(), Dimensions: embedding.Dimensions,
+		ItemCount: 1, RecordsFile: "nodes.jsonl", RecordsSHA256: recordsHash,
+		VectorsFile: "vectors.f32", VectorsSHA256: vectorsHash,
+	}
+	data, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "manifest.json"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func arcanaVectorDirectory(root, id string) string {
+	return filepath.Join(root, ".arcana", "vectors", strings.TrimPrefix(id, "sha256:"), embedding.Identity())
 }
 
 func writeGrimoire(t *testing.T, root, lexiconID string) {

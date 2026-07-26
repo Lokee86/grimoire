@@ -4,6 +4,7 @@ use serde::Serialize;
 
 use arcana::vector::{
     EmbeddingClient, VectorIndexError, build_current_index, search_current_index,
+    search_expected_index,
 };
 
 use crate::cli::{SemanticQueryCommand, VectorizeCommand};
@@ -22,7 +23,16 @@ pub fn run_vectorize(command: &VectorizeCommand) -> Result<String, VectorIndexEr
 
 pub fn run_semantic_query(command: &SemanticQueryCommand) -> Result<String, VectorIndexError> {
     let client = EmbeddingClient::new(&command.endpoint);
-    let hits = search_current_index(&command.state, &client, &command.query, command.limit)?;
+    let hits = match command.expected_snapshot.as_deref() {
+        Some(expected) => search_expected_index(
+            &command.state,
+            expected,
+            &client,
+            &command.query,
+            command.limit,
+        )?,
+        None => search_current_index(&command.state, &client, &command.query, command.limit)?,
+    };
     if command.json {
         let mut output = serde_json::to_string(&SemanticMatches { matches: &hits })?;
         output.push('\n');

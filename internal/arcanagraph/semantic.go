@@ -27,7 +27,7 @@ type semanticMatches struct {
 	Matches []semanticHit `json:"matches"`
 }
 
-type semanticRun func(context.Context, string, string, string, string, int) ([]semanticHit, error)
+type semanticRun func(context.Context, string, string, string, string, string, int) ([]semanticHit, error)
 
 // SemanticSeeds retrieves graph nodes directly from Arcana's optional semantic
 // index. It never builds the index: a missing index is an ordinary no-result
@@ -35,6 +35,7 @@ type semanticRun func(context.Context, string, string, string, string, int) ([]s
 func (client Client) SemanticSeeds(
 	ctx context.Context,
 	state string,
+	expectedSnapshot string,
 	endpoint string,
 	query string,
 	limit int,
@@ -45,7 +46,7 @@ func (client Client) SemanticSeeds(
 
 	run := client.RunSemantic
 	if run == nil {
-		exists, err := semanticIndexExists(state)
+		exists, err := semanticIndexExists(state, expectedSnapshot)
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +59,7 @@ func (client Client) SemanticSeeds(
 	if command == "" {
 		command = "arcana"
 	}
-	hits, err := run(ctx, command, state, endpoint, query, limit)
+	hits, err := run(ctx, command, state, expectedSnapshot, endpoint, query, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -84,15 +85,18 @@ func (client Client) SemanticSeeds(
 	return seeds, nil
 }
 
-func semanticIndexExists(state string) (bool, error) {
-	current, err := os.ReadFile(filepath.Join(state, "CURRENT"))
-	if os.IsNotExist(err) {
-		return false, nil
+func semanticIndexExists(state, expectedSnapshot string) (bool, error) {
+	value := strings.TrimSpace(expectedSnapshot)
+	if value == "" {
+		current, err := os.ReadFile(filepath.Join(state, "CURRENT"))
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("read Arcana CURRENT for semantic index: %w", err)
+		}
+		value = strings.TrimSpace(string(current))
 	}
-	if err != nil {
-		return false, fmt.Errorf("read Arcana CURRENT for semantic index: %w", err)
-	}
-	value := strings.TrimSpace(string(current))
 	digest, found := strings.CutPrefix(value, "sha256:")
 	if !found || len(digest) != 64 {
 		return false, fmt.Errorf("invalid Arcana CURRENT value %q", value)
@@ -112,6 +116,7 @@ func runSemantic(
 	ctx context.Context,
 	command string,
 	state string,
+	expectedSnapshot string,
 	endpoint string,
 	query string,
 	limit int,
@@ -122,6 +127,9 @@ func runSemantic(
 		"--query", query,
 		"--limit", strconv.Itoa(limit),
 		"--json",
+	}
+	if strings.TrimSpace(expectedSnapshot) != "" {
+		arguments = append(arguments, "--expected-snapshot", expectedSnapshot)
 	}
 	if strings.TrimSpace(endpoint) != "" {
 		arguments = append(arguments, "--endpoint", endpoint)

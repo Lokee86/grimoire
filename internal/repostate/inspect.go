@@ -1,14 +1,19 @@
 package repostate
 
 import (
+	"bufio"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/knowledge"
 	"github.com/Lokee86/grimoire/internal/knowledgevector"
@@ -66,6 +71,10 @@ func inspect(ctx context.Context, location paths) (Status, error) {
 	var knowledgeAvailable bool
 	status.Knowledge, currentKnowledge, knowledgeAvailable = inspectKnowledge(location, fingerprint)
 	status.ArcanaVectors = inspectArcanaVectors(location, status.Arcana.Snapshot)
+	if status.Arcana.Status != "current" && status.ArcanaVectors.Status == "current" {
+		status.ArcanaVectors.Status = "stale"
+		status.ArcanaVectors.Reason = "Arcana graph state is not current"
+	}
 	status.KnowledgeVectors = inspectKnowledgeVectors(location, currentKnowledge, knowledgeAvailable)
 	if status.Knowledge.Status != "current" && status.KnowledgeVectors.Status == "current" {
 		status.KnowledgeVectors.Status = "stale"
@@ -227,20 +236,198 @@ func inspectArcanaVectors(location paths, arcanaID string) VectorStatus {
 	if arcanaID == "" || !validSnapshotID(arcanaID) {
 		return VectorStatus{Status: "missing", Reason: "no current Arcana snapshot"}
 	}
-	directory := filepath.Join(location.arcana, "vectors", strings.TrimPrefix(arcanaID, "sha256:"))
-	matches, _ := filepath.Glob(filepath.Join(directory, "*", "manifest.json"))
-	for _, manifest := range matches {
-		base := filepath.Dir(manifest)
-		var value struct {
-			GraphSnapshotID string `json:"graph_snapshot_id"`
-			VectorsFile     string `json:"vectors_file"`
-			RecordsFile     string `json:"records_file"`
+	digest := strings.TrimPrefix(arcanaID, "sha256:")
+	base := filepath.Join(location.arcana, "vectors", digest, embedding.Identity())
+	manifestPath := filepath.Join(base, "manifest.json")
+	status := VectorStatus{Snapshot: arcanaID, Expected: arcanaID}
+	if !fileExists(manifestPath) {
+		status.Status = "missing"
+		status.Reason = "matching vector index is not prepared"
+		return status
+	}
+
+	repository, err := readArcanaRepositoryIdentity(filepath.Join(location.arcana, "snapshots", digest, "repository.manifest"))
+	if err != nil {
+		status.Status = "stale"
+		status.Reason = "cannot validate current Arcana graph identity: " + err.Error()
+		return status
+	}
+	var manifest arcanaVectorManifest
+	if err := readJSON(manifestPath, &manifest); err != nil {
+		status.Status = "stale"
+		status.Reason = "invalid Arcana vector manifest: " + err.Error()
+		return status
+	}
+	status.Model = manifest.Model
+	status.Count = manifest.ItemCount
+	if reason := validateArcanaVectorManifest(manifest, repository); reason != "" {
+		status.Status = "stale"
+		status.Reason = reason
+		return status
+	}
+	vectors := filepath.Join(base, manifest.VectorsFile)
+	info, err := os.Stat(vectors)
+	if err != nil || info.IsDir() {
+		status.Status = "stale"
+		status.Reason = "Arcana vector data file is missing"
+		return status
+	}
+	status.Bytes = info.Size()
+	expectedBytes := int64(manifest.ItemCount) * int64(manifest.Dimensions) * 4
+	if info.Size() != expectedBytes {
+		status.Status = "stale"
+		status.Reason = fmt.Sprintf("Arcana vector data is %d bytes; expected %d", info.Size(), expectedBytes)
+		return status
+	}
+	if count, err := countArcanaVectorRecords(filepath.Join(base, manifest.RecordsFile)); err != nil || count != manifest.ItemCount {
+		status.Status = "stale"
+		if err != nil {
+			status.Reason = "invalid Arcana vector node records: " + err.Error()
+		} else {
+			status.Reason = fmt.Sprintf("Arcana vector index has %d node records; expected %d", count, manifest.ItemCount)
 		}
-		if readJSON(manifest, &value) == nil && fileExists(filepath.Join(base, value.VectorsFile)) && fileExists(filepath.Join(base, value.RecordsFile)) {
-			return VectorStatus{Status: "available", Snapshot: arcanaID}
+		return status
+	}
+	for _, data := range []struct {
+		file, expected, label string
+	}{
+		{manifest.RecordsFile, manifest.RecordsSHA256, "node records"},
+		{manifest.VectorsFile, manifest.VectorsSHA256, "vectors"},
+	} {
+		actual, err := fileSHA256(filepath.Join(base, data.file))
+		if err != nil || actual != data.expected {
+			status.Status = "stale"
+			status.Reason = "Arcana vector " + data.label + " checksum does not match its manifest"
+			return status
 		}
 	}
-	return VectorStatus{Status: "missing", Snapshot: arcanaID, Reason: "matching vector index is not prepared"}
+	status.Status = "current"
+	return status
+}
+
+type arcanaVectorManifest struct {
+	Version              int    `json:"version"`
+	RepositorySnapshotID string `json:"repository_snapshot_id"`
+	GraphSnapshotID      string `json:"graph_snapshot_id"`
+	Model                string `json:"model"`
+	Identity             string `json:"identity"`
+	Dimensions           int    `json:"dimensions"`
+	ItemCount            int    `json:"item_count"`
+	RecordsFile          string `json:"records_file"`
+	RecordsSHA256        string `json:"records_sha256"`
+	VectorsFile          string `json:"vectors_file"`
+	VectorsSHA256        string `json:"vectors_sha256"`
+}
+
+type arcanaRepositoryIdentity struct {
+	SnapshotID      string
+	GraphSnapshotID string
+	NodeCount       int
+}
+
+func readArcanaRepositoryIdentity(path string) (arcanaRepositoryIdentity, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return arcanaRepositoryIdentity{}, err
+	}
+	values := make(map[string]string)
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		name, value, found := strings.Cut(strings.TrimSpace(line), "=")
+		if found {
+			values[name] = value
+		}
+	}
+	nodeCount, err := strconv.Atoi(values["node_count"])
+	if err != nil || values["version"] != "1" || nodeCount < 0 || !validArcanaHexID(values["snapshot_id"]) || !validArcanaHexID(values["graph_snapshot_id"]) {
+		return arcanaRepositoryIdentity{}, errors.New("repository.manifest has invalid vector identity fields")
+	}
+	return arcanaRepositoryIdentity{
+		SnapshotID: values["snapshot_id"], GraphSnapshotID: values["graph_snapshot_id"], NodeCount: nodeCount,
+	}, nil
+}
+
+func validateArcanaVectorManifest(manifest arcanaVectorManifest, repository arcanaRepositoryIdentity) string {
+	const maxVectorItems = int64(^uint64(0)>>1) / int64(embedding.Dimensions*4)
+	switch {
+	case manifest.Version != 2:
+		return fmt.Sprintf("unsupported Arcana vector index version %d", manifest.Version)
+	case manifest.RepositorySnapshotID != repository.SnapshotID || manifest.GraphSnapshotID != repository.GraphSnapshotID:
+		return "Arcana vector index does not match the current graph identity"
+	case manifest.Model != embedding.ModelReference || manifest.Identity != embedding.Identity() || manifest.Dimensions != embedding.Dimensions:
+		return "Arcana vector index does not match Grimoire's embedding contract"
+	case manifest.ItemCount != repository.NodeCount:
+		return "Arcana vector index node count does not match the current graph"
+	case int64(manifest.ItemCount) > maxVectorItems:
+		return "Arcana vector index byte length overflows the supported size"
+	case manifest.RecordsFile != "nodes.jsonl" || manifest.VectorsFile != "vectors.f32":
+		return "Arcana vector index uses unsupported data filenames"
+	case !validSHA256(manifest.RecordsSHA256) || !validSHA256(manifest.VectorsSHA256):
+		return "Arcana vector index has invalid data checksums"
+	default:
+		return ""
+	}
+}
+
+func countArcanaVectorRecords(path string) (int, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	count := 0
+	for scanner.Scan() {
+		var record struct {
+			NodeKey string `json:"node_key"`
+			Kind    string `json:"kind"`
+			Name    string `json:"name"`
+		}
+		if err := json.Unmarshal(scanner.Bytes(), &record); err != nil || !validArcanaHexID(record.NodeKey) || strings.TrimSpace(record.Kind) == "" || strings.TrimSpace(record.Name) == "" {
+			if err != nil {
+				return 0, err
+			}
+			return 0, errors.New("node record has invalid required fields")
+		}
+		count++
+	}
+	return count, scanner.Err()
+}
+
+func validArcanaHexID(value string) bool {
+	if len(value) != 16 {
+		return false
+	}
+	for _, character := range value {
+		if !strings.ContainsRune("0123456789abcdef", character) {
+			return false
+		}
+	}
+	return true
+}
+
+func validSHA256(value string) bool {
+	if len(value) != 64 {
+		return false
+	}
+	for _, character := range value {
+		if !strings.ContainsRune("0123456789abcdef", character) {
+			return false
+		}
+	}
+	return true
+}
+
+func fileSHA256(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
 func readCurrent(path string) (string, error) {

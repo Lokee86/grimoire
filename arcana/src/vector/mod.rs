@@ -17,7 +17,7 @@ pub use documents::{GraphDocument, graph_documents};
 pub use error::EmbeddingError;
 pub use http::HttpError;
 pub use index::{IndexManifest, SearchHit, VectorIndexError, current_index_directory};
-pub use search::search_current_index;
+pub use search::{search_current_index, search_expected_index};
 
 #[cfg(test)]
 #[path = "index_tests.rs"]

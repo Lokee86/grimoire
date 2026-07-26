@@ -2,15 +2,43 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
 
+use fs2::FileExt;
+
 use super::Embedder;
 use super::index::{
-    IndexRecord, SearchHit, VectorIndexError, current_index_directory, current_snapshot_directory,
-    manifest_matches, read_manifest, validate_files,
+    IndexRecord, SearchHit, VectorIndexError, current_snapshot_directory, index_directory,
+    manifest_matches, read_manifest, validate_embedder, validate_files,
 };
 use crate::repository::{REPOSITORY_MANIFEST_FILE, RepositorySnapshot};
 
 pub fn search_current_index(
     state: impl AsRef<Path>,
+    embedder: &dyn Embedder,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<SearchHit>, VectorIndexError> {
+    search_index(state.as_ref(), None, embedder, query, limit)
+}
+
+pub fn search_expected_index(
+    state: impl AsRef<Path>,
+    expected_snapshot: &str,
+    embedder: &dyn Embedder,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<SearchHit>, VectorIndexError> {
+    search_index(
+        state.as_ref(),
+        Some(expected_snapshot),
+        embedder,
+        query,
+        limit,
+    )
+}
+
+fn search_index(
+    state: &Path,
+    expected_snapshot: Option<&str>,
     embedder: &dyn Embedder,
     query: &str,
     limit: usize,
@@ -25,11 +53,28 @@ pub fn search_current_index(
             "semantic query limit must be greater than zero".to_owned(),
         ));
     }
-    let state = state.as_ref();
-    let directory = current_index_directory(state, embedder.identity())?;
+    validate_embedder(embedder)?;
+    let (digest, snapshot_directory) = current_snapshot_directory(state)?;
+    if let Some(expected) = expected_snapshot
+        && expected != format!("sha256:{digest}")
+    {
+        return Err(VectorIndexError::InvalidState(format!(
+            "Arcana CURRENT does not match expected snapshot {expected}"
+        )));
+    }
+    let directory = index_directory(state, &digest, embedder.identity());
+    let parent = directory.parent().ok_or_else(|| {
+        VectorIndexError::InvalidState("vector index has no parent directory".to_owned())
+    })?;
+    let lock = File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(parent.join(format!(".{}.lock", embedder.identity())))?;
+    FileExt::lock_shared(&lock)?;
     let manifest = read_manifest(&directory)?;
     validate_files(&directory, &manifest)?;
-    let (_, snapshot_directory) = current_snapshot_directory(state)?;
     let snapshot = RepositorySnapshot::open(snapshot_directory.join(REPOSITORY_MANIFEST_FILE))?;
     if !manifest_matches(
         &manifest,
@@ -42,12 +87,23 @@ pub fn search_current_index(
         ));
     }
     let query_vector = embedder.embed_query(query)?;
+    let (current_digest, _) = current_snapshot_directory(state)?;
+    if current_digest != digest {
+        return Err(VectorIndexError::InvalidState(
+            "Arcana CURRENT changed during semantic query".to_owned(),
+        ));
+    }
     if query_vector.len() != manifest.dimensions {
         return Err(VectorIndexError::CorruptIndex(format!(
             "query embedding has {} dimensions; index requires {}",
             query_vector.len(),
             manifest.dimensions
         )));
+    }
+    if query_vector.iter().any(|value| !value.is_finite()) {
+        return Err(VectorIndexError::CorruptIndex(
+            "query embedding contains a non-finite value".to_owned(),
+        ));
     }
 
     let records = BufReader::new(File::open(directory.join(&manifest.records_file))?);
@@ -100,6 +156,12 @@ pub fn search_current_index(
             .total_cmp(&left.score)
             .then_with(|| left.node_key.cmp(&right.node_key))
     });
+    let (current_digest, _) = current_snapshot_directory(state)?;
+    if current_digest != digest {
+        return Err(VectorIndexError::InvalidState(
+            "Arcana CURRENT changed during semantic query".to_owned(),
+        ));
+    }
     hits.truncate(limit);
     Ok(hits)
 }

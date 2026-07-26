@@ -15,12 +15,13 @@ func TestSemanticSeedsConvertsRankedHits(t *testing.T) {
 			_ context.Context,
 			command string,
 			state string,
+			expectedSnapshot string,
 			endpoint string,
 			query string,
 			limit int,
 		) ([]semanticHit, error) {
-			if command != "arcana-test" || state != "state" || endpoint != "endpoint" {
-				t.Fatalf("unexpected invocation: command=%q state=%q endpoint=%q", command, state, endpoint)
+			if command != "arcana-test" || state != "state" || expectedSnapshot != "snapshot" || endpoint != "endpoint" {
+				t.Fatalf("unexpected invocation: command=%q state=%q expected=%q endpoint=%q", command, state, expectedSnapshot, endpoint)
 			}
 			if query != "profile persistence" || limit != 4 {
 				t.Fatalf("unexpected query: query=%q limit=%d", query, limit)
@@ -34,7 +35,7 @@ func TestSemanticSeedsConvertsRankedHits(t *testing.T) {
 	}
 
 	seeds, err := client.SemanticSeeds(
-		context.Background(), "state", "endpoint", "profile persistence", 4,
+		context.Background(), "state", "snapshot", "endpoint", "profile persistence", 4,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +62,7 @@ func TestSemanticSeedsSilentlySkipsMissingIndex(t *testing.T) {
 	}
 	client := Client{Command: filepath.Join(state, "missing-arcana")}
 	seeds, err := client.SemanticSeeds(
-		context.Background(), state, "endpoint", "profile persistence", 4,
+		context.Background(), state, "", "endpoint", "profile persistence", 4,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -73,7 +74,7 @@ func TestSemanticSeedsSilentlySkipsMissingIndex(t *testing.T) {
 
 func TestSemanticSeedsSkipsEmptyInputs(t *testing.T) {
 	client := Client{
-		RunSemantic: func(context.Context, string, string, string, string, int) ([]semanticHit, error) {
+		RunSemantic: func(context.Context, string, string, string, string, string, int) ([]semanticHit, error) {
 			t.Fatal("semantic runner should not be called")
 			return nil, nil
 		},
@@ -87,7 +88,7 @@ func TestSemanticSeedsSkipsEmptyInputs(t *testing.T) {
 		{state: "state", query: "", limit: 1},
 		{state: "state", query: "query", limit: 0},
 	} {
-		seeds, err := client.SemanticSeeds(context.Background(), test.state, "", test.query, test.limit)
+		seeds, err := client.SemanticSeeds(context.Background(), test.state, "", "", test.query, test.limit)
 		if err != nil || len(seeds) != 0 {
 			t.Fatalf("expected empty result, got seeds=%+v err=%v", seeds, err)
 		}

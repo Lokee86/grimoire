@@ -1,13 +1,16 @@
 use std::fmt;
 use std::fs;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 use super::{Embedder, EmbeddingError};
 use crate::repository::RepositorySnapshotError;
 
-pub(crate) const INDEX_VERSION: u64 = 1;
+pub(crate) const INDEX_VERSION: u64 = 2;
 pub(crate) const MANIFEST_FILE: &str = "manifest.json";
 pub(crate) const RECORDS_FILE: &str = "nodes.jsonl";
 pub(crate) const VECTORS_FILE: &str = "vectors.f32";
@@ -22,7 +25,9 @@ pub struct IndexManifest {
     pub dimensions: usize,
     pub item_count: usize,
     pub records_file: String,
+    pub records_sha256: String,
     pub vectors_file: String,
+    pub vectors_sha256: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -48,7 +53,26 @@ pub fn current_index_directory(
 ) -> Result<PathBuf, VectorIndexError> {
     validate_identity(identity)?;
     let (digest, _) = current_snapshot_directory(state.as_ref())?;
-    Ok(state.as_ref().join("vectors").join(digest).join(identity))
+    Ok(index_directory(state.as_ref(), &digest, identity))
+}
+
+pub(crate) fn index_directory(state: &Path, digest: &str, identity: &str) -> PathBuf {
+    state.join("vectors").join(digest).join(identity)
+}
+
+pub(crate) fn validate_embedder(embedder: &dyn Embedder) -> Result<(), VectorIndexError> {
+    validate_identity(embedder.identity())?;
+    if embedder.model().trim().is_empty() {
+        return Err(VectorIndexError::InvalidState(
+            "embedding model is empty".to_owned(),
+        ));
+    }
+    if embedder.dimensions() == 0 {
+        return Err(VectorIndexError::InvalidState(
+            "embedding dimensions must be greater than zero".to_owned(),
+        ));
+    }
+    Ok(())
 }
 
 pub(crate) fn current_snapshot_directory(
@@ -80,6 +104,26 @@ pub(crate) fn read_manifest(directory: &Path) -> Result<IndexManifest, VectorInd
         )));
     }
     validate_identity(&manifest.identity)?;
+    if manifest.model.trim().is_empty() {
+        return Err(VectorIndexError::CorruptIndex(
+            "vector index model is empty".to_owned(),
+        ));
+    }
+    if manifest.dimensions == 0 {
+        return Err(VectorIndexError::CorruptIndex(
+            "vector index dimensions must be greater than zero".to_owned(),
+        ));
+    }
+    if manifest.records_file != RECORDS_FILE || manifest.vectors_file != VECTORS_FILE {
+        return Err(VectorIndexError::CorruptIndex(
+            "vector index uses unsupported data filenames".to_owned(),
+        ));
+    }
+    if !valid_sha256(&manifest.records_sha256) || !valid_sha256(&manifest.vectors_sha256) {
+        return Err(VectorIndexError::CorruptIndex(
+            "vector index has invalid data checksums".to_owned(),
+        ));
+    }
     Ok(manifest)
 }
 
@@ -98,10 +142,88 @@ pub(crate) fn validate_files(
             "vector file is {actual} bytes; expected {expected}"
         )));
     }
-    if !directory.join(&manifest.records_file).is_file() {
+    let mut vectors = BufReader::new(File::open(directory.join(&manifest.vectors_file))?);
+    let mut bytes = [0_u8; 4];
+    for index in 0..expected / 4 {
+        vectors.read_exact(&mut bytes)?;
+        if !f32::from_le_bytes(bytes).is_finite() {
+            return Err(VectorIndexError::CorruptIndex(format!(
+                "vector index contains a non-finite value at position {index}"
+            )));
+        }
+    }
+    let records_path = directory.join(&manifest.records_file);
+    if !records_path.is_file() {
         return Err(VectorIndexError::CorruptIndex(
             "vector node records are missing".to_owned(),
         ));
+    }
+    let records = BufReader::new(File::open(records_path)?);
+    let mut count = 0_usize;
+    for line in records.lines() {
+        let record: IndexRecord = serde_json::from_str(&line?).map_err(|error| {
+            VectorIndexError::CorruptIndex(format!("invalid vector node record {count}: {error}"))
+        })?;
+        validate_record(&record, count)?;
+        count += 1;
+    }
+    if count != manifest.item_count {
+        return Err(VectorIndexError::CorruptIndex(format!(
+            "vector index has {count} node records; expected {}",
+            manifest.item_count
+        )));
+    }
+    for (file, expected, label) in [
+        (
+            &manifest.records_file,
+            &manifest.records_sha256,
+            "node records",
+        ),
+        (&manifest.vectors_file, &manifest.vectors_sha256, "vectors"),
+    ] {
+        let actual = file_sha256(&directory.join(file))?;
+        if &actual != expected {
+            return Err(VectorIndexError::CorruptIndex(format!(
+                "vector index {label} checksum does not match its manifest"
+            )));
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn file_sha256(path: &Path) -> Result<String, VectorIndexError> {
+    let mut file = File::open(path)?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let count = file.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        hasher.update(&buffer[..count]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
+fn validate_record(record: &IndexRecord, index: usize) -> Result<(), VectorIndexError> {
+    if record.node_key.len() != 16
+        || !record
+            .node_key
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        || record.kind.trim().is_empty()
+        || record.name.trim().is_empty()
+    {
+        return Err(VectorIndexError::CorruptIndex(format!(
+            "invalid vector node record {index}"
+        )));
     }
     Ok(())
 }

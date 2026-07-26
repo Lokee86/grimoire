@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Lokee86/grimoire/internal/agentquery"
+	"github.com/Lokee86/grimoire/internal/agentruntime"
 )
 
 type queryListFlag []string
@@ -51,9 +52,9 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 	requestJSON := flags.String("request", "", "complete "+agentquery.SchemaVersion+" JSON request object")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
 	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
-	lexiconCommand := flags.String("lexicon-command", "lexicon", "Lexicon executable used for immutable snapshot export")
+	lexiconCommand := flags.String("lexicon-command", "", "Lexicon executable override; discovered when omitted")
 	arcanaState := flags.String("arcana-state", "", "Arcana state directory; defaults to <root>/.arcana")
-	arcanaCommand := flags.String("arcana-command", "arcana", "Arcana executable used for graph queries")
+	arcanaCommand := flags.String("arcana-command", "", "Arcana executable override; discovered when omitted")
 	timeout := flags.Duration("timeout", 30*time.Second, "complete query timeout")
 	var handles queryListFlag
 	var relations queryListFlag
@@ -87,6 +88,8 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 			LexiconCmd: *lexiconCommand, ArcanaState: *arcanaState, ArcanaCmd: *arcanaCommand,
 		}
 	}
+	request.LexiconCmd = agentruntime.ResolveProviderCommand(request.Root, request.LexiconCmd, "lexicon")
+	request.ArcanaCmd = agentruntime.ResolveProviderCommand(request.Root, request.ArcanaCmd, "arcana")
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()

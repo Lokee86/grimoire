@@ -21,4 +21,4 @@
 - source-candidate curation; or
 - final package budgeting.
 
-Arcana remains a standalone process boundary. Grimoire does not link it through FFI. When a vector manifest matching the current Arcana snapshot and embedding identity exists, this provider asks `arcana semantic-query --json` for semantic graph seeds, merges them with Lexicon seeds, and expands the combined set through the deterministic Arcana protocol. It does not create vector state during a context request.
+Arcana remains a standalone process boundary. Grimoire does not link it through FFI. When a vector manifest matching the resolved Arcana snapshot and embedding identity exists, this provider asks `arcana semantic-query --json --expected-snapshot <id>` for semantic graph seeds, merges them with Lexicon seeds, and expands the combined set through the deterministic Arcana protocol. A snapshot mismatch or semantic failure falls back to Lexicon seeds. It does not create vector state during a context request. Grimoire CLI callers resolve the Arcana executable through shared provider discovery rather than requiring it on `PATH`.

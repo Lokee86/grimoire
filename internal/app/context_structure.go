@@ -98,6 +98,7 @@ func collectStructuralContext(
 			semanticSeeds, semanticErr := client.SemanticSeeds(
 				ctx,
 				filepath.Dir(filepath.Dir(arcanaSnapshot)),
+				arcanaSnapshotID,
 				options.EmbeddingEndpoint,
 				query,
 				min(options.Limit, 6),

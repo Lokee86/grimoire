@@ -162,7 +162,7 @@ Search the graph index:
 arcana semantic-query --query "where is profile persistence handled?" [--limit 10] [--json]
 ```
 
-The index is stored under `.arcana/vectors/<snapshot-digest>/<embedding-identity>/`. Building is explicit. `grimoire context` uses a matching existing Arcana index automatically when Arcana structural retrieval is enabled, but never builds the index as a query side effect. Missing vector state falls back to Lexicon-seeded deterministic Arcana traversal.
+The index is stored under `.arcana/vectors/<snapshot-digest>/<embedding-identity>/`. Building is explicit. `grimoire context` uses a validated index matching the exact resolved Arcana snapshot when Arcana structural retrieval is enabled, but never builds the index as a query side effect. Missing, stale, corrupt, or concurrently invalidated vector state falls back to Lexicon-seeded deterministic Arcana traversal. `grimoire status` reports the matching default-model index as `current` only after validating its graph identity, embedding contract, data sizes, record count, and data checksums.
 
 See [`../../arcana/docs/vector-index.md`](../../arcana/docs/vector-index.md).
 
@@ -282,11 +282,11 @@ grimoire context [flags]
 | `--structure-timeout <duration>` | `30s` | Complete structural-provider timeout |
 | `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
 | `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
-| `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
+| `--lexicon-command <path>` | discovered | Executable override used for immutable snapshot export |
 | `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph-state directory |
-| `--arcana-command <path>` | `arcana` | Executable used for graph synchronization and protocol queries |
+| `--arcana-command <path>` | discovered | Executable override used for graph synchronization, semantic search, and protocol queries |
 
-The command retrieves source evidence with deterministic BM25, targeted exact recovery, Lexicon facts, and Arcana graph evidence. Repository-wide source embeddings are not built or queried. Provider candidates are merged before deterministic query-shape analysis. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, and expanded with bounded prepared neighbours. Automatic assembly stops after deterministic evidence coverage is reached; the emitted package records the assembly decision. Explicit-budget requests retain the existing fit-to-budget behavior.
+The command retrieves source evidence with deterministic BM25, targeted exact recovery, Lexicon facts, and Arcana graph evidence. Repository-wide source embeddings are not built or queried. Provider commands are resolved from explicit overrides, repository `.grimoire/providers.json`, adjacent installed executables, a discoverable Grimoire checkout, and finally `PATH`. Provider candidates are merged before deterministic query-shape analysis. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, and expanded with bounded prepared neighbours. Automatic assembly stops after deterministic evidence coverage is reached; the emitted package records the assembly decision. Explicit-budget requests retain the existing fit-to-budget behavior.
 
 Diff-aware context treats changed prepared chunks as primary candidates and emits bounded `git-diff` structural evidence for every changed span. Changed paths, hunk headings, and declaration lines are added only to the internal retrieval query so Lexicon and Arcana can locate callers, dependencies, contracts, and tests; the package retains the human-facing query. `working-tree` compares tracked files with `HEAD` and also includes untracked, non-ignored files. `staged` compares `HEAD` with the index, `unstaged` compares the index with tracked working files, and any other value is passed to Git as one revision/range argument. A diff with no changed spans is an error rather than silently producing ordinary query context.
 

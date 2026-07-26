@@ -123,6 +123,22 @@ fn parses_vector_commands() {
     assert_eq!(command.query, "profile persistence");
     assert_eq!(command.limit, 4);
     assert!(command.json);
+    assert_eq!(command.expected_snapshot, None);
+
+    let expected = format!("sha256:{}", "a".repeat(64));
+    let command = cli::parse([
+        "semantic-query".to_owned(),
+        "--query=query".to_owned(),
+        format!("--expected-snapshot={expected}"),
+    ])
+    .unwrap();
+    let Command::SemanticQuery(command) = command else {
+        panic!("wrong command")
+    };
+    assert_eq!(
+        command.expected_snapshot.as_deref(),
+        Some(expected.as_str())
+    );
 }
 
 #[test]

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use arcana::repository::RelationKind;
 use arcana::vector::DEFAULT_ENDPOINT;
 
-pub const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds\n    import-facts     Compile facts into a verified repository snapshot\n    update-facts     Replace changed-file facts and create a graph overlay\n    sync             Synchronize from Lexicon's current immutable snapshot\n    query            Query exact node names from a packed graph\n    protocol         Serve machine-readable JSONL snapshot queries\n    vectorize        Build an optional semantic index for the current graph\n    semantic-query   Search the current semantic graph index\n\nImport facts:\n    arcana import-facts --facts <FILE> --output <NEW-DIRECTORY> [--adapter <NAME>] [--adapter-version <VERSION>]\n\nUpdate facts:\n    arcana update-facts --base <repository.manifest> --facts <FILE> --changed <PATH>... --output <NEW-DIRECTORY>\n\nSync:\n    arcana sync [--lexicon <DIRECTORY>] [--state <DIRECTORY>] [--register]\n\nQuery:\n    arcana query --graph <FILE> --catalogue <FILE> --name <EXACT-NAME> [--reverse] [--relation <RELATION>]\n\nProtocol:\n    arcana protocol --snapshot <DIRECTORY>\n\nVectorize:\n    arcana vectorize [--state <DIRECTORY>] [--endpoint <URL>] [--batch-size <N>]\n\nSemantic query:\n    arcana semantic-query --query <TEXT> [--state <DIRECTORY>] [--endpoint <URL>] [--limit <N>] [--json]";
+pub const USAGE: &str = "Usage: arcana [OPTIONS] [COMMAND]\n\nOptions:\n    -h, --help       Print this help message\n    -V, --version    Print version information\n\nCommands:\n    benchmark        Compare overlays with packed snapshot rebuilds\n    import-facts     Compile facts into a verified repository snapshot\n    update-facts     Replace changed-file facts and create a graph overlay\n    sync             Synchronize from Lexicon's current immutable snapshot\n    query            Query exact node names from a packed graph\n    protocol         Serve machine-readable JSONL snapshot queries\n    vectorize        Build an optional semantic index for the current graph\n    semantic-query   Search the current semantic graph index\n\nImport facts:\n    arcana import-facts --facts <FILE> --output <NEW-DIRECTORY> [--adapter <NAME>] [--adapter-version <VERSION>]\n\nUpdate facts:\n    arcana update-facts --base <repository.manifest> --facts <FILE> --changed <PATH>... --output <NEW-DIRECTORY>\n\nSync:\n    arcana sync [--lexicon <DIRECTORY>] [--state <DIRECTORY>] [--register]\n\nQuery:\n    arcana query --graph <FILE> --catalogue <FILE> --name <EXACT-NAME> [--reverse] [--relation <RELATION>]\n\nProtocol:\n    arcana protocol --snapshot <DIRECTORY>\n\nVectorize:\n    arcana vectorize [--state <DIRECTORY>] [--endpoint <URL>] [--batch-size <N>]\n\nSemantic query:\n    arcana semantic-query --query <TEXT> [--state <DIRECTORY>] [--expected-snapshot <ID>] [--endpoint <URL>] [--limit <N>] [--json]";
 
 #[derive(Debug)]
 pub enum Command {
@@ -67,6 +67,7 @@ pub struct VectorizeCommand {
 #[derive(Debug)]
 pub struct SemanticQueryCommand {
     pub state: PathBuf,
+    pub expected_snapshot: Option<String>,
     pub endpoint: String,
     pub query: String,
     pub limit: usize,
@@ -253,12 +254,18 @@ fn parse_vectorize(arguments: Vec<String>) -> Result<VectorizeCommand, CliParseE
 
 fn parse_semantic_query(arguments: Vec<String>) -> Result<SemanticQueryCommand, CliParseError> {
     let mut state = None;
+    let mut expected_snapshot = None;
     let mut endpoint = None;
     let mut query = None;
     let mut limit = None;
     let mut json = false;
     parse_options(arguments, |option, value| match option {
         "--state" => set_path(&mut state, value.as_deref(), "--state"),
+        "--expected-snapshot" => set_string(
+            &mut expected_snapshot,
+            value.as_deref(),
+            "--expected-snapshot",
+        ),
         "--endpoint" => set_string(&mut endpoint, value.as_deref(), "--endpoint"),
         "--query" => set_string(&mut query, value.as_deref(), "--query"),
         "--limit" => set_usize(&mut limit, value.as_deref(), "--limit"),
@@ -270,6 +277,7 @@ fn parse_semantic_query(arguments: Vec<String>) -> Result<SemanticQueryCommand, 
     })?;
     Ok(SemanticQueryCommand {
         state: state.unwrap_or_else(|| PathBuf::from(".arcana")),
+        expected_snapshot,
         endpoint: endpoint.unwrap_or_else(|| DEFAULT_ENDPOINT.to_owned()),
         query: query.ok_or(CliParseError::MissingRequired("--query"))?,
         limit: limit.unwrap_or(10),
