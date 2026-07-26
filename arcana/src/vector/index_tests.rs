@@ -13,10 +13,9 @@ use crate::storage::write_packed;
 
 use super::build::replace_index;
 use super::{
-    BuildOptions, Embedder, EmbeddingError, IndexManifest,
-    SEMANTIC_ELIGIBILITY_POLICY_VERSION, build_current_index,
-    build_current_index_with_options, current_index_directory, search_current_index,
-    search_expected_index,
+    BuildOptions, Embedder, EmbeddingError, IndexManifest, SEMANTIC_ELIGIBILITY_POLICY_VERSION,
+    build_current_index, build_current_index_with_options, current_index_directory,
+    search_current_index, search_expected_index,
 };
 
 #[test]
