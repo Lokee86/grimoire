@@ -49,6 +49,9 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	case "query":
 		return runQuery(args[1:], stdout, stderr)
 	case "eval":
+		if len(args) > 1 && args[1] == "knowledge" {
+			return runEvalKnowledge(args[2:], stdout, stderr)
+		}
 		return runEval(args[1:], stdout, stderr)
 	case "model":
 		return runModel(args[1:], stdout, stderr)
@@ -79,6 +82,7 @@ Core workflow:
   grimoire knowledge index --root .    Index repository rationale and documentation
   grimoire knowledge search --query .  Retrieve cited documentation with BM25 and vectors
   grimoire vector build --root .       Build or refresh documentation vectors
+  grimoire eval knowledge --cases ...  Judge documentation retrieval against a frozen corpus
   grimoire query orient --root .       Discover compact repository anchors
   grimoire query trace --anchor <id>   Expand an exact structural handle
   grimoire mcp --root .                Serve the progressive agent tool over stdio

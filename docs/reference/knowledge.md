@@ -31,3 +31,13 @@ Missing, stale, incompatible, timed-out, or unavailable vectors do not fail know
 The vector builder deduplicates identical section text, reuses immutable content-addressed vector objects, writes successful batches immediately, and publishes a packed exact-search snapshot only after all required vectors are available. A failed build leaves completed objects reusable by the next run. An unchanged current snapshot returns immediately without object probes or rematerialization.
 
 Documentation vectors are consumed by `knowledge search` and the MCP knowledge lane only. They never enter source-context ranking and never affect `grimoire context` readiness or warnings.
+
+## Judged documentation evaluation
+
+`grimoire eval knowledge` runs a frozen documentation corpus against this same BM25 and optional-vector seam. It does not build an index or alter source retrieval:
+
+```bash
+grimoire eval knowledge --root . --cases evaluation/knowledge/grimoire.json --vectors=false
+```
+
+The report keeps corpus order and records required-section recall, recall@k, MRR, irrelevant selections, vector usage/error, latency, and every returned section for each case. Enable vectors for a supplemental comparison; missing or failed vectors are reported without replacing BM25 results.

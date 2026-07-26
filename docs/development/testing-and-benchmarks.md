@@ -54,7 +54,7 @@ Lexicon adapter and snapshot coverage is documented in [`lexicon/docs/DEVELOPMEN
 | Query profiling and assembly | `internal/queryshape/*_test.go`, `internal/assembly/*_test.go` |
 | Structural providers | `internal/lexiconfacts`, `internal/arcanagraph`, and app structure tests |
 | Package fitting and exact tokens | `internal/compiler/*_test.go` |
-| Corpus scoring and reports | `internal/evaluation/*_test.go` |
+| Corpus scoring and reports | `internal/evaluation/*_test.go`, `internal/knowledgeevaluation/*_test.go` |
 
 Most tests use temporary repositories, local HTTP servers, and synthetic vectors. Native integration requires a built DLL and skips when unavailable.
 
@@ -148,9 +148,21 @@ grimoire eval retrieval \
 
 `--adaptive` cannot be combined with a fixed `--budget` override.
 
+Documentation evaluation is an independent production path:
+
+```bash
+grimoire knowledge index --root .
+grimoire eval knowledge \
+  --root . \
+  --cases evaluation/knowledge/grimoire.json \
+  --vectors=false
+```
+
+Use `--vectors` (the default) to compare the same BM25 run with the optional current documentation-vector snapshot. Vector errors are expected fallback observations when the model service, native engine, or snapshot is unavailable; they do not fail the case execution. The documentation report is separate from `grimoire eval retrieval` and never exercises source-code retrieval.
+
 ## Report outputs
 
-The evaluator writes JSON and Markdown under `evaluation/results/`. Reports include source and structural recall, irrelevant-selection rates, ranking recall and MRR, query-profile agreement, latency, package size, budget utilization, provider warnings, and loss attribution through retrieval, merge, curation, adaptive assembly, and final fitting.
+The evaluators write JSON and Markdown under `evaluation/results/`. Source reports include source and structural recall, irrelevant-selection rates, ranking recall and MRR, query-profile agreement, latency, package size, budget utilization, provider warnings, and loss attribution through retrieval, merge, curation, adaptive assembly, and final fitting. Documentation reports include required-section recall, recall@k, MRR, irrelevant selections, vector usage/errors, per-case latency, and deterministic rankings.
 
 Important report families include ranking calibration baselines/current runs, query-profile reports, fixed/adaptive query-shape comparisons, and standalone/Lexicon/Lexicon-plus-Arcana comparisons.
 

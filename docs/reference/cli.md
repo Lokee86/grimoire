@@ -300,6 +300,35 @@ Structural enrichment is enabled by default. When Lexicon state exists, Grimoire
 
 Documentation vectors are intentionally independent of context assembly. Missing or stale documentation vectors affect only the knowledge lane and never produce context warnings.
 
+## `grimoire eval knowledge`
+
+Run the checked-in documentation corpus against the production `internal/knowledge` search seam:
+
+```bash
+grimoire eval knowledge \
+  --root . \
+  --cases evaluation/knowledge/grimoire.json \
+  --vectors=false
+```
+
+The command loads an existing `grimoire knowledge index`, executes every frozen case in corpus order, and writes a JSON report plus a Markdown review under `evaluation/results/`. Knowledge search always runs BM25. With `--vectors` enabled (the default), the current documentation vector snapshot is passed through the supplemental `knowledge.VectorRanker` seam; vector failures are recorded per case while BM25 results remain scoreable. Use `--vectors=false` for the deterministic lexical baseline.
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--cases <path>` | none | Frozen documentation corpus JSON |
+| `--root <path>` | `.` | Repository being evaluated |
+| `--state <path>` | `<root>/.grimoire/knowledge` | Prepared knowledge state |
+| `--vectors` | `true` | Attempt optional documentation vectors as a BM25 supplement |
+| `--top-k <n>` | corpus value | Override the corpus result limit |
+| `--recall-at-k <list>` | corpus value | Override ordered cutoffs such as `1,3,5,10` |
+| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint for vector queries |
+| `--engine <path>` | discovered DLL | Rust vector-engine library |
+| `--timeout <duration>` | `2m` | Per-case knowledge search timeout |
+| `--output-dir <path>` | `evaluation/results` | JSON and Markdown result directory |
+| `--output-prefix <name>` | generated | Shared result filename prefix |
+
+Reports include pass rate, required-section recall, recall@k, MRR, irrelevant selections, vector usage/errors, per-case latency, aggregate median/p95 latency, and deterministic per-case rankings. This path does not invoke source retrieval or the legacy source evaluator.
+
 ## `grimoire eval retrieval`
 
 Run a repository-owned judged retrieval corpus against one or more query modes:

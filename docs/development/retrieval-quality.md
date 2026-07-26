@@ -81,3 +81,21 @@ A case that never entered production candidates requires retrieval or ranking wo
 Low irrelevant-selection rate is useful only when required recall remains acceptable. Smaller packages are not automatically better when they remove answer-critical evidence.
 
 See [Ranking calibration corpus](ranking-calibration-corpus.md) and [Testing and benchmarks](testing-and-benchmarks.md).
+
+## Judged documentation retrieval
+
+Documentation retrieval has a separate checked-in corpus at `evaluation/knowledge/grimoire.json`. Its cases cover architecture rationale, command behavior, vector failure/fallback behavior, and package ownership boundaries. The production seam is:
+
+1. load the prepared `internal/knowledge` index;
+2. run deterministic BM25 for every query;
+3. optionally ask `internal/knowledgevector` for supplemental scores;
+4. preserve BM25 results when the vector snapshot is missing, stale, incompatible, or unavailable; and
+5. score the returned sections without invoking source retrieval or the legacy source evaluator.
+
+Run the lexical baseline with:
+
+```bash
+grimoire eval knowledge --root . --cases evaluation/knowledge/grimoire.json --vectors=false
+```
+
+Documentation reports are intentionally separate from source reports. They include macro pass rate, required-section recall, ordered recall@k cutoffs, MRR, irrelevant selections, vector usage and errors, per-case latency, aggregate median/p95 latency, and deterministic per-case rankings. A vector-enabled run is a supplemental comparison, not a replacement for the BM25 baseline.
