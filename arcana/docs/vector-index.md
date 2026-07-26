@@ -40,15 +40,19 @@ Defaults:
 - model identity: `qwen3-embedding-0.6b-q8_0-512d`
 - retained dimensions: `512`
 
-The command first validates an exact existing snapshot. Otherwise it resolves every graph document to the immutable content-addressed cache, sends only missing documents to the endpoint, and materializes the snapshot files from cache objects. `--batch-concurrency` bounds simultaneous embedding requests; each successful batch writes and synchronizes its objects immediately, so a retry after an endpoint or process interruption resumes from completed work. Snapshot materialization remains serialized and deterministic.
+The command first validates an exact existing snapshot, including its semantic-eligibility policy. Otherwise it resolves every eligible graph document to the immutable content-addressed cache, sends only missing documents to the endpoint, and materializes the snapshot files from cache objects. `--batch-concurrency` bounds simultaneous embedding requests; each successful batch writes and synchronizes its objects immediately, so a retry after an endpoint or process interruption resumes from completed work. Snapshot materialization remains serialized and deterministic.
 
-Build output reports node and unique-vector counts, embedded and reused vectors, exact-snapshot reuse, embedding request count, snapshot bytes, elapsed milliseconds, and the published directory. The exact-snapshot path makes no embedding request. Cross-snapshot reuse occurs only when rendered graph-document bytes and the complete embedding contract are identical.
+Build output reports indexed-document and unique-vector counts, embedded and reused vectors, exact-snapshot reuse, embedding request count, snapshot bytes, elapsed milliseconds, and the published directory. The exact-snapshot path makes no embedding request. Cross-snapshot reuse occurs only when rendered graph-document bytes and the complete embedding contract are identical.
 
-Build validation covers the manifest, fixed data filenames, vector byte length, finite values, node-record count and identities, and data checksums. Incomplete or corrupt snapshots are rebuilt. Publication is serialized per snapshot and embedding identity, preserves the prior index if replacement fails, and aborts with a retry message rather than publishing under the wrong snapshot if `.arcana/CURRENT` changes during embedding.
+Build validation covers the manifest, semantic-eligibility policy, fixed data filenames, vector byte length, finite values, indexed-document record count and identities, and data checksums. Incomplete, corrupt, or policy-incompatible snapshots are rebuilt. Publication is serialized per snapshot and embedding identity, preserves the prior index if replacement fails, and aborts with a retry message rather than publishing under the wrong snapshot if `.arcana/CURRENT` changes during embedding.
 
 ## Indexed objects
 
-Arcana creates one deterministic document per graph node. Each document contains:
+Arcana constructs the complete repository graph, then applies semantic-eligibility policy version 1 only while generating index documents. The policy excludes `variable`, `parameter`, `field`, `import`, `export`, `directory`, and `repository` nodes. It includes `function`, `method`, `constructor`, `test`, `file`, `type`, `interface`, `module`, `namespace`, `message-channel`, `http-endpoint`, `config-key`, `signal`, and `constant` nodes. Existing `trait` and generic `symbol` declarations are also included because they are type-like or adapter-neutral declaration entry points. Every current node kind is matched explicitly, so adding a kind requires a deliberate policy decision.
+
+These exclusions remove high-volume implementation detail that is usually reached more precisely by traversing from a declaration-level semantic match. They do not remove nodes or edges from Arcana snapshots, so exact traversal can still reach variables, parameters, fields, imports, exports, directories, and the repository root.
+
+Arcana creates one deterministic document per eligible graph node, ordered by stable node key. Each document contains:
 
 - node kind, name, path, and source span;
 - bounded outgoing relationships and target identities;
@@ -83,12 +87,22 @@ The cache key is SHA-256 over a domain separator, rendered graph-document bytes,
 - repository snapshot ID;
 - graph snapshot ID;
 - embedding model and stable model identity;
+- semantic-eligibility policy version and a composite index identity containing that version;
 - vector dimensions; and
 - item count, fixed data filenames, and SHA-256 checksums of both data files.
 
 `vectors.f32` contains normalized little-endian `f32` vectors materialized in deterministic node order. `nodes.jsonl` maps vector positions back to Arcana node keys, kinds, paths, and names. A snapshot manifest also records the unique-vector count when produced by the incremental builder.
 
-The current index format is version 2. Version 1 manifests do not carry data checksums and are rebuilt rather than reused.
+The current index format is version 3 and semantic-eligibility policy version is 1. Its composite identity is `<embedding-identity>-arcana-semantic-v1`, while the containing directory remains keyed by embedding identity. Version 1 manifests lack data checksums; version 2 manifests predate semantic eligibility. Both are rebuilt rather than reused.
+
+## Expected scope reduction
+
+The policy is intentionally a substantial reduction, not a graph-size change. In the measured live states that motivated it:
+
+- Grimoire had 30,260 graph nodes, including 22,295 variables. Excluding variables alone caps the semantic index at 7,965 documents, at least a 73.7% reduction; the other excluded kinds reduce it further.
+- Space Rocks had 64,069 graph nodes, including 31,218 variables and 6,516 parameters. Excluding those two kinds alone caps the semantic index at 26,335 documents, at least a 58.9% reduction; fields, imports, exports, directories, and the repository node reduce it further.
+
+Manifest `item_count`, vector byte-length validation, record-count validation, build summaries, and `grimoire status` all report and validate the indexed-document count. They do not compare that count with the complete graph node count.
 
 ## Query the index
 

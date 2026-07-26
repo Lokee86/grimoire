@@ -16,7 +16,9 @@ pub use client::{
     DEFAULT_DIMENSIONS, DEFAULT_ENDPOINT, DEFAULT_IDENTITY, DEFAULT_MODEL, Embedder,
     EmbeddingClient,
 };
-pub use documents::{GraphDocument, graph_documents};
+pub use documents::{
+    GraphDocument, SEMANTIC_ELIGIBILITY_POLICY_VERSION, graph_documents, semantic_eligible,
+};
 pub use error::EmbeddingError;
 pub use http::HttpError;
 pub use index::{IndexManifest, SearchHit, VectorIndexError, current_index_directory};

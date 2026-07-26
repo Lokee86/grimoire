@@ -8,7 +8,6 @@ use std::time::{Duration, Instant};
 
 use fs2::FileExt;
 
-use super::Embedder;
 use super::cache::{
     ObjectKey, append_object_vector, cache_directory, object_key, persist_object, validate_object,
 };
@@ -16,8 +15,9 @@ use super::documents::graph_documents;
 use super::index::{
     INDEX_VERSION, IndexManifest, IndexRecord, MANIFEST_FILE, RECORDS_FILE, VECTORS_FILE,
     VectorIndexError, current_snapshot_directory, file_sha256, index_directory, manifest_matches,
-    read_manifest, validate_embedder, validate_files,
+    read_manifest, semantic_index_identity, validate_embedder, validate_files,
 };
+use super::{Embedder, SEMANTIC_ELIGIBILITY_POLICY_VERSION};
 use crate::repository::{REPOSITORY_MANIFEST_FILE, RepositorySnapshot};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -342,7 +342,8 @@ fn write_index(
         repository_snapshot_id: format!("{:016x}", snapshot.manifest().snapshot_id),
         graph_snapshot_id: format!("{:016x}", snapshot.manifest().graph_snapshot_id),
         model: embedder.model().to_owned(),
-        identity: embedder.identity().to_owned(),
+        identity: semantic_index_identity(embedder.identity()),
+        eligibility_policy_version: SEMANTIC_ELIGIBILITY_POLICY_VERSION,
         dimensions: embedder.dimensions(),
         item_count: documents.len(),
         unique_vectors,

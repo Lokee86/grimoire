@@ -77,6 +77,28 @@ func TestEnsureReportsOnlyValidatedCurrentArcanaVectors(t *testing.T) {
 	}
 
 	writeArcanaVectors(t, root, id)
+	manifestPath := filepath.Join(directory, "manifest.json")
+	var manifest arcanaVectorManifest
+	if err := readJSON(manifestPath, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	manifest.EligibilityPolicyVersion = 0
+	data, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	status, err = Ensure(context.Background(), Options{Root: root, Mode: CurrentOnly})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.ArcanaVectors.Status != "stale" || !strings.Contains(status.ArcanaVectors.Reason, "eligibility policy") {
+		t.Fatalf("policy-mismatched Arcana vector status = %+v", status.ArcanaVectors)
+	}
+
+	writeArcanaVectors(t, root, id)
 	if err := os.WriteFile(filepath.Join(directory, "nodes.jsonl"), nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +305,7 @@ func writeArcana(t *testing.T, root, id string) {
 func writeArcanaVectors(t *testing.T, root, id string) {
 	t.Helper()
 	snapshotDirectory := filepath.Join(root, ".arcana", "snapshots", strings.TrimPrefix(id, "sha256:"))
-	repositoryManifest := "version=1\nsnapshot_id=1111111111111111\ngraph_snapshot_id=2222222222222222\nnode_count=1\n"
+	repositoryManifest := "version=1\nsnapshot_id=1111111111111111\ngraph_snapshot_id=2222222222222222\nnode_count=3\n"
 	if err := os.WriteFile(filepath.Join(snapshotDirectory, "repository.manifest"), []byte(repositoryManifest), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -307,8 +329,8 @@ func writeArcanaVectors(t *testing.T, root, id string) {
 		t.Fatal(err)
 	}
 	manifest := arcanaVectorManifest{
-		Version: 2, RepositorySnapshotID: "1111111111111111", GraphSnapshotID: "2222222222222222",
-		Model: embedding.ModelReference, Identity: embedding.Identity(), Dimensions: embedding.Dimensions,
+		Version: 3, RepositorySnapshotID: "1111111111111111", GraphSnapshotID: "2222222222222222",
+		Model: embedding.ModelReference, Identity: arcanaSemanticIndexIdentity(), EligibilityPolicyVersion: arcanaSemanticEligibilityPolicyVersion, Dimensions: embedding.Dimensions,
 		ItemCount: 1, RecordsFile: "nodes.jsonl", RecordsSHA256: recordsHash,
 		VectorsFile: "vectors.f32", VectorsSHA256: vectorsHash,
 	}

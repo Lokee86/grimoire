@@ -1,11 +1,14 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as FmtWrite;
 
-use crate::repository::{EdgeFact, NodeFact, NodeKey, RepositoryFacts, UnresolvedReferenceFact};
+use crate::repository::{
+    EdgeFact, NodeFact, NodeKey, NodeKind, RepositoryFacts, UnresolvedReferenceFact,
+};
 
 const MAX_OUTGOING: usize = 32;
 const MAX_INCOMING: usize = 32;
 const MAX_UNRESOLVED: usize = 16;
+pub const SEMANTIC_ELIGIBILITY_POLICY_VERSION: u64 = 1;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GraphDocument {
@@ -14,6 +17,35 @@ pub struct GraphDocument {
     pub path: String,
     pub name: String,
     pub text: String,
+}
+
+/// Returns whether a complete graph node is a useful semantic retrieval entry point.
+pub fn semantic_eligible(kind: &NodeKind) -> bool {
+    match kind {
+        NodeKind::Repository
+        | NodeKind::Directory
+        | NodeKind::Field
+        | NodeKind::Variable
+        | NodeKind::Parameter
+        | NodeKind::Import
+        | NodeKind::Export => false,
+        NodeKind::File
+        | NodeKind::Module
+        | NodeKind::Namespace
+        | NodeKind::Symbol
+        | NodeKind::Type
+        | NodeKind::Interface
+        | NodeKind::Trait
+        | NodeKind::Function
+        | NodeKind::Method
+        | NodeKind::Constructor
+        | NodeKind::Constant
+        | NodeKind::Signal
+        | NodeKind::Test
+        | NodeKind::HttpEndpoint
+        | NodeKind::MessageChannel
+        | NodeKind::ConfigKey => true,
+    }
 }
 
 pub fn graph_documents(facts: &RepositoryFacts) -> Vec<GraphDocument> {
@@ -48,6 +80,7 @@ pub fn graph_documents(facts: &RepositoryFacts) -> Vec<GraphDocument> {
 
     nodes
         .values()
+        .filter(|node| semantic_eligible(&node.kind))
         .map(|node| GraphDocument {
             node_key: node.key.0,
             kind: node.kind.as_str().to_owned(),

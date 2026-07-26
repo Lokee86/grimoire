@@ -5,14 +5,16 @@ use std::time::Duration;
 
 use crate::repository::{
     EdgeFact, NodeFact, NodeKey, NodeKind, PublishRepositorySnapshot, RelationKind,
-    RepositoryFacts, compile_repository_facts, publish_repository_snapshot, write_catalogue,
+    RepositoryFacts, RepositorySnapshot, compile_repository_facts, publish_repository_snapshot,
+    write_catalogue,
 };
 use crate::snapshot::publish_snapshot;
 use crate::storage::write_packed;
 
 use super::build::replace_index;
 use super::{
-    BuildOptions, Embedder, EmbeddingError, IndexManifest, build_current_index,
+    BuildOptions, Embedder, EmbeddingError, IndexManifest,
+    SEMANTIC_ELIGIBILITY_POLICY_VERSION, build_current_index,
     build_current_index_with_options, current_index_directory, search_current_index,
     search_expected_index,
 };
@@ -31,6 +33,12 @@ fn builds_reuses_and_searches_current_graph_index() {
         nodes: vec![
             node(create, "create_profile", "src/profile.rs"),
             node(insert, "insert_profile", "src/repository.rs"),
+            node_with_kind(
+                NodeKey::from_u64(3),
+                NodeKind::Variable,
+                "temporary_profile",
+                "src/profile.rs",
+            ),
         ],
         edges: vec![EdgeFact {
             source: create,
@@ -41,6 +49,9 @@ fn builds_reuses_and_searches_current_graph_index() {
         unresolved: Vec::new(),
     };
     publish_test_snapshot(&snapshot_directory, &facts);
+    let graph = RepositorySnapshot::open(snapshot_directory.join("repository.manifest")).unwrap();
+    assert_eq!(graph.facts().nodes.len(), 3);
+    assert_eq!(graph.graph().node_count(), 3);
     fs::write(state.join("CURRENT"), format!("sha256:{digest}\n")).unwrap();
 
     let embedder = FakeEmbedder;
@@ -63,6 +74,28 @@ fn builds_reuses_and_searches_current_graph_index() {
     assert!(reused.cached_snapshot);
     assert_eq!(reused.embedded_vectors, 0);
     assert_eq!(reused.reused_vectors, 2);
+
+    let manifest_path = built.directory.join("manifest.json");
+    let manifest: IndexManifest =
+        serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    assert_eq!(manifest.version, 3);
+    assert_eq!(
+        manifest.eligibility_policy_version,
+        SEMANTIC_ELIGIBILITY_POLICY_VERSION
+    );
+    assert_eq!(manifest.identity, "fake-4d-arcana-semantic-v1");
+
+    let mut legacy: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    legacy["version"] = 2.into();
+    legacy["identity"] = "fake-4d".into();
+    legacy
+        .as_object_mut()
+        .unwrap()
+        .remove("eligibility_policy_version");
+    fs::write(&manifest_path, serde_json::to_vec_pretty(&legacy).unwrap()).unwrap();
+    let policy_rebuilt = build_current_index(&state, &embedder, 2).unwrap();
+    assert_eq!(policy_rebuilt.mode, "built");
 
     fs::write(built.directory.join("nodes.jsonl"), b"").unwrap();
     let repaired = build_current_index(&state, &embedder, 2).unwrap();
@@ -90,7 +123,6 @@ fn builds_reuses_and_searches_current_graph_index() {
     .unwrap_err();
     assert!(error.to_string().contains("expected snapshot"));
 
-    let manifest_path = built.directory.join("manifest.json");
     let mut manifest: IndexManifest =
         serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
     manifest.repository_snapshot_id = "0000000000000000".to_owned();
@@ -336,6 +368,18 @@ fn node(key: NodeKey, name: &str, path: &str) -> NodeFact {
         key,
         external_identity: None,
         kind: NodeKind::Function,
+        path: path.to_owned(),
+        name: name.to_owned(),
+        content_id: None,
+        span: None,
+    }
+}
+
+fn node_with_kind(key: NodeKey, kind: NodeKind, name: &str, path: &str) -> NodeFact {
+    NodeFact {
+        key,
+        external_identity: None,
+        kind,
         path: path.to_owned(),
         name: name.to_owned(),
         content_id: None,

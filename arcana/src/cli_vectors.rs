@@ -20,7 +20,7 @@ pub fn run_vectorize(command: &VectorizeCommand) -> Result<String, VectorIndexEr
         },
     )?;
     Ok(format!(
-        "Arcana vectors: mode={} nodes={} unique_vectors={} dimensions={} embedded_vectors={} reused_vectors={} cached_snapshot={} request_count={} snapshot_bytes={} duration_ms={:.3} directory={}\n",
+        "Arcana vectors: mode={} documents={} unique_vectors={} dimensions={} embedded_vectors={} reused_vectors={} cached_snapshot={} request_count={} snapshot_bytes={} duration_ms={:.3} directory={}\n",
         summary.mode,
         summary.item_count,
         summary.unique_vectors,

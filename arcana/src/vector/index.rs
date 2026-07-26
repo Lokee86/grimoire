@@ -7,10 +7,10 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::{Embedder, EmbeddingError};
+use super::{Embedder, EmbeddingError, SEMANTIC_ELIGIBILITY_POLICY_VERSION};
 use crate::repository::RepositorySnapshotError;
 
-pub(crate) const INDEX_VERSION: u64 = 2;
+pub(crate) const INDEX_VERSION: u64 = 3;
 pub(crate) const MANIFEST_FILE: &str = "manifest.json";
 pub(crate) const RECORDS_FILE: &str = "nodes.jsonl";
 pub(crate) const VECTORS_FILE: &str = "vectors.f32";
@@ -22,6 +22,8 @@ pub struct IndexManifest {
     pub graph_snapshot_id: String,
     pub model: String,
     pub identity: String,
+    #[serde(default)]
+    pub eligibility_policy_version: u64,
     pub dimensions: usize,
     pub item_count: usize,
     #[serde(default)]
@@ -103,6 +105,12 @@ pub(crate) fn read_manifest(directory: &Path) -> Result<IndexManifest, VectorInd
         return Err(VectorIndexError::CorruptIndex(format!(
             "unsupported vector index version {}",
             manifest.version
+        )));
+    }
+    if manifest.eligibility_policy_version != SEMANTIC_ELIGIBILITY_POLICY_VERSION {
+        return Err(VectorIndexError::CorruptIndex(format!(
+            "unsupported semantic eligibility policy version {}",
+            manifest.eligibility_policy_version
         )));
     }
     validate_identity(&manifest.identity)?;
@@ -267,8 +275,13 @@ pub(crate) fn manifest_matches(
     manifest.repository_snapshot_id == format!("{repository_snapshot_id:016x}")
         && manifest.graph_snapshot_id == format!("{graph_snapshot_id:016x}")
         && manifest.model == embedder.model()
-        && manifest.identity == embedder.identity()
+        && manifest.identity == semantic_index_identity(embedder.identity())
+        && manifest.eligibility_policy_version == SEMANTIC_ELIGIBILITY_POLICY_VERSION
         && manifest.dimensions == embedder.dimensions()
+}
+
+pub(crate) fn semantic_index_identity(embedding_identity: &str) -> String {
+    format!("{embedding_identity}-arcana-semantic-v{SEMANTIC_ELIGIBILITY_POLICY_VERSION}")
 }
 
 fn validate_identity(identity: &str) -> Result<(), VectorIndexError> {

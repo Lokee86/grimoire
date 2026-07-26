@@ -186,9 +186,11 @@ The packed index lives under
 vectors live under `.arcana/vector-cache/<embedding-identity>/` and are reused
 across snapshots when rendered content is byte-identical. Successful concurrent
 embedding batches persist immediately, so interrupted builds resume without
-repeating completed work. Each vector represents a graph node plus a bounded
-immediate neighborhood. Semantic matches provide entry points; exact Arcana
-traversal remains authoritative for relationships, impact, and call chains.
+repeating completed work. Each vector represents an eligible declaration-level
+graph entry point plus a bounded immediate neighborhood. Variables, parameters,
+fields, imports, exports, directories, and repository roots remain in the complete
+graph but are not indexed directly. Semantic matches provide entry points; exact
+Arcana traversal remains authoritative for relationships, impact, and call chains.
 
 Grimoire Context automatically uses a matching existing Arcana semantic index
 when Arcana structural retrieval is enabled. It never builds the index as a side

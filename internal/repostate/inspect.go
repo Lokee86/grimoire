@@ -306,23 +306,23 @@ func inspectArcanaVectors(location paths, arcanaID string) VectorStatus {
 }
 
 type arcanaVectorManifest struct {
-	Version              int    `json:"version"`
-	RepositorySnapshotID string `json:"repository_snapshot_id"`
-	GraphSnapshotID      string `json:"graph_snapshot_id"`
-	Model                string `json:"model"`
-	Identity             string `json:"identity"`
-	Dimensions           int    `json:"dimensions"`
-	ItemCount            int    `json:"item_count"`
-	RecordsFile          string `json:"records_file"`
-	RecordsSHA256        string `json:"records_sha256"`
-	VectorsFile          string `json:"vectors_file"`
-	VectorsSHA256        string `json:"vectors_sha256"`
+	Version                  int    `json:"version"`
+	RepositorySnapshotID     string `json:"repository_snapshot_id"`
+	GraphSnapshotID          string `json:"graph_snapshot_id"`
+	Model                    string `json:"model"`
+	Identity                 string `json:"identity"`
+	EligibilityPolicyVersion int    `json:"eligibility_policy_version"`
+	Dimensions               int    `json:"dimensions"`
+	ItemCount                int    `json:"item_count"`
+	RecordsFile              string `json:"records_file"`
+	RecordsSHA256            string `json:"records_sha256"`
+	VectorsFile              string `json:"vectors_file"`
+	VectorsSHA256            string `json:"vectors_sha256"`
 }
 
 type arcanaRepositoryIdentity struct {
 	SnapshotID      string
 	GraphSnapshotID string
-	NodeCount       int
 }
 
 func readArcanaRepositoryIdentity(path string) (arcanaRepositoryIdentity, error) {
@@ -338,25 +338,34 @@ func readArcanaRepositoryIdentity(path string) (arcanaRepositoryIdentity, error)
 		}
 	}
 	nodeCount, err := strconv.Atoi(values["node_count"])
-	if err != nil || values["version"] != "1" || nodeCount < 0 || !validArcanaHexID(values["snapshot_id"]) || !validArcanaHexID(values["graph_snapshot_id"]) {
+	if err != nil || nodeCount < 0 || values["version"] != "1" || !validArcanaHexID(values["snapshot_id"]) || !validArcanaHexID(values["graph_snapshot_id"]) {
 		return arcanaRepositoryIdentity{}, errors.New("repository.manifest has invalid vector identity fields")
 	}
 	return arcanaRepositoryIdentity{
-		SnapshotID: values["snapshot_id"], GraphSnapshotID: values["graph_snapshot_id"], NodeCount: nodeCount,
+		SnapshotID: values["snapshot_id"], GraphSnapshotID: values["graph_snapshot_id"],
 	}, nil
+}
+
+// Mirrors Arcana's manifest contract for status inspection; eligibility decisions remain in Arcana.
+const arcanaSemanticEligibilityPolicyVersion = 1
+
+func arcanaSemanticIndexIdentity() string {
+	return fmt.Sprintf("%s-arcana-semantic-v%d", embedding.Identity(), arcanaSemanticEligibilityPolicyVersion)
 }
 
 func validateArcanaVectorManifest(manifest arcanaVectorManifest, repository arcanaRepositoryIdentity) string {
 	const maxVectorItems = int64(^uint64(0)>>1) / int64(embedding.Dimensions*4)
 	switch {
-	case manifest.Version != 2:
+	case manifest.Version != 3:
 		return fmt.Sprintf("unsupported Arcana vector index version %d", manifest.Version)
 	case manifest.RepositorySnapshotID != repository.SnapshotID || manifest.GraphSnapshotID != repository.GraphSnapshotID:
 		return "Arcana vector index does not match the current graph identity"
-	case manifest.Model != embedding.ModelReference || manifest.Identity != embedding.Identity() || manifest.Dimensions != embedding.Dimensions:
+	case manifest.Model != embedding.ModelReference || manifest.Identity != arcanaSemanticIndexIdentity() || manifest.Dimensions != embedding.Dimensions:
 		return "Arcana vector index does not match Grimoire's embedding contract"
-	case manifest.ItemCount != repository.NodeCount:
-		return "Arcana vector index node count does not match the current graph"
+	case manifest.EligibilityPolicyVersion != arcanaSemanticEligibilityPolicyVersion:
+		return "Arcana vector index does not match the semantic eligibility policy"
+	case manifest.ItemCount < 0:
+		return "Arcana vector index has a negative document count"
 	case int64(manifest.ItemCount) > maxVectorItems:
 		return "Arcana vector index byte length overflows the supported size"
 	case manifest.RecordsFile != "nodes.jsonl" || manifest.VectorsFile != "vectors.f32":
