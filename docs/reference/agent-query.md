@@ -3,7 +3,9 @@
 `grimoire query` is a progressive, JSON-first repository query interface. It
 uses prepared source plus repository-local Lexicon and Arcana state; vectors are
 not required. Evidence order is deterministic: literal source, Lexicon facts,
-Arcana graph, then prepared-source BM25.
+Arcana graph, then prepared-source BM25. `--code-only` excludes documentation
+from the source and structural lanes so a separate knowledge consumer can own
+repository rationale without duplicating it as code evidence.
 
 ## Modes
 
@@ -43,8 +45,8 @@ grimoire query --request '{"schema":"grimoire.query.v1","mode":"search","root":"
 ```
 
 Common request fields are `mode`, `root`, `state`, `query`, `anchor`, `target`,
-`handles`, `limit`, `depth`, `direction`, `relations`, and
-`adjacent_context`. Provider overrides are `lexicon_facts`, `lexicon_state`,
+`handles`, `limit`, `depth`, `direction`, `relations`, `adjacent_context`, and
+`code_only`. Provider overrides are `lexicon_facts`, `lexicon_state`,
 `lexicon_command`, `arcana_state`, and `arcana_command`.
 
 Every returned node and source range includes a `handle`. Its `value` is the
@@ -65,5 +67,6 @@ Responses use mode-specific arrays:
 | `inspect` | `inspections` |
 
 All responses include `schema`, `mode`, and `snapshot`; degraded structural
-providers are reported in `warnings`. This contract is intended to be wrapped
-directly by a later MCP surface.
+providers are reported in `warnings`. The unified MCP runtime wraps this
+contract directly and adds automatic state preparation, repository-knowledge
+results, and investigation-session deltas.

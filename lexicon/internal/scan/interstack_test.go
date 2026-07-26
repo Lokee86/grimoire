@@ -17,7 +17,8 @@ func TestInterstackDrifted(t *testing.T) {
 		{
 			name: "orphan derived library",
 			manifest: objectstore.Manifest{Languages: []objectstore.LanguageEntry{{
-				Language: interstack.Language, AdapterVersion: interstack.AdapterVersion, SchemaVersion: 1,
+				Language: interstack.Language, AdapterVersion: interstack.AdapterVersion,
+				AdapterFingerprint: interstack.AdapterFingerprint(), SchemaVersion: 1,
 			}}},
 			want: true,
 		},
@@ -30,7 +31,8 @@ func TestInterstackDrifted(t *testing.T) {
 			name: "current derived library",
 			manifest: objectstore.Manifest{Languages: []objectstore.LanguageEntry{
 				{Language: "go"},
-				{Language: interstack.Language, AdapterVersion: interstack.AdapterVersion, SchemaVersion: 1},
+				{Language: interstack.Language, AdapterVersion: interstack.AdapterVersion,
+					AdapterFingerprint: interstack.AdapterFingerprint(), SchemaVersion: 1},
 			}},
 			want: false,
 		},
@@ -39,6 +41,15 @@ func TestInterstackDrifted(t *testing.T) {
 			manifest: objectstore.Manifest{Languages: []objectstore.LanguageEntry{
 				{Language: "go"},
 				{Language: interstack.Language, AdapterVersion: "0.0.1", SchemaVersion: 1},
+			}},
+			want: true,
+		},
+		{
+			name: "wrong derived fingerprint",
+			manifest: objectstore.Manifest{Languages: []objectstore.LanguageEntry{
+				{Language: "go"},
+				{Language: interstack.Language, AdapterVersion: interstack.AdapterVersion,
+					AdapterFingerprint: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", SchemaVersion: 1},
 			}},
 			want: true,
 		},

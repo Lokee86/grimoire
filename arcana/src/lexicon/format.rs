@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
 #[derive(Deserialize)]
@@ -21,6 +21,7 @@ pub(super) struct LanguageEntry {
     pub(super) analysis_config_id: String,
     #[serde(default)]
     pub(super) shared_object_id: Option<String>,
+    #[serde(default, deserialize_with = "null_default")]
     pub(super) files: Vec<FileEntry>,
 }
 
@@ -46,4 +47,12 @@ pub(super) struct JsonFactObject {
     pub(super) schema_version: u64,
     pub(super) analysis_config_id: String,
     pub(super) records: Vec<Value>,
+}
+
+fn null_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de> + Default,
+{
+    Ok(Option::<T>::deserialize(deserializer)?.unwrap_or_default())
 }

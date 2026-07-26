@@ -4,6 +4,7 @@ Reference pages describe the current public commands, data contracts, defaults, 
 
 - [CLI](cli.md) — commands, flags, environment variables, and fallback behavior.
 - [Agent query API](agent-query.md) — progressive orient, search, trace, impact, inspect, and stable handles.
+- [Agent MCP runtime](agent-mcp.md) — automatic state preparation, code/knowledge lanes, and session evidence deduplication.
 - [Embedding model](embedding-model.md) — fixed model identity, managed runtime, backend selection, and service verification.
 - [Indexing](indexing.md) — prepared source snapshots and vector-build workflow.
 - [Knowledge retrieval](knowledge.md) — documentation discovery, deterministic BM25 search, citations, and code-link hints.

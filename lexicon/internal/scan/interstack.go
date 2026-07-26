@@ -29,7 +29,7 @@ func (s *Scanner) refreshInterstack(manifest objectstore.Manifest) (objectstore.
 	if err != nil {
 		return objectstore.Manifest{}, fmt.Errorf("build interstack analysis: %w", err)
 	}
-	entry, err := s.Store.BuildSharedLanguage(analysis, config.AnalysisID(), interstack.AdapterVersion)
+	entry, err := s.Store.BuildSharedLanguage(analysis, config.AnalysisID(), interstack.AdapterFingerprint())
 	if err != nil {
 		return objectstore.Manifest{}, fmt.Errorf("store interstack analysis: %w", err)
 	}
@@ -61,5 +61,6 @@ func interstackDrifted(manifest objectstore.Manifest) bool {
 	if derived == nil {
 		return true
 	}
-	return derived.AdapterVersion != interstack.AdapterVersion || derived.SchemaVersion != 1
+	return derived.AdapterVersion != interstack.AdapterVersion ||
+		derived.AdapterFingerprint != interstack.AdapterFingerprint() || derived.SchemaVersion != 1
 }

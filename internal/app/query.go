@@ -46,6 +46,7 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 	depth := flags.Int("depth", 3, "maximum graph traversal depth")
 	direction := flags.String("direction", "", "graph direction: incoming, outgoing, or both")
 	adjacent := flags.Int("adjacent-context", 0, "source lines adjacent to an inspected declaration")
+	codeOnly := flags.Bool("code-only", false, "exclude documentation from source and structural result lanes")
 	requestJSON := flags.String("request", "", "complete "+agentquery.SchemaVersion+" JSON request object")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
 	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
@@ -80,7 +81,7 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 			Schema: agentquery.SchemaVersion, Mode: *mode, Root: *root, State: *state,
 			Query: *query, Anchor: *anchor, Target: *target, Handles: handles,
 			Limit: *limit, Depth: *depth, Direction: *direction,
-			Relations: relations, Adjacent: *adjacent,
+			Relations: relations, Adjacent: *adjacent, CodeOnly: *codeOnly,
 			LexiconFacts: *lexiconFacts, LexiconState: *lexiconState,
 			LexiconCmd: *lexiconCommand, ArcanaState: *arcanaState, ArcanaCmd: *arcanaCommand,
 		}

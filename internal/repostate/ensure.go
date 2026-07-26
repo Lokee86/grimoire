@@ -66,39 +66,44 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		if status.Lexicon.Status == "absent" || !fileExists(filepath.Join(location.lexicon, "config.json")) {
 			command = "init"
 		}
-		if err := perform(ctx, &status, "refresh-lexicon", options.Run, commandFor(options.LexiconCommand, "lexicon"), command, "--repo", location.root); err != nil {
-			return failStatus(status, err)
-		}
-		lexiconChanged = true
-		if err := markLexiconPrepared(location); err != nil {
-			return failStatus(status, err)
+		refreshErr := perform(ctx, &status, "refresh-lexicon", options.Run, commandFor(options.LexiconCommand, "lexicon"), command, "--repo", location.root)
+		if refreshErr != nil {
+			status.Warnings = append(status.Warnings, "Lexicon refresh unavailable; continuing with source analysis: "+refreshErr.Error())
+		} else if markerErr := markLexiconPrepared(location); markerErr != nil {
+			status.Warnings = append(status.Warnings, "Lexicon preparation metadata unavailable; continuing with source analysis: "+markerErr.Error())
+		} else {
+			lexiconChanged = true
 		}
 		status, err = reinspect(ctx, location, status, mode)
 		if err != nil {
 			return Status{}, err
 		}
 		status.Mode = mode
-		if status.Lexicon.Status != "current" {
-			return failStatus(status, fmt.Errorf("Lexicon refresh did not produce a current snapshot: %s", strings.Join(status.Lexicon.StaleReasons, "; ")))
+		if refreshErr == nil && status.Lexicon.Status != "current" {
+			status.Warnings = append(status.Warnings, "Lexicon refresh did not produce a current snapshot; continuing with source analysis: "+strings.Join(status.Lexicon.StaleReasons, "; "))
+			lexiconChanged = false
 		}
 	}
-	if status.Lexicon.Snapshot != "" && (mode == ForceRefresh || status.Arcana.Status != "current" || lexiconChanged) {
-		if err := perform(ctx, &status, "synchronize-arcana", options.Run, commandFor(options.ArcanaCommand, "arcana"), "sync", "--lexicon", location.lexicon, "--state", location.arcana); err != nil {
-			return failStatus(status, err)
+	if status.Lexicon.Status == "current" && status.Lexicon.Snapshot != "" && (mode == ForceRefresh || status.Arcana.Status != "current" || lexiconChanged) {
+		syncErr := perform(ctx, &status, "synchronize-arcana", options.Run, commandFor(options.ArcanaCommand, "arcana"), "sync", "--lexicon", location.lexicon, "--state", location.arcana)
+		if syncErr != nil {
+			status.Warnings = append(status.Warnings, "Arcana synchronization unavailable; continuing without graph traversal: "+syncErr.Error())
+		} else {
+			arcanaChanged = true
 		}
-		arcanaChanged = true
 		status, err = reinspect(ctx, location, status, mode)
 		if err != nil {
 			return Status{}, err
 		}
 		status.Mode = mode
-		if status.Arcana.Status != "current" {
-			return failStatus(status, fmt.Errorf("Arcana refresh did not align with Lexicon snapshot %s: %s", status.Lexicon.Snapshot, strings.Join(status.Arcana.StaleReasons, "; ")))
+		if syncErr == nil && status.Arcana.Status != "current" {
+			status.Warnings = append(status.Warnings, "Arcana synchronization did not produce a current graph; continuing without graph traversal: "+strings.Join(status.Arcana.StaleReasons, "; "))
+			arcanaChanged = false
 		}
 	}
 	if mode == ForceRefresh || status.Grimoire.Status != "current" || lexiconChanged || arcanaChanged {
 		arguments := []string{"index", "--root", location.root, "--state", location.grimoire}
-		if status.Lexicon.Snapshot != "" {
+		if status.Lexicon.Status == "current" && status.Lexicon.Snapshot != "" {
 			arguments = append(arguments, "--lexicon-state", location.lexicon, "--lexicon-command", commandFor(options.LexiconCommand, "lexicon"))
 		}
 		if err := perform(ctx, &status, "prepare-grimoire", options.Run, commandFor(options.GrimoireCommand, "grimoire"), arguments...); err != nil {
@@ -108,7 +113,7 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		if fingerprintErr != nil {
 			return failStatus(status, fmt.Errorf("fingerprint source after Grimoire preparation: %w", fingerprintErr))
 		}
-		if err := writeMarkers(location, fingerprint, status.Lexicon.Snapshot); err != nil {
+		if err := writeMarkers(location, fingerprint, currentLexiconSnapshot(status)); err != nil {
 			return failStatus(status, err)
 		}
 	}
@@ -118,7 +123,7 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 	}
 	status.Mode = mode
 	if status.Grimoire.Status == "current" {
-		if err := writeMarkers(location, status.Repository.SourceFingerprint, status.Lexicon.Snapshot); err != nil {
+		if err := writeMarkers(location, status.Repository.SourceFingerprint, currentLexiconSnapshot(status)); err != nil {
 			return failStatus(status, err)
 		}
 		// Marker writes are deliberately excluded from the source fingerprint.
@@ -160,8 +165,10 @@ func writeMarkers(location paths, fingerprint, lexiconID string) error {
 	if err != nil {
 		return err
 	}
-	if err := atomicWrite(filepath.Join(location.lexicon, ".repostate.json"), data); err != nil {
-		return fmt.Errorf("write Lexicon preparation metadata: %w", err)
+	if lexiconID != "" {
+		if err := atomicWrite(filepath.Join(location.lexicon, ".repostate.json"), data); err != nil {
+			return fmt.Errorf("write Lexicon preparation metadata: %w", err)
+		}
 	}
 	if err := atomicWrite(filepath.Join(location.grimoire, ".repostate.json"), data); err != nil {
 		return fmt.Errorf("write Grimoire preparation metadata: %w", err)

@@ -47,22 +47,27 @@ func scoreNode(node Node, query string, terms []string) (float64, []string) {
 	name := strings.ToLower(node.Name)
 	qualified := strings.ToLower(node.QualifiedName)
 	path := strings.ToLower(nodePath(node))
+	normalizedQuery := strings.TrimSpace(query)
 	var score float64
 	var reasons []string
-	if len(name) >= 2 && strings.Contains(query, name) {
+	exactName := len(name) >= 2 && normalizedQuery == name
+	explicitName := len(name) >= 2 && strings.Contains(normalizedQuery, name) && (!lowSignalKind(node.Kind) || exactName)
+	if explicitName {
 		score += 32
 		reasons = append(reasons, "query names Lexicon symbol "+node.Name)
 	}
-	if qualified != "" && strings.Contains(query, qualified) {
+	if qualified != "" && normalizedQuery == qualified {
 		score += 48
 		reasons = append(reasons, "query names Lexicon qualified symbol")
 	}
-	if path != "" && strings.Contains(query, path) {
+	if path != "" && normalizedQuery == path {
 		score += 48
 		reasons = append(reasons, "query names Lexicon source path")
 	}
 	nameTerms := identifierTerms(node.Name)
+	matchedTerms := 0
 	for _, term := range terms {
+		matched := true
 		switch {
 		case containsString(nameTerms, term):
 			score += 9
@@ -76,12 +81,63 @@ func scoreNode(node Node, query string, terms []string) (float64, []string) {
 		case strings.Contains(path, term):
 			score += 2
 			reasons = append(reasons, "symbol path matches "+term)
+		default:
+			matched = false
 		}
+		if matched {
+			matchedTerms++
+		}
+	}
+	if score == 0 {
+		return 0, nil
+	}
+	if matchedTerms > 1 {
+		score += float64((matchedTerms - 1) * 4)
+		reasons = append(reasons, "matches multiple query terms")
+	}
+	score += symbolKindWeight(node.Kind)
+	if symbolKindWeight(node.Kind) > 0 {
+		reasons = append(reasons, "implementation-level "+node.Kind)
+	}
+	if strings.Contains(path, "/test") || strings.Contains(path, "_test.") || strings.Contains(path, "/spec") {
+		score -= 8
+		reasons = append(reasons, "test-path penalty")
+	}
+	if strings.Contains(path, "/legacy/") {
+		score -= 10
+		reasons = append(reasons, "legacy-path penalty")
+	}
+	if lowSignalKind(node.Kind) && !exactName && matchedTerms < 2 {
+		return 0, nil
 	}
 	if score < 9 {
 		return 0, nil
 	}
 	return score, uniqueStrings(reasons)
+}
+
+func symbolKindWeight(kind string) float64 {
+	switch strings.ToLower(kind) {
+	case "http-endpoint", "message-channel", "config-key":
+		return 12
+	case "function", "method", "class", "type", "interface", "trait", "module", "service", "signal", "event":
+		return 6
+	case "file", "namespace", "package":
+		return 2
+	case "parameter", "local", "variable", "field", "property":
+		return -6
+	default:
+		return 0
+	}
+}
+
+func lowSignalKind(kind string) bool {
+	switch strings.ToLower(kind) {
+	case "parameter", "local", "variable", "field", "property":
+		return true
+	default:
+		return false
+	}
 }
 
 type adjacentRelationship struct {

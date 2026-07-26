@@ -63,6 +63,7 @@ func (s Store) BuildSharedLanguage(
 		records.append(record.typed)
 	}
 	entry := languageMetadata(analysis.Header, analysisConfigID, adapterFingerprint)
+	entry.Files = []FileEntry{}
 	sharedObjectID, err := s.writeSharedObject(entry, records)
 	if err != nil {
 		return LanguageEntry{}, err

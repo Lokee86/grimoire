@@ -56,6 +56,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		return runVector(args[1:], stdout, stderr)
 	case "investigation":
 		return runInvestigation(args[1:], stdout, stderr)
+	case "mcp":
+		return runMCP(args[1:], os.Stdin, stdout, stderr)
 	case "version":
 		_, err := fmt.Fprintln(stdout, Version)
 		return err
@@ -79,6 +81,7 @@ Core workflow:
   grimoire vector build --root .       Build or refresh semantic vectors
   grimoire query orient --root .       Discover compact repository anchors
   grimoire query trace --anchor <id>   Expand an exact structural handle
+  grimoire mcp --root .                Serve the progressive agent tool over stdio
   grimoire context --root . --query "Trace this behavior"
 
 Commands:
@@ -89,6 +92,7 @@ Commands:
   knowledge Index, search, or inspect repository knowledge
   vector    Build, search, or inspect vector state
   investigation  Create, inspect, or close an agent investigation ledger session
+  mcp       Serve the unified progressive agent query tool over stdio
   model     Set up and manage the embedding runtime
   eval      Run judged retrieval evaluation
   version   Print the Grimoire version

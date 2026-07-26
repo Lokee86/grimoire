@@ -12,6 +12,9 @@ func (engine *Engine) orient(request Request, response *Response) error {
 	seen := make(map[string]bool)
 	add := func(result Result) {
 		key := handleKey(result.Node.Handle)
+		if request.CodeOnly && isDocumentationPath(result.Node.Path) {
+			return
+		}
 		if seen[key] || len(response.Results) >= limit {
 			return
 		}

@@ -81,15 +81,50 @@ func TestEnsureRefreshesStaleLexiconAndAlignsArcana(t *testing.T) {
 	}
 }
 
-func TestEnsureReportsCommandFailure(t *testing.T) {
+func TestEnsureReportsRequiredGrimoireFailureAfterOptionalProviderFailure(t *testing.T) {
 	root := t.TempDir()
 	writeSource(t, root, "package main\n")
 	status, err := Ensure(context.Background(), Options{
 		Root: root, Mode: RefreshIfNeeded,
 		Run: func(context.Context, string, ...string) error { return errors.New("runner failed") },
 	})
-	if err == nil || status.Error == "" || len(status.Actions) != 1 || status.Actions[0].Status != "failed" {
-		t.Fatalf("failure was not reported: status=%+v err=%v", status, err)
+	if err == nil || status.Error == "" || len(status.Actions) != 2 || status.Actions[1].Status != "failed" {
+		t.Fatalf("required failure was not reported: status=%+v err=%v", status, err)
+	}
+	if len(status.Warnings) == 0 || !strings.Contains(status.Warnings[0], "Lexicon refresh unavailable") {
+		t.Fatalf("optional provider failure was not retained as a warning: %+v", status.Warnings)
+	}
+}
+
+func TestEnsureFallsBackToSourceWhenLexiconIsUnavailable(t *testing.T) {
+	root := t.TempDir()
+	writeSource(t, root, "package main\n")
+	calls := make([]string, 0, 2)
+	status, err := Ensure(context.Background(), Options{
+		Root: root, Mode: RefreshIfNeeded,
+		Run: func(_ context.Context, command string, arguments ...string) error {
+			calls = append(calls, command+":"+arguments[0])
+			if command == "lexicon" {
+				return errors.New("executable not found")
+			}
+			if command == "grimoire" && arguments[0] == "index" {
+				writeGrimoire(t, root, "")
+				return nil
+			}
+			return errors.New("unexpected command")
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(calls, ","); got != "lexicon:init,grimoire:index" {
+		t.Fatalf("fallback calls = %s", got)
+	}
+	if !status.DeterministicQueryReady || status.Grimoire.Status != "current" {
+		t.Fatalf("source fallback is not ready: %+v", status)
+	}
+	if len(status.Warnings) == 0 || !strings.Contains(status.Warnings[0], "continuing with source analysis") {
+		t.Fatalf("fallback warning missing: %+v", status.Warnings)
 	}
 }
 

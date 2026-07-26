@@ -8,6 +8,8 @@ use crate::repository::{FactFileError, RepositoryFacts};
 
 mod binary;
 mod format;
+#[cfg(test)]
+mod format_tests;
 mod object;
 mod records;
 mod snapshot;

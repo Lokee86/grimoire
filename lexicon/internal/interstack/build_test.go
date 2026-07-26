@@ -67,12 +67,15 @@ end
 	if summary.HTTPContracts != 1 || summary.HTTPLinks != 1 {
 		t.Fatalf("unexpected summary: %+v", summary)
 	}
-	entry, err := store.BuildSharedLanguage(analysis, testID('8'), AdapterVersion)
+	entry, err := store.BuildSharedLanguage(analysis, testID('8'), AdapterFingerprint())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if entry.Language != Language || entry.SharedObjectID == "" || len(entry.Files) != 0 {
+	if entry.Language != Language || entry.SharedObjectID == "" || entry.Files == nil || len(entry.Files) != 0 {
 		t.Fatalf("unexpected synthetic language entry: %+v", entry)
+	}
+	if !strings.HasPrefix(entry.AdapterFingerprint, "sha256:") || len(entry.AdapterFingerprint) != 71 {
+		t.Fatalf("invalid interstack fingerprint: %q", entry.AdapterFingerprint)
 	}
 	data, err := store.ExportLanguage(entry)
 	if err != nil {

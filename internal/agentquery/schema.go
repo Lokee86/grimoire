@@ -18,6 +18,7 @@ type Request struct {
 	Direction    string   `json:"direction,omitempty"`
 	Relations    []string `json:"relations,omitempty"`
 	Adjacent     int      `json:"adjacent_context,omitempty"`
+	CodeOnly     bool     `json:"code_only,omitempty"`
 	LexiconFacts string   `json:"lexicon_facts,omitempty"`
 	LexiconState string   `json:"lexicon_state,omitempty"`
 	LexiconCmd   string   `json:"lexicon_command,omitempty"`

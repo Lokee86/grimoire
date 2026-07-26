@@ -8,8 +8,15 @@ import (
 
 func (engine *Engine) search(ctx context.Context, request Request, response *Response) error {
 	seen := make(map[string]bool)
+	candidateLimit := request.Limit
+	if request.CodeOnly {
+		candidateLimit = min(200, max(request.Limit*6, request.Limit))
+	}
 	add := func(result Result) bool {
 		key := handleKey(result.Node.Handle)
+		if request.CodeOnly && isDocumentationPath(result.Node.Path) {
+			return false
+		}
 		if seen[key] || len(response.Results) >= request.Limit {
 			return false
 		}
@@ -19,7 +26,7 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 		return true
 	}
 
-	for _, candidate := range retrieve.Exact(engine.source, request.Query, request.Limit) {
+	for _, candidate := range retrieve.Exact(engine.source, request.Query, candidateLimit) {
 		add(Result{
 			Provider: "exact", Kind: sourceKind(candidate.Chunk),
 			Node: engine.sourceNode(candidate.Chunk), Score: candidate.Score,
@@ -29,7 +36,7 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 
 	var lexiconSeeds []string
 	if engine.lexicon != nil && len(response.Results) < request.Limit {
-		for _, match := range engine.lexicon.Find(request.Query, request.Limit) {
+		for _, match := range engine.lexicon.Find(request.Query, candidateLimit) {
 			node := engine.node("lexicon", engine.lexiconSnapshot, match.Node)
 			add(Result{
 				Provider: "lexicon", Kind: match.Node.Kind, Node: node,
@@ -44,7 +51,7 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 			lexiconSeeds = []string{request.Query}
 		}
 		for _, seed := range unique(lexiconSeeds) {
-			nodes, err := engine.arcana.Resolve(ctx, engine.arcanaSnapshot, seed, "", request.Limit)
+			nodes, err := engine.arcana.Resolve(ctx, engine.arcanaSnapshot, seed, "", candidateLimit)
 			if err != nil {
 				response.Warnings = append(response.Warnings, "Arcana search unavailable: "+err.Error())
 				break
@@ -60,7 +67,7 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 	}
 
 	if len(response.Results) < request.Limit {
-		for _, candidate := range retrieve.Search(engine.source, request.Query, request.Limit) {
+		for _, candidate := range retrieve.Search(engine.source, request.Query, candidateLimit) {
 			add(Result{
 				Provider: "lexical", Kind: sourceKind(candidate.Chunk),
 				Node: engine.sourceNode(candidate.Chunk), Score: candidate.Score,

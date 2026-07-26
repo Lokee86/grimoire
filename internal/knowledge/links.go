@@ -20,21 +20,31 @@ type catalogEntry struct {
 }
 
 type codeCatalog struct {
-	paths  []string
-	values []catalogEntry
+	paths  map[string]struct{}
+	values map[string][]catalogEntry
 }
 
 var declarationPattern = regexp.MustCompile(`(?m)\b(?:func|type|class|struct|enum|interface|message|service|const|var)\s+([A-Za-z_][A-Za-z0-9_]*)`)
 var configKeyPattern = regexp.MustCompile(`(?m)^\s*["']?([A-Za-z_][A-Za-z0-9_.-]*)["']?\s*[:=]`)
 var literalPattern = regexp.MustCompile(`["']([A-Za-z][A-Za-z0-9_.-]{2,}|/[A-Za-z0-9_./?=&{}${}:-]+)["']`)
+var referencePattern = regexp.MustCompile(`(?:[A-Za-z0-9_!.@-]+/)+[A-Za-z0-9_!.@-]+|/[A-Za-z0-9_./?=&{}$:-]+|[A-Za-z_][A-Za-z0-9_.-]{2,}`)
+
+const (
+	maxCodeLinks             = 32
+	maxLinksPerReference     = 4
+	maxAmbiguousContractUses = 4
+	maxAmbiguousSymbolUses   = 8
+)
 
 func buildCodeCatalog(root, ignoreFile string, excluded []string) (*codeCatalog, error) {
 	policy, err := ignorepolicy.Load(root, ignoreFile)
 	if err != nil {
 		return nil, err
 	}
-	catalog := &codeCatalog{}
-	seenPaths := make(map[string]struct{})
+	catalog := &codeCatalog{
+		paths:  make(map[string]struct{}),
+		values: make(map[string][]catalogEntry),
+	}
 	seenValues := make(map[string]struct{})
 	err = filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -73,20 +83,18 @@ func buildCodeCatalog(root, ignoreFile string, excluded []string) (*codeCatalog,
 			return relErr
 		}
 		relative = filepath.ToSlash(relative)
-		if _, ok := seenPaths[relative]; !ok {
-			seenPaths[relative] = struct{}{}
-			catalog.paths = append(catalog.paths, relative)
-		}
+		catalog.paths[relative] = struct{}{}
 		if isKnowledgeFile(relative, entry.Name(), true) {
 			return nil
 		}
-		for _, match := range declarationPattern.FindAllStringSubmatch(string(content), -1) {
+		text := string(content)
+		for _, match := range declarationPattern.FindAllStringSubmatch(text, -1) {
 			catalog.add(catalogEntry{kind: "symbol", value: match[1], path: relative}, seenValues)
 		}
-		for _, match := range configKeyPattern.FindAllStringSubmatch(string(content), -1) {
+		for _, match := range configKeyPattern.FindAllStringSubmatch(text, -1) {
 			catalog.add(catalogEntry{kind: "config-contract", value: match[1], path: relative}, seenValues)
 		}
-		for _, match := range literalPattern.FindAllStringSubmatch(string(content), -1) {
+		for _, match := range literalPattern.FindAllStringSubmatch(text, -1) {
 			value := match[1]
 			kind := "contract"
 			if strings.HasPrefix(value, "/") {
@@ -99,16 +107,15 @@ func buildCodeCatalog(root, ignoreFile string, excluded []string) (*codeCatalog,
 	if err != nil {
 		return nil, fmt.Errorf("build code-link catalog: %w", err)
 	}
-	sort.Strings(catalog.paths)
-	sort.Slice(catalog.values, func(i, j int) bool {
-		if catalog.values[i].value != catalog.values[j].value {
-			return catalog.values[i].value < catalog.values[j].value
-		}
-		if catalog.values[i].kind != catalog.values[j].kind {
-			return catalog.values[i].kind < catalog.values[j].kind
-		}
-		return catalog.values[i].path < catalog.values[j].path
-	})
+	for value := range catalog.values {
+		sort.Slice(catalog.values[value], func(i, j int) bool {
+			left, right := catalog.values[value][i], catalog.values[value][j]
+			if left.kind != right.kind {
+				return left.kind < right.kind
+			}
+			return left.path < right.path
+		})
+	}
 	return catalog, nil
 }
 
@@ -121,40 +128,95 @@ func (catalog *codeCatalog) add(entry catalogEntry, seen map[string]struct{}) {
 		return
 	}
 	seen[key] = struct{}{}
-	catalog.values = append(catalog.values, entry)
+	catalog.values[entry.value] = append(catalog.values[entry.value], entry)
 }
 
 func (catalog *codeCatalog) linksFor(text string) []CodeLink {
-	links := make([]CodeLink, 0)
-	seen := make(map[string]struct{})
-	for _, path := range catalog.paths {
-		if !strings.Contains(text, path) {
-			continue
-		}
-		key := "path\x00" + path
-		if _, ok := seen[key]; !ok {
-			seen[key] = struct{}{}
-			links = append(links, CodeLink{Kind: "path", Value: path, SourcePath: path, Evidence: "exact repository path match"})
+	references := referenceCandidates(text)
+	matchedPaths := make(map[string]struct{})
+	matchedEntries := make(map[string]catalogEntry)
+	for reference := range references {
+		for _, candidate := range referenceVariants(reference) {
+			if _, ok := catalog.paths[candidate]; ok {
+				matchedPaths[candidate] = struct{}{}
+			}
+			entries := catalog.values[candidate]
+			kindCounts := make(map[string]int)
+			for _, entry := range entries {
+				kindCounts[entry.kind]++
+			}
+			addedByKind := make(map[string]int)
+			for _, entry := range entries {
+				if entry.kind == "contract" && kindCounts[entry.kind] > maxAmbiguousContractUses {
+					continue
+				}
+				if entry.kind == "symbol" && kindCounts[entry.kind] > maxAmbiguousSymbolUses {
+					continue
+				}
+				if addedByKind[entry.kind] >= maxLinksPerReference {
+					continue
+				}
+				addedByKind[entry.kind]++
+				key := entry.kind + "\x00" + entry.value + "\x00" + entry.path
+				matchedEntries[key] = entry
+			}
 		}
 	}
-	for _, entry := range catalog.values {
-		if !wholeWordContains(text, entry.value) {
-			continue
+
+	paths := make([]string, 0, len(matchedPaths))
+	for path := range matchedPaths {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+
+	entries := make([]catalogEntry, 0, len(matchedEntries))
+	for _, entry := range matchedEntries {
+		entries = append(entries, entry)
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].value != entries[j].value {
+			return entries[i].value < entries[j].value
 		}
-		key := entry.kind + "\x00" + entry.value + "\x00" + entry.path
-		if _, ok := seen[key]; ok {
-			continue
+		if entries[i].kind != entries[j].kind {
+			return entries[i].kind < entries[j].kind
 		}
-		seen[key] = struct{}{}
+		return entries[i].path < entries[j].path
+	})
+
+	links := make([]CodeLink, 0, min(maxCodeLinks, len(paths)+len(entries)))
+	for _, path := range paths {
+		if len(links) >= maxCodeLinks {
+			break
+		}
+		links = append(links, CodeLink{Kind: "path", Value: path, SourcePath: path, Evidence: "exact repository path match"})
+	}
+	for _, entry := range entries {
+		if len(links) >= maxCodeLinks {
+			break
+		}
 		links = append(links, CodeLink{Kind: entry.kind, Value: entry.value, SourcePath: entry.path, Evidence: "exact repository name match"})
 	}
 	return links
 }
 
-func wholeWordContains(text, value string) bool {
-	if strings.Contains(value, "/") || strings.Contains(value, ".") || strings.Contains(value, "-") {
-		return strings.Contains(text, value)
+func referenceCandidates(text string) map[string]struct{} {
+	result := make(map[string]struct{})
+	for _, reference := range referencePattern.FindAllString(text, -1) {
+		result[reference] = struct{}{}
 	}
-	pattern := regexp.MustCompile(`(?m)(?:^|[^A-Za-z0-9_])` + regexp.QuoteMeta(value) + `(?:$|[^A-Za-z0-9_])`)
-	return pattern.MatchString(text)
+	return result
+}
+
+func referenceVariants(reference string) []string {
+	result := []string{reference}
+	trimmed := strings.TrimRight(reference, ".,;:)]}")
+	if trimmed != "" && trimmed != reference {
+		result = append(result, trimmed)
+	}
+	if strings.HasPrefix(reference, "/") {
+		if query := strings.IndexByte(reference, '?'); query > 0 {
+			result = append(result, reference[:query])
+		}
+	}
+	return result
 }

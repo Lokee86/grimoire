@@ -46,7 +46,9 @@ See [Component architecture](docs/architecture/components.md) for ownership, dep
 - Packed native vector snapshots with deterministic exact search.
 - Lexical fallback when semantic state is missing, stale, or unavailable.
 - Exact recovery for concrete paths, symbols, and identifiers.
-- Progressive agent queries for orientation, combined search, graph trace, impact, and exact handle inspection.
+- Progressive agent queries for orientation, code-first search, graph trace, impact, and exact handle inspection.
+- A single stdio MCP tool that automatically refreshes deterministic state, separates code evidence from repository knowledge, and returns stable expansion handles.
+- Persistent investigation sessions that replace repeated evidence with compact prior handles across multi-step agent work.
 - Lexicon symbol facts plus lexical- and semantic-seeded Arcana graph evidence when structural state is available.
 - Deterministic query-shape classification and automatic context budgets.
 - Evidence-coverage assembly for automatic-budget requests.
@@ -156,13 +158,21 @@ grimoire query orient --root .
 grimoire query search --root . --query "Where is session creation handled?"
 ```
 
+Serve the unified agent interface over MCP stdio:
+
+```bash
+grimoire mcp --root .
+```
+
+The MCP server exposes one `grimoire_query` tool. Use one investigation `session` across an agent task so repeated nodes, source ranges, graph paths, and documents return as prior handles instead of replayed content. `orient` and `search` keep production code in the query lane while documentation and design rationale are returned through the independent knowledge lane.
+
 Compile an automatically sized context package:
 
 ```bash
 grimoire context --root . --query "Where is context-package assembly implemented?"
 ```
 
-Lexicon and Arcana state is used automatically when present. Grimoire continues with source retrieval when either component is not installed or initialized.
+Lexicon and Arcana state is prepared automatically when their executables are available beside Grimoire or on `PATH`. Provider failures are reported as warnings and Grimoire continues with deterministic source retrieval; the source index is still refreshed when required.
 
 A positive budget retains fixed fit-to-budget behavior:
 

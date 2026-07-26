@@ -51,11 +51,12 @@ type Document struct {
 }
 
 type Index struct {
-	Version   int        `json:"version"`
-	Root      string     `json:"root"`
-	GitCommit string     `json:"git_commit,omitempty"`
-	GitTime   *time.Time `json:"git_time,omitempty"`
-	Documents []Document `json:"documents"`
+	Version           int        `json:"version"`
+	Root              string     `json:"root"`
+	GitCommit         string     `json:"git_commit,omitempty"`
+	GitTime           *time.Time `json:"git_time,omitempty"`
+	SourceFingerprint string     `json:"source_fingerprint,omitempty"`
+	Documents         []Document `json:"documents"`
 }
 
 type BuildOptions struct {

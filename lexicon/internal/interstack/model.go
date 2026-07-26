@@ -1,6 +1,8 @@
 package interstack
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -10,6 +12,11 @@ const (
 	Language       = "interstack"
 	AdapterVersion = "0.1.0"
 )
+
+func AdapterFingerprint() string {
+	digest := sha256.Sum256([]byte(Language + "\x00" + AdapterVersion + "\x001"))
+	return "sha256:" + hex.EncodeToString(digest[:])
+}
 
 type Span struct {
 	Path        string `json:"path"`

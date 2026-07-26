@@ -47,6 +47,25 @@ func TestSearchHandleInspectsExactPreparedSource(t *testing.T) {
 	}
 }
 
+func TestCodeOnlySearchExcludesDocumentation(t *testing.T) {
+	root, facts := queryFixture(t)
+	response, err := Execute(context.Background(), Request{
+		Schema: SchemaVersion, Mode: "search", Root: root,
+		Query: "POST session start", LexiconFacts: facts, Limit: 10, CodeOnly: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Results) == 0 {
+		t.Fatal("code-only search returned no results")
+	}
+	for _, result := range response.Results {
+		if strings.HasPrefix(result.Node.Path, "docs/") || strings.HasSuffix(result.Node.Path, ".md") {
+			t.Fatalf("code-only search returned documentation: %+v", result)
+		}
+	}
+}
+
 func TestTraceFollowsInterstackEndpointFromReturnedHandle(t *testing.T) {
 	root, facts := queryFixture(t)
 	search, err := Execute(context.Background(), Request{

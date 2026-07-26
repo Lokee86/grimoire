@@ -6,7 +6,7 @@
 grimoire <command> [flags]
 ```
 
-Current top-level commands are `status`, `index`, `knowledge`, `query`, `context`, `eval`, `model`, `vector`, `investigation`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal workflow and exits successfully.
+Current top-level commands are `status`, `index`, `knowledge`, `query`, `mcp`, `context`, `eval`, `model`, `vector`, `investigation`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal workflow and exits successfully.
 
 ## `grimoire status`
 
@@ -35,6 +35,17 @@ grimoire investigation close --session <id>
 ```
 
 All commands accept `--root <path>` and `--state <path>`; state defaults to `<root>/.grimoire`. Evidence recording is owned by `internal/investigation` for the query and MCP layers. See [`internal/investigation`](../../internal/investigation/README.md) for the package contract.
+
+## `grimoire mcp`
+
+Serve the unified `grimoire_query` agent tool over MCP stdio:
+
+```bash
+grimoire mcp --root <repository>
+grimoire mcp --root <repository> --state-mode current-only
+```
+
+The default `--state-mode` is `refresh-if-needed`. The server checks and incrementally prepares repository state before each call, retrieves code and repository knowledge through separate lanes, and supports persistent `session` names that replace repeated evidence with prior handles. See [Agent MCP runtime](agent-mcp.md).
 
 ## `grimoire model setup`
 
