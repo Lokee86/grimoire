@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/Lokee86/grimoire/internal/arcanagraph"
 	"github.com/Lokee86/grimoire/internal/index"
@@ -13,9 +15,18 @@ import (
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
+type arcanaSemanticMode string
+
+const (
+	arcanaSemanticAuto arcanaSemanticMode = "auto"
+	arcanaSemanticOn   arcanaSemanticMode = "on"
+	arcanaSemanticOff  arcanaSemanticMode = "off"
+)
+
 type structuralContextOptions struct {
 	Enabled           bool
 	ArcanaEnabled     bool
+	ArcanaSemantic    arcanaSemanticMode
 	EmitLexicon       bool
 	Root              string
 	GrimoireState     string
@@ -95,16 +106,19 @@ func collectStructuralContext(
 				})
 			}
 			client := arcanagraph.Client{Command: options.ArcanaCommand}
-			semanticSeeds, semanticErr := client.SemanticSeeds(
-				ctx,
-				filepath.Dir(filepath.Dir(arcanaSnapshot)),
-				arcanaSnapshotID,
-				options.EmbeddingEndpoint,
-				query,
-				min(options.Limit, 6),
-			)
-			if semanticErr != nil {
-				result.Warnings = append(result.Warnings, fmt.Sprintf("Arcana semantic graph retrieval unavailable: %v", semanticErr))
+			var semanticSeeds []structure.Node
+			if shouldUseArcanaSemantic(options.ArcanaSemantic, query, result.Lexicon.Seeds) {
+				semanticSeeds, arcanaErr = client.SemanticSeeds(
+					ctx,
+					filepath.Dir(filepath.Dir(arcanaSnapshot)),
+					arcanaSnapshotID,
+					options.EmbeddingEndpoint,
+					query,
+					min(options.Limit, 6),
+				)
+				if arcanaErr != nil {
+					result.Warnings = append(result.Warnings, fmt.Sprintf("Arcana semantic graph retrieval unavailable: %v", arcanaErr))
+				}
 			}
 			seeds := mergeArcanaSeeds(result.Lexicon.Seeds, semanticSeeds, 6)
 			if len(seeds) > 0 {
@@ -126,6 +140,69 @@ func collectStructuralContext(
 	}
 	result.TotalTime = time.Since(started)
 	return result
+}
+
+func parseArcanaSemanticMode(value string) (arcanaSemanticMode, error) {
+	switch arcanaSemanticMode(strings.ToLower(strings.TrimSpace(value))) {
+	case "", arcanaSemanticAuto:
+		return arcanaSemanticAuto, nil
+	case arcanaSemanticOn:
+		return arcanaSemanticOn, nil
+	case arcanaSemanticOff:
+		return arcanaSemanticOff, nil
+	default:
+		return "", fmt.Errorf("unsupported Arcana semantic mode %q; expected auto, on, or off", value)
+	}
+}
+
+func shouldUseArcanaSemantic(mode arcanaSemanticMode, query string, lexicon []structure.Node) bool {
+	switch mode {
+	case arcanaSemanticOff:
+		return false
+	case arcanaSemanticOn:
+		return true
+	case "", arcanaSemanticAuto:
+		return !queryExplicitlyNamesLexiconSeed(query, lexicon)
+	default:
+		return false
+	}
+}
+
+func queryExplicitlyNamesLexiconSeed(query string, seeds []structure.Node) bool {
+	normalizedQuery := normalizeIdentifierText(query)
+	pathQuery := strings.ToLower(filepath.ToSlash(query))
+	for _, seed := range seeds {
+		name := normalizeIdentifierText(seed.Name)
+		terms := strings.Fields(name)
+		if len(terms) >= 2 && strings.Contains(normalizedQuery, name) {
+			return true
+		}
+		if len(terms) == 1 && len(terms[0]) >= 12 && strings.Contains(normalizedQuery, terms[0]) {
+			return true
+		}
+		path := strings.ToLower(filepath.ToSlash(strings.TrimSpace(seed.Path)))
+		if path != "" && strings.Contains(pathQuery, path) {
+			return true
+		}
+	}
+	return false
+}
+
+func normalizeIdentifierText(value string) string {
+	var output strings.Builder
+	var previous rune
+	for _, current := range value {
+		if unicode.IsUpper(current) && (unicode.IsLower(previous) || unicode.IsDigit(previous)) {
+			output.WriteByte(' ')
+		}
+		if unicode.IsLetter(current) || unicode.IsDigit(current) {
+			output.WriteRune(unicode.ToLower(current))
+		} else {
+			output.WriteByte(' ')
+		}
+		previous = current
+	}
+	return strings.Join(strings.Fields(output.String()), " ")
 }
 
 func mergeArcanaSeeds(lexicon, semantic []structure.Node, limit int) []structure.Node {

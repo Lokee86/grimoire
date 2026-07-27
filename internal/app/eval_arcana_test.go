@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/arcanaevaluation"
+	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
@@ -45,6 +46,51 @@ func TestMeasureArcanaEvaluationModePairsSameGraphExpansion(t *testing.T) {
 	}
 	if graphCalls != 2 || len(baseline.Structural) != 1 || len(vector.Structural) != 1 {
 		t.Fatalf("graph expansion was not paired: calls=%d baseline=%+v vector=%+v", graphCalls, baseline.Structural, vector.Structural)
+	}
+}
+
+func TestMeasureArcanaEvaluationModeScoresSemanticDeclarationEntry(t *testing.T) {
+	semantic := structure.Node{
+		Kind: "method", Name: "SemanticSeeds", Path: "internal/arcanagraph/semantic.go",
+	}
+	providers := arcanaEvaluationProviders{
+		Lexicon: func(string, int) ([]structure.Node, error) {
+			return nil, nil
+		},
+		Semantic: func(context.Context, string, int) ([]structure.Node, error) {
+			return []structure.Node{semantic}, nil
+		},
+		Graph: func(_ context.Context, seeds []structure.Node) ([]structure.Evidence, error) {
+			if len(seeds) != 1 || seeds[0] != semantic {
+				t.Fatalf("semantic seed was not passed unchanged to graph expansion: %+v", seeds)
+			}
+			return []structure.Evidence{{
+				Provider: "arcana", Kind: "operational_role", Node: &semantic,
+			}}, nil
+		},
+	}
+	entry := arcanaevaluation.Case{
+		ID: "semantic-entry", Query: "conceptual graph entry point",
+		RequiredSeeds: []arcanaevaluation.SeedExpectation{{
+			Name: "SemanticSeeds", Path: "internal/arcanagraph/semantic.go", Kind: "function",
+		}},
+		RequiredStructural: []evaluation.StructuralExpectation{{
+			Provider: "arcana", Kind: "operational_role",
+			Symbol: "SemanticSeeds", Path: "internal/arcanagraph/semantic.go",
+		}},
+	}
+
+	measurement := measureArcanaEvaluationMode(
+		context.Background(), entry.Query,
+		arcanaevaluation.ModeLexiconVectorSeeds, 6, providers,
+	)
+	result := arcanaevaluation.ScoreCase(entry, measurement, []int{1})
+	if !measurement.VectorUsed || measurement.ProviderCalls != 3 ||
+		len(measurement.Seeds) != 1 || measurement.Seeds[0].Source != "vector" {
+		t.Fatalf("semantic entry source was not measured correctly: %+v", measurement)
+	}
+	if !result.Pass || result.RequiredSeedRecall != 1 || result.RequiredStructuralRecall != 1 {
+		t.Fatalf("semantic declaration benefit was not measured: %+v", result)
 	}
 }
 

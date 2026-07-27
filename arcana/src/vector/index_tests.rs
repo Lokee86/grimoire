@@ -82,7 +82,7 @@ fn builds_reuses_and_searches_current_graph_index() {
         manifest.eligibility_policy_version,
         SEMANTIC_ELIGIBILITY_POLICY_VERSION
     );
-    assert_eq!(manifest.identity, "fake-4d-arcana-semantic-v1");
+    assert_eq!(manifest.identity, "fake-4d-arcana-semantic-v5");
 
     let mut legacy: serde_json::Value =
         serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
@@ -261,6 +261,42 @@ fn embedding_batch_concurrency_is_bounded() {
 }
 
 #[test]
+fn oversized_embedding_batches_split_until_the_provider_accepts_them() {
+    let directory = TestDirectory::new();
+    let state = directory.path.join(".arcana");
+    let digest = "7".repeat(64);
+    publish_state_snapshot(
+        &state,
+        &digest,
+        &isolated_facts(&[
+            (1, "one"),
+            (2, "two"),
+            (3, "three"),
+            (4, "four"),
+            (5, "five"),
+        ]),
+    );
+    let embedder = BatchLimitedEmbedder {
+        calls: AtomicUsize::new(0),
+        max_batch: 2,
+    };
+
+    let built = build_current_index_with_options(
+        &state,
+        &embedder,
+        BuildOptions {
+            batch_size: 4,
+            batch_concurrency: 2,
+        },
+    )
+    .unwrap();
+
+    assert_eq!(built.embedded_vectors, 5);
+    assert_eq!(built.request_count, 4);
+    assert_eq!(embedder.calls.load(Ordering::SeqCst), 4);
+}
+
+#[test]
 fn corrupted_cache_object_is_reembedded_and_repaired() {
     let directory = TestDirectory::new();
     let state = directory.path.join(".arcana");
@@ -412,6 +448,39 @@ impl Embedder for FakeEmbedder {
                 }
             })
             .collect())
+    }
+
+    fn embed_query(&self, _query: &str) -> Result<Vec<f32>, EmbeddingError> {
+        Ok(vec![1.0, 0.0, 0.0, 0.0])
+    }
+}
+
+struct BatchLimitedEmbedder {
+    calls: AtomicUsize,
+    max_batch: usize,
+}
+
+impl Embedder for BatchLimitedEmbedder {
+    fn model(&self) -> &str {
+        "batch-limited-model"
+    }
+
+    fn identity(&self) -> &str {
+        "batch-limited-4d"
+    }
+
+    fn dimensions(&self) -> usize {
+        4
+    }
+
+    fn embed_documents(&self, documents: &[String]) -> Result<Vec<Vec<f32>>, EmbeddingError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        if documents.len() > self.max_batch {
+            return Err(EmbeddingError::Service(
+                "request exceeds the available context size".to_owned(),
+            ));
+        }
+        Ok(documents.iter().map(|_| vec![1.0, 0.0, 0.0, 0.0]).collect())
     }
 
     fn embed_query(&self, _query: &str) -> Result<Vec<f32>, EmbeddingError> {

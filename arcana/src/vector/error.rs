@@ -15,6 +15,26 @@ pub enum EmbeddingError {
     ZeroVector,
 }
 
+impl EmbeddingError {
+    pub(crate) fn is_context_limit(&self) -> bool {
+        match self {
+            Self::Http(HttpError::Status { status: 400, body }) => {
+                context_limit_message(&String::from_utf8_lossy(body))
+            }
+            Self::Service(message) => context_limit_message(message),
+            _ => false,
+        }
+    }
+}
+
+fn context_limit_message(message: &str) -> bool {
+    let message = message.to_ascii_lowercase();
+    message.contains("context")
+        && (message.contains("exceed")
+            || message.contains("too large")
+            || message.contains("too long"))
+}
+
 impl fmt::Display for EmbeddingError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

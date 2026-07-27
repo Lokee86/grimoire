@@ -3,6 +3,8 @@ package arcanagraph
 import (
 	"context"
 	"fmt"
+	"path"
+	"strings"
 
 	"github.com/Lokee86/grimoire/internal/structure"
 )
@@ -156,13 +158,77 @@ func resolveSeeds(
 }
 
 func chooseResolvedNode(seed structure.Node, nodes []arcanaNode) (arcanaNode, bool) {
-	for _, node := range nodes {
-		if seed.Path != "" && node.Path == seed.Path {
-			return node, true
+	bestIndex := -1
+	bestScore := -1
+	seedFamily := declarationKindFamily(seed.Kind)
+	for index, node := range nodes {
+		nodeFamily := declarationKindFamily(node.Kind)
+		if seedFamily != "" && seedFamily != nodeFamily {
+			continue
+		}
+		score := 0
+		if sameResolvedPath(seedPath(seed), node.Path) {
+			score += 8
+		}
+		if sameResolvedKind(seed.Kind, node.Kind) {
+			score += 4
+		} else if seedFamily != "" && seedFamily == nodeFamily {
+			score += 3
+		}
+		if sameResolvedSpan(seed.Span, node.Span) {
+			score += 2
+		}
+		if score > bestScore {
+			bestIndex = index
+			bestScore = score
 		}
 	}
-	if len(nodes) > 0 {
-		return nodes[0], true
+	if bestIndex >= 0 {
+		return nodes[bestIndex], true
 	}
 	return arcanaNode{}, false
+}
+
+func seedPath(seed structure.Node) string {
+	if seed.Path != "" {
+		return seed.Path
+	}
+	if seed.Span != nil {
+		return seed.Span.Path
+	}
+	return ""
+}
+
+func sameResolvedPath(left, right string) bool {
+	normalize := func(value string) string {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return ""
+		}
+		return path.Clean(strings.ReplaceAll(value, `\`, "/"))
+	}
+	return normalize(left) == normalize(right)
+}
+
+func sameResolvedKind(left, right string) bool {
+	return strings.EqualFold(strings.TrimSpace(left), strings.TrimSpace(right))
+}
+
+func declarationKindFamily(kind string) string {
+	switch strings.ToLower(strings.TrimSpace(kind)) {
+	case "function", "method", "constructor":
+		return "callable"
+	case "type", "interface", "trait", "class", "struct", "enum":
+		return "type"
+	default:
+		return ""
+	}
+}
+
+func sameResolvedSpan(seed *structure.Span, node *arcanaSpan) bool {
+	if seed == nil || node == nil {
+		return false
+	}
+	return sameResolvedPath(seed.Path, node.Path) &&
+		seed.StartLine == node.StartLine && seed.EndLine == node.EndLine
 }

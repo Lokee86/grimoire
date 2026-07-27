@@ -3,7 +3,7 @@ package arcanaevaluation
 import (
 	"encoding/json"
 	"math"
-	"path/filepath"
+	"path"
 	"sort"
 	"strings"
 
@@ -82,7 +82,7 @@ func seedMatchesAny(node structure.Node, expectations []SeedExpectation) bool {
 }
 
 func seedMatches(node structure.Node, expectation SeedExpectation) bool {
-	if expectation.Kind != "" && !strings.EqualFold(strings.TrimSpace(node.Kind), strings.TrimSpace(expectation.Kind)) {
+	if expectation.Kind != "" && !seedKindsMatch(node.Kind, expectation.Kind) {
 		return false
 	}
 	if !strings.EqualFold(strings.TrimSpace(node.Name), strings.TrimSpace(expectation.Name)) &&
@@ -93,7 +93,35 @@ func seedMatches(node structure.Node, expectation SeedExpectation) bool {
 	if path == "" && node.Span != nil {
 		path = node.Span.Path
 	}
-	return filepath.ToSlash(path) == filepath.ToSlash(expectation.Path)
+	return seedPathKey(path) == seedPathKey(expectation.Path)
+}
+
+func seedKindsMatch(actual, expected string) bool {
+	actual = strings.ToLower(strings.TrimSpace(actual))
+	expected = strings.ToLower(strings.TrimSpace(expected))
+	if actual == expected {
+		return true
+	}
+	return seedKindFamily(actual) != "" && seedKindFamily(actual) == seedKindFamily(expected)
+}
+
+func seedKindFamily(kind string) string {
+	switch kind {
+	case "function", "method", "constructor":
+		return "callable"
+	case "type", "interface", "trait", "class", "struct", "enum":
+		return "type"
+	default:
+		return ""
+	}
+}
+
+func seedPathKey(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	return path.Clean(strings.ReplaceAll(value, `\`, "/"))
 }
 
 func markSeedMatches(node structure.Node, expectations []SeedExpectation, matched []bool) {

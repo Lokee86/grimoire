@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -150,13 +150,14 @@ pub fn build_current_index_with_options(
             text: (*text).to_owned(),
         })
         .collect::<Vec<_>>();
-    let request_count = missing.len().div_ceil(options.batch_size);
+    let request_count = AtomicUsize::new(0);
     embed_missing(
         state,
         embedder,
         &missing,
         options.batch_size,
         options.batch_concurrency,
+        &request_count,
     )?;
 
     static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -212,7 +213,7 @@ pub fn build_current_index_with_options(
         embedded_vectors: missing.len(),
         reused_vectors: unique.len() - missing.len(),
         cached_snapshot: false,
-        request_count,
+        request_count: request_count.load(Ordering::Relaxed),
         snapshot_bytes: bytes,
         duration: started.elapsed(),
         mode: "built",
@@ -231,13 +232,16 @@ fn embed_missing(
     missing: &[MissingObject],
     batch_size: usize,
     concurrency: usize,
+    request_count: &AtomicUsize,
 ) -> Result<(), VectorIndexError> {
     let batches = missing.chunks(batch_size).collect::<Vec<_>>();
     thread::scope(|scope| {
         for wave in batches.chunks(concurrency) {
             let handles = wave
                 .iter()
-                .map(|batch| scope.spawn(move || embed_batch(state, embedder, batch)))
+                .map(|batch| {
+                    scope.spawn(move || embed_batch(state, embedder, batch, request_count))
+                })
                 .collect::<Vec<_>>();
             let mut first_error = None;
             for handle in handles {
@@ -265,12 +269,22 @@ fn embed_batch(
     state: &Path,
     embedder: &dyn Embedder,
     batch: &[MissingObject],
+    request_count: &AtomicUsize,
 ) -> Result<(), VectorIndexError> {
     let inputs = batch
         .iter()
         .map(|object| object.text.clone())
         .collect::<Vec<_>>();
-    let embedded = embedder.embed_documents(&inputs)?;
+    request_count.fetch_add(1, Ordering::Relaxed);
+    let embedded = match embedder.embed_documents(&inputs) {
+        Ok(embedded) => embedded,
+        Err(error) if error.is_context_limit() && batch.len() > 1 => {
+            let middle = batch.len() / 2;
+            embed_batch(state, embedder, &batch[..middle], request_count)?;
+            return embed_batch(state, embedder, &batch[middle..], request_count);
+        }
+        Err(error) => return Err(error.into()),
+    };
     if embedded.len() != batch.len() {
         return Err(VectorIndexError::CorruptIndex(format!(
             "embedder returned {} vectors for {} graph documents",

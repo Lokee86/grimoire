@@ -40,7 +40,7 @@ Defaults:
 - model identity: `qwen3-embedding-0.6b-q8_0-512d`
 - retained dimensions: `512`
 
-The command first validates an exact existing snapshot, including its semantic-eligibility policy. Otherwise it resolves every eligible graph document to the immutable content-addressed cache, sends only missing documents to the endpoint, and materializes the snapshot files from cache objects. `--batch-concurrency` bounds simultaneous embedding requests; each successful batch writes and synchronizes its objects immediately, so a retry after an endpoint or process interruption resumes from completed work. Snapshot materialization remains serialized and deterministic.
+The command first validates an exact existing snapshot, including its semantic-eligibility policy. Otherwise it resolves every eligible graph document to the immutable content-addressed cache, sends only missing documents to the endpoint, and materializes the snapshot files from cache objects. `--batch-concurrency` bounds simultaneous embedding requests; each successful batch writes and synchronizes its objects immediately, so a retry after an endpoint or process interruption resumes from completed work. When a provider rejects a multi-document request for exceeding its context limit, Arcana bisects that request until the provider accepts it or one individual document still exceeds the contract. Snapshot materialization remains serialized and deterministic.
 
 Build output reports indexed-document and unique-vector counts, embedded and reused vectors, exact-snapshot reuse, embedding request count, snapshot bytes, elapsed milliseconds, and the published directory. The exact-snapshot path makes no embedding request. Cross-snapshot reuse occurs only when rendered graph-document bytes and the complete embedding contract are identical.
 
@@ -48,16 +48,18 @@ Build validation covers the manifest, semantic-eligibility policy, fixed data fi
 
 ## Indexed objects
 
-Arcana constructs the complete repository graph, then applies semantic-eligibility policy version 1 only while generating index documents. The policy excludes `variable`, `parameter`, `field`, `import`, `export`, `directory`, and `repository` nodes. It includes `function`, `method`, `constructor`, `test`, `file`, `type`, `interface`, `module`, `namespace`, `message-channel`, `http-endpoint`, `config-key`, `signal`, and `constant` nodes. Existing `trait` and generic `symbol` declarations are also included because they are type-like or adapter-neutral declaration entry points. Every current node kind is matched explicitly, so adding a kind requires a deliberate policy decision.
+Arcana constructs the complete repository graph, then applies semantic-eligibility policy version 5 only while generating index documents. The policy excludes `variable`, `parameter`, `field`, `import`, `export`, `constant`, `test`, `directory`, and `repository` nodes. It also excludes synthetic external or built-in paths beginning with `@` and anonymous closure or lambda declarations. It includes named `function`, `method`, `constructor`, `file`, `type`, `interface`, `module`, `namespace`, `message-channel`, `http-endpoint`, `config-key`, and `signal` nodes. Existing `trait` and generic `symbol` declarations are also included because they are type-like or adapter-neutral declaration entry points. Every current node kind is matched explicitly, so adding a kind requires a deliberate policy decision.
 
-These exclusions remove high-volume implementation detail that is usually reached more precisely by traversing from a declaration-level semantic match. They do not remove nodes or edges from Arcana snapshots, so exact traversal can still reach variables, parameters, fields, imports, exports, directories, and the repository root.
+These exclusions remove high-volume implementation detail and low-value semantic hubs that are usually reached more precisely by traversing from a declaration-level match. They do not remove nodes or edges from Arcana snapshots, so exact traversal can still reach variables, parameters, fields, imports, exports, constants, tests, synthetic nodes, directories, and the repository root.
 
 Arcana creates one deterministic document per eligible graph node, ordered by stable node key. Each document contains:
 
-- node kind, name, path, and source span;
-- bounded outgoing relationships and target identities;
-- bounded incoming relationships and source identities; and
-- bounded unresolved-reference evidence.
+- node kind, exact name, exact path, source span, and deterministic natural-language terms derived from camel case, snake case, acronyms, and path separators;
+- up to 12 outgoing relationships and target identities, including exact and natural-language target names, restricted to semantic entry-point nodes and ordered with calls, routes, handlers, publications, and other operational relationships first;
+- up to 12 incoming relationships and source identities under the same semantic-neighbour policy; and
+- up to 8 unresolved-reference records.
+
+Rendered documents are capped at 6,000 UTF-8 bytes with a deterministic truncation marker. This prevents generated source expressions or unresolved adapter payloads from exceeding the embedding provider's per-document context while retaining node identity and the highest-priority neighborhood evidence.
 
 The embedding finds a relevant graph neighborhood. Arcana's exact graph protocol then resolves and expands the returned nodes. Vectors never replace authoritative graph relationships.
 
@@ -93,7 +95,7 @@ The cache key is SHA-256 over a domain separator, rendered graph-document bytes,
 
 `vectors.f32` contains normalized little-endian `f32` vectors materialized in deterministic node order. `nodes.jsonl` maps vector positions back to Arcana node keys, kinds, paths, and names. A snapshot manifest also records the unique-vector count when produced by the incremental builder.
 
-The current index format is version 3 and semantic-eligibility policy version is 1. Its composite identity is `<embedding-identity>-arcana-semantic-v1`, while the containing directory remains keyed by embedding identity. Version 1 manifests lack data checksums; version 2 manifests predate semantic eligibility. Both are rebuilt rather than reused.
+The current index format is version 3 and semantic-eligibility policy version is 5. Its composite identity is `<embedding-identity>-arcana-semantic-v5`, while the containing directory remains keyed by embedding identity. Earlier manifests lack the current checksums, entry-point policy, or bounded document-rendering contract and are rebuilt rather than reused.
 
 ## Expected scope reduction
 
@@ -143,12 +145,12 @@ Semantic query performs cheap manifest and file-size checks when opening the pin
 
 Process integrations can pass `--expected-snapshot sha256:<digest>` to `semantic-query`. Arcana then rejects the query if `.arcana/CURRENT` no longer matches the graph snapshot that the caller already resolved. This prevents semantic seeds from one graph snapshot being expanded through another.
 
-When Arcana is enabled for a context request, Grimoire checks for a vector index matching the exact Arcana snapshot already selected for deterministic traversal and the configured embedding identity.
+When Arcana is enabled for a context request, Grimoire checks for a vector index matching the exact Arcana snapshot already selected for deterministic traversal and the configured embedding identity. Semantic seeds are conditional recall expansion rather than an equal mandatory provider. `--arcana-semantic=auto` is the default: Grimoire skips the embedding call when the query explicitly names a compound Lexicon seed or its path, and uses semantic expansion for conceptual queries without that deterministic anchor. `on` forces semantic expansion and `off` preserves Lexicon-seeded Arcana traversal only.
 
-If present, Grimoire:
+When semantic expansion is selected and a matching index is present, Grimoire:
 
 1. asks Arcana for semantic graph matches using the same embedding endpoint supplied to Grimoire;
-2. merges those matches with Lexicon-derived symbol seeds;
+2. interleaves those matches with Lexicon-derived symbol seeds under the six-seed production bound;
 3. resolves the combined seeds through `arcana.query.v1`; and
 4. requests deterministic operational-role, impact, unresolved-reference, and call-chain evidence.
 

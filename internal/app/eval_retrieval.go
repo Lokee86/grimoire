@@ -57,6 +57,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 	lexiconCommand := flags.String("lexicon-command", "", "Lexicon executable override; discovered when omitted")
 	arcanaState := flags.String("arcana-state", "", "Arcana state directory; defaults to <root>/.arcana")
 	arcanaCommand := flags.String("arcana-command", "", "Arcana executable override; discovered when omitted")
+	arcanaSemanticValue := flags.String("arcana-semantic", "auto", "Arcana semantic seed expansion: auto, on, or off")
 	structureTimeout := flags.Duration("structure-timeout", 30*time.Second, "per-case structural-provider timeout")
 	timeout := flags.Duration("timeout", 10*time.Second, "per-case retrieval timeout")
 	outputDir := flags.String("output-dir", "evaluation/results", "result directory")
@@ -94,6 +95,10 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	structuralProviders, structureEnabled, arcanaEnabled, err := parseStructuralProviders(*structuralProvidersValue)
+	if err != nil {
+		return err
+	}
+	arcanaSemantic, err := parseArcanaSemanticMode(*arcanaSemanticValue)
 	if err != nil {
 		return err
 	}
@@ -167,7 +172,7 @@ func runEval(args []string, stdout, stderr io.Writer) error {
 				Limit:      *limit,
 				ProbeLimit: actualProbeLimit,
 				Structural: structuralContextOptions{
-					Enabled: structureEnabled, ArcanaEnabled: arcanaEnabled,
+					Enabled: structureEnabled, ArcanaEnabled: arcanaEnabled, ArcanaSemantic: arcanaSemantic,
 					Root: absoluteRoot, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
 					LexiconState: *lexiconState, LexiconCommand: resolvedLexiconCommand,
 					ArcanaState: *arcanaState, ArcanaCommand: resolvedArcanaCommand,

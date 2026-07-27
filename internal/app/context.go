@@ -37,6 +37,7 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	lexiconCommand := flags.String("lexicon-command", "", "Lexicon executable override; discovered when omitted")
 	arcanaState := flags.String("arcana-state", "", "Arcana state directory; defaults to <root>/.arcana")
 	arcanaCommand := flags.String("arcana-command", "", "Arcana executable override; discovered when omitted")
+	arcanaSemanticValue := flags.String("arcana-semantic", "auto", "Arcana semantic seed expansion: auto, on, or off")
 	structureTimeout := flags.Duration("structure-timeout", 30*time.Second, "complete structural-provider timeout")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -51,9 +52,14 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
+	arcanaSemantic, err := parseArcanaSemanticMode(*arcanaSemanticValue)
+	if err != nil {
+		return err
+	}
 	if !*structureEnabled {
 		emitLexicon = false
 		arcanaEnabled = false
+		arcanaSemantic = arcanaSemanticOff
 	}
 	statePath, err := resolveState(*root, *state)
 	if err != nil {
@@ -80,7 +86,7 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 
 	structuralIntent := structuralRetrievalIntent(retrievalQuery, intents)
 	structural := collectStructuralContext(context.Background(), snapshot, structuralIntent.Query, structuralContextOptions{
-		Enabled: emitLexicon || arcanaEnabled, ArcanaEnabled: arcanaEnabled, EmitLexicon: emitLexicon,
+		Enabled: emitLexicon || arcanaEnabled, ArcanaEnabled: arcanaEnabled, ArcanaSemantic: arcanaSemantic, EmitLexicon: emitLexicon,
 		Root: *root, GrimoireState: statePath, LexiconFacts: *lexiconFacts,
 		LexiconState: *lexiconState, LexiconCommand: resolvedLexiconCommand,
 		ArcanaState: *arcanaState, ArcanaCommand: resolvedArcanaCommand,

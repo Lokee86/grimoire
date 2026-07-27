@@ -148,6 +148,81 @@ func TestClientReturnsOperationalImpactUnresolvedAndChainEvidence(t *testing.T) 
 	}
 }
 
+func TestClientResolvesDeclarationBeforeSamePathVariable(t *testing.T) {
+	variable := map[string]any{
+		"node_id": 11, "identity": "variable-id", "kind": "variable",
+		"path": "internal/arcanagraph/semantic.go", "name": "SemanticSeeds",
+		"span": map[string]any{
+			"path":       "internal/arcanagraph/semantic.go",
+			"start_line": 35, "end_line": 35,
+		},
+	}
+	declaration := map[string]any{
+		"node_id": 22, "identity": "method-id", "kind": "method",
+		"path": "internal/arcanagraph/semantic.go", "name": "SemanticSeeds",
+		"span": map[string]any{
+			"path":       "internal/arcanagraph/semantic.go",
+			"start_line": 35, "end_line": 86,
+		},
+	}
+	run := func(
+		_ context.Context,
+		_, _ string,
+		requests []protocolRequest,
+	) (map[string]protocolResponse, error) {
+		responses := make(map[string]protocolResponse, len(requests))
+		for _, request := range requests {
+			switch request.Op {
+			case "resolve_symbol":
+				responses[request.ID] = successfulResponse(t, request.ID, map[string]any{
+					"nodes": []any{variable, declaration},
+				})
+			case "operational_role":
+				if request.NodeID == nil || *request.NodeID != 22 {
+					t.Fatalf("expanded same-name variable instead of declaration: %+v", request)
+				}
+				responses[request.ID] = successfulResponse(t, request.ID, map[string]any{
+					"node": declaration, "summary": "SemanticSeeds returns ranked graph entry points.",
+					"callers": []any{}, "callees": []any{},
+				})
+			case "impact":
+				if request.NodeID == nil || *request.NodeID != 22 {
+					t.Fatalf("impact used wrong resolved node: %+v", request)
+				}
+				responses[request.ID] = successfulResponse(t, request.ID, map[string]any{
+					"node_id": 22, "truncated": false, "dependents": []any{},
+				})
+			case "unresolved":
+				if request.NodeID == nil || *request.NodeID != 22 {
+					t.Fatalf("unresolved used wrong resolved node: %+v", request)
+				}
+				responses[request.ID] = successfulResponse(t, request.ID, map[string]any{
+					"truncated": false, "unresolved": []any{},
+				})
+			default:
+				t.Fatalf("unexpected Arcana operation %q", request.Op)
+			}
+		}
+		return responses, nil
+	}
+
+	evidence, err := (Client{Run: run}).Search(
+		context.Background(),
+		"snapshot",
+		[]structure.Node{{
+			Kind: "function", Name: "SemanticSeeds",
+			Path: `internal\arcanagraph\semantic.go`,
+		}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(evidence) != 1 || evidence[0].Node == nil ||
+		evidence[0].Node.Kind != "method" || evidence[0].Node.Name != "SemanticSeeds" {
+		t.Fatalf("declaration evidence was not retained: %+v", evidence)
+	}
+}
+
 func successfulResponse(t *testing.T, id string, result any) protocolResponse {
 	t.Helper()
 	data, err := json.Marshal(result)

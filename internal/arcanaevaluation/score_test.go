@@ -74,6 +74,36 @@ func TestScoreCaseMeasuresSeedsStructurePayloadAndCalls(t *testing.T) {
 	}
 }
 
+func TestScoreCasePreservesExactSymbolRecallAcrossCallableKinds(t *testing.T) {
+	entry := Case{
+		ID: "semantic-entry", Query: "find conceptual graph entry point",
+		RequiredSeeds: []SeedExpectation{{
+			Name: "SemanticSeeds", Path: "internal/arcanagraph/semantic.go", Kind: "function",
+		}},
+		RequiredStructural: []evaluation.StructuralExpectation{{
+			Provider: "arcana", Kind: "operational_role",
+			Symbol: "SemanticSeeds", Path: "internal/arcanagraph/semantic.go",
+		}},
+	}
+	method := structure.Node{
+		Kind: "method", Name: "SemanticSeeds", Path: "internal/arcanagraph/semantic.go",
+	}
+	result := ScoreCase(entry, Measurement{
+		Mode:  ModeLexiconVectorSeeds,
+		Seeds: []RankedSeed{{Node: method, Source: "vector"}},
+		Structural: []structure.Evidence{{
+			Provider: "arcana", Kind: "operational_role", Node: &method,
+		}},
+	}, []int{1})
+
+	if !result.Pass || result.RequiredSeedRecall != 1 || result.RecallAtK[0].Value != 1 {
+		t.Fatalf("exact name/path seed recall was lost to callable kind normalization: %+v", result)
+	}
+	if result.RequiredStructuralRecall != 1 || !result.StructuralJudgments[0].Matched {
+		t.Fatalf("resolved declaration did not satisfy structural judgment: %+v", result)
+	}
+}
+
 func TestBuildAggregatesProducesVectorMinusBaselineDeltas(t *testing.T) {
 	report := Report{RecallAtK: []int{1}, Cases: []CaseResult{
 		{Mode: ModeLexiconSeeds, Pass: false, RequiredSeedRecall: 0, RecallAtK: []RecallMetric{{K: 1, Value: 0}}, MRR: 0, RequiredStructuralRecall: 0.5, Timings: Timings{TotalMS: 4}, PayloadBytes: 100, ProviderCalls: 2},

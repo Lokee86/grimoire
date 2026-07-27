@@ -27,6 +27,46 @@ func TestParseContextStructuralProvidersRejectsUnknownProvider(t *testing.T) {
 	}
 }
 
+func TestParseArcanaSemanticMode(t *testing.T) {
+	for input, want := range map[string]arcanaSemanticMode{
+		"": arcanaSemanticAuto, "auto": arcanaSemanticAuto, "ON": arcanaSemanticOn, "off": arcanaSemanticOff,
+	} {
+		got, err := parseArcanaSemanticMode(input)
+		if err != nil {
+			t.Fatalf("parse %q: %v", input, err)
+		}
+		if got != want {
+			t.Fatalf("parse %q = %q, want %q", input, got, want)
+		}
+	}
+	if _, err := parseArcanaSemanticMode("sometimes"); err == nil {
+		t.Fatal("expected unsupported Arcana semantic mode error")
+	}
+}
+
+func TestArcanaSemanticAutoSkipsExplicitLexiconSeed(t *testing.T) {
+	seeds := []structure.Node{{Name: "SearchDetailed", Path: "internal/lexiconfacts/facts.go"}}
+	if shouldUseArcanaSemantic(arcanaSemanticAuto, "Trace SearchDetailed callers", seeds) {
+		t.Fatal("auto mode should skip semantic expansion for an explicitly named compound identifier")
+	}
+	if shouldUseArcanaSemantic(arcanaSemanticAuto, "Inspect internal/lexiconfacts/facts.go", seeds) {
+		t.Fatal("auto mode should skip semantic expansion for an explicitly named seed path")
+	}
+}
+
+func TestArcanaSemanticAutoExpandsConceptualQuery(t *testing.T) {
+	seeds := []structure.Node{{Name: "Search", Path: "internal/retrieve/search.go"}}
+	if !shouldUseArcanaSemantic(arcanaSemanticAuto, "where is reconnect recovery handled?", seeds) {
+		t.Fatal("auto mode should use semantic expansion when Lexicon has no explicit query anchor")
+	}
+	if shouldUseArcanaSemantic(arcanaSemanticOff, "where is reconnect recovery handled?", seeds) {
+		t.Fatal("off mode should disable semantic expansion")
+	}
+	if !shouldUseArcanaSemantic(arcanaSemanticOn, "SearchDetailed", seeds) {
+		t.Fatal("on mode should force semantic expansion")
+	}
+}
+
 func TestMergeArcanaSeedsBalancesSemanticAndLexiconRecall(t *testing.T) {
 	lexicon := []structure.Node{
 		{Name: "LexiconOne", Path: "lexicon/one.go"},
