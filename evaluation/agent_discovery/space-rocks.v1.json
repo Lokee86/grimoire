@@ -24,14 +24,26 @@
         { "id": "no-client-access-token-issue", "pattern": "client issues the access token" }
       ],
       "completion_criteria": ["Identify both HTTP endpoints and their Rails controller actions.", "Distinguish client credential persistence from Rails access-token issuance."],
+      "outcome_checks": [
+        { "label": "client owner", "any": ["authsessioncontroller"] },
+        { "label": "Rails boundary", "any": ["discordloginsessionscontroller"] },
+        { "label": "session creation", "any": ["begin_discord_login_session", "/api/auth/discord/login_sessions"] },
+        { "label": "session exchange", "any": ["exchange_discord_login_session", "login_sessions/:id/exchange", "#exchange", "exchange endpoint"] },
+        { "label": "browser launch", "any": ["os.shell_open", "browser"] },
+        { "label": "polling", "any": ["polling", "polls", "poll secret"] },
+        { "label": "client persistence", "any": ["save_token", "credentialstore"] },
+        { "label": "Rails issuance", "any": ["issueaccesstoken", "issue access token", "issues the bearer token"] },
+        { "label": "poll validation", "any": ["valid_poll_secret", "securely compare", "securely match", "constant-time compare", "poll-secret digest", "validates the polling"] }
+      ],
       "relevant_branches": ["client/scripts/auth", "client/scripts/api", "services/api-server/app/controllers/api/auth", "services/api-server/config"]
     },
     {
       "id": "space-rocks-gameplay-packet-producer-handler",
       "task": "Trace a Godot gameplay input packet from its producer through outbound sending, Go websocket/envelope routing, and the authoritative Game handler.",
-      "ownership_boundary": "Godot produces and sends packet dictionaries; networking admits and routes them; game.Game owns authoritative packet interpretation.",
+      "ownership_boundary": "Player samples local input and the generated Packets factory constructs the packet dictionary; networking admits and routes it; game.Game owns authoritative packet interpretation.",
       "ownership_evidence": [
-        { "path": "client/scripts/networking/outbound/gameplay_client_packets.gd", "symbols": ["input_packet"], "reason": "Godot owns construction of the gameplay input packet." },
+        { "path": "client/scripts/entities/player.gd", "symbols": ["get_input_packet"], "reason": "The Godot player samples local controls and requests packet construction." },
+        { "path": "client/scripts/generated/networking/packets/packets.gd", "symbols": ["input_packet"], "reason": "The generated packet factory owns the wire dictionary shape." },
         { "path": "services/game-server/internal/game/input.go", "symbols": ["HandlePacket"], "reason": "Game applies accepted input to authoritative player state." }
       ],
       "required_evidence": [
@@ -46,6 +58,15 @@
         { "id": "no-client-authority", "pattern": "client authoritatively applies input" }
       ],
       "completion_criteria": ["Locate the producer, transport handoff, envelope boundary, router, and Game handler.", "Do not move authority from Go Game to Godot."],
+      "outcome_checks": [
+        { "label": "packet producer", "any": ["get_input_packet", "packets.input_packet", "input_packet("] },
+        { "label": "outbound sender", "any": ["clientpacketsender", "send_input_packet"] },
+        { "label": "websocket receive", "any": ["readclientinput", "websocket read"] },
+        { "label": "envelope decode", "any": ["decodeclientpacketenvelope", "clientpacketenvelope", "envelope decode"] },
+        { "label": "gameplay router", "any": ["handlegameplaypacket"] },
+        { "label": "authoritative handler", "any": ["game.handlepacket"] },
+        { "label": "server authority", "any": ["authoritative game", "authority remains", "server-authoritative", "go game"] }
+      ],
       "relevant_branches": ["client/scripts/networking/outbound", "services/game-server/internal/networking", "services/game-server/internal/game"]
     },
     {
@@ -69,6 +90,16 @@
         { "id": "no-pending-elimination", "pattern": "pending respawn is eliminated" }
       ],
       "completion_criteria": ["Show client request gating and server-side mutation.", "Explain that a match ends only when rule classification finds every player eliminated."],
+      "outcome_checks": [
+        { "label": "request gate", "any": ["request_respawn"] },
+        { "label": "packet sender", "any": ["send_respawn_request"] },
+        { "label": "inbound router", "any": ["handlegameplaypacket"] },
+        { "label": "game dispatcher", "any": ["game.handlepacket"] },
+        { "label": "respawn mutation", "any": ["respawnplayer"] },
+        { "label": "pending state", "any": ["pending_respawn", "pending respawn"] },
+        { "label": "eliminated state", "any": ["playereliminated", "eliminated"] },
+        { "label": "match-end rule", "any": ["evaluatematch", "every player is eliminated", "all players are eliminated"] }
+      ],
       "relevant_branches": ["client/scripts/gameplay", "client/scripts/networking/outbound", "services/game-server/internal/game", "services/game-server/internal/networking"]
     },
     {
@@ -81,15 +112,23 @@
       ],
       "required_evidence": [
         { "path": "client/scripts/api/api_config.gd", "symbols": ["LOCAL_SERVER_PORT_ENV", "player_data_base_url_for_runtime", "player_data_profile_path"], "reason": "The API configuration validates the port and returns the local HTTP base URL." },
-        { "path": "client/scripts/boot/session_network_target.gd", "symbols": ["LOCAL_SERVER_PORT_ENV", "websocket_url_for_runtime", "_single_player_websocket_url"], "reason": "The session target validates the port and returns the local websocket URL." }
+        { "path": "client/scripts/boot/session_network_target.gd", "symbols": ["LOCAL_SERVER_PORT_ENV", "websocket_url_for_runtime", "_single_player_websocket_url"], "reason": "The session target validates the port and returns the local websocket URL." },
+        { "path": "client/scripts/boot/local_alpha_profile_smoke.gd", "symbols": ["LOCAL_SERVER_PORT_ENV", "_base_url", "_request"], "reason": "The packaged-alpha smoke path reads the key for its direct health and player-data HTTP base." },
+        { "path": "services/game-server/cmd/game-server/listen_address_localpackage.go", "symbols": ["envLocalServerPort", "serverListenAddress"], "reason": "The localpackage server reads the same key for its loopback listen address." }
       ],
       "required_structural_evidence": [],
       "forbidden_unsupported_conclusions": [
-        { "id": "no-rails-reader", "pattern": "rails reads space_rocks_local_server_port" },
-        { "id": "no-game-server-reader", "pattern": "game server reads space_rocks_local_server_port" }
+        { "id": "no-rails-reader", "pattern": "rails reads space_rocks_local_server_port" }
       ],
-      "completion_criteria": ["Name both production readers and their separate endpoint responsibilities.", "Do not claim an unverified service-side reader."],
-      "relevant_branches": ["client/scripts/api", "client/scripts/boot"]
+      "completion_criteria": ["Name every production Godot reader and its endpoint responsibility.", "Identify the verified localpackage Go reader and do not claim an unverified Rails reader."],
+      "outcome_checks": [
+        { "label": "player-data reader", "any": ["apiconfig", "player_data_base_url_for_runtime"] },
+        { "label": "websocket reader", "any": ["sessionnetworktarget", "_single_player_websocket_url"] },
+        { "label": "smoke reader", "any": ["localalphaprofilesmoke", "local_alpha_profile_smoke.gd"] },
+        { "label": "Go listener", "any": ["serverlistenaddress", "listen_address_localpackage.go"] },
+        { "label": "Rails absence", "any": ["no rails", "rails: not verified", "rails server reader: not verified", "rails reader was not verified"] }
+      ],
+      "relevant_branches": ["client/scripts/api", "client/scripts/boot", "services/game-server/cmd/game-server"]
     }
   ]
 }
