@@ -2,7 +2,7 @@
   "version": 1,
   "repository": "Grimoire",
   "source_url": "https://github.com/Lokee86/grimoire",
-  "revision": "aa010e975abad3de63a60f2c7431807e5849e39d",
+  "revision": "82e0653742f1aacfbd4eb2b0e6ffebdbb061b071",
   "scope": ".",
   "judged_at": "2026-07-26",
   "top_k": 6,
@@ -18,10 +18,10 @@
       "category": "mechanism-explanation",
       "required_seeds": [
         {
-          "name": "SemanticSeeds",
+          "name": "RankedSemanticSeeds",
           "path": "internal/arcanagraph/semantic.go",
           "kind": "function",
-          "reason": "This is the Grimoire-side boundary that checks for an existing Arcana vector index, invokes semantic-query, deduplicates matches, and returns graph nodes."
+          "reason": "This is the Grimoire-side boundary that checks for an existing Arcana vector index, invokes semantic-query, deduplicates matches, and preserves score and rank metadata for hybrid selection."
         }
       ],
       "supporting_seeds": [
@@ -36,9 +36,9 @@
         {
           "provider": "arcana",
           "kind": "operational_role",
-          "symbol": "SemanticSeeds",
+          "symbol": "RankedSemanticSeeds",
           "path": "internal/arcanagraph/semantic.go",
-          "reason": "Final graph evidence must retain the semantic seed provider's operational neighborhood."
+          "reason": "Final graph evidence must retain the ranked semantic seed provider's operational neighborhood."
         }
       ],
       "notes": "The query deliberately avoids the exact CLI phrase semantic-query to test conceptual graph entry-point retrieval."
@@ -55,10 +55,10 @@
           "reason": "This function owns the complete provider composition path."
         },
         {
-          "name": "mergeArcanaSeeds",
-          "path": "internal/app/context_structure.go",
+          "name": "RerankSeeds",
+          "path": "internal/arcanagraph/rerank.go",
           "kind": "function",
-          "reason": "This helper interleaves semantic and Lexicon seeds under the production six-seed bound."
+          "reason": "This boundary fuses Lexicon rank, vector similarity, declaration quality, query terms, and bounded graph-neighborhood evidence before the production six-seed cutoff."
         }
       ],
       "required_structural": [
@@ -69,9 +69,9 @@
           "path": "internal/app/context_structure.go",
           "relation": "calls",
           "direction": "outgoing",
-          "target_symbol": "mergeArcanaSeeds",
-          "target_path": "internal/app/context_structure.go",
-          "reason": "Final evidence must connect provider collection to bounded seed composition."
+          "target_symbol": "RerankSeeds",
+          "target_path": "internal/arcanagraph/rerank.go",
+          "reason": "Final evidence must connect provider collection to hybrid seed selection."
         }
       ],
       "notes": "This is the primary paired case for whether semantic seeds add useful entry points beyond Lexicon vocabulary."
@@ -142,10 +142,10 @@
       "category": "mechanism-explanation",
       "required_seeds": [
         {
-          "name": "search_current_index",
+          "name": "search_index",
           "path": "arcana/src/vector/search.rs",
           "kind": "function",
-          "reason": "This function validates the current index, embeds the query, scores every node vector, and deterministically ranks hits."
+          "reason": "This private mechanism validates the selected immutable index, embeds the query, scores every node vector, and deterministically ranks hits; search_current_index is only its public current-snapshot wrapper."
         }
       ],
       "supporting_seeds": [
@@ -160,9 +160,9 @@
         {
           "provider": "arcana",
           "kind": "operational_role",
-          "symbol": "search_current_index",
+          "symbol": "search_index",
           "path": "arcana/src/vector/search.rs",
-          "reason": "Final evidence must retain the semantic graph search implementation owner."
+          "reason": "Final evidence must retain the semantic graph search implementation owner rather than its thin wrapper."
         }
       ],
       "notes": "Covers the Arcana-owned vector search rather than Grimoire documentation vectors."
