@@ -8,6 +8,24 @@ import (
 	"testing"
 )
 
+func TestStateRootUsesExplicitWarlockStateDirectory(t *testing.T) {
+	repository := t.TempDir()
+	state := filepath.Join(repository, ".warlock", "tools", "lexicon")
+	t.Setenv("LEXICON_STATE_DIR", state)
+	if actual := StateRoot(repository); actual != state {
+		t.Fatalf("StateRoot() = %q, want %q", actual, state)
+	}
+	if err := Save(repository, t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(state, "config.json")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(repository, ".lexicon")); !os.IsNotExist(err) {
+		t.Fatalf("standalone state was created: %v", err)
+	}
+}
+
 func TestEnabledLanguagesDefaultToAllSupported(t *testing.T) {
 	value := Config{}
 	if !value.LanguageEnabled("python") || !value.LanguageEnabled("typescript") {

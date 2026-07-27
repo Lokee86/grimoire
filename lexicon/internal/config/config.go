@@ -21,6 +21,12 @@ type Config struct {
 }
 
 func StateRoot(repository string) string {
+	if configured := os.Getenv("LEXICON_STATE_DIR"); configured != "" {
+		if filepath.IsAbs(configured) {
+			return filepath.Clean(configured)
+		}
+		return filepath.Join(repository, configured)
+	}
 	return filepath.Join(repository, ".lexicon")
 }
 

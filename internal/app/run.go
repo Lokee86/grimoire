@@ -193,7 +193,10 @@ func resolveState(root, state string) (string, error) {
 		return "", fmt.Errorf("resolve root: %w", err)
 	}
 	if state == "" {
-		return filepath.Join(absoluteRoot, ".grimoire"), nil
+		state = strings.TrimSpace(os.Getenv("GRIMOIRE_STATE_DIR"))
+		if state == "" {
+			return filepath.Join(absoluteRoot, ".grimoire"), nil
+		}
 	}
 	if filepath.IsAbs(state) {
 		return filepath.Clean(state), nil

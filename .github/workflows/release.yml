@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the leading v
+        required: true
+        default: "0.1.0"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x86_64
+          - os: windows-latest
+            target: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: Lokee86/lodestone
+          path: lodestone
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: lexicon/go.mod
+          cache: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: lexicon/adapters/typescript/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - id: release
+        shell: bash
+        run: |
+          version="${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}"
+          version="${version#v}"
+          [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+      - name: Build and package release
+        env:
+          LODESTONE_ROOT: ${{ github.workspace }}/lodestone
+          GRIMOIRE_VERSION: ${{ steps.release.outputs.version }}
+        run: python scripts/workflow.py release --version "${{ steps.release.outputs.version }}" --output "dist-${{ matrix.target }}"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: grimoire-${{ matrix.target }}
+          path: dist-${{ matrix.target }}/${{ steps.release.outputs.version }}/grimoire-bundle-*.zip
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+      - id: release
+        shell: bash
+        run: |
+          version="${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}"
+          version="${version#v}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=v${version}" >> "${GITHUB_OUTPUT}"
+      - name: Create checksums
+        run: cd dist && sha256sum *.zip > SHA256SUMS.txt
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" dist/* --clobber
+          else
+            gh release create "${TAG}" dist/* --title "Grimoire ${VERSION}" --generate-notes
+          fi

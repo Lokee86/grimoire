@@ -9,6 +9,7 @@
 coverage.out
 /evaluation/validation/
 /.tmp/
+/.tmp-*/
 /bin/
 /build/
 /dist/

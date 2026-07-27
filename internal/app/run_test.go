@@ -59,6 +59,24 @@ func TestInvestigationLifecycleCommands(t *testing.T) {
 	}
 }
 
+func TestIndexUsesWarlockManagedStateDirectory(t *testing.T) {
+	root := t.TempDir()
+	state := filepath.Join(root, ".warlock", "tools", "grimoire")
+	t.Setenv("GRIMOIRE_STATE_DIR", state)
+	if err := os.WriteFile(filepath.Join(root, "visible.go"), []byte("package visible\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := index.Load(state); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".grimoire")); !os.IsNotExist(err) {
+		t.Fatalf("standalone state was created: %v", err)
+	}
+}
+
 func TestIndexUsesConfiguredIgnoreFile(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, ".contextignore"), []byte("ignored.go\n"), 0o644); err != nil {

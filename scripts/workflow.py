@@ -152,8 +152,58 @@ def build(version: str, output: Path, jobs: int = 1) -> Path:
     lodestone_target = lodestone / "target" / "release"
     copy_file(lodestone_target / native_library_name(), native_dir / native_library_name())
 
+    package_lexicon_adapters(output, cargo, jobs, build_env)
     verify_versions(output, version)
     return output
+
+
+def package_lexicon_adapters(
+    output: Path,
+    cargo: str,
+    jobs: int,
+    environment: dict[str, str],
+) -> None:
+    """Prepare runtime adapter resources without requiring a source checkout."""
+    source = ROOT / "lexicon" / "adapters"
+    destination = output / "adapters"
+    shutil.copytree(
+        source,
+        destination,
+        ignore=shutil.ignore_patterns(
+            "__pycache__", "*.pyc", ".pytest_cache", "target", "node_modules", "dist"
+        ),
+    )
+    for language in ("c-family", "go", "gdscript", "generic"):
+        run(
+            [
+                "go", "build", "-p", str(jobs), "-trimpath", "-buildvcs=false",
+                "-o", str(destination / language / executable_name(f"lexicon-{language}")), ".",
+            ],
+            source / language,
+            environment,
+        )
+    rust_manifest = source / "rust" / "Cargo.toml"
+    if rust_manifest.is_file():
+        run(
+            [
+                cargo, "build", "--jobs", str(jobs), "--release", "--locked",
+                "--manifest-path", str(rust_manifest),
+            ],
+            ROOT,
+            environment,
+        )
+        copy_file(
+            source / "rust" / "target" / "release" / executable_name("lexicon-rust-adapter"),
+            destination / "rust" / executable_name("lexicon-rust"),
+        )
+
+    typescript = destination / "typescript"
+    if (typescript / "package-lock.json").is_file():
+        npm = shutil.which("npm") or shutil.which("npm.cmd")
+        if not npm:
+            raise FileNotFoundError("npm executable not found on PATH")
+        run([npm, "ci", "--silent"], typescript, environment)
+        run([npm, "run", "build", "--silent"], typescript, environment)
 
 
 def verify_versions(build_root: Path, version: str) -> None:
@@ -210,6 +260,14 @@ def install(source: Path, bin_dir: Path, components: Sequence[str] = ("grimoire"
         # Keep the native library beside Grimoire so existing discovery works
         # without setting GRIMOIRE_VECTOR_ENGINE.
         copy_file(library, bin_dir / library.name)
+    if "lexicon" in selected:
+        adapters = source / "adapters"
+        if not adapters.is_dir():
+            raise FileNotFoundError(f"combined build is missing {adapters}")
+        destination = bin_dir / "adapters"
+        if destination.exists():
+            shutil.rmtree(destination)
+        shutil.copytree(adapters, destination)
     print(f"installed {', '.join(selected)} to {bin_dir}")
 
 
@@ -226,7 +284,12 @@ def _fixed_zip(source: Path, archive: Path) -> None:
             relative = path.relative_to(source).as_posix()
             info = zipfile.ZipInfo(relative, date_time=(1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
-            mode = 0o100755 if path.name in executable_names else 0o100644
+            executable = (
+                path.name in executable_names
+                or path.suffix.lower() == ".exe"
+                or bool(path.stat().st_mode & 0o111)
+            )
+            mode = 0o100755 if executable else 0o100644
             info.external_attr = mode << 16
             output.writestr(info, path.read_bytes())
 
@@ -263,13 +326,15 @@ def package_artifacts(build_root: Path, output: Path, version: str, platform_nam
         for component, files in specs.items():
             component_stage = staging / component
             _stage_files(component_stage, files, version)
+            if component == "lexicon":
+                shutil.copytree(build_root / "adapters", component_stage / "adapters")
             archive = release_root / f"{component}-{version}-{target}.zip"
             _fixed_zip(component_stage, archive)
             archives.append(archive)
 
         combined_stage = staging / "combined"
         _stage_files(combined_stage, [], version)
-        for relative in ("bin", "native"):
+        for relative in ("bin", "native", "adapters"):
             shutil.copytree(build_root / relative, combined_stage / relative)
         copy_file(ROOT / "scripts" / "install.py", combined_stage / "install.py")
         combined_archive = release_root / f"grimoire-bundle-{version}-{target}.zip"
@@ -280,7 +345,12 @@ def package_artifacts(build_root: Path, output: Path, version: str, platform_nam
         "version": version,
         "target": target,
         "artifacts": [archive.name for archive in archives],
-        "combined_layout": {"executables": "bin/", "lodestone_library": "native/", "installer": "install.py"},
+        "combined_layout": {
+            "executables": "bin/",
+            "lodestone_library": "native/",
+            "lexicon_adapters": "adapters/",
+            "installer": "install.py",
+        },
     }
     write_utf8(release_root / "release-manifest.json", json.dumps(manifest, indent=2) + "\n")
     checksum_lines = []

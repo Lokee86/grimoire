@@ -27,6 +27,10 @@ class WorkflowSmokeTests(unittest.TestCase):
             build = root / "build"
             (build / "bin").mkdir(parents=True)
             (build / "native").mkdir()
+            (build / "adapters" / "python").mkdir(parents=True)
+            (build / "adapters" / "python" / "adapter.py").write_text("pass\n", encoding="utf-8")
+            (build / "adapters" / "go").mkdir()
+            (build / "adapters" / "go" / "lexicon-go.exe").write_bytes(b"adapter")
             for name in ("grimoire.exe", "lexicon.exe", "arcana.exe"):
                 (build / "bin" / name).write_bytes(name.encode())
             (build / "native" / "lodestone_ffi.dll").write_bytes(b"dll")
@@ -47,17 +51,22 @@ class WorkflowSmokeTests(unittest.TestCase):
                 self.assertIn("bin/grimoire.exe", archive.namelist())
                 self.assertIn("native/lodestone_ffi.dll", archive.namelist())
                 self.assertIn("install.py", archive.namelist())
+                self.assertIn("adapters/python/adapter.py", archive.namelist())
+                self.assertIn("adapters/go/lexicon-go.exe", archive.namelist())
                 self.assertEqual((archive.getinfo("bin/grimoire.exe").external_attr >> 16) & 0o777, 0o755)
+                self.assertEqual((archive.getinfo("adapters/go/lexicon-go.exe").external_attr >> 16) & 0o777, 0o755)
                 self.assertEqual((archive.getinfo("install.py").external_attr >> 16) & 0o777, 0o755)
 
             installed = root / "selected-bin"
             workflow.install(build, installed)
             self.assertEqual((installed / "grimoire.exe").read_bytes(), b"grimoire.exe")
             self.assertTrue((installed / "lodestone_ffi.dll").is_file())
+            self.assertTrue((installed / "adapters" / "python" / "adapter.py").is_file())
 
             subset = root / "lexicon-only"
             workflow.install(build, subset, ("lexicon",))
             self.assertTrue((subset / "lexicon.exe").is_file())
+            self.assertTrue((subset / "adapters" / "python" / "adapter.py").is_file())
             self.assertFalse((subset / "grimoire.exe").exists())
             self.assertFalse((subset / "lodestone_ffi.dll").exists())
 
