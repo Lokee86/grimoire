@@ -1,0 +1,423 @@
+{
+  "repository": "Space Rocks",
+  "documents": 947,
+  "window_lines": 0,
+  "stride_lines": 20,
+  "exclude_tests": true,
+  "index_ms": 1226.322500006063,
+  "pass_rate": 0.4444444444444444,
+  "required_seed_recall": 0.46153846153846156,
+  "mrr": 0.3888888888888889,
+  "median_query_ms": 42.42309999244753,
+  "cases": [
+    {
+      "id": "space-rocks-room-player-activation",
+      "required_ranks": [
+        0
+      ],
+      "latency_ms": 48.28429999179207,
+      "results": [
+        {
+          "score": 22.73146785515101,
+          "path": "client/scripts/shell/gameplay_menu_flow.gd",
+          "start_line": 1,
+          "end_line": 395
+        },
+        {
+          "score": 19.314907525774576,
+          "path": "client/scripts/devtools/telemetry/world_telemetry_context.gd",
+          "start_line": 1,
+          "end_line": 138
+        },
+        {
+          "score": 18.34551055189516,
+          "path": "client/addons/gut/signal_watcher.gd",
+          "start_line": 1,
+          "end_line": 218
+        },
+        {
+          "score": 16.269099490476414,
+          "path": "shared/go/servicelog/config.go",
+          "start_line": 1,
+          "end_line": 75
+        },
+        {
+          "score": 16.258347437208815,
+          "path": "client/addons/gut/stubber.gd",
+          "start_line": 1,
+          "end_line": 200
+        },
+        {
+          "score": 15.536492537111823,
+          "path": "client/addons/gut/editor_caret_context_notifier.gd",
+          "start_line": 1,
+          "end_line": 212
+        }
+      ]
+    },
+    {
+      "id": "space-rocks-realtime-lane-commit",
+      "required_ranks": [
+        2
+      ],
+      "latency_ms": 43.76340001181234,
+      "results": [
+        {
+          "score": 30.546627658938906,
+          "path": "services/game-server/internal/protocol/realtime/baseline.go",
+          "start_line": 1,
+          "end_line": 187
+        },
+        {
+          "score": 29.51291644354982,
+          "path": "services/game-server/internal/networking/websocket_write.go",
+          "start_line": 1,
+          "end_line": 274
+        },
+        {
+          "score": 27.037024823303994,
+          "path": "client/addons/gut/input_sender.gd",
+          "start_line": 1,
+          "end_line": 651
+        },
+        {
+          "score": 19.661455256123393,
+          "path": "client/addons/gut/warnings_manager.gd",
+          "start_line": 1,
+          "end_line": 176
+        },
+        {
+          "score": 18.936431501982902,
+          "path": "client/scripts/generated/observability/contract_generated.gd",
+          "start_line": 1,
+          "end_line": 535
+        },
+        {
+          "score": 18.84620375501815,
+          "path": "services/api-server/app/lib/observability/contract_generated.rb",
+          "start_line": 1,
+          "end_line": 554
+        }
+      ]
+    },
+    {
+      "id": "space-rocks-client-inbound-binding",
+      "required_ranks": [
+        0
+      ],
+      "latency_ms": 42.96239999530371,
+      "results": [
+        {
+          "score": 29.23024083142123,
+          "path": "client/addons/gut/signal_watcher.gd",
+          "start_line": 1,
+          "end_line": 218
+        },
+        {
+          "score": 28.96330468039318,
+          "path": "client/scripts/session/gameplay_session_controller.gd",
+          "start_line": 1,
+          "end_line": 210
+        },
+        {
+          "score": 27.469322185251343,
+          "path": "services/api-server/config/puma.rb",
+          "start_line": 1,
+          "end_line": 46
+        },
+        {
+          "score": 26.931405432987646,
+          "path": "services/api-server/config/environments/production.rb",
+          "start_line": 1,
+          "end_line": 87
+        },
+        {
+          "score": 26.14165996418357,
+          "path": "client/addons/gut/cli/gut_cli.gd",
+          "start_line": 1,
+          "end_line": 315
+        },
+        {
+          "score": 25.667702552451647,
+          "path": "client/scripts/shell/app_entry.gd",
+          "start_line": 1,
+          "end_line": 408
+        }
+      ]
+    },
+    {
+      "id": "space-rocks-client-gameplay-reset",
+      "required_ranks": [
+        1
+      ],
+      "latency_ms": 45.05659999267664,
+      "results": [
+        {
+          "score": 48.947731272530895,
+          "path": "client/scripts/session/gameplay_session_controller.gd",
+          "start_line": 1,
+          "end_line": 210
+        },
+        {
+          "score": 33.31335041902587,
+          "path": "client/scripts/gameplay/gameplay_composition.gd",
+          "start_line": 1,
+          "end_line": 297
+        },
+        {
+          "score": 31.933762318392603,
+          "path": "client/scripts/protocol/realtime/presentation_bridge.gd",
+          "start_line": 1,
+          "end_line": 110
+        },
+        {
+          "score": 27.488754017811008,
+          "path": "client/scripts/generated/observability/contract_generated.gd",
+          "start_line": 1,
+          "end_line": 535
+        },
+        {
+          "score": 27.3703229463187,
+          "path": "services/api-server/app/lib/observability/contract_generated.rb",
+          "start_line": 1,
+          "end_line": 554
+        },
+        {
+          "score": 25.39632838358186,
+          "path": "shared/go/observabilityevent/contract_generated.go",
+          "start_line": 1,
+          "end_line": 689
+        }
+      ]
+    },
+    {
+      "id": "space-rocks-webrtc-channel-recovery",
+      "required_ranks": [
+        0
+      ],
+      "latency_ms": 40.83050000190269,
+      "results": [
+        {
+          "score": 29.491921112264883,
+          "path": "client/addons/gut/logger.gd",
+          "start_line": 1,
+          "end_line": 431
+        },
+        {
+          "score": 29.261618879048996,
+          "path": "client/addons/gut/cli/gut_cli.gd",
+          "start_line": 1,
+          "end_line": 315
+        },
+        {
+          "score": 28.476952575565388,
+          "path": "client/addons/gut/gut_config.gd",
+          "start_line": 1,
+          "end_line": 236
+        },
+        {
+          "score": 27.240742418858684,
+          "path": "client/addons/gut/collected_script.gd",
+          "start_line": 1,
+          "end_line": 208
+        },
+        {
+          "score": 26.92658462209398,
+          "path": "client/addons/gut/hook_script.gd",
+          "start_line": 1,
+          "end_line": 58
+        },
+        {
+          "score": 25.70493534842368,
+          "path": "client/addons/gut/cli/optparse.gd",
+          "start_line": 1,
+          "end_line": 678
+        }
+      ]
+    },
+    {
+      "id": "space-rocks-client-process-shutdown",
+      "required_ranks": [
+        1
+      ],
+      "latency_ms": 40.80899999826215,
+      "results": [
+        {
+          "score": 38.50991522552888,
+          "path": "client/scripts/session/app_shutdown_controller.gd",
+          "start_line": 1,
+          "end_line": 20
+        },
+        {
+          "score": 37.684995638634916,
+          "path": "addons/engineforge_bridge/engineforge_bridge.gd",
+          "start_line": 1,
+          "end_line": 3104
+        },
+        {
+          "score": 37.68391238920527,
+          "path": "client/addons/engineforge_bridge/engineforge_bridge.gd",
+          "start_line": 1,
+          "end_line": 3104
+        },
+        {
+          "score": 35.62397596608329,
+          "path": "client/addons/gut/gui/ResizeHandle.gd",
+          "start_line": 1,
+          "end_line": 107
+        },
+        {
+          "score": 34.41257792356776,
+          "path": "client/addons/gut/gui/gut_logo.gd",
+          "start_line": 1,
+          "end_line": 225
+        },
+        {
+          "score": 33.500943539343055,
+          "path": "client/scripts/shell/app_entry.gd",
+          "start_line": 1,
+          "end_line": 408
+        }
+      ]
+    },
+    {
+      "id": "space-rocks-account-result-persistence",
+      "required_ranks": [
+        0,
+        0,
+        0
+      ],
+      "latency_ms": 39.00229999271687,
+      "results": [
+        {
+          "score": 32.8583555780389,
+          "path": "services/api-server/config/puma.rb",
+          "start_line": 1,
+          "end_line": 46
+        },
+        {
+          "score": 27.242582891693576,
+          "path": "services/api-server/app/controllers/concerns/observes_api_request.rb",
+          "start_line": 1,
+          "end_line": 143
+        },
+        {
+          "score": 26.993298159357153,
+          "path": "services/api-server/config/environments/production.rb",
+          "start_line": 1,
+          "end_line": 87
+        },
+        {
+          "score": 24.22028267632126,
+          "path": "services/api-server/config/routes.rb",
+          "start_line": 1,
+          "end_line": 44
+        },
+        {
+          "score": 21.40607476807267,
+          "path": "services/api-server/config/initializers/cors.rb",
+          "start_line": 1,
+          "end_line": 16
+        },
+        {
+          "score": 20.625692275265763,
+          "path": "services/diagnostic-aggregator/internal/storage/doc.go",
+          "start_line": 1,
+          "end_line": 2
+        }
+      ]
+    },
+    {
+      "id": "space-rocks-observability-contract-fanout",
+      "required_ranks": [
+        0
+      ],
+      "latency_ms": 40.27859999041539,
+      "results": [
+        {
+          "score": 33.03163069041105,
+          "path": "tools/data_sync/data_sync/cli.py",
+          "start_line": 1,
+          "end_line": 110
+        },
+        {
+          "score": 29.92851745326734,
+          "path": "client/addons/gut/utils.gd",
+          "start_line": 1,
+          "end_line": 698
+        },
+        {
+          "score": 29.576244493552434,
+          "path": "services/api-server/config/application.rb",
+          "start_line": 1,
+          "end_line": 32
+        },
+        {
+          "score": 28.758221001804124,
+          "path": "tools/data_sync/data_sync/generators/observability_docs.py",
+          "start_line": 1,
+          "end_line": 256
+        },
+        {
+          "score": 28.405256970758906,
+          "path": "client/addons/gut/cli/change_project_warnings.gd",
+          "start_line": 1,
+          "end_line": 239
+        },
+        {
+          "score": 27.151694091899117,
+          "path": "client/addons/gut/gut_config.gd",
+          "start_line": 1,
+          "end_line": 236
+        }
+      ]
+    },
+    {
+      "id": "space-rocks-canonical-event-admission",
+      "required_ranks": [
+        6,
+        4,
+        1
+      ],
+      "latency_ms": 42.42309999244753,
+      "results": [
+        {
+          "score": 55.432145007786204,
+          "path": "services/api-server/app/lib/observability/emitter.rb",
+          "start_line": 1,
+          "end_line": 207
+        },
+        {
+          "score": 44.94085304370965,
+          "path": "client/scripts/generated/observability/contract_generated.gd",
+          "start_line": 1,
+          "end_line": 535
+        },
+        {
+          "score": 44.46259318868029,
+          "path": "services/api-server/app/lib/observability/contract_generated.rb",
+          "start_line": 1,
+          "end_line": 554
+        },
+        {
+          "score": 44.35544398587175,
+          "path": "client/scripts/logging/observability_emitter.gd",
+          "start_line": 1,
+          "end_line": 286
+        },
+        {
+          "score": 42.33816618312344,
+          "path": "shared/go/observabilityevent/contract_generated.go",
+          "start_line": 1,
+          "end_line": 689
+        },
+        {
+          "score": 41.09021194225302,
+          "path": "shared/go/observabilityevent/emitter.go",
+          "start_line": 1,
+          "end_line": 399
+        }
+      ]
+    }
+  ]
+}

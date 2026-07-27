@@ -1,0 +1,241 @@
+{
+  "repository": "Grimoire",
+  "documents": 535,
+  "window_lines": 0,
+  "stride_lines": 20,
+  "exclude_tests": true,
+  "index_ms": 965.0756999908481,
+  "pass_rate": 0.0,
+  "required_seed_recall": 0.0,
+  "mrr": 0.0,
+  "median_query_ms": 24.530299997422844,
+  "cases": [
+    {
+      "id": "arcana-semantic-seeds",
+      "required_ranks": [
+        0
+      ],
+      "latency_ms": 32.052099995780736,
+      "results": [
+        {
+          "score": 36.82280774617974,
+          "path": "internal/arcanagraph/rerank_vocabulary.go",
+          "start_line": 1,
+          "end_line": 29
+        },
+        {
+          "score": 25.9432161966594,
+          "path": "arcana/src/protocol/queries.rs",
+          "start_line": 1,
+          "end_line": 302
+        },
+        {
+          "score": 25.30049747574227,
+          "path": "internal/app/eval_arcana.go",
+          "start_line": 1,
+          "end_line": 334
+        },
+        {
+          "score": 24.532750121615635,
+          "path": "internal/queryshape/analyze.go",
+          "start_line": 1,
+          "end_line": 210
+        },
+        {
+          "score": 22.624635501571223,
+          "path": "internal/queryshape/model.go",
+          "start_line": 1,
+          "end_line": 110
+        },
+        {
+          "score": 21.96749731675341,
+          "path": "internal/graphrank/rank.go",
+          "start_line": 1,
+          "end_line": 284
+        }
+      ]
+    },
+    {
+      "id": "arcana-seed-composition",
+      "required_ranks": [
+        0,
+        0
+      ],
+      "latency_ms": 21.188700004131533,
+      "results": [
+        {
+          "score": 27.419725519332705,
+          "path": "internal/queryshape/model.go",
+          "start_line": 1,
+          "end_line": 110
+        },
+        {
+          "score": 22.93704126033554,
+          "path": "internal/arcanagraph/rerank_vocabulary.go",
+          "start_line": 1,
+          "end_line": 29
+        },
+        {
+          "score": 19.10456930785512,
+          "path": "internal/queryshape/analyze.go",
+          "start_line": 1,
+          "end_line": 210
+        },
+        {
+          "score": 18.983962309929442,
+          "path": "internal/structure/evidence.go",
+          "start_line": 1,
+          "end_line": 106
+        },
+        {
+          "score": 16.325778954579,
+          "path": "internal/retrieve/search.go",
+          "start_line": 1,
+          "end_line": 304
+        },
+        {
+          "score": 16.28585963472065,
+          "path": "internal/queryshape/signals.go",
+          "start_line": 1,
+          "end_line": 95
+        }
+      ]
+    },
+    {
+      "id": "arcana-deterministic-expansion",
+      "required_ranks": [
+        0
+      ],
+      "latency_ms": 23.369599992292933,
+      "results": [
+        {
+          "score": 33.25691135546348,
+          "path": "internal/arcanagraph/rerank_vocabulary.go",
+          "start_line": 1,
+          "end_line": 29
+        },
+        {
+          "score": 23.50594096151298,
+          "path": "internal/queryshape/task_plans.go",
+          "start_line": 1,
+          "end_line": 192
+        },
+        {
+          "score": 23.33979672558303,
+          "path": "internal/queryshape/signals.go",
+          "start_line": 1,
+          "end_line": 95
+        },
+        {
+          "score": 17.984249443580627,
+          "path": "arcana/src/lib.rs",
+          "start_line": 1,
+          "end_line": 40
+        },
+        {
+          "score": 17.91144432607186,
+          "path": "internal/agentquery/impact.go",
+          "start_line": 1,
+          "end_line": 64
+        },
+        {
+          "score": 16.685548731894293,
+          "path": "arcana/src/vector/documents.rs",
+          "start_line": 1,
+          "end_line": 287
+        }
+      ]
+    },
+    {
+      "id": "arcana-graph-documents",
+      "required_ranks": [
+        0,
+        0
+      ],
+      "latency_ms": 24.530299997422844,
+      "results": [
+        {
+          "score": 46.062704216680245,
+          "path": "internal/arcanagraph/rerank_vocabulary.go",
+          "start_line": 1,
+          "end_line": 29
+        },
+        {
+          "score": 20.813549213227372,
+          "path": "internal/arcanagraph/rerank_graph.go",
+          "start_line": 1,
+          "end_line": 170
+        },
+        {
+          "score": 17.551511926609958,
+          "path": "lexicon/tools/semantic_report.py",
+          "start_line": 1,
+          "end_line": 158
+        },
+        {
+          "score": 16.613920514966075,
+          "path": "internal/structure/evidence.go",
+          "start_line": 1,
+          "end_line": 106
+        },
+        {
+          "score": 16.34208774728826,
+          "path": "lexicon/tools/call_resolution_metrics.py",
+          "start_line": 1,
+          "end_line": 194
+        },
+        {
+          "score": 15.998993230843055,
+          "path": "lexicon/adapters/rust/src/syntax.rs",
+          "start_line": 1,
+          "end_line": 130
+        }
+      ]
+    },
+    {
+      "id": "arcana-vector-search",
+      "required_ranks": [
+        0
+      ],
+      "latency_ms": 26.530599992838688,
+      "results": [
+        {
+          "score": 27.078630870657655,
+          "path": "arcana/src/vector/build.rs",
+          "start_line": 1,
+          "end_line": 388
+        },
+        {
+          "score": 24.2495281500683,
+          "path": "internal/arcanagraph/rerank_vocabulary.go",
+          "start_line": 1,
+          "end_line": 29
+        },
+        {
+          "score": 22.855061271284868,
+          "path": "arcana/src/storage/reader.rs",
+          "start_line": 1,
+          "end_line": 310
+        },
+        {
+          "score": 22.634190594706705,
+          "path": "internal/app/run.go",
+          "start_line": 1,
+          "end_line": 221
+        },
+        {
+          "score": 22.48947366180612,
+          "path": "arcana/src/storage/writer.rs",
+          "start_line": 1,
+          "end_line": 277
+        },
+        {
+          "score": 22.074529163730233,
+          "path": "arcana/src/storage/mod.rs",
+          "start_line": 1,
+          "end_line": 30
+        }
+      ]
+    }
+  ]
+}
