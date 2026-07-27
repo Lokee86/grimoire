@@ -111,6 +111,45 @@ func TestCompileWithEvidenceEmitsStructuralFactsBeforeSourceSelections(t *testin
 	}
 }
 
+func TestCompileWithEvidenceSourceFirstPreservesSourceBeforeStructuralFacts(t *testing.T) {
+	node := structure.Node{Name: "ResolveDamage", Kind: "function", Path: "internal/damage.go"}
+	evidence := []structure.Evidence{{
+		Provider: "lexicon", Kind: "symbol", Rank: 1, Node: &node,
+		Relationships: []structure.Relationship{{
+			Direction: "outgoing", Relation: "calls", Certainty: "definite",
+			Node: structure.Node{Name: "ApplyShield", Path: "internal/shield.go"},
+		}},
+	}}
+	candidates := []retrieve.Candidate{
+		candidate(t, "internal/damage.go", strings.Repeat("damage source value ", 120), 10),
+	}
+	providerState := []structure.ProviderState{{Provider: "lexicon", Snapshot: "sha256:abc"}}
+
+	found := false
+	for budget := 1; budget < 4000; budget++ {
+		sourceFirst, sourceErr := CompileWithEvidenceConfig(
+			"trace damage", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"lexical"}, providerState, evidence, candidates,
+			Config{SourceFirstEvidence: true},
+		)
+		if sourceErr != nil || len(sourceFirst.Selections) != 1 || len(sourceFirst.StructuralEvidence) != 0 {
+			continue
+		}
+		structuralFirst, structuralErr := CompileWithEvidence(
+			"trace damage", budget, index.FormatVersion, tokenizer.Name,
+			[]string{"lexical"}, providerState, evidence, candidates,
+		)
+		if structuralErr == nil && len(structuralFirst.Selections) == 0 && len(structuralFirst.StructuralEvidence) == 1 {
+			found = true
+			assertExactPackageCount(t, sourceFirst)
+			break
+		}
+	}
+	if !found {
+		t.Fatal("no budget demonstrated source-first evidence priority")
+	}
+}
+
 func TestCompileAdaptiveRetainsAssemblyDecision(t *testing.T) {
 	decision := assembly.Decision{
 		Scope: queryshape.ScopeFocused, CandidatesConsidered: 3,

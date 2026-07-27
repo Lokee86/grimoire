@@ -98,7 +98,7 @@ grimoire knowledge search --root . --query "why is context compilation structure
 grimoire context --root . --query "explain context compilation"
 ```
 
-The knowledge search exercises BM25 plus optional documentation vectors. The context command remains lexical/exact/structural and exercises automatic policy; add a positive `--budget` to exercise fixed fitting.
+The knowledge search exercises BM25 plus optional documentation vectors. The context command runs whole-file and chunk BM25 first, then scoped Lexicon/Arcana inspection, and exercises automatic policy; add a positive `--budget` to exercise fixed fitting. Use `--structural-scope global` only for a paired comparison with the former repository-wide structural discovery path.
 
 ## Warm algorithm benchmarks
 
@@ -144,7 +144,9 @@ grimoire eval retrieval --root . --cases evaluation/retrieval/grimoire.json \
   --modes lexical --structural-providers lexicon --variant lexicon
 
 grimoire eval retrieval --root . --cases evaluation/retrieval/grimoire.json \
-  --modes lexical --structural-providers lexicon,arcana --variant lexicon-arcana
+  --modes lexical --structural-providers lexicon,arcana --structural-scope lexical --variant lexical-first
+grimoire eval retrieval --root . --cases evaluation/retrieval/grimoire.json \
+  --modes lexical --structural-providers lexicon,arcana --structural-scope global --variant global-structural
 ```
 
 Automatic policy and assembly:

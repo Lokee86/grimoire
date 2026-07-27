@@ -60,6 +60,16 @@ func SearchMany(snapshot index.Snapshot, queries []string, limit int) [][]Candid
 }
 
 func SearchManyWithConfig(snapshot index.Snapshot, queries []string, limit int, config Config) [][]Candidate {
+	return searchManyWithConfig(snapshot, queries, limit, config, nil)
+}
+
+func searchManyWithConfig(
+	snapshot index.Snapshot,
+	queries []string,
+	limit int,
+	config Config,
+	allowedPaths map[string]struct{},
+) [][]Candidate {
 	config = normalizedConfig(config)
 	specs, terms := compileLexicalQueries(queries)
 	results := make([][]Candidate, len(queries))
@@ -92,8 +102,14 @@ func SearchManyWithConfig(snapshot index.Snapshot, queries []string, limit int, 
 			if chunkIndex < 0 || chunkIndex >= len(chunks) {
 				continue
 			}
+			chunk := chunks[chunkIndex]
+			if allowedPaths != nil {
+				if _, allowed := allowedPaths[chunk.Path]; !allowed {
+					continue
+				}
+			}
 			candidate := scoreChunk(
-				chunks[chunkIndex], chunkIndex, corpus, lexicalIndex.Document(chunkIndex), spec, aliases, config,
+				chunk, chunkIndex, corpus, lexicalIndex.Document(chunkIndex), spec, aliases, config,
 			)
 			if candidate.Score > 0 {
 				candidates = append(candidates, candidate)

@@ -6,6 +6,8 @@ type Config struct {
 	FacetFileDepth       int
 	CompanionDepth       int
 	ProtectRequiredLinks bool
+	SourceFirstEvidence  bool
+	SourceEvidencePrefix int
 }
 
 // DefaultConfig protects required linked source spans, one source candidate
@@ -32,6 +34,13 @@ func normalizedConfig(config Config) Config {
 	}
 	if config.CompanionDepth < 0 {
 		config.CompanionDepth = 0
+	}
+	if config.SourceFirstEvidence {
+		if config.SourceEvidencePrefix <= 0 {
+			config.SourceEvidencePrefix = 12
+		}
+	} else {
+		config.SourceEvidencePrefix = 0
 	}
 	return config
 }

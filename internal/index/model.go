@@ -15,10 +15,11 @@ type Snapshot struct {
 	Tokenizer string
 	Files     []FileRecord
 
-	baseRoot     string
-	baseShards   map[string]string
-	dirtyShards  map[string]bool
-	lexicalIndex *lexical.Index
+	baseRoot         string
+	baseShards       map[string]string
+	dirtyShards      map[string]bool
+	lexicalIndex     *lexical.Index
+	fileLexicalIndex *lexical.Index
 }
 
 type FileRecord struct {

@@ -53,18 +53,23 @@ func evaluateContext(
 		lexicalConfig = *options.LexicalConfig
 	}
 	searchStart := time.Now()
-	base := intentLexicalCandidatesWithConfig(snapshot, intents, options.Limit, lexicalConfig)
+	discovery := discoverLexically(snapshot, intents, options.Limit, lexicalConfig)
+	base := discovery.Candidates
 	result.Timings.LexicalSearchMS = durationMS(time.Since(searchStart))
 	probeLimit := options.ProbeLimit
 	if probeLimit <= 0 {
 		probeLimit = options.Limit
 	}
 	probeStart := time.Now()
-	broad := intentLexicalCandidatesWithConfig(snapshot, intents, probeLimit, lexicalConfig)
+	broad := discoverLexically(snapshot, intents, probeLimit, lexicalConfig).Candidates
 	result.Timings.DiagnosticProbeMS = durationMS(time.Since(probeStart))
 
 	structuralIntent := structuralRetrievalIntent(options.Query, intents)
-	structural := collectStructuralContext(ctx, snapshot, structuralIntent.Query, options.Structural)
+	structuralOptions := options.Structural
+	if structuralOptions.Scoped {
+		structuralOptions.Scopes = discovery.Scopes
+	}
+	structural := collectStructuralContext(ctx, snapshot, structuralIntent.Query, structuralOptions)
 	structural = annotateStructuralIntent(structural, structuralIntent)
 	result.Warnings = append(result.Warnings, structural.Warnings...)
 	result.Timings.LexiconSearchMS = durationMS(structural.LexiconTime)
@@ -76,18 +81,30 @@ func evaluateContext(
 	result.Timings.ExactRecoveryMS = durationMS(time.Since(exactStart))
 
 	mergeStart := time.Now()
-	retrieved := mergeContextProviders(options.Limit, nil, base, structural.Lexicon.Candidates, structural.ArcanaCandidates)
-	retrieved = graphrank.Rerank(retrieved, structuralIntent.Intent)
-	merged := mergeContextProviders(options.Limit, exact, base, structural.Lexicon.Candidates, structural.ArcanaCandidates)
-	merged = graphrank.Rerank(merged, structuralIntent.Intent)
+	var retrieved, merged []retrieve.Candidate
+	if structuralOptions.Scoped {
+		retrieved = mergeScopedContextProviders(options.Limit, nil, base, structural.Lexicon.Candidates, structural.ArcanaCandidates)
+		merged = mergeScopedContextProviders(options.Limit, exact, base, structural.Lexicon.Candidates, structural.ArcanaCandidates)
+	} else {
+		retrieved = mergeContextProviders(options.Limit, nil, base, structural.Lexicon.Candidates, structural.ArcanaCandidates)
+		merged = mergeContextProviders(options.Limit, exact, base, structural.Lexicon.Candidates, structural.ArcanaCandidates)
+	}
+	if !structuralOptions.Scoped {
+		retrieved = graphrank.Rerank(retrieved, structuralIntent.Intent)
+		merged = graphrank.Rerank(merged, structuralIntent.Intent)
+	}
 	result.Timings.CandidateMergeMS += durationMS(time.Since(mergeStart))
 	profileBudget := options.Budget
 	if options.Adaptive {
 		profileBudget = 0
 	}
+	policyEvidence := structural.Combined
+	if structuralOptions.Scoped {
+		policyEvidence = nil
+	}
 	result.QueryProfile, result.RetrievalPolicy = queryshape.Analyze(queryshape.Input{
 		Query: options.Query, RequestedBudget: profileBudget,
-		Exact: exact, Ranked: base, Candidates: merged, Structural: structural.Combined,
+		Exact: exact, Ranked: base, Candidates: merged, Structural: policyEvidence,
 	})
 
 	curationStart := time.Now()
@@ -126,16 +143,19 @@ func evaluateContext(
 		if options.CompilerConfig != nil {
 			compileConfig = *options.CompilerConfig
 		}
+		compileConfig.SourceFirstEvidence = structuralOptions.Scoped
 		pkg, err = compiler.CompileAdaptiveWithEvidenceConfig(
 			options.Query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
 			contextCandidateSources(assembledCandidates), structural.ProviderState,
 			assembledEvidence, *decision, assembledCandidates, compileConfig,
 		)
 	} else {
-		pkg, err = compiler.CompileWithEvidence(
+		compileConfig := compiler.LegacyConfig()
+		compileConfig.SourceFirstEvidence = structuralOptions.Scoped
+		pkg, err = compiler.CompileWithEvidenceConfig(
 			options.Query, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
 			contextCandidateSources(assembledCandidates), structural.ProviderState,
-			assembledEvidence, assembledCandidates,
+			assembledEvidence, assembledCandidates, compileConfig,
 		)
 	}
 	result.Timings.PackageCompilationMS = durationMS(time.Since(compileStart))

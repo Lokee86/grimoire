@@ -16,6 +16,7 @@ import (
 	"github.com/Lokee86/grimoire/internal/graphrank"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/queryshape"
+	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/selection"
 )
 
@@ -37,7 +38,8 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	lexiconCommand := flags.String("lexicon-command", "", "Lexicon executable override; discovered when omitted")
 	arcanaState := flags.String("arcana-state", "", "Arcana state directory; defaults to <root>/.arcana")
 	arcanaCommand := flags.String("arcana-command", "", "Arcana executable override; discovered when omitted")
-	arcanaSemanticValue := flags.String("arcana-semantic", "auto", "Arcana semantic seed expansion: auto, on, or off")
+	structuralScopeValue := flags.String("structural-scope", "lexical", "structural discovery scope: lexical or global")
+	arcanaSemanticValue := flags.String("arcana-semantic", "auto", "Arcana semantic seed expansion for global structural scope: auto, on, or off")
 	structureTimeout := flags.Duration("structure-timeout", 30*time.Second, "complete structural-provider timeout")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -49,6 +51,10 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		return errors.New("non-negative --budget and positive --candidate-limit, --structure-timeout, and --diff-timeout are required")
 	}
 	emitLexicon, arcanaEnabled, err := parseContextStructuralProviders(*structuralProviders)
+	if err != nil {
+		return err
+	}
+	structuralScope, err := parseStructuralScopeMode(*structuralScopeValue)
 	if err != nil {
 		return err
 	}
@@ -82,7 +88,8 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	retrievalQuery := diffResult.RetrievalQuery
 
 	intents := activeRetrievalIntents(retrievalQuery)
-	baseCandidates := intentLexicalCandidates(snapshot, intents, *limit)
+	discovery := discoverLexically(snapshot, intents, *limit, retrieve.DefaultConfig())
+	baseCandidates := discovery.Candidates
 
 	structuralIntent := structuralRetrievalIntent(retrievalQuery, intents)
 	structural := collectStructuralContext(context.Background(), snapshot, structuralIntent.Query, structuralContextOptions{
@@ -91,7 +98,8 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 		LexiconState: *lexiconState, LexiconCommand: resolvedLexiconCommand,
 		ArcanaState: *arcanaState, ArcanaCommand: resolvedArcanaCommand,
 		EmbeddingEndpoint: *endpoint,
-		Limit:             *limit, Timeout: *structureTimeout,
+		Scoped:            structuralScope == structuralScopeLexical, Scopes: discovery.Scopes,
+		Limit: *limit, Timeout: *structureTimeout,
 	})
 	structural = annotateStructuralIntent(structural, structuralIntent)
 	for _, warning := range structural.Warnings {
@@ -103,13 +111,24 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	if !emitLexicon {
 		lexiconCandidates = nil
 	}
-	merged := mergeContextProviders(*limit, exact, baseCandidates, lexiconCandidates, structural.ArcanaCandidates)
-	merged = graphrank.Rerank(merged, structuralIntent.Intent)
+	var merged []retrieve.Candidate
+	if structuralScope == structuralScopeLexical {
+		merged = mergeScopedContextProviders(*limit, exact, baseCandidates, lexiconCandidates, structural.ArcanaCandidates)
+	} else {
+		merged = mergeContextProviders(*limit, exact, baseCandidates, lexiconCandidates, structural.ArcanaCandidates)
+	}
+	if structuralScope == structuralScopeGlobal {
+		merged = graphrank.Rerank(merged, structuralIntent.Intent)
+	}
 	merged = mergeContextProvidersWithPriority(*limit, diffResult.Candidates, nil, merged, nil, nil)
 	evidence := interleaveStructuralEvidence(diffResult.Evidence, structural.Combined)
+	policyEvidence := evidence
+	if structuralScope == structuralScopeLexical {
+		policyEvidence = nil
+	}
 	_, policy := queryshape.Analyze(queryshape.Input{
 		Query: packageQuery, RequestedBudget: *budget,
-		Exact: exact, Ranked: baseCandidates, Candidates: merged, Structural: evidence,
+		Exact: exact, Ranked: baseCandidates, Candidates: merged, Structural: policyEvidence,
 	})
 	effectiveBudget := *budget
 	automatic := effectiveBudget == 0
@@ -119,20 +138,24 @@ func runContext(args []string, stdout, stderr io.Writer) error {
 	}
 	candidates := selection.Curate(snapshot, merged)
 
+	compileConfig := compiler.DefaultConfig()
+	compileConfig.SourceFirstEvidence = structuralScope == structuralScopeLexical
 	var result compiler.Package
 	if automatic {
 		planned := assembly.Plan(policy, candidates, evidence)
 		candidates = planned.Candidates
 		evidence = planned.Structural
-		result, err = compiler.CompileAdaptiveWithEvidence(
+		result, err = compiler.CompileAdaptiveWithEvidenceConfig(
 			packageQuery, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
 			contextCandidateSources(candidates), structural.ProviderState, evidence,
-			planned.Decision, candidates,
+			planned.Decision, candidates, compileConfig,
 		)
 	} else {
-		result, err = compiler.CompileWithEvidence(
+		compileConfig.ProtectFacets = false
+		compileConfig.ProtectRequiredLinks = false
+		result, err = compiler.CompileWithEvidenceConfig(
 			packageQuery, effectiveBudget, snapshot.Version, snapshot.Tokenizer,
-			contextCandidateSources(candidates), structural.ProviderState, evidence, candidates,
+			contextCandidateSources(candidates), structural.ProviderState, evidence, candidates, compileConfig,
 		)
 	}
 	if err != nil {

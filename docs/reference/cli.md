@@ -282,14 +282,19 @@ grimoire context [flags]
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
 | `--structure <bool>` | `true` | Include available Lexicon and Arcana structural evidence |
 | `--structure-timeout <duration>` | `30s` | Complete structural-provider timeout |
+| `--structural-scope <mode>` | `lexical` | `lexical` resolves structural evidence inside BM25 discovery scopes; `global` enables repository-wide structural discovery |
 | `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
 | `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
 | `--lexicon-command <path>` | discovered | Executable override used for immutable snapshot export |
 | `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph-state directory |
 | `--arcana-command <path>` | discovered | Executable override used for graph synchronization, semantic search, and protocol queries |
-| `--arcana-semantic <mode>` | `auto` | Semantic seed expansion: `auto`, `on`, or `off` |
+| `--arcana-semantic <mode>` | `auto` | Semantic seed expansion for `--structural-scope global`: `auto`, `on`, or `off` |
 
-The command retrieves source evidence with deterministic BM25, targeted exact recovery, Lexicon facts, and Arcana graph evidence. Repository-wide source embeddings are not built or queried. Provider commands are resolved from explicit overrides, repository `.grimoire/providers.json`, adjacent installed executables, a discoverable Grimoire checkout, and finally `PATH`. Provider candidates are merged before deterministic query-shape analysis. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, and expanded with bounded prepared neighbours. Automatic assembly stops after deterministic evidence coverage is reached; the emitted package records the assembly decision. Explicit-budget requests retain the existing fit-to-budget behavior.
+The default pipeline is lexical-first. It ranks prepared chunks and whole production files independently with deterministic BM25, preserves candidates from both granularities, then resolves Lexicon declarations only inside those lexical ranges. Arcana expands from the resolved declarations to supply graph evidence; it does not perform repository-wide semantic discovery in the default `lexical` scope. Context fitting protects the first 12 source candidates, admits at most eight interleaved Lexicon/Arcana facts, then continues fitting remaining source candidates. Targeted exact recovery remains a separate source lane. Repository-wide source embeddings are not built or queried.
+
+Use `--structural-scope global` to retain the former repository-wide Lexicon and optional Arcana semantic seed-discovery path for diagnostics and explicit comparisons. Direct `grimoire query search|trace|impact|inspect` operations remain global regardless of the context setting.
+
+Provider commands are resolved from explicit overrides, repository `.grimoire/providers.json`, adjacent installed executables, a discoverable Grimoire checkout, and finally `PATH`. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, and expanded with bounded prepared neighbours. Automatic assembly stops after deterministic evidence coverage is reached; the emitted package records the assembly decision. Explicit-budget requests retain the existing fit-to-budget behavior.
 
 Diff-aware context treats changed prepared chunks as primary candidates and emits bounded `git-diff` structural evidence for every changed span. Changed paths, hunk headings, and declaration lines are added only to the internal retrieval query so Lexicon and Arcana can locate callers, dependencies, contracts, and tests; the package retains the human-facing query. `working-tree` compares tracked files with `HEAD` and also includes untracked, non-ignored files. `staged` compares `HEAD` with the index, `unstaged` compares the index with tracked working files, and any other value is passed to Git as one revision/range argument. A diff with no changed spans is an error rather than silently producing ordinary query context.
 
@@ -299,7 +304,7 @@ grimoire context --diff HEAD~1 --query "review these changes for regressions"
 grimoire context --diff main...HEAD --query "identify affected callers and missing tests"
 ```
 
-Structural enrichment is enabled by default. When Lexicon state exists, Grimoire resolves `.lexicon/CURRENT`, creates or reuses a cached `lexicon export`, and emits matched symbols, source spans, and immediate relationships as first-class package evidence. It then resolves the Arcana snapshot for the same Lexicon ID, invokes one-shot `arcana sync` when necessary, and queries Arcana's JSONL protocol for operational roles, impact, unresolved references, and shortest call chains. `--arcana-semantic=auto` adds semantic seeds only when the query does not explicitly name a compound Lexicon seed or its path; `on` forces the optional vector lane and `off` keeps deterministic Lexicon-seeded traversal. The component executables are independently built from `lexicon/` and `arcana/` in this repository or discovered through the configured command paths. Structural failures warn and preserve source-only retrieval. Use `--structure=false` to skip both components or the explicit state, command, and facts flags to override discovery.
+Structural enrichment is enabled by default. When Lexicon state exists, Grimoire resolves `.lexicon/CURRENT`, creates or reuses a cached `lexicon export`, and maps declarations overlapping the lexical discovery ranges into first-class source and structural evidence. It then resolves the Arcana snapshot for the same Lexicon ID, invokes one-shot `arcana sync` when necessary, and queries Arcana's JSONL protocol from those declarations for operational roles, impact, unresolved references, and shortest call chains. In `global` scope, Lexicon may search repository-wide and `--arcana-semantic=auto|on|off` controls optional semantic seed discovery. The component executables are independently built from `lexicon/` and `arcana/` in this repository or discovered through the configured command paths. Structural failures warn and preserve source-only retrieval. Use `--structure=false` to skip both components or the explicit state, command, and facts flags to override discovery.
 
 Documentation vectors are intentionally independent of context assembly. Missing or stale documentation vectors affect only the knowledge lane and never produce context warnings.
 
@@ -402,13 +407,14 @@ grimoire eval retrieval --cases <path> --root <repository> [flags]
 | `--compiler-required-link-protection <bool>` | `true` | Retain complete provider-declared required source-link groups atomically |
 | `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint used only by optional Arcana semantic graph seeds |
 | `--structural-providers <list>` | `none` | `none`, `lexicon`, or `lexicon,arcana` |
+| `--structural-scope <mode>` | `lexical` | Lexical-first scoped inspection or former `global` structural discovery |
 | `--structure-timeout <duration>` | `30s` | Per-case structural-provider timeout |
 | `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
 | `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
 | `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
 | `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph-state directory |
 | `--arcana-command <path>` | `arcana` | Executable used for graph synchronization and protocol queries |
-| `--arcana-semantic <mode>` | `auto` | Semantic seed expansion: `auto`, `on`, or `off` |
+| `--arcana-semantic <mode>` | `auto` | Semantic seed expansion for global structural scope: `auto`, `on`, or `off` |
 | `--timeout <duration>` | `10s` | Per-case source-retrieval timeout |
 | `--output-dir <path>` | `evaluation/results` | JSON and Markdown result directory |
 | `--output-prefix <name>` | generated | Shared result filename prefix |
@@ -417,7 +423,7 @@ The corpus is separate from deterministic unit-test fixtures. A case may require
 
 Structural expectations require `provider` and `kind`. Optional assertions include subject `symbol` and `path`, relationship `relation`, `direction`, and `certainty`, related `target_symbol` and `target_path`, an ordered `chain` subsequence, and unresolved-reference `expression`. Before retrieval, the runner verifies every referenced source path and any symbol paired with a path.
 
-`--structural-providers none` runs the source-only baseline. `lexicon` executes immutable Lexicon export and symbol matching. `lexicon,arcana` additionally synchronizes and queries Arcana against the same snapshot. Arcana cannot be enabled without Lexicon because Lexicon-matched symbols are its bounded graph-query seeds.
+`--structural-providers none` runs the source-only baseline. With the default `--structural-scope lexical`, `lexicon` resolves declarations only inside whole-file and chunk BM25 discovery ranges; `lexicon,arcana` additionally expands those declarations through Arcana. `--structural-scope global` restores repository-wide Lexicon and optional Arcana semantic discovery for paired diagnostics. Arcana cannot be enabled without Lexicon because resolved Lexicon symbols are its bounded graph-query seeds.
 
 For each case the runner records source and structural timings, provider warnings, selected source chunks, retained structural facts, immutable provider snapshots, final serialized package tokens, separate source and structural recall, separate irrelevant-evidence rates, and failure attribution. `--adaptive` also records the selected automatic budget, curated and assembled candidate counts, represented evidence coverage, and the assembly stop reason. Source and structural failures distinguish adaptive assembly loss from later budget-fitting loss. `--adaptive` cannot be combined with a fixed `--budget` override. The broad source-ranking probe does not contribute to reported context latency.
 

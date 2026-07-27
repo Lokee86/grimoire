@@ -16,11 +16,17 @@ import (
 )
 
 type arcanaSemanticMode string
+type structuralScopeMode string
 
 const (
 	arcanaSemanticAuto arcanaSemanticMode = "auto"
 	arcanaSemanticOn   arcanaSemanticMode = "on"
 	arcanaSemanticOff  arcanaSemanticMode = "off"
+
+	structuralScopeLexical structuralScopeMode = "lexical"
+	structuralScopeGlobal  structuralScopeMode = "global"
+
+	scopedStructuralEvidenceLimit = 8
 )
 
 type structuralContextOptions struct {
@@ -36,6 +42,8 @@ type structuralContextOptions struct {
 	ArcanaState       string
 	ArcanaCommand     string
 	EmbeddingEndpoint string
+	Scoped            bool
+	Scopes            []retrieve.Candidate
 	Limit             int
 	Timeout           time.Duration
 }
@@ -83,7 +91,14 @@ func collectStructuralContext(
 				Provider: "lexicon", Snapshot: lexiconSnapshot,
 			})
 		}
-		result.Lexicon, err = lexiconfacts.SearchDetailed(snapshot, query, exportDirectory, options.Limit)
+		corpus, loadErr := lexiconfacts.Load(exportDirectory)
+		if loadErr != nil {
+			err = loadErr
+		} else if options.Scoped {
+			result.Lexicon = corpus.SearchDetailedScoped(snapshot, query, options.Scopes, options.Limit)
+		} else {
+			result.Lexicon = corpus.SearchDetailed(snapshot, query, options.Limit)
+		}
 		if err != nil {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Lexicon structural evidence unavailable: %v", err))
 			result.Lexicon = lexiconfacts.Result{}
@@ -107,7 +122,7 @@ func collectStructuralContext(
 			}
 			client := arcanagraph.Client{Command: options.ArcanaCommand}
 			var semanticSeeds []arcanagraph.SemanticSeed
-			if shouldUseArcanaSemantic(options.ArcanaSemantic, query, result.Lexicon.Seeds) {
+			if !options.Scoped && shouldUseArcanaSemantic(options.ArcanaSemantic, query, result.Lexicon.Seeds) {
 				semanticSeeds, arcanaErr = client.RankedSemanticSeeds(
 					ctx,
 					filepath.Dir(filepath.Dir(arcanaSnapshot)),
@@ -147,8 +162,22 @@ func collectStructuralContext(
 	} else {
 		result.Combined = append([]structure.Evidence(nil), result.Arcana...)
 	}
+	if options.Scoped && len(result.Combined) > scopedStructuralEvidenceLimit {
+		result.Combined = result.Combined[:scopedStructuralEvidenceLimit]
+	}
 	result.TotalTime = time.Since(started)
 	return result
+}
+
+func parseStructuralScopeMode(value string) (structuralScopeMode, error) {
+	switch structuralScopeMode(strings.ToLower(strings.TrimSpace(value))) {
+	case "", structuralScopeLexical:
+		return structuralScopeLexical, nil
+	case structuralScopeGlobal:
+		return structuralScopeGlobal, nil
+	default:
+		return "", fmt.Errorf("unsupported structural scope %q; expected lexical or global", value)
+	}
 }
 
 func parseArcanaSemanticMode(value string) (arcanaSemanticMode, error) {

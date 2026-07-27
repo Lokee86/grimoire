@@ -134,6 +134,7 @@ func Load(path string) (Snapshot, error) {
 	snapshot := Snapshot{
 		Version: FormatVersion, Tokenizer: manifestTokenizer, Files: files,
 		baseRoot: ref.Hash().String(), baseShards: shards, lexicalIndex: lexicalIndex,
+		fileLexicalIndex: buildFileLexicalIndex(files, nil),
 	}
 	if err := validateLexicalIndex(snapshot, lexicalIndex); err != nil {
 		return Snapshot{}, err

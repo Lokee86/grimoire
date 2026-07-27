@@ -27,6 +27,23 @@ func TestParseContextStructuralProvidersRejectsUnknownProvider(t *testing.T) {
 	}
 }
 
+func TestParseStructuralScopeMode(t *testing.T) {
+	for input, want := range map[string]structuralScopeMode{
+		"": structuralScopeLexical, "lexical": structuralScopeLexical, "GLOBAL": structuralScopeGlobal,
+	} {
+		got, err := parseStructuralScopeMode(input)
+		if err != nil {
+			t.Fatalf("parse %q: %v", input, err)
+		}
+		if got != want {
+			t.Fatalf("parse %q = %q, want %q", input, got, want)
+		}
+	}
+	if _, err := parseStructuralScopeMode("mixed"); err == nil {
+		t.Fatal("expected unsupported structural scope error")
+	}
+}
+
 func TestParseArcanaSemanticMode(t *testing.T) {
 	for input, want := range map[string]arcanaSemanticMode{
 		"": arcanaSemanticAuto, "auto": arcanaSemanticAuto, "ON": arcanaSemanticOn, "off": arcanaSemanticOff,

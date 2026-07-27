@@ -86,9 +86,26 @@ func CompileWithEvidence(
 	evidence []structure.Evidence,
 	candidates []retrieve.Candidate,
 ) (Package, error) {
+	return CompileWithEvidenceConfig(
+		query, budget, indexVersion, indexTokenizer, retrievalSources,
+		providerState, evidence, candidates, LegacyConfig(),
+	)
+}
+
+func CompileWithEvidenceConfig(
+	query string,
+	budget int,
+	indexVersion int,
+	indexTokenizer string,
+	retrievalSources []string,
+	providerState []structure.ProviderState,
+	evidence []structure.Evidence,
+	candidates []retrieve.Candidate,
+	config Config,
+) (Package, error) {
 	return compileWithEvidence(
 		query, budget, indexVersion, indexTokenizer, retrievalSources,
-		providerState, evidence, nil, candidates, LegacyConfig(),
+		providerState, evidence, nil, candidates, config,
 	)
 }
 
@@ -324,7 +341,7 @@ func compileWithEvidence(
 	}
 
 	evidenceStart := 0
-	if len(evidence) > 0 {
+	if !config.SourceFirstEvidence && len(evidence) > 0 {
 		if _, err := fitEvidence(0); err != nil {
 			return Package{}, err
 		}
@@ -432,14 +449,32 @@ func compileWithEvidence(
 				}
 			}
 		}
-		for evidenceIndex := evidenceStart; evidenceIndex < len(evidence); evidenceIndex++ {
-			if _, err := fitEvidence(evidenceIndex); err != nil {
-				return Package{}, err
+		if config.SourceFirstEvidence {
+			for candidateIndex := 0; candidateIndex < min(config.SourceEvidencePrefix, len(candidates)); candidateIndex++ {
+				if _, err := fitCandidateUnit(candidateIndex, ""); err != nil {
+					return Package{}, err
+				}
 			}
-		}
-		for candidateIndex := range candidates {
-			if _, err := fitCandidateUnit(candidateIndex, ""); err != nil {
-				return Package{}, err
+			for evidenceIndex := evidenceStart; evidenceIndex < len(evidence); evidenceIndex++ {
+				if _, err := fitEvidence(evidenceIndex); err != nil {
+					return Package{}, err
+				}
+			}
+			for candidateIndex := range candidates {
+				if _, err := fitCandidateUnit(candidateIndex, ""); err != nil {
+					return Package{}, err
+				}
+			}
+		} else {
+			for evidenceIndex := evidenceStart; evidenceIndex < len(evidence); evidenceIndex++ {
+				if _, err := fitEvidence(evidenceIndex); err != nil {
+					return Package{}, err
+				}
+			}
+			for candidateIndex := range candidates {
+				if _, err := fitCandidateUnit(candidateIndex, ""); err != nil {
+					return Package{}, err
+				}
 			}
 		}
 	} else {
@@ -450,14 +485,33 @@ func compileWithEvidence(
 			}
 			candidateStart = 1
 		}
-		for evidenceIndex := evidenceStart; evidenceIndex < len(evidence); evidenceIndex++ {
-			if _, err := fitEvidence(evidenceIndex); err != nil {
-				return Package{}, err
+		if config.SourceFirstEvidence {
+			prefixEnd := min(config.SourceEvidencePrefix, len(candidates))
+			for candidateIndex := candidateStart; candidateIndex < prefixEnd; candidateIndex++ {
+				if _, err := fitCandidate(candidateIndex, "", ""); err != nil {
+					return Package{}, err
+				}
 			}
-		}
-		for candidateIndex := candidateStart; candidateIndex < len(candidates); candidateIndex++ {
-			if _, err := fitCandidate(candidateIndex, "", ""); err != nil {
-				return Package{}, err
+			for evidenceIndex := evidenceStart; evidenceIndex < len(evidence); evidenceIndex++ {
+				if _, err := fitEvidence(evidenceIndex); err != nil {
+					return Package{}, err
+				}
+			}
+			for candidateIndex := prefixEnd; candidateIndex < len(candidates); candidateIndex++ {
+				if _, err := fitCandidate(candidateIndex, "", ""); err != nil {
+					return Package{}, err
+				}
+			}
+		} else {
+			for evidenceIndex := evidenceStart; evidenceIndex < len(evidence); evidenceIndex++ {
+				if _, err := fitEvidence(evidenceIndex); err != nil {
+					return Package{}, err
+				}
+			}
+			for candidateIndex := candidateStart; candidateIndex < len(candidates); candidateIndex++ {
+				if _, err := fitCandidate(candidateIndex, "", ""); err != nil {
+					return Package{}, err
+				}
 			}
 		}
 	}
@@ -473,6 +527,13 @@ func compileWithEvidence(
 		}
 		if result.TokenCount <= budget {
 			return result, nil
+		}
+		if config.SourceFirstEvidence && len(result.StructuralEvidence) > 0 {
+			result.StructuralEvidence = result.StructuralEvidence[:len(result.StructuralEvidence)-1]
+			result.StructuralSources = structuralEvidenceSources(result.StructuralEvidence)
+			result.StructuralState = retainedProviderState(providerState, result.StructuralSources)
+			result.OmittedStructuralForBudget = len(evidence) - len(result.StructuralEvidence)
+			continue
 		}
 		if index := lastUnprotectedSelection(result.Selections); index >= 0 {
 			result.Selections = append(result.Selections[:index], result.Selections[index+1:]...)

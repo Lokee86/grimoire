@@ -147,8 +147,8 @@ func TestIndexThenCompileContext(t *testing.T) {
 	if result.Selections[0].Path != "damage.go" {
 		t.Fatalf("unexpected selection: %+v", result.Selections[0])
 	}
-	if len(result.RetrievalSources) != 1 || result.RetrievalSources[0] != "lexical" {
-		t.Fatalf("expected lexical fallback, got %+v", result.RetrievalSources)
+	if len(result.RetrievalSources) != 2 || result.RetrievalSources[0] != "lexical" || result.RetrievalSources[1] != "lexical-file" {
+		t.Fatalf("expected chunk and file lexical discovery, got %+v", result.RetrievalSources)
 	}
 	if result.Selections[0].RetrievalSource != "lexical" || result.Selections[0].RetrievalRank != 1 {
 		t.Fatalf("unexpected fallback provenance: %+v", result.Selections[0])
