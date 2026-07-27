@@ -106,21 +106,30 @@ func collectStructuralContext(
 				})
 			}
 			client := arcanagraph.Client{Command: options.ArcanaCommand}
-			var semanticSeeds []structure.Node
+			var semanticSeeds []arcanagraph.SemanticSeed
 			if shouldUseArcanaSemantic(options.ArcanaSemantic, query, result.Lexicon.Seeds) {
-				semanticSeeds, arcanaErr = client.SemanticSeeds(
+				semanticSeeds, arcanaErr = client.RankedSemanticSeeds(
 					ctx,
 					filepath.Dir(filepath.Dir(arcanaSnapshot)),
 					arcanaSnapshotID,
 					options.EmbeddingEndpoint,
 					query,
-					min(options.Limit, 6),
+					arcanagraph.SemanticCandidateLimit(6),
 				)
 				if arcanaErr != nil {
 					result.Warnings = append(result.Warnings, fmt.Sprintf("Arcana semantic graph retrieval unavailable: %v", arcanaErr))
 				}
 			}
-			seeds := mergeArcanaSeeds(result.Lexicon.Seeds, semanticSeeds, 6)
+			rankedSeeds, rerankErr := client.RerankSeeds(
+				ctx, arcanaSnapshot, query, result.Lexicon.Seeds, semanticSeeds, 6,
+			)
+			if rerankErr != nil {
+				result.Warnings = append(result.Warnings, fmt.Sprintf("Arcana graph-proximity reranking unavailable: %v", rerankErr))
+			}
+			seeds := make([]structure.Node, 0, len(rankedSeeds))
+			for _, ranked := range rankedSeeds {
+				seeds = append(seeds, ranked.Node)
+			}
 			if len(seeds) > 0 {
 				result.Arcana, arcanaErr = client.Search(ctx, arcanaSnapshot, seeds)
 				if arcanaErr != nil {

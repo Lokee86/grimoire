@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/arcanaevaluation"
+	"github.com/Lokee86/grimoire/internal/arcanagraph"
 	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
@@ -24,11 +25,24 @@ func TestMeasureArcanaEvaluationModePairsSameGraphExpansion(t *testing.T) {
 			}
 			return []structure.Node{lexicon}, nil
 		},
-		Semantic: func(_ context.Context, query string, limit int) ([]structure.Node, error) {
-			if query != "conceptual task" || limit != 6 {
+		Semantic: func(_ context.Context, query string, limit int) ([]arcanagraph.SemanticSeed, error) {
+			if query != "conceptual task" || limit != arcanagraph.SemanticCandidateLimit(6) {
 				t.Fatalf("unexpected semantic invocation: query=%q limit=%d", query, limit)
 			}
-			return []structure.Node{semantic}, nil
+			return []arcanagraph.SemanticSeed{{Node: semantic, Score: 0.8, Rank: 1}}, nil
+		},
+		Rerank: func(_ context.Context, _ string, lexicon []structure.Node, semantic []arcanagraph.SemanticSeed, limit int) ([]arcanagraph.RerankedSeed, error) {
+			result := make([]arcanagraph.RerankedSeed, 0, limit)
+			for _, seed := range semantic {
+				result = append(result, arcanagraph.RerankedSeed{Node: seed.Node, Source: "vector"})
+			}
+			for _, seed := range lexicon {
+				result = append(result, arcanagraph.RerankedSeed{Node: seed, Source: "lexicon"})
+			}
+			if len(result) > limit {
+				result = result[:limit]
+			}
+			return result, nil
 		},
 		Graph: func(_ context.Context, seeds []structure.Node) ([]structure.Evidence, error) {
 			graphCalls++
@@ -57,8 +71,11 @@ func TestMeasureArcanaEvaluationModeScoresSemanticDeclarationEntry(t *testing.T)
 		Lexicon: func(string, int) ([]structure.Node, error) {
 			return nil, nil
 		},
-		Semantic: func(context.Context, string, int) ([]structure.Node, error) {
-			return []structure.Node{semantic}, nil
+		Semantic: func(context.Context, string, int) ([]arcanagraph.SemanticSeed, error) {
+			return []arcanagraph.SemanticSeed{{Node: semantic, Score: 0.9, Rank: 1}}, nil
+		},
+		Rerank: func(_ context.Context, _ string, _ []structure.Node, semantic []arcanagraph.SemanticSeed, _ int) ([]arcanagraph.RerankedSeed, error) {
+			return []arcanagraph.RerankedSeed{{Node: semantic[0].Node, Source: "vector"}}, nil
 		},
 		Graph: func(_ context.Context, seeds []structure.Node) ([]structure.Evidence, error) {
 			if len(seeds) != 1 || seeds[0] != semantic {

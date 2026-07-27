@@ -345,8 +345,10 @@ grimoire eval arcana \
 The command requires existing prepared Grimoire state, an immutable Lexicon
 export, a matching Arcana graph snapshot, and a matching Arcana vector index.
 For each case it runs `lexicon-seeds`, which bypasses semantic lookup, and
-`lexicon-plus-vector`, which interleaves semantic and Lexicon seeds before the
-same deterministic graph expansion. It does not create or modify vector state.
+`lexicon-plus-vector`, which retains ranked Arcana semantic candidates and
+fuses them with Lexicon rank, identifier and path evidence, declaration
+quality, and bounded graph-neighborhood evidence before the same deterministic
+graph expansion. It does not create or modify vector state.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |

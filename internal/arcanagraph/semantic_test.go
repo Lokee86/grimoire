@@ -51,6 +51,34 @@ func TestSemanticSeedsConvertsRankedHits(t *testing.T) {
 	}
 }
 
+func TestRankedSemanticSeedsPreservesSimilarityAndRank(t *testing.T) {
+	client := Client{RunSemantic: func(
+		context.Context,
+		string,
+		string,
+		string,
+		string,
+		string,
+		int,
+	) ([]semanticHit, error) {
+		return []semanticHit{
+			{Score: 0.91, NodeKey: "first", Kind: "function", Path: "first.go", Name: "First"},
+			{Score: 0.83, NodeKey: "second", Kind: "function", Path: "second.go", Name: "Second"},
+		}, nil
+	}}
+
+	seeds, err := client.RankedSemanticSeeds(
+		context.Background(), "state", "snapshot", "endpoint", "conceptual task", 2,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(seeds) != 2 || seeds[0].Score != 0.91 || seeds[0].Rank != 1 ||
+		seeds[1].Score != 0.83 || seeds[1].Rank != 2 {
+		t.Fatalf("semantic ranking metadata was lost: %+v", seeds)
+	}
+}
+
 func TestSemanticSeedsSilentlySkipsMissingIndex(t *testing.T) {
 	state := t.TempDir()
 	if err := os.WriteFile(

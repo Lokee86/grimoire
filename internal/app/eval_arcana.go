@@ -23,7 +23,8 @@ import (
 
 type arcanaEvaluationProviders struct {
 	Lexicon  func(string, int) ([]structure.Node, error)
-	Semantic func(context.Context, string, int) ([]structure.Node, error)
+	Semantic func(context.Context, string, int) ([]arcanagraph.SemanticSeed, error)
+	Rerank   func(context.Context, string, []structure.Node, []arcanagraph.SemanticSeed, int) ([]arcanagraph.RerankedSeed, error)
 	Graph    func(context.Context, []structure.Node) ([]structure.Evidence, error)
 }
 
@@ -126,8 +127,17 @@ func runEvalArcana(args []string, stdout, stderr io.Writer) error {
 			result, searchErr := lexiconfacts.SearchDetailed(prepared, query, exportDirectory, limit)
 			return result.Seeds, searchErr
 		},
-		Semantic: func(ctx context.Context, query string, limit int) ([]structure.Node, error) {
-			return client.SemanticSeeds(ctx, resolvedArcanaState, arcanaSnapshotID, *endpoint, query, limit)
+		Semantic: func(ctx context.Context, query string, limit int) ([]arcanagraph.SemanticSeed, error) {
+			return client.RankedSemanticSeeds(ctx, resolvedArcanaState, arcanaSnapshotID, *endpoint, query, limit)
+		},
+		Rerank: func(
+			ctx context.Context,
+			query string,
+			lexicon []structure.Node,
+			semantic []arcanagraph.SemanticSeed,
+			limit int,
+		) ([]arcanagraph.RerankedSeed, error) {
+			return client.RerankSeeds(ctx, arcanaSnapshot, query, lexicon, semantic, limit)
 		},
 		Graph: func(ctx context.Context, seeds []structure.Node) ([]structure.Evidence, error) {
 			return client.Search(ctx, arcanaSnapshot, seeds)
@@ -189,11 +199,11 @@ func measureArcanaEvaluationMode(
 		return measurement
 	}
 
-	var semanticSeeds []structure.Node
+	var semanticSeeds []arcanagraph.SemanticSeed
 	if mode == arcanaevaluation.ModeLexiconVectorSeeds {
 		semanticStarted := time.Now()
 		measurement.ProviderCalls++
-		semanticSeeds, err = providers.Semantic(ctx, query, limit)
+		semanticSeeds, err = providers.Semantic(ctx, query, arcanagraph.SemanticCandidateLimit(limit))
 		measurement.Timings.SemanticSeedMS = durationMS(time.Since(semanticStarted))
 		if err != nil {
 			measurement.Error = fmt.Sprintf("Arcana semantic seed retrieval: %v", err)
@@ -207,7 +217,13 @@ func measureArcanaEvaluationMode(
 		return measurement
 	}
 
-	measurement.Seeds = rankedArcanaSeeds(lexiconSeeds, semanticSeeds, limit)
+	rerankedSeeds, err := providers.Rerank(ctx, query, lexiconSeeds, semanticSeeds, limit)
+	if err != nil {
+		measurement.Error = fmt.Sprintf("Arcana hybrid seed reranking: %v", err)
+		measurement.Timings.TotalMS = measuredDurationMS(started)
+		return measurement
+	}
+	measurement.Seeds = rankedArcanaSeeds(rerankedSeeds)
 	if len(measurement.Seeds) > 0 {
 		graphStarted := time.Now()
 		measurement.ProviderCalls++
@@ -221,19 +237,10 @@ func measureArcanaEvaluationMode(
 	return measurement
 }
 
-func rankedArcanaSeeds(lexicon, semantic []structure.Node, limit int) []arcanaevaluation.RankedSeed {
-	merged := mergeArcanaSeeds(lexicon, semantic, limit)
-	semanticKeys := make(map[string]struct{}, len(semantic))
-	for _, seed := range semantic {
-		semanticKeys[arcanaEvaluationSeedKey(seed)] = struct{}{}
-	}
-	result := make([]arcanaevaluation.RankedSeed, 0, len(merged))
-	for _, seed := range merged {
-		source := "lexicon"
-		if _, exists := semanticKeys[arcanaEvaluationSeedKey(seed)]; exists {
-			source = "vector"
-		}
-		result = append(result, arcanaevaluation.RankedSeed{Node: seed, Source: source})
+func rankedArcanaSeeds(seeds []arcanagraph.RerankedSeed) []arcanaevaluation.RankedSeed {
+	result := make([]arcanaevaluation.RankedSeed, 0, len(seeds))
+	for _, seed := range seeds {
+		result = append(result, arcanaevaluation.RankedSeed{Node: seed.Node, Source: seed.Source})
 	}
 	return result
 }

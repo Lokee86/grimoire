@@ -204,12 +204,14 @@ an input contract, not evidence that either retrieval mode has passed.
 
 `grimoire eval arcana` executes both modes for every case against those same
 snapshots. `lexicon-seeds` bypasses semantic lookup. `lexicon-plus-vector`
-interleaves Arcana semantic matches with the same Lexicon seeds under the
-production six-seed bound, then both modes use the same deterministic Arcana
-graph expansion. The evaluator requires an existing matching vector manifest
-and never builds vector state. A semantic-query failure fails the vector-mode
-measurement rather than exercising the runtime fallback, because a fallback
-would make the paired comparison invalid.
+retains a bounded ranked Arcana semantic pool, combines it with Lexicon rank,
+query-to-identifier and path evidence, declaration quality, provider agreement,
+and bounded graph-neighborhood evidence, then applies the production six-seed
+limit. Both modes use the same deterministic Arcana graph expansion. The
+evaluator requires an existing matching vector manifest and never builds
+vector state. A semantic-query failure fails the vector-mode measurement rather
+than exercising the runtime fallback, because a fallback would make the paired
+comparison invalid.
 
 The report records required seed recall, seed recall@k, seed MRR, final required
 structural-evidence recall, evaluator-visible provider calls, latency, and
