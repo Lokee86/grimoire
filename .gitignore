@@ -8,7 +8,6 @@
 /grimoire.exe
 coverage.out
 /evaluation/validation/
-/native/vector-engine/target/
 /.tmp/
 /bin/
 /build/

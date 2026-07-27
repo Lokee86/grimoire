@@ -16,10 +16,10 @@ def executable_name(name: str) -> str:
 def native_library_name() -> str:
     system = platform.system().lower()
     if system == "windows":
-        return "grimoire_vector_ffi.dll"
+        return "lodestone_ffi.dll"
     if system == "darwin":
-        return "libgrimoire_vector_ffi.dylib"
-    return "libgrimoire_vector_ffi.so"
+        return "liblodestone_ffi.dylib"
+    return "liblodestone_ffi.so"
 
 
 def copy_file(source: Path, destination: Path) -> None:

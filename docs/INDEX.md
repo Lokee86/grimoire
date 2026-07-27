@@ -48,7 +48,7 @@ See [Component architecture](architecture/components.md) for the dependency and 
 | [`internal/compiler`](../internal/compiler/README.md) | Token accounting and versioned package serialization |
 | [`internal/evaluation`](../internal/evaluation/README.md) | Judged source-corpus model, scoring, aggregation, and reports |
 | [`internal/knowledgeevaluation`](../internal/knowledgeevaluation/README.md) | Judged documentation corpus, scoring, aggregation, and reports |
-| [`native/vector-engine`](../native/vector-engine/README.md) | Content-addressed vector objects and packed exact-search snapshots |
+| [Lodestone](../../lodestone/README.md) | External content-addressed vector database and packed exact-search snapshots |
 
 Package-level README files define the narrower control boundaries.
 

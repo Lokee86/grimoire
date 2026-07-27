@@ -28,8 +28,8 @@ arcana/                 Rust graph engine and CLI
 lexicon/                Go orchestration plus polyglot language adapters
 cmd/grimoire/           Grimoire Context CLI
 internal/               Context retrieval, ranking, assembly, and integration
-native/vector-engine/   Rust vector storage and exact-search engine
 docs/                   Platform and context-engine documentation
+../lodestone/           External vector storage and exact-search engine
 ```
 
 The former standalone Arcana and Lexicon repositories are retained as migration pointers. Current development happens in this repository. Their histories were imported as Git subtrees rather than flattened copies.
@@ -102,7 +102,7 @@ python scripts/workflow.py build --version 0.1.0-dev
 ```
 
 The default output is `build/`, containing `bin/grimoire`, `bin/lexicon`,
-`bin/arcana`, and `native/grimoire_vector_ffi` plus the native vector CLI.
+`bin/arcana`, and the Lodestone native library under `native/`.
 On Windows the executable and library names have `.exe` and `.dll` suffixes.
 The component build roots remain independently usable:
 
@@ -110,7 +110,7 @@ The component build roots remain independently usable:
 go build ./cmd/grimoire
 cd lexicon && go build -o bin/lexicon ./cmd/lexicon
 cd ../arcana && cargo build --release
-cargo build --manifest-path native/vector-engine/Cargo.toml -p grimoire-vector-ffi --release
+cargo build --manifest-path ../../lodestone/Cargo.toml -p lodestone-ffi --release
 ```
 
 Run all owning test suites from the root:
@@ -121,7 +121,7 @@ python scripts/workflow.py test
 
 For a local install, select the destination explicitly. The native vector
 library is copied beside `grimoire`, including the Windows DLL, so the existing
-discovery rules work without setting `GRIMOIRE_VECTOR_ENGINE`:
+discovery rules work without setting `LODESTONE_LIBRARY`:
 
 ```bash
 python scripts/workflow.py install --source build --bin-dir /path/to/bin

@@ -23,8 +23,7 @@ build/
     lexicon(.exe)
     arcana(.exe)
   native/
-    grimoire_vector_ffi.dll | .so | .dylib
-    grimoire-vector(.exe)
+    lodestone_ffi.dll | .so | .dylib
 ```
 
 The Go CLIs receive the version through `-ldflags -X`. Arcana receives the same
@@ -42,8 +41,8 @@ python scripts/workflow.py install --source build --bin-dir PATH --component lex
 ```
 
 Omitting `--component` installs all three applications. Repeating it installs only the selected subset. The native library is copied beside `grimoire` whenever Grimoire is selected. This is important on Windows:
-the `grimoire_vector_ffi.dll` is then discoverable by normal DLL lookup without
-setting `GRIMOIRE_VECTOR_ENGINE`. The installer does not modify `PATH` or user
+the `lodestone_ffi.dll` is then discoverable by normal DLL lookup without
+setting `LODESTONE_LIBRARY`. The installer does not modify `PATH` or user
 configuration.
 
 ## Release packaging

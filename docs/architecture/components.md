@@ -22,7 +22,7 @@ Arcana does not own language adapters, the embedding model runtime, or Grimoire'
 
 ### Grimoire Context
 
-Location: repository root, primarily `cmd/grimoire`, `internal`, and `native/vector-engine`.
+Location: repository root, primarily `cmd/grimoire` and `internal`, with vector persistence supplied by the sibling Lodestone repository.
 
 The context engine owns source preparation, the shared embedding model runtime, deterministic exact and lexical source retrieval, independent documentation knowledge and vector state, structural-provider orchestration, deterministic ranking, query-shape analysis, evidence assembly, token accounting, and context-package serialization.
 
@@ -67,7 +67,7 @@ Co-location does not permit one component to mutate another component's state fo
 The monorepo intentionally contains multiple build roots:
 
 - the repository-root Go module for Grimoire Context;
-- `native/vector-engine/Cargo.toml` for the context vector engine;
+- the external Lodestone repository for vector storage, snapshots, and exact search;
 - `lexicon/go.mod` plus adapter-specific runtimes;
 - `arcana/Cargo.toml` for the graph engine.
 

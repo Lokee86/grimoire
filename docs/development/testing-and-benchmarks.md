@@ -21,10 +21,10 @@ installation. It does not replace the compiler-backed matrix below.
 Grimoire Context and native vector engine, from the repository root:
 
 ```bash
-cargo fmt --manifest-path native/vector-engine/Cargo.toml --all --check
-cargo test --manifest-path native/vector-engine/Cargo.toml
-cargo clippy --manifest-path native/vector-engine/Cargo.toml --workspace --all-targets -- -D warnings
-cargo build --manifest-path native/vector-engine/Cargo.toml -p grimoire-vector-ffi --release
+cargo fmt --manifest-path ../lodestone/Cargo.toml --all --check
+cargo test --manifest-path ../lodestone/Cargo.toml --workspace
+cargo clippy --manifest-path ../lodestone/Cargo.toml --workspace --all-targets -- -D warnings
+cargo build --manifest-path ../lodestone/Cargo.toml -p lodestone-ffi --release
 gofmt -w ./cmd ./internal
 go test ./...
 go vet ./...
@@ -58,7 +58,7 @@ Lexicon adapter and snapshot coverage is documented in [`lexicon/docs/DEVELOPMEN
 | Prepared traversal and state | `internal/index/*_test.go`, app exclusion tests |
 | Embedding contract and query batching | `internal/embedding/*_test.go` |
 | Runtime backend selection | `internal/embedding/setup_backend_test.go`, app model tests |
-| Native object, snapshot, and search behavior | `native/vector-engine/crates/*` tests |
+| Native object, snapshot, and search behavior | Lodestone repository tests |
 | Go-to-Rust ABI | `internal/vectorstore/integration_windows_test.go` |
 | Documentation-vector build, reuse, stale fallback, and concurrency | `internal/app/vector*_test.go`, `internal/knowledgevector` |
 | Exact, lexical, and merged retrieval | `internal/retrieve/*_test.go`, app context tests |

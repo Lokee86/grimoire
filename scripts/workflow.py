@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_LODESTONE_ROOT = ROOT.parent / "lodestone"
 DEFAULT_BUILD = ROOT / "build"
 DEFAULT_DIST = ROOT / "dist"
 VERSION_PATTERN = re.compile(r"^[0-9A-Za-z][0-9A-Za-z.+_-]*$")
@@ -30,10 +31,15 @@ def executable_name(name: str, platform_name: str | None = None) -> str:
 def native_library_name(platform_name: str | None = None) -> str:
     name = (platform_name or platform.system()).lower()
     if name == "windows":
-        return "grimoire_vector_ffi.dll"
+        return "lodestone_ffi.dll"
     if name == "darwin":
-        return "libgrimoire_vector_ffi.dylib"
-    return "libgrimoire_vector_ffi.so"
+        return "liblodestone_ffi.dylib"
+    return "liblodestone_ffi.so"
+
+
+def lodestone_root() -> Path:
+    configured = os.environ.get("LODESTONE_ROOT")
+    return Path(configured).resolve() if configured else DEFAULT_LODESTONE_ROOT.resolve()
 
 
 def target_label(platform_name: str | None = None, machine: str | None = None) -> str:
@@ -113,12 +119,19 @@ def build(version: str, output: Path) -> Path:
     )
     copy_file(ROOT / "arcana" / "target" / "release" / executable_name("arcana"), bin_dir / executable_name("arcana"))
 
-    native_manifest = ROOT / "native" / "vector-engine" / "Cargo.toml"
-    run([cargo, "build", "--release", "--locked", "--manifest-path", str(native_manifest), "-p", "grimoire-vector-ffi"], ROOT, release_env)
-    run([cargo, "build", "--release", "--locked", "--manifest-path", str(native_manifest), "-p", "grimoire-vector-cli"], ROOT, release_env)
-    native_target = ROOT / "native" / "vector-engine" / "target" / "release"
-    copy_file(native_target / native_library_name(), native_dir / native_library_name())
-    copy_file(native_target / executable_name("grimoire-vector"), native_dir / executable_name("grimoire-vector"))
+    lodestone = lodestone_root()
+    lodestone_manifest = lodestone / "Cargo.toml"
+    if not lodestone_manifest.is_file():
+        raise FileNotFoundError(
+            f"Lodestone repository was not found at {lodestone}; set LODESTONE_ROOT"
+        )
+    run(
+        [cargo, "build", "--release", "--locked", "--manifest-path", str(lodestone_manifest), "-p", "lodestone-ffi"],
+        lodestone,
+        release_env,
+    )
+    lodestone_target = lodestone / "target" / "release"
+    copy_file(lodestone_target / native_library_name(), native_dir / native_library_name())
 
     verify_versions(output, version)
     return output
@@ -144,7 +157,6 @@ def test() -> None:
     run(["go", "test", "./..."], ROOT)
     run(["go", "test", "./..."], ROOT / "lexicon")
     run([cargo, "test", "--all-targets", "--locked", "--manifest-path", str(ROOT / "arcana" / "Cargo.toml")], ROOT)
-    run([cargo, "test", "--workspace", "--locked", "--manifest-path", str(ROOT / "native" / "vector-engine" / "Cargo.toml")], ROOT)
 
 
 def install(source: Path, bin_dir: Path, components: Sequence[str] = ("grimoire", "lexicon", "arcana")) -> None:
@@ -179,8 +191,7 @@ def _fixed_zip(source: Path, archive: Path) -> None:
     archive.parent.mkdir(parents=True, exist_ok=True)
     executable_names = {
         "grimoire", "grimoire.exe", "lexicon", "lexicon.exe",
-        "arcana", "arcana.exe", "grimoire-vector", "grimoire-vector.exe",
-        "install.py",
+        "arcana", "arcana.exe", "install.py",
     }
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as output:
         for path in sorted(source.rglob("*")):
@@ -222,8 +233,6 @@ def package_artifacts(build_root: Path, output: Path, version: str, platform_nam
                          (build_root / "native" / library, library)],
             "lexicon": [(build_root / "bin" / exe("lexicon"), exe("lexicon"))],
             "arcana": [(build_root / "bin" / exe("arcana"), exe("arcana"))],
-            "vector-engine": [(build_root / "native" / library, library),
-                               (build_root / "native" / exe("grimoire-vector"), exe("grimoire-vector"))],
         }
         for component, files in specs.items():
             component_stage = staging / component
@@ -245,7 +254,7 @@ def package_artifacts(build_root: Path, output: Path, version: str, platform_nam
         "version": version,
         "target": target,
         "artifacts": [archive.name for archive in archives],
-        "combined_layout": {"executables": "bin/", "native_vector_engine": "native/", "installer": "install.py"},
+        "combined_layout": {"executables": "bin/", "lodestone_library": "native/", "installer": "install.py"},
     }
     write_utf8(release_root / "release-manifest.json", json.dumps(manifest, indent=2) + "\n")
     checksum_lines = []

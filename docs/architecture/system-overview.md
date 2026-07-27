@@ -79,7 +79,7 @@ The query profile and retrieval policy are computed after source and structural 
 
 ### Vector storage
 
-`internal/vectorstore` is the Go boundary to `native/vector-engine`. The Rust engine owns immutable vector objects, deterministic snapshot materialization, memory-mapped reads, and exact inner-product search. One Go snapshot handle serializes ABI operations because the native handle is not re-entrant.
+`internal/vectorstore` is Grimoire's compatibility facade over Lodestone's shared Go binding. Lodestone owns immutable vector objects, deterministic snapshot materialization, memory-mapped reads, and exact inner-product search. One Go snapshot handle serializes ABI operations because the native handle is not re-entrant.
 
 ### Retrieval and ranking
 

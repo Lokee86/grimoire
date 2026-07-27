@@ -1,22 +1,17 @@
 package vectorstore
 
-import "errors"
+import lodestone "github.com/Lokee86/lodestone/bindings/go/lodestone"
 
-const ABIName = "grimoire_vector_ffi"
+const ABIName = lodestone.ABIName
 
 var (
-	ErrUnavailable    = errors.New("Grimoire vector engine is unavailable")
-	ErrBufferTooSmall = errors.New("vector engine output buffer is too small")
+	ErrUnavailable    = lodestone.ErrUnavailable
+	ErrBufferTooSmall = lodestone.ErrBufferTooSmall
+	FindLibrary       = lodestone.FindLibrary
+	Load              = lodestone.Load
 )
 
-type Info struct {
-	Model      string `json:"model"`
-	Dimensions int    `json:"dimensions"`
-	Count      int    `json:"count"`
-}
-
-type Hit struct {
-	ID    string  `json:"id"`
-	Score float32 `json:"score"`
-	Index uint64  `json:"index"`
-}
+type Info = lodestone.Info
+type Hit = lodestone.Hit
+type Library = lodestone.Library
+type Engine = lodestone.Engine

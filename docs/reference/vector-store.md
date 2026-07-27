@@ -1,6 +1,6 @@
 # Vector store
 
-Grimoire stores normalized documentation embeddings through a Rust native engine exposed to Go by `internal/vectorstore`. Arcana separately owns graph-neighbourhood vector indexes under `.arcana/`.
+Grimoire stores normalized documentation embeddings through Lodestone, exposed to Go by Lodestone's shared binding and Grimoire's `internal/vectorstore` compatibility facade. Arcana separately owns graph-neighbourhood vector indexes under `.arcana/`.
 
 Repository-wide source-code embeddings are not part of production source retrieval.
 
@@ -58,10 +58,10 @@ Snapshot handles are opaque native values. The Go bridge serializes `Info`, `Sea
 
 A documentation snapshot is accepted only when its manifest agrees with the current knowledge-index identity, embedding identity, dimensions, and vector count. `grimoire vector info` reports availability and freshness.
 
-On Windows, Grimoire checks `GRIMOIRE_VECTOR_ENGINE`, the executable directory, and `native/vector-engine/target/{release,debug}` beneath workspace ancestors. The Rust core is portable, but equivalent non-Windows Go loaders are not yet implemented.
+On Windows, Grimoire checks `LODESTONE_LIBRARY`, the legacy `GRIMOIRE_VECTOR_ENGINE`, the executable directory, and sibling `lodestone/target/{release,debug}` builds beneath workspace ancestors. Lodestone's Rust core is portable, but equivalent non-Windows Go loaders are not yet implemented.
 
 Missing, stale, incompatible, or unavailable documentation vectors cause knowledge search to continue with BM25 and expose the vector error in its JSON response. They never affect `grimoire context`.
 
 ## Ownership boundary
 
-`native/vector-engine` owns immutable objects, packed snapshots, validation, and exact vector search. `internal/vectorstore` owns library discovery, ABI validation, serialized Go handle lifetimes, caller-owned buffers, and conversion to Go types. `internal/knowledgevector` owns documentation manifests, freshness, build orchestration, and ranking integration. Embedding and BM25 ranking remain outside the native engine.
+Lodestone owns immutable objects, packed snapshots, validation, exact vector search, the stable C ABI, and the shared Go loader. `internal/vectorstore` preserves Grimoire's internal package boundary. `internal/knowledgevector` owns documentation manifests, freshness, build orchestration, and ranking integration. Embedding and BM25 ranking remain outside Lodestone.
