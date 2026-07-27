@@ -1,0 +1,1184 @@
+{
+  "version": 1,
+  "provider": "codebase-memory-mcp",
+  "repository": "Space Rocks",
+  "revision": "65123c548c5f9eac3e9215ff689789b82abc453f",
+  "project": "C-bin-workspace-space-rocks",
+  "repository_identity": {
+    "head": "8ecee9441d4522890b62f21a9e7e3ad4bf659ee5",
+    "dirty": true
+  },
+  "cbm_version": "codebase-memory-mcp 0.9.0",
+  "top_k": 6,
+  "modes": [
+    {
+      "mode": "bm25",
+      "pass_rate": 0.0,
+      "required_seed_recall": 0.0,
+      "mrr": 0.0,
+      "median_latency_ms": 139.5427000024938,
+      "cases": [
+        {
+          "id": "space-rocks-room-player-activation",
+          "query": "Where does a connected lobby roster become live authoritative avatars while preserving per-connection identity and rolling back partial binds?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 160.40590000193333,
+          "results": [
+            {
+              "name": "test_ffa_hides_team_column_and_adaptive_roster_scrolls",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.ui.lobby.test_team_lobby_controls.test_ffa_hides_team_column_and_adaptive_roster_scrolls",
+              "label": "Function",
+              "file_path": "client/tests/unit/ui/lobby/test_team_lobby_controls.gd",
+              "start_line": 39,
+              "end_line": 48,
+              "rank": -28.641758248291133
+            },
+            {
+              "name": "test_sampling_occurs_once_per_second_and_does_not_store_raw_frames",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.devtools.measurement.test_client_measurement_session.test_sampling_occurs_once_per_second_and_does_not_store_raw_frames",
+              "label": "Function",
+              "file_path": "client/tests/unit/devtools/measurement/test_client_measurement_session.gd",
+              "start_line": 90,
+              "end_line": 110,
+              "rank": -27.295119467504083
+            },
+            {
+              "name": "_on_connection_connected",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.session.session_network_controller._on_connection_connected",
+              "label": "Function",
+              "file_path": "client/scripts/session/session_network_controller.gd",
+              "start_line": 65,
+              "end_line": 67,
+              "rank": -27.16401383239816
+            },
+            {
+              "name": "test_attempt_and_connected_events_share_one_trace",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_client_connection_service.test_attempt_and_connected_events_share_one_trace",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_client_connection_service.gd",
+              "start_line": 688,
+              "end_line": 706,
+              "rank": -27.136020391128646
+            },
+            {
+              "name": "_on_connected",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.networking.client_connection_service._on_connected",
+              "label": "Function",
+              "file_path": "client/scripts/networking/client_connection_service.gd",
+              "start_line": 386,
+              "end_line": 395,
+              "rank": -26.728661017440572
+            },
+            {
+              "name": "test_close_before_connected_emits_connection_failed",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_client_connection_service.test_close_before_connected_emits_connection_failed",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_client_connection_service.gd",
+              "start_line": 670,
+              "end_line": 685,
+              "rank": -26.562582790938247
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-realtime-lane-commit",
+          "query": "Which server boundary refuses stale round context, reserves transport capacity for an entire update batch, and advances client baselines only after successful sends?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 139.5427000024938,
+          "results": [
+            {
+              "name": "test_emits_devtools_enabled_after_successful_configuration",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_gameplay_devtools_context.test_emits_devtools_enabled_after_successful_configuration",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_gameplay_devtools_context.gd",
+              "start_line": 55,
+              "end_line": 64,
+              "rank": -34.631454289897036
+            },
+            {
+              "name": "TestWriteResyncRequiredAndApplyRejectsStaleMatchAfterRoomAdvances",
+              "qualified_name": "C-bin-workspace-space-rocks.services.game-server.internal.networking.TestWriteResyncRequiredAndApplyRejectsStaleMatchAfterRoomAdvances",
+              "label": "Function",
+              "file_path": "services/game-server/internal/networking/resync_write_test.go",
+              "start_line": 142,
+              "end_line": 175,
+              "rank": -31.556088321215704
+            },
+            {
+              "name": "test_poll_emits_ready_only_after_all_channels_open",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.networking.test_webrtc_transport.test_poll_emits_ready_only_after_all_channels_open",
+              "label": "Function",
+              "file_path": "client/tests/unit/networking/test_webrtc_transport.gd",
+              "start_line": 243,
+              "end_line": 318,
+              "rank": -30.424347198377824
+            },
+            {
+              "name": "test_unparseable_baselines_survive_cleanup_until_capacity_overflow_clears_pending",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.protocol.realtime.test_lifecycle_lane_gate.test_unparseable_baselines_survive_cleanup_until_capacity_overflow_clears_pending",
+              "label": "Function",
+              "file_path": "client/tests/unit/protocol/realtime/test_lifecycle_lane_gate.gd",
+              "start_line": 220,
+              "end_line": 233,
+              "rank": -30.333535624412967
+            },
+            {
+              "name": "TestAdvanceMetadataForSuccessfulWriteAdvancesEventLaneSequence",
+              "qualified_name": "C-bin-workspace-space-rocks.services.game-server.internal.protocol.realtime.TestAdvanceMetadataForSuccessfulWriteAdvancesEventLaneSequence",
+              "label": "Function",
+              "file_path": "services/game-server/internal/protocol/realtime/baseline_test.go",
+              "start_line": 292,
+              "end_line": 316,
+              "rank": -30.134338401698106
+            },
+            {
+              "name": "test_lobby_leave_sends_leave_and_returns_after_leave",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.lobby.test_lobby_shell_flow.test_lobby_leave_sends_leave_and_returns_after_leave",
+              "label": "Function",
+              "file_path": "client/tests/unit/lobby/test_lobby_shell_flow.gd",
+              "start_line": 89,
+              "end_line": 113,
+              "rank": -29.66390411786434
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-client-inbound-binding",
+          "query": "Where are decoded control signals and unreliable gameplay families connected to their application and presentation consumers without making the network facade own packet application?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 106.43900000286521,
+          "results": [
+            {
+              "name": "test_debug_readouts_are_routed_to_dedicated_signals",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.networking.test_tooling_packet_router.test_debug_readouts_are_routed_to_dedicated_signals",
+              "label": "Function",
+              "file_path": "client/tests/unit/networking/test_tooling_packet_router.gd",
+              "start_line": 25,
+              "end_line": 42,
+              "rank": -36.07903366626023
+            },
+            {
+              "name": "test_websocket_and_webrtc_gameplay_packets_share_pipeline_application_path",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_client_connection_service.test_websocket_and_webrtc_gameplay_packets_share_pipeline_application_path",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_client_connection_service.gd",
+              "start_line": 491,
+              "end_line": 531,
+              "rank": -34.958228750393765
+            },
+            {
+              "name": "test_presentation_adapter_forwards_decoded_session_state_to_local_lifecycle_flow",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.protocol.realtime.test_event_batch_and_resync.test_presentation_adapter_forwards_decoded_session_state_to_local_lifecycle_flow",
+              "label": "Function",
+              "file_path": "client/tests/unit/protocol/realtime/test_event_batch_and_resync.gd",
+              "start_line": 170,
+              "end_line": 197,
+              "rank": -34.74836051054136
+            },
+            {
+              "name": "is_connected_to_server",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.networking.network_client.is_connected_to_server",
+              "label": "Function",
+              "file_path": "client/scripts/networking/network_client.gd",
+              "start_line": 162,
+              "end_line": 163,
+              "rank": -32.655484100806305
+            },
+            {
+              "name": "test_compact_event_batch_expands_before_application_and_dedupes",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.protocol.realtime.test_event_batch_and_resync.test_compact_event_batch_expands_before_application_and_dedupes",
+              "label": "Function",
+              "file_path": "client/tests/unit/protocol/realtime/test_event_batch_and_resync.gd",
+              "start_line": 102,
+              "end_line": 137,
+              "rank": -32.44014463518549
+            },
+            {
+              "name": "test_packets_are_buffered_without_active_match_and_replayed_on_activation",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.networking.realtime.test_realtime_packet_pipeline_match_boundary.test_packets_are_buffered_without_active_match_and_replayed_on_activation",
+              "label": "Function",
+              "file_path": "client/tests/unit/networking/realtime/test_realtime_packet_pipeline_match_boundary.gd",
+              "start_line": 17,
+              "end_line": 25,
+              "rank": -31.92707375459369
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-client-gameplay-reset",
+          "query": "Which client session owner stops accepting game traffic and clears both the presentation bridge and gameplay composition before replay or route changes?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 138.8654000038514,
+          "results": [
+            {
+              "name": "test_begin_accepting_gameplay_packets_activates_presentation_bridge",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_gameplay_session_controller.test_begin_accepting_gameplay_packets_activates_presentation_bridge",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_gameplay_session_controller.gd",
+              "start_line": 279,
+              "end_line": 287,
+              "rank": -42.66096697305323
+            },
+            {
+              "name": "test_gameplay_composition_initializes_and_propagates_replay_availability",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.gameplay.test_gameplay_composition.test_gameplay_composition_initializes_and_propagates_replay_availability",
+              "label": "Function",
+              "file_path": "client/tests/unit/gameplay/test_gameplay_composition.gd",
+              "start_line": 58,
+              "end_line": 69,
+              "rank": -37.75941181083807
+            },
+            {
+              "name": "test_replay_waits_for_graceful_close_before_emitting_replay_requested",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_gameplay_session_controller.test_replay_waits_for_graceful_close_before_emitting_replay_requested",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_gameplay_session_controller.gd",
+              "start_line": 181,
+              "end_line": 202,
+              "rank": -35.380117492836405
+            },
+            {
+              "name": "test_reset_clears_activation_and_pending_state",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.protocol.realtime.test_presentation_bridge.test_reset_clears_activation_and_pending_state",
+              "label": "Function",
+              "file_path": "client/tests/unit/protocol/realtime/test_presentation_bridge.gd",
+              "start_line": 213,
+              "end_line": 222,
+              "rank": -35.12312805934397
+            },
+            {
+              "name": "begin_accepting_gameplay_packets",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.session.gameplay_session_controller.begin_accepting_gameplay_packets",
+              "label": "Function",
+              "file_path": "client/scripts/session/gameplay_session_controller.gd",
+              "start_line": 104,
+              "end_line": 107,
+              "rank": -33.24550286107295
+            },
+            {
+              "name": "_configure_realtime_replay_availability",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.gameplay.gameplay_composition._configure_realtime_replay_availability",
+              "label": "Function",
+              "file_path": "client/scripts/gameplay/gameplay_composition.gd",
+              "start_line": 233,
+              "end_line": 238,
+              "rank": -31.79193567705616
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-webrtc-channel-recovery",
+          "query": "What client path replaces an unreliable transport after one lane closes, bounds the retry window, and emits a terminal recovery outcome instead of reconnecting forever?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 140.14680000400404,
+          "results": [
+            {
+              "name": "test_recovery_timeout_closes_replacement_and_emits_failure_once",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.networking.test_realtime_transport_session.test_recovery_timeout_closes_replacement_and_emits_failure_once",
+              "label": "Function",
+              "file_path": "client/tests/unit/networking/test_realtime_transport_session.gd",
+              "start_line": 140,
+              "end_line": 167,
+              "rank": -45.58365190585718
+            },
+            {
+              "name": "test_webrtc_transport_reconnect_ownership_closes_previous_transport_and_starts_new_one",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_client_connection_service_webrtc.test_webrtc_transport_reconnect_ownership_closes_previous_transport_and_starts_new_one",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_client_connection_service_webrtc.gd",
+              "start_line": 258,
+              "end_line": 278,
+              "rank": -39.074011351991345
+            },
+            {
+              "name": "test_channel_close_replaces_transport_and_starts_new_offer_path",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.networking.test_realtime_transport_session.test_channel_close_replaces_transport_and_starts_new_offer_path",
+              "label": "Function",
+              "file_path": "client/tests/unit/networking/test_realtime_transport_session.gd",
+              "start_line": 68,
+              "end_line": 89,
+              "rank": -37.54005394984806
+            },
+            {
+              "name": "test_emits_one_request_failure_for_an_unhandled_exception",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.test_emits_one_request_failure_for_an_unhandled_exception",
+              "label": "Function",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 120,
+              "end_line": 126,
+              "rank": -36.54747877262881
+            },
+            {
+              "name": "test_emits_one_request_failure_for_an_unhandled_exception",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.ObservesApiRequestUnitTest.test_emits_one_request_failure_for_an_unhandled_exception",
+              "label": "Method",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 120,
+              "end_line": 126,
+              "rank": -36.38313788455622
+            },
+            {
+              "name": "test_preserves_a_valid_trace_returns_it_and_emits_one_start_and_completion_with_duration",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.test_preserves_a_valid_trace_returns_it_and_emits_one_start_and_completion_with_duration",
+              "label": "Function",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 87,
+              "end_line": 100,
+              "rank": -35.4248359691977
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-client-process-shutdown",
+          "query": "Where does a window-close request gracefully mark the server connection, stop a hosted local process, and then terminate the scene tree without pretending this is a room leave?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 113.24939999758499,
+          "results": [
+            {
+              "name": "test_generates_a_trace_when_the_incoming_value_is_missing_or_invalid",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.test_generates_a_trace_when_the_incoming_value_is_missing_or_invalid",
+              "label": "Function",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 102,
+              "end_line": 110,
+              "rank": -62.46109053050292
+            },
+            {
+              "name": "test_generates_a_trace_when_the_incoming_value_is_missing_or_invalid",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.ObservesApiRequestUnitTest.test_generates_a_trace_when_the_incoming_value_is_missing_or_invalid",
+              "label": "Method",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 102,
+              "end_line": 110,
+              "rank": -62.14717803114169
+            },
+            {
+              "name": "test_does_not_add_request_completion_after_a_specific_workflow_failure",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.test_does_not_add_request_completion_after_a_specific_workflow_failure",
+              "label": "Function",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 128,
+              "end_line": 136,
+              "rank": -49.688242110537736
+            },
+            {
+              "name": "test_does_not_add_request_completion_after_a_specific_workflow_failure",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.ObservesApiRequestUnitTest.test_does_not_add_request_completion_after_a_specific_workflow_failure",
+              "label": "Method",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 128,
+              "end_line": 136,
+              "rank": -49.459812241008876
+            },
+            {
+              "name": "test_observability_ruby_is_a_language",
+              "qualified_name": "C-bin-workspace-space-rocks.tools.data_sync.tests.test_cli.test_observability_ruby_is_a_language",
+              "label": "Function",
+              "file_path": "tools/data_sync/tests/test_cli.py",
+              "start_line": 154,
+              "end_line": 157,
+              "rank": -47.699210069104154
+            },
+            {
+              "name": "test_reset_allows_reusing_a_projectile_id_in_a_new_match",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.world.test_projectile_sync.test_reset_allows_reusing_a_projectile_id_in_a_new_match",
+              "label": "Function",
+              "file_path": "client/tests/unit/world/test_projectile_sync.gd",
+              "start_line": 385,
+              "end_line": 399,
+              "rank": -45.69098294360316
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-account-result-persistence",
+          "query": "How does a completed round's per-player outcome cross the in-process persistence boundary, route online accounts over HTTP, and update cumulative Rails statistics exactly once?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0,
+            0,
+            0
+          ],
+          "latency_ms": 97.93250000075204,
+          "results": [
+            {
+              "name": "/internal/accounts",
+              "qualified_name": "__route__ANY__/internal/accounts",
+              "label": "Route",
+              "file_path": "",
+              "start_line": 0,
+              "end_line": 0,
+              "rank": -35.42528949704584
+            },
+            {
+              "name": "test_sampling_occurs_once_per_second_and_does_not_store_raw_frames",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.devtools.measurement.test_client_measurement_session.test_sampling_occurs_once_per_second_and_does_not_store_raw_frames",
+              "label": "Function",
+              "file_path": "client/tests/unit/devtools/measurement/test_client_measurement_session.gd",
+              "start_line": 90,
+              "end_line": 110,
+              "rank": -35.12044904454805
+            },
+            {
+              "name": "test_emits_devtools_enabled_exactly_once_across_repeated_configuration",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_gameplay_devtools_context.test_emits_devtools_enabled_exactly_once_across_repeated_configuration",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_gameplay_devtools_context.gd",
+              "start_line": 77,
+              "end_line": 87,
+              "rank": -31.293225761003153
+            },
+            {
+              "name": "newInMemoryHTTPListener",
+              "qualified_name": "C-bin-workspace-space-rocks.services.player-data.playerdata.newInMemoryHTTPListener",
+              "label": "Function",
+              "file_path": "services/player-data/playerdata/rails_store_test.go",
+              "start_line": 425,
+              "end_line": 430,
+              "rank": -30.323801270156956
+            },
+            {
+              "name": "newInMemoryHTTPServer",
+              "qualified_name": "C-bin-workspace-space-rocks.services.player-data.playerdata.newInMemoryHTTPServer",
+              "label": "Function",
+              "file_path": "services/player-data/playerdata/rails_store_test.go",
+              "start_line": 458,
+              "end_line": 489,
+              "rank": -30.323801270156956
+            },
+            {
+              "name": "test_auth_state_changed_outside_sign_in_screen_does_not_route",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.ui.menu_flow.test_multiplayer_entry_flow.test_auth_state_changed_outside_sign_in_screen_does_not_route",
+              "label": "Function",
+              "file_path": "client/tests/unit/ui/menu_flow/test_multiplayer_entry_flow.gd",
+              "start_line": 78,
+              "end_line": 89,
+              "rank": -28.979783847381828
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-observability-contract-fanout",
+          "query": "Which source-of-truth fanout validates one telemetry contract and plans deterministic outputs for the Go services, Godot client, Rails API, JSON fixtures, and reference docs?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 139.76410000032047,
+          "results": [
+            {
+              "name": "test_realtime_wire_accepts_json_and_docs_outputs",
+              "qualified_name": "C-bin-workspace-space-rocks.tools.data_sync.tests.test_cli.test_realtime_wire_accepts_json_and_docs_outputs",
+              "label": "Function",
+              "file_path": "tools/data_sync/tests/test_cli.py",
+              "start_line": 139,
+              "end_line": 143,
+              "rank": -30.558340974654044
+            },
+            {
+              "name": "test_observability_sync_plans_applies_and_detects_drift",
+              "qualified_name": "C-bin-workspace-space-rocks.tools.data_sync.tests.test_observability_sync.test_observability_sync_plans_applies_and_detects_drift",
+              "label": "Function",
+              "file_path": "tools/data_sync/tests/test_observability_sync.py",
+              "start_line": 67,
+              "end_line": 95,
+              "rank": -29.460045327848775
+            },
+            {
+              "name": "test_valid_counter_commands_reuse_one_context_trace_for_event_and_packet",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.devtools.context.test_devtools_command_context.test_valid_counter_commands_reuse_one_context_trace_for_event_and_packet",
+              "label": "Function",
+              "file_path": "client/tests/unit/devtools/context/test_devtools_command_context.gd",
+              "start_line": 211,
+              "end_line": 246,
+              "rank": -28.595024637448564
+            },
+            {
+              "name": "test_source_lookup_and_selection_use_metadata",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.devtools.test_devtools_window_telemetry.test_source_lookup_and_selection_use_metadata",
+              "label": "Function",
+              "file_path": "client/tests/unit/devtools/test_devtools_window_telemetry.gd",
+              "start_line": 30,
+              "end_line": 37,
+              "rank": -28.227629376123176
+            },
+            {
+              "name": "test_emits_one_request_failure_for_an_unhandled_exception",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.test_emits_one_request_failure_for_an_unhandled_exception",
+              "label": "Function",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 120,
+              "end_line": 126,
+              "rank": -27.649558809847317
+            },
+            {
+              "name": "test_emits_one_request_failure_for_an_unhandled_exception",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.ObservesApiRequestUnitTest.test_emits_one_request_failure_for_an_unhandled_exception",
+              "label": "Method",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 120,
+              "end_line": 126,
+              "rank": -27.54359551194856
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-canonical-event-admission",
+          "query": "Where do the Go service layer, Godot client, and Rails worker each enforce the same event admission, redaction, size, identity, serialization, and degraded-write rules before accepting a canonical record?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0,
+            0,
+            0
+          ],
+          "latency_ms": 147.67000000574626,
+          "results": [
+            {
+              "name": "test_mark_applied_rejects_the_same_sequence",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.protocol.realtime.test_lifecycle_lane_gate.test_mark_applied_rejects_the_same_sequence",
+              "label": "Function",
+              "file_path": "client/tests/unit/protocol/realtime/test_lifecycle_lane_gate.gd",
+              "start_line": 79,
+              "end_line": 84,
+              "rank": -38.65760753968482
+            },
+            {
+              "name": "test_counter_selectors_receive_the_same_target_set",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.devtools.test_devtools_window_target_selectors.test_counter_selectors_receive_the_same_target_set",
+              "label": "Function",
+              "file_path": "client/tests/unit/devtools/test_devtools_window_target_selectors.gd",
+              "start_line": 112,
+              "end_line": 127,
+              "rank": -38.10187430050284
+            },
+            {
+              "name": "test_all_player_target_selectors_receive_the_same_rows",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.devtools.test_devtools_window_target_selectors.test_all_player_target_selectors_receive_the_same_rows",
+              "label": "Function",
+              "file_path": "client/tests/unit/devtools/test_devtools_window_target_selectors.gd",
+              "start_line": 130,
+              "end_line": 146,
+              "rank": -37.56731260733145
+            },
+            {
+              "name": "before_each",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_client_connection_service.before_each",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_client_connection_service.gd",
+              "start_line": 100,
+              "end_line": 101,
+              "rank": -35.66267401178423
+            },
+            {
+              "name": "test_generates_a_trace_when_the_incoming_value_is_missing_or_invalid",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.test_generates_a_trace_when_the_incoming_value_is_missing_or_invalid",
+              "label": "Function",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 102,
+              "end_line": 110,
+              "rank": -34.978160731895805
+            },
+            {
+              "name": "test_generates_a_trace_when_the_incoming_value_is_missing_or_invalid",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.test.lib.observes_api_request_unit_test.ObservesApiRequestUnitTest.test_generates_a_trace_when_the_incoming_value_is_missing_or_invalid",
+              "label": "Method",
+              "file_path": "services/api-server/test/lib/observes_api_request_unit_test.rb",
+              "start_line": 102,
+              "end_line": 110,
+              "rank": -34.831694841842435
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "semantic",
+      "pass_rate": 0.0,
+      "required_seed_recall": 0.0,
+      "mrr": 0.0,
+      "median_latency_ms": 62.520400002540555,
+      "cases": [
+        {
+          "id": "space-rocks-room-player-activation",
+          "query": "Where does a connected lobby roster become live authoritative avatars while preserving per-connection identity and rolling back partial binds?",
+          "keywords": [
+            "connected",
+            "lobby",
+            "roster",
+            "become",
+            "live",
+            "authoritative"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 79.97460000478895,
+          "results": [
+            {
+              "name": "_set_file_writer_for_tests",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.logging.logger._set_file_writer_for_tests",
+              "label": "Function",
+              "file_path": "client/scripts/logging/logger.gd",
+              "score": 0.032574616721507375
+            },
+            {
+              "name": "test_left_click_with_pending_context_calls_pending_action_not_target_select",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_mouse_action_flow.test_left_click_with_pending_context_calls_pending_action_not_target_select",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_mouse_action_flow.gd",
+              "score": 0.03256547938143378
+            },
+            {
+              "name": "test_unexpected_close_after_connected_emits_disconnected",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_client_connection_service.test_unexpected_close_after_connected_emits_disconnected",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_client_connection_service.gd",
+              "score": 0.029704076831628422
+            },
+            {
+              "name": "test_connection_waits_for_webrtc_ready_before_multiplayer_ready_then_sends_once",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_session_network_controller.test_connection_waits_for_webrtc_ready_before_multiplayer_ready_then_sends_once",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_session_network_controller.gd",
+              "score": 0.029697788701826114
+            },
+            {
+              "name": "test_close_result_signal_distinguishes_expected_and_unexpected_without_changing_legacy_close_signal",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_network_client_metrics.test_close_result_signal_distinguishes_expected_and_unexpected_without_changing_legacy_close_signal",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_network_client_metrics.gd",
+              "score": 0.029670586212191406
+            },
+            {
+              "name": "assert_signal_emitted",
+              "qualified_name": "C-bin-workspace-space-rocks.client.addons.gut.test.assert_signal_emitted",
+              "label": "Function",
+              "file_path": "client/addons/gut/test.gd",
+              "score": 0.02966223124230744
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-realtime-lane-commit",
+          "query": "Which server boundary refuses stale round context, reserves transport capacity for an entire update batch, and advances client baselines only after successful sends?",
+          "keywords": [
+            "server",
+            "boundary",
+            "refuses",
+            "stale",
+            "round",
+            "context"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 62.520400002540555,
+          "results": [
+            {
+              "name": "run",
+              "qualified_name": "C-bin-workspace-space-rocks.services.game-server.cmd.game-server.run",
+              "label": "Function",
+              "file_path": "services/game-server/cmd/game-server/main.go",
+              "score": 0.8797981093591026
+            },
+            {
+              "name": "ClearGame",
+              "qualified_name": "C-bin-workspace-space-rocks.services.game-server.internal.rooms.ClearGame",
+              "label": "Method",
+              "file_path": "services/game-server/internal/rooms/room_match.go",
+              "score": 0.8760683824849
+            },
+            {
+              "name": "ClearGameInstance",
+              "qualified_name": "C-bin-workspace-space-rocks.services.game-server.internal.rooms.ClearGameInstance",
+              "label": "Method",
+              "file_path": "services/game-server/internal/rooms/room_match_access.go",
+              "score": 0.8748256172613716
+            },
+            {
+              "name": "normalized_score",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.app.controllers.internal.player_data.match_results_controller.normalized_score",
+              "label": "Function",
+              "file_path": "services/api-server/app/controllers/internal/player_data/match_results_controller.rb",
+              "score": 0.8733164117104875
+            },
+            {
+              "name": "newRoomTeams",
+              "qualified_name": "C-bin-workspace-space-rocks.services.game-server.internal.rooms.newRoomTeams",
+              "label": "Function",
+              "file_path": "services/game-server/internal/rooms/room_team.go",
+              "score": 0.872901391019653
+            },
+            {
+              "name": "render_invalid_input",
+              "qualified_name": "C-bin-workspace-space-rocks.services.api-server.app.controllers.internal.player_data.match_results_controller.render_invalid_input",
+              "label": "Function",
+              "file_path": "services/api-server/app/controllers/internal/player_data/match_results_controller.rb",
+              "score": 0.8728175663002381
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-client-inbound-binding",
+          "query": "Where are decoded control signals and unreliable gameplay families connected to their application and presentation consumers without making the network facade own packet application?",
+          "keywords": [
+            "decoded",
+            "control",
+            "signals",
+            "unreliable",
+            "gameplay",
+            "families"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 68.54590000148164,
+          "results": [
+            {
+              "name": "_handle_channel_packet",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.networking.webrtc.webrtc_transport._handle_channel_packet",
+              "label": "Function",
+              "file_path": "client/scripts/networking/webrtc/webrtc_transport.gd",
+              "score": 0.03272418485070793
+            },
+            {
+              "name": "send_raw_packet",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.networking.network_client.send_raw_packet",
+              "label": "Function",
+              "file_path": "client/scripts/networking/network_client.gd",
+              "score": 0.03264224298007092
+            },
+            {
+              "name": "Decode",
+              "qualified_name": "C-bin-workspace-space-rocks.services.game-server.internal.protocol.packetcodec.Decode",
+              "label": "Function",
+              "file_path": "services/game-server/internal/protocol/packetcodec/codec.go",
+              "score": 0.03260895037477336
+            },
+            {
+              "name": "DecodeType",
+              "qualified_name": "C-bin-workspace-space-rocks.services.player-data.codec.DecodeType",
+              "label": "Function",
+              "file_path": "services/player-data/codec/envelope.go",
+              "score": 0.03257118931772184
+            },
+            {
+              "name": "compactWireEncodeBoundField",
+              "qualified_name": "C-bin-workspace-space-rocks.services.game-server.internal.protocol.realtime.compactWireEncodeBoundField",
+              "label": "Function",
+              "file_path": "services/game-server/internal/protocol/realtime/compact_wire_descriptor.go",
+              "score": 0.029756633716265087
+            },
+            {
+              "name": "compactWireEncodeRecord",
+              "qualified_name": "C-bin-workspace-space-rocks.services.game-server.internal.protocol.realtime.compactWireEncodeRecord",
+              "label": "Function",
+              "file_path": "services/game-server/internal/protocol/realtime/compact_wire_descriptor.go",
+              "score": 0.029754526082043774
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-client-gameplay-reset",
+          "query": "Which client session owner stops accepting game traffic and clears both the presentation bridge and gameplay composition before replay or route changes?",
+          "keywords": [
+            "client",
+            "session",
+            "owner",
+            "stops",
+            "accepting",
+            "game"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 53.24029999610502,
+          "results": [
+            {
+              "name": "before_each",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.logging.test_client_logging_lifecycle.before_each",
+              "label": "Function",
+              "file_path": "client/tests/unit/logging/test_client_logging_lifecycle.gd",
+              "score": 0.9245828553072033
+            },
+            {
+              "name": "after_each",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.logging.test_client_logging_lifecycle.after_each",
+              "label": "Function",
+              "file_path": "client/tests/unit/logging/test_client_logging_lifecycle.gd",
+              "score": 0.924275771205823
+            },
+            {
+              "name": "reset",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.shell.gameplay_runtime_tick_flow.reset",
+              "label": "Function",
+              "file_path": "client/scripts/shell/gameplay_runtime_tick_flow.gd",
+              "score": 0.9239746537042836
+            },
+            {
+              "name": "reset",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.shell.gameplay_hud_flow.reset",
+              "label": "Function",
+              "file_path": "client/scripts/shell/gameplay_hud_flow.gd",
+              "score": 0.9222957571770047
+            },
+            {
+              "name": "get_local_lifecycle_flow",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.shell.gameplay_shell_flow.get_local_lifecycle_flow",
+              "label": "Function",
+              "file_path": "client/scripts/shell/gameplay_shell_flow.gd",
+              "score": 0.9219738112090617
+            },
+            {
+              "name": "shell_debug",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.logging.logger.shell_debug",
+              "label": "Function",
+              "file_path": "client/scripts/logging/logger.gd",
+              "score": 0.9201274252989262
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-webrtc-channel-recovery",
+          "query": "What client path replaces an unreliable transport after one lane closes, bounds the retry window, and emits a terminal recovery outcome instead of reconnecting forever?",
+          "keywords": [
+            "client",
+            "path",
+            "replaces",
+            "unreliable",
+            "transport",
+            "lane"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 56.70459999964805,
+          "results": [
+            {
+              "name": "configure",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.networking.outbound.client_packet_sender.configure",
+              "label": "Function",
+              "file_path": "client/scripts/networking/outbound/client_packet_sender.gd",
+              "score": 0.03571808248096994
+            },
+            {
+              "name": "get_scripts",
+              "qualified_name": "C-bin-workspace-space-rocks.client.addons.gut.test_collector.get_scripts",
+              "label": "Function",
+              "file_path": "client/addons/gut/test_collector.gd",
+              "score": 0.0357168167575343
+            },
+            {
+              "name": "get_logger",
+              "qualified_name": "C-bin-workspace-space-rocks.client.addons.gut.gut.get_logger",
+              "label": "Function",
+              "file_path": "client/addons/gut/gut.gd",
+              "score": 0.0355484173308208
+            },
+            {
+              "name": "get_gut",
+              "qualified_name": "C-bin-workspace-space-rocks.client.addons.gut.logger.get_gut",
+              "label": "Function",
+              "file_path": "client/addons/gut/logger.gd",
+              "score": 0.03552846872244244
+            },
+            {
+              "name": "set_logger",
+              "qualified_name": "C-bin-workspace-space-rocks.client.addons.gut.test_collector.set_logger",
+              "label": "Function",
+              "file_path": "client/addons/gut/test_collector.gd",
+              "score": 0.035504823312683564
+            },
+            {
+              "name": "reset",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.shell.gameplay_shell_flow.reset",
+              "label": "Function",
+              "file_path": "client/scripts/shell/gameplay_shell_flow.gd",
+              "score": 0.03272766078516467
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-client-process-shutdown",
+          "query": "Where does a window-close request gracefully mark the server connection, stop a hosted local process, and then terminate the scene tree without pretending this is a room leave?",
+          "keywords": [
+            "window",
+            "close",
+            "request",
+            "gracefully",
+            "mark",
+            "server"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 58.96480000228621,
+          "results": [
+            {
+              "name": "_on_show_server_hitboxes_toggled",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.devtools.devtools_window._on_show_server_hitboxes_toggled",
+              "label": "Function",
+              "file_path": "client/scripts/devtools/devtools_window.gd",
+              "score": 0.8659288622054132
+            },
+            {
+              "name": "_on_show_server_hitboxes_changed",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.devtools.devtools_window_controller._on_show_server_hitboxes_changed",
+              "label": "Function",
+              "file_path": "client/scripts/devtools/devtools_window_controller.gd",
+              "score": 0.8651405720499498
+            },
+            {
+              "name": "_on_close_requested",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.devtools.devtools_window._on_close_requested",
+              "label": "Function",
+              "file_path": "client/scripts/devtools/devtools_window.gd",
+              "score": 0.8636830070730965
+            },
+            {
+              "name": "set_enabled",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.devtools.hitboxes.devtools_server_hitbox_overlay.set_enabled",
+              "label": "Function",
+              "file_path": "client/scripts/devtools/hitboxes/devtools_server_hitbox_overlay.gd",
+              "score": 0.8635097100669022
+            },
+            {
+              "name": "set_server_hitboxes_enabled",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.devtools.context.devtools_overlay_context.set_server_hitboxes_enabled",
+              "label": "Function",
+              "file_path": "client/scripts/devtools/context/devtools_overlay_context.gd",
+              "score": 0.8576978468536692
+            },
+            {
+              "name": "configure",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.devtools.devtools_window_spawn_controls.configure",
+              "label": "Function",
+              "file_path": "client/scripts/devtools/devtools_window_spawn_controls.gd",
+              "score": 0.8574396777575964
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-account-result-persistence",
+          "query": "How does a completed round's per-player outcome cross the in-process persistence boundary, route online accounts over HTTP, and update cumulative Rails statistics exactly once?",
+          "keywords": [
+            "completed",
+            "round",
+            "player",
+            "outcome",
+            "cross",
+            "process"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0,
+            0,
+            0
+          ],
+          "latency_ms": 71.79840000026161,
+          "results": [
+            {
+              "name": "stop",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.devtools.measurement.client_measurement_context.stop",
+              "label": "Function",
+              "file_path": "client/scripts/devtools/measurement/client_measurement_context.gd",
+              "score": 0.008894288103876706
+            },
+            {
+              "name": "configure",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.logging.rolling_jsonl_writer.configure",
+              "label": "Function",
+              "file_path": "client/scripts/logging/rolling_jsonl_writer.gd",
+              "score": 0.008867515834367684
+            },
+            {
+              "name": "_archive_files",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_rolling_jsonl_writer._archive_files",
+              "label": "Function",
+              "file_path": "client/tests/unit/test_rolling_jsonl_writer.gd",
+              "score": 0.005954068852869262
+            },
+            {
+              "name": "_start_startup_maintenance",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.logging.rolling_jsonl_writer._start_startup_maintenance",
+              "label": "Function",
+              "file_path": "client/scripts/logging/rolling_jsonl_writer.gd",
+              "score": 0.005943542965394407
+            },
+            {
+              "name": "clear_bullets",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.devtools.gameplay_debug_flow.clear_bullets",
+              "label": "Function",
+              "file_path": "client/scripts/devtools/gameplay_debug_flow.gd",
+              "score": 0.005939767289228044
+            },
+            {
+              "name": "SelectSendPlan",
+              "qualified_name": "C-bin-workspace-space-rocks.services.game-server.internal.protocol.realtime.SelectSendPlan",
+              "label": "Function",
+              "file_path": "services/game-server/internal/protocol/realtime/scheduler.go",
+              "score": 0.00593349045424087
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-observability-contract-fanout",
+          "query": "Which source-of-truth fanout validates one telemetry contract and plans deterministic outputs for the Go services, Godot client, Rails API, JSON fixtures, and reference docs?",
+          "keywords": [
+            "source",
+            "truth",
+            "fanout",
+            "validates",
+            "telemetry",
+            "contract"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 78.03689999855123,
+          "results": [
+            {
+              "name": "_collect_pickup_types_from_scene",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.world.pickups.pickup_presentation_catalog._collect_pickup_types_from_scene",
+              "label": "Function",
+              "file_path": "client/scripts/world/pickups/pickup_presentation_catalog.gd",
+              "score": 0.0029610172107019856
+            },
+            {
+              "name": "test_load_drop_table_parses_basic_asteroids_file",
+              "qualified_name": "C-bin-workspace-space-rocks.tools.data_sync.tests.test_drop_tables_toml.test_load_drop_table_parses_basic_asteroids_file",
+              "label": "Function",
+              "file_path": "tools/data_sync/tests/test_drop_tables_toml.py",
+              "score": 0.0
+            },
+            {
+              "name": "render_go_output",
+              "qualified_name": "C-bin-workspace-space-rocks.tools.data_sync.data_sync.generators.rich_go_packets.render_go_output",
+              "label": "Function",
+              "file_path": "tools/data_sync/data_sync/generators/rich_go_packets.py",
+              "score": 0.0
+            },
+            {
+              "name": "_load_dict_into",
+              "qualified_name": "C-bin-workspace-space-rocks.client.addons.gut.gut_config._load_dict_into",
+              "label": "Function",
+              "file_path": "client/addons/gut/gut_config.gd",
+              "score": 0.0
+            },
+            {
+              "name": "output_for_id",
+              "qualified_name": "C-bin-workspace-space-rocks.tools.data_sync.data_sync.model.packets.PacketSchema.output_for_id",
+              "label": "Method",
+              "file_path": "tools/data_sync/data_sync/model/packets.py",
+              "score": 0.0
+            },
+            {
+              "name": "_validate_schema",
+              "qualified_name": "C-bin-workspace-space-rocks.tools.data_sync.data_sync.observability_validate._validate_schema",
+              "label": "Function",
+              "file_path": "tools/data_sync/data_sync/observability_validate.py",
+              "score": -0.0029627841446248577
+            }
+          ]
+        },
+        {
+          "id": "space-rocks-canonical-event-admission",
+          "query": "Where do the Go service layer, Godot client, and Rails worker each enforce the same event admission, redaction, size, identity, serialization, and degraded-write rules before accepting a canonical record?",
+          "keywords": [
+            "service",
+            "layer",
+            "godot",
+            "client",
+            "rails",
+            "worker"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0,
+            0,
+            0
+          ],
+          "latency_ms": 60.30579999787733,
+          "results": [
+            {
+              "name": "_configure_observability_providers",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.networking.client_connection_service._configure_observability_providers",
+              "label": "Function",
+              "file_path": "client/scripts/networking/client_connection_service.gd",
+              "score": 0.824625841026241
+            },
+            {
+              "name": "close",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_client_connection_service.FakeWriter.close",
+              "label": "Method",
+              "file_path": "client/tests/unit/test_client_connection_service.gd",
+              "score": 0.8137044758521779
+            },
+            {
+              "name": "connect_to_server",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_client_connection_service.FakeNetworkClient.connect_to_server",
+              "label": "Method",
+              "file_path": "client/tests/unit/test_client_connection_service.gd",
+              "score": 0.8081151400553243
+            },
+            {
+              "name": "connect_to_server",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_client_connection_service_webrtc.FakeNetworkClient.connect_to_server",
+              "label": "Method",
+              "file_path": "client/tests/unit/test_client_connection_service_webrtc.gd",
+              "score": 0.8069872934781093
+            },
+            {
+              "name": "_process",
+              "qualified_name": "C-bin-workspace-space-rocks.client.scripts.networking.client_connection_service._process",
+              "label": "Function",
+              "file_path": "client/scripts/networking/client_connection_service.gd",
+              "score": 0.806974340392993
+            },
+            {
+              "name": "close",
+              "qualified_name": "C-bin-workspace-space-rocks.client.tests.unit.test_client_connection_service.FakeTransportPeer.close",
+              "label": "Method",
+              "file_path": "client/tests/unit/test_client_connection_service.gd",
+              "score": 0.8067507795993518
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

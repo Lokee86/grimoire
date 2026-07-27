@@ -1,0 +1,672 @@
+{
+  "version": 1,
+  "provider": "codebase-memory-mcp",
+  "repository": "Grimoire",
+  "revision": "82e0653742f1aacfbd4eb2b0e6ffebdbb061b071",
+  "project": "C-bin-workspace-grimoire",
+  "repository_identity": {
+    "head": "4353543aa06e72015f896d4fd4c3a38096b9615f",
+    "dirty": true
+  },
+  "cbm_version": "codebase-memory-mcp 0.9.0",
+  "top_k": 6,
+  "modes": [
+    {
+      "mode": "bm25",
+      "pass_rate": 0.0,
+      "required_seed_recall": 0.0,
+      "mrr": 0.0,
+      "median_latency_ms": 50.996300000406336,
+      "cases": [
+        {
+          "id": "arcana-semantic-seeds",
+          "query": "How does an optional concept search turn ranked graph matches into bounded structural entry points without building new state?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 72.61429999925895,
+          "results": [
+            {
+              "name": "filters_synthetic_and_anonymous_entry_points",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.vector.documents_tests.filters_synthetic_and_anonymous_entry_points",
+              "label": "Function",
+              "file_path": "arcana/src/vector/documents_tests.rs",
+              "start_line": 77,
+              "end_line": 92,
+              "rank": -29.79408258891851
+            },
+            {
+              "name": "serves_bounded_graph_analysis_queries",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.protocol.tests.serves_bounded_graph_analysis_queries",
+              "label": "Function",
+              "file_path": "arcana/src/protocol/tests.rs",
+              "start_line": 188,
+              "end_line": 235,
+              "rank": -25.977232188291477
+            },
+            {
+              "name": "precompiled_publication_matches_standalone_validation_without_recompiling",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.repository_snapshot_tests.precompiled_publication_matches_standalone_validation_without_recompiling",
+              "label": "Function",
+              "file_path": "arcana/src/repository/repository_snapshot_tests.rs",
+              "start_line": 45,
+              "end_line": 102,
+              "rank": -25.67765026471376
+            },
+            {
+              "name": "overlay_snapshot_matches_materialized_graph",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.snapshot.graph_tests.overlay_snapshot_matches_materialized_graph",
+              "label": "Function",
+              "file_path": "arcana/src/snapshot/graph_tests.rs",
+              "start_line": 148,
+              "end_line": 195,
+              "rank": -25.25702369096767
+            },
+            {
+              "name": "new",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.snapshot.graph_tests.TempDirectory.new",
+              "label": "Method",
+              "file_path": "arcana/src/snapshot/graph_tests.rs",
+              "start_line": 15,
+              "end_line": 23,
+              "rank": -24.671329396033777
+            },
+            {
+              "name": "new",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.cli_sync_state.TestDirectory.new",
+              "label": "Method",
+              "file_path": "arcana/src/cli_sync_state.rs",
+              "start_line": 82,
+              "end_line": 91,
+              "rank": -24.454247968430913
+            }
+          ]
+        },
+        {
+          "id": "arcana-seed-composition",
+          "query": "Where are vocabulary-derived symbols and conceptual graph matches balanced before deterministic relationship expansion?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0,
+            0
+          ],
+          "latency_ms": 50.996300000406336,
+          "results": [
+            {
+              "name": "all_six_combinations_are_deterministic_and_valid",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.benchmark.workload.all_six_combinations_are_deterministic_and_valid",
+              "label": "Function",
+              "file_path": "arcana/src/benchmark/workload.rs",
+              "start_line": 200,
+              "end_line": 220,
+              "rank": -32.60754972563132
+            },
+            {
+              "name": "test_ids_and_output_are_deterministic",
+              "qualified_name": "C-bin-workspace-grimoire.lexicon.adapters.ruby.test.test_adapter.test_ids_and_output_are_deterministic",
+              "label": "Function",
+              "file_path": "lexicon/adapters/ruby/test/test_adapter.rb",
+              "start_line": 65,
+              "end_line": 87,
+              "rank": -32.41632654308671
+            },
+            {
+              "name": "test_ids_and_output_are_deterministic",
+              "qualified_name": "C-bin-workspace-grimoire.lexicon.adapters.ruby.test.test_adapter.RubyAdapterTest.test_ids_and_output_are_deterministic",
+              "label": "Method",
+              "file_path": "lexicon/adapters/ruby/test/test_adapter.rb",
+              "start_line": 65,
+              "end_line": 87,
+              "rank": -32.22831110384387
+            },
+            {
+              "name": "test_dependency_manifests_and_local_imports_are_deterministic",
+              "qualified_name": "C-bin-workspace-grimoire.lexicon.adapters.python.tests.test_adapter.PythonAdapterTest.test_dependency_manifests_and_local_imports_are_deterministic",
+              "label": "Method",
+              "file_path": "lexicon/adapters/python/tests/test_adapter.py",
+              "start_line": 868,
+              "end_line": 887,
+              "rank": -31.16327765091651
+            },
+            {
+              "name": "renders_identifier_and_path_terms_for_conceptual_retrieval",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.vector.documents_tests.renders_identifier_and_path_terms_for_conceptual_retrieval",
+              "label": "Function",
+              "file_path": "arcana/src/vector/documents_tests.rs",
+              "start_line": 119,
+              "end_line": 163,
+              "rank": -25.961166225732658
+            },
+            {
+              "name": "TestReportsAreDeterministicAndMeasureRepeatability",
+              "qualified_name": "C-bin-workspace-grimoire.evaluation.agent_discovery.TestReportsAreDeterministicAndMeasureRepeatability",
+              "label": "Function",
+              "file_path": "evaluation/agent_discovery/score_test.go",
+              "start_line": 52,
+              "end_line": 78,
+              "rank": -25.94808925578048
+            }
+          ]
+        },
+        {
+          "id": "arcana-deterministic-expansion",
+          "query": "Which boundary resolves a few graph anchors and then asks for roles, dependents, uncertain references, and short execution paths?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 47.256099998776335,
+          "results": [
+            {
+              "name": "sync_builds_reuses_and_registers_a_lexicon_snapshot",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.cli_sync_tests.sync_builds_reuses_and_registers_a_lexicon_snapshot",
+              "label": "Function",
+              "file_path": "arcana/src/cli_sync_tests.rs",
+              "start_line": 13,
+              "end_line": 84,
+              "rank": -31.469619059226872
+            },
+            {
+              "name": "compiler_preserves_and_validates_unresolved_references",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.compiler_catalogue_tests.compiler_preserves_and_validates_unresolved_references",
+              "label": "Function",
+              "file_path": "arcana/src/repository/compiler_catalogue_tests.rs",
+              "start_line": 166,
+              "end_line": 195,
+              "rank": -29.956088221013562
+            },
+            {
+              "name": "resolves_typed_values_and_standard_callback_inputs",
+              "qualified_name": "C-bin-workspace-grimoire.lexicon.adapters.rust.src.tests.resolves_typed_values_and_standard_callback_inputs",
+              "label": "Function",
+              "file_path": "lexicon/adapters/rust/src/tests.rs",
+              "start_line": 336,
+              "end_line": 378,
+              "rank": -29.24723782467307
+            },
+            {
+              "name": "resolves_self_variants_generated_defaults_and_closure_captures",
+              "qualified_name": "C-bin-workspace-grimoire.lexicon.adapters.rust.src.tests.resolves_self_variants_generated_defaults_and_closure_captures",
+              "label": "Function",
+              "file_path": "lexicon/adapters/rust/src/tests.rs",
+              "start_line": 435,
+              "end_line": 479,
+              "rank": -28.774820179963605
+            },
+            {
+              "name": "resolves_inherent_field_alias_constructor_ufcs_and_macro_calls",
+              "qualified_name": "C-bin-workspace-grimoire.lexicon.adapters.rust.src.tests.resolves_inherent_field_alias_constructor_ufcs_and_macro_calls",
+              "label": "Function",
+              "file_path": "lexicon/adapters/rust/src/tests.rs",
+              "start_line": 176,
+              "end_line": 227,
+              "rank": -28.325037660028944
+            },
+            {
+              "name": "resolves_local_methods_through_standard_combinators_and_trait_impls",
+              "qualified_name": "C-bin-workspace-grimoire.lexicon.adapters.rust.src.tests.resolves_local_methods_through_standard_combinators_and_trait_impls",
+              "label": "Function",
+              "file_path": "lexicon/adapters/rust/src/tests.rs",
+              "start_line": 256,
+              "end_line": 289,
+              "rank": -28.325037660028944
+            }
+          ]
+        },
+        {
+          "id": "arcana-graph-documents",
+          "query": "Where is each repository graph entity rendered with bounded inbound, outbound, and unresolved neighborhood text for embeddings?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0,
+            0
+          ],
+          "latency_ms": 51.69179999938933,
+          "results": [
+            {
+              "name": "renders_node_and_immediate_graph_neighborhood",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.vector.documents_tests.renders_node_and_immediate_graph_neighborhood",
+              "label": "Function",
+              "file_path": "arcana/src/vector/documents_tests.rs",
+              "start_line": 228,
+              "end_line": 266,
+              "rank": -34.084578771463725
+            },
+            {
+              "name": "binds_graph_catalogue_unresolved_and_source_facts",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.repository_snapshot_tests.binds_graph_catalogue_unresolved_and_source_facts",
+              "label": "Function",
+              "file_path": "arcana/src/repository/repository_snapshot_tests.rs",
+              "start_line": 10,
+              "end_line": 42,
+              "rank": -31.840469824554276
+            },
+            {
+              "name": "with_unresolved",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.mod.RepositoryFacts.with_unresolved",
+              "label": "Method",
+              "file_path": "arcana/src/repository/mod.rs",
+              "start_line": 68,
+              "end_line": 78,
+              "rank": -30.557236423706218
+            },
+            {
+              "name": "embedding_batch_concurrency_is_bounded",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.vector.index_tests.embedding_batch_concurrency_is_bounded",
+              "label": "Function",
+              "file_path": "arcana/src/vector/index_tests.rs",
+              "start_line": 232,
+              "end_line": 261,
+              "rank": -26.177851149675107
+            },
+            {
+              "name": "serves_bounded_graph_analysis_queries",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.protocol.tests.serves_bounded_graph_analysis_queries",
+              "label": "Function",
+              "file_path": "arcana/src/protocol/tests.rs",
+              "start_line": 188,
+              "end_line": 235,
+              "rank": -25.977232188291477
+            },
+            {
+              "name": "parses_and_formats_generated_target",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.unresolved.parses_and_formats_generated_target",
+              "label": "Function",
+              "file_path": "arcana/src/repository/unresolved.rs",
+              "start_line": 65,
+              "end_line": 69,
+              "rank": -25.350178008871886
+            }
+          ]
+        },
+        {
+          "id": "arcana-vector-search",
+          "query": "How is a conceptual task embedded, checked against immutable graph identity, scored over packed node vectors, and returned in stable order?",
+          "keywords": [],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 44.29420000087703,
+          "results": [
+            {
+              "name": "catalogue_file_is_immutable_and_validated",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.compiler_catalogue_tests.catalogue_file_is_immutable_and_validated",
+              "label": "Function",
+              "file_path": "arcana/src/repository/compiler_catalogue_tests.rs",
+              "start_line": 242,
+              "end_line": 253,
+              "rank": -31.90012012330861
+            },
+            {
+              "name": "test_cli_output_is_stable_and_limit_is_applied",
+              "qualified_name": "C-bin-workspace-grimoire.lexicon.tools.test_call_resolution_metrics.test_cli_output_is_stable_and_limit_is_applied",
+              "label": "Function",
+              "file_path": "lexicon/tools/test_call_resolution_metrics.py",
+              "start_line": 97,
+              "end_line": 107,
+              "rank": -30.814087858491515
+            },
+            {
+              "name": "cloned_packed_graphs_share_immutable_backing_bytes",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.storage.reader.cloned_packed_graphs_share_immutable_backing_bytes",
+              "label": "Function",
+              "file_path": "arcana/src/storage/reader.rs",
+              "start_line": 293,
+              "end_line": 309,
+              "rank": -29.88484179501289
+            },
+            {
+              "name": "logical_edge_order_does_not_change_packed_bytes",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.storage.tests.logical_edge_order_does_not_change_packed_bytes",
+              "label": "Function",
+              "file_path": "arcana/src/storage/tests.rs",
+              "start_line": 181,
+              "end_line": 194,
+              "rank": -28.152362130478636
+            },
+            {
+              "name": "renders_node_and_immediate_graph_neighborhood",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.vector.documents_tests.renders_node_and_immediate_graph_neighborhood",
+              "label": "Function",
+              "file_path": "arcana/src/vector/documents_tests.rs",
+              "start_line": 228,
+              "end_line": 266,
+              "rank": -27.19209873539047
+            },
+            {
+              "name": "sync_builds_reuses_and_registers_a_lexicon_snapshot",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.cli_sync_tests.sync_builds_reuses_and_registers_a_lexicon_snapshot",
+              "label": "Function",
+              "file_path": "arcana/src/cli_sync_tests.rs",
+              "start_line": 13,
+              "end_line": 84,
+              "rank": -26.4139971710073
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "semantic",
+      "pass_rate": 0.0,
+      "required_seed_recall": 0.0,
+      "mrr": 0.0,
+      "median_latency_ms": 45.155500003602356,
+      "cases": [
+        {
+          "id": "arcana-semantic-seeds",
+          "query": "How does an optional concept search turn ranked graph matches into bounded structural entry points without building new state?",
+          "keywords": [
+            "concept",
+            "search",
+            "ranked",
+            "graph",
+            "matches",
+            "bounded"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 51.31220000475878,
+          "results": [
+            {
+              "name": "put_u32",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.storage.format.put_u32",
+              "label": "Function",
+              "file_path": "arcana/src/storage/format.rs",
+              "score": 0.1252710391523215
+            },
+            {
+              "name": "put_u32",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.snapshot.overlay_format.put_u32",
+              "label": "Function",
+              "file_path": "arcana/src/snapshot/overlay_format.rs",
+              "score": 0.12445004396882915
+            },
+            {
+              "name": "new",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.model.SourceSpan.new",
+              "label": "Method",
+              "file_path": "arcana/src/repository/model.rs",
+              "score": 0.12174804914980485
+            },
+            {
+              "name": "required",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.snapshot.manifest.required",
+              "label": "Function",
+              "file_path": "arcana/src/snapshot/manifest.rs",
+              "score": 0.11912784124685646
+            },
+            {
+              "name": "parse_span",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.lexicon_fact_file.parse_span",
+              "label": "Function",
+              "file_path": "arcana/src/repository/lexicon_fact_file.rs",
+              "score": 0.11603443369285656
+            },
+            {
+              "name": "put_u64",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.storage.format.put_u64",
+              "label": "Function",
+              "file_path": "arcana/src/storage/format.rs",
+              "score": 0.11594005170015793
+            }
+          ]
+        },
+        {
+          "id": "arcana-seed-composition",
+          "query": "Where are vocabulary-derived symbols and conceptual graph matches balanced before deterministic relationship expansion?",
+          "keywords": [
+            "vocabulary",
+            "derived",
+            "symbols",
+            "conceptual",
+            "graph",
+            "matches"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0,
+            0
+          ],
+          "latency_ms": 47.9059999997844,
+          "results": [
+            {
+              "name": "SearchManyWithConfig",
+              "qualified_name": "C-bin-workspace-grimoire.internal.retrieve.SearchManyWithConfig",
+              "label": "Function",
+              "file_path": "internal/retrieve/search.go",
+              "score": 0.93661496031149
+            },
+            {
+              "name": "nearestDeclarationAlias",
+              "qualified_name": "C-bin-workspace-grimoire.internal.retrieve.nearestDeclarationAlias",
+              "label": "Function",
+              "file_path": "internal/retrieve/search.go",
+              "score": 0.9326521625691649
+            },
+            {
+              "name": "TestCodecRoundTripPreservesPostingState",
+              "qualified_name": "C-bin-workspace-grimoire.internal.lexical.TestCodecRoundTripPreservesPostingState",
+              "label": "Function",
+              "file_path": "internal/lexical/codec_test.go",
+              "score": 0.9310941758279317
+            },
+            {
+              "name": "scoreChunk",
+              "qualified_name": "C-bin-workspace-grimoire.internal.retrieve.scoreChunk",
+              "label": "Function",
+              "file_path": "internal/retrieve/search.go",
+              "score": 0.9306893494730962
+            },
+            {
+              "name": "TestSearchDeclarationAliasPromotesMatchingDeclaration",
+              "qualified_name": "C-bin-workspace-grimoire.internal.retrieve.TestSearchDeclarationAliasPromotesMatchingDeclaration",
+              "label": "Function",
+              "file_path": "internal/retrieve/search_test.go",
+              "score": 0.9300493622308558
+            },
+            {
+              "name": "hasTerm",
+              "qualified_name": "C-bin-workspace-grimoire.internal.lexical.hasTerm",
+              "label": "Function",
+              "file_path": "internal/lexical/tokenize_test.go",
+              "score": 0.9300091076486855
+            }
+          ]
+        },
+        {
+          "id": "arcana-deterministic-expansion",
+          "query": "Which boundary resolves a few graph anchors and then asks for roles, dependents, uncertain references, and short execution paths?",
+          "keywords": [
+            "boundary",
+            "resolves",
+            "graph",
+            "anchors",
+            "asks",
+            "roles"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 45.155500003602356,
+          "results": [
+            {
+              "name": "eligibleAliasToken",
+              "qualified_name": "C-bin-workspace-grimoire.internal.retrieve.eligibleAliasToken",
+              "label": "Function",
+              "file_path": "internal/retrieve/search.go",
+              "score": -0.017755520605710874
+            },
+            {
+              "name": "receiverStart",
+              "qualified_name": "C-bin-workspace-grimoire.lexicon.adapters.gdscript.receiverStart",
+              "label": "Function",
+              "file_path": "lexicon/adapters/gdscript/call_parser.go",
+              "score": -0.017841346503134722
+            },
+            {
+              "name": "isPath",
+              "qualified_name": "C-bin-workspace-grimoire.internal.retrieve.isPath",
+              "label": "Function",
+              "file_path": "internal/retrieve/exact_signals.go",
+              "score": -0.017855245079056076
+            },
+            {
+              "name": "classifySignal",
+              "qualified_name": "C-bin-workspace-grimoire.internal.retrieve.classifySignal",
+              "label": "Function",
+              "file_path": "internal/retrieve/exact_signals.go",
+              "score": -0.020680032256148614
+            },
+            {
+              "name": "identifierTerms",
+              "qualified_name": "C-bin-workspace-grimoire.internal.lexiconfacts.identifierTerms",
+              "label": "Function",
+              "file_path": "internal/lexiconfacts/terms.go",
+              "score": -0.0207220339757462
+            },
+            {
+              "name": "readMacroCallee",
+              "qualified_name": "C-bin-workspace-grimoire.lexicon.adapters.c-family.readMacroCallee",
+              "label": "Function",
+              "file_path": "lexicon/adapters/c-family/macros.go",
+              "score": -0.020728574448503068
+            }
+          ]
+        },
+        {
+          "id": "arcana-graph-documents",
+          "query": "Where is each repository graph entity rendered with bounded inbound, outbound, and unresolved neighborhood text for embeddings?",
+          "keywords": [
+            "repository",
+            "graph",
+            "entity",
+            "rendered",
+            "bounded",
+            "inbound"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0,
+            0
+          ],
+          "latency_ms": 42.80329999892274,
+          "results": [
+            {
+              "name": "facts",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.repository_snapshot.RepositorySnapshot.facts",
+              "label": "Method",
+              "file_path": "arcana/src/repository/repository_snapshot.rs",
+              "score": -0.020695933859617894
+            },
+            {
+              "name": "protocol_parts_transfer_owned_components",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.repository_snapshot_tests.protocol_parts_transfer_owned_components",
+              "label": "Function",
+              "file_path": "arcana/src/repository/repository_snapshot_tests.rs",
+              "score": -0.020732938205847335
+            },
+            {
+              "name": "repository_identity_from_checksum",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.repository_snapshot_validation.repository_identity_from_checksum",
+              "label": "Function",
+              "file_path": "arcana/src/repository/repository_snapshot_validation.rs",
+              "score": -0.020738760838330546
+            },
+            {
+              "name": "binds_graph_catalogue_unresolved_and_source_facts",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.repository_snapshot_tests.binds_graph_catalogue_unresolved_and_source_facts",
+              "label": "Function",
+              "file_path": "arcana/src/repository/repository_snapshot_tests.rs",
+              "score": -0.020742402475760206
+            },
+            {
+              "name": "write_immutable",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.repository_snapshot_validation.write_immutable",
+              "label": "Function",
+              "file_path": "arcana/src/repository/repository_snapshot_validation.rs",
+              "score": -0.02074604603223156
+            },
+            {
+              "name": "decode",
+              "qualified_name": "C-bin-workspace-grimoire.arcana.src.repository.catalogue.RepositoryCatalogue.decode",
+              "label": "Method",
+              "file_path": "arcana/src/repository/catalogue.rs",
+              "score": -0.02074750399252938
+            }
+          ]
+        },
+        {
+          "id": "arcana-vector-search",
+          "query": "How is a conceptual task embedded, checked against immutable graph identity, scored over packed node vectors, and returned in stable order?",
+          "keywords": [
+            "conceptual",
+            "task",
+            "embedded",
+            "checked",
+            "immutable",
+            "graph"
+          ],
+          "pass": false,
+          "required_ranks": [
+            0
+          ],
+          "latency_ms": 41.768600000068545,
+          "results": [
+            {
+              "name": "enumeratedRetrievalClauses",
+              "qualified_name": "C-bin-workspace-grimoire.internal.queryshape.enumeratedRetrievalClauses",
+              "label": "Function",
+              "file_path": "internal/queryshape/decompose.go",
+              "score": 0.9198864315219148
+            },
+            {
+              "name": "scoreRetrievalClause",
+              "qualified_name": "C-bin-workspace-grimoire.internal.queryshape.scoreRetrievalClause",
+              "label": "Function",
+              "file_path": "internal/queryshape/decompose_rank.go",
+              "score": 0.9164656590368452
+            },
+            {
+              "name": "splitStrongPunctuation",
+              "qualified_name": "C-bin-workspace-grimoire.internal.queryshape.splitStrongPunctuation",
+              "label": "Function",
+              "file_path": "internal/queryshape/decompose.go",
+              "score": 0.9104779398443431
+            },
+            {
+              "name": "packageStructuralSelections",
+              "qualified_name": "C-bin-workspace-grimoire.internal.app.packageStructuralSelections",
+              "label": "Function",
+              "file_path": "internal/app/eval_retrieval_helpers.go",
+              "score": 0.908715334108493
+            },
+            {
+              "name": "DefaultQueryOptions",
+              "qualified_name": "C-bin-workspace-grimoire.internal.embedding.DefaultQueryOptions",
+              "label": "Function",
+              "file_path": "internal/embedding/query.go",
+              "score": 0.9071841648456204
+            },
+            {
+              "name": "testQueryOptions",
+              "qualified_name": "C-bin-workspace-grimoire.internal.embedding.testQueryOptions",
+              "label": "Function",
+              "file_path": "internal/embedding/query_test.go",
+              "score": 0.9068144684895085
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

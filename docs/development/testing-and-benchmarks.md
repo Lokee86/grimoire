@@ -233,6 +233,21 @@ grimoire eval knowledge \
 
 Use `--vectors` (the default) to compare the same BM25 run with the optional current documentation-vector snapshot. Vector errors are expected fallback observations when the model service, native engine, or snapshot is unavailable; they do not fail the case execution. The documentation report is separate from `grimoire eval retrieval` and never exercises source-code retrieval.
 
+## CBM owner comparison
+
+`evaluation/run_cbm_owner_benchmark.py` scores an indexed Codebase Memory MCP project against an Arcana owner corpus. It reports CBM's natural-language BM25 results and keyword-array semantic results separately at the corpus top-k. The script does not fuse the two rankings or treat corpus judgments as absolute ground truth.
+
+```bash
+python evaluation/run_cbm_owner_benchmark.py \
+  --cbm-command C:/!bin/workspace/cbm-bin/codebase-memory-mcp.exe \
+  --project C-bin-workspace-grimoire \
+  --repository-root . \
+  --cases evaluation/arcana/grimoire.json \
+  --output-prefix cbm-grimoire-owner-benchmark
+```
+
+Index the target working tree with CBM immediately before comparison. Record CBM version, project name, corpus revision, and top-k. CBM latency is not directly comparable to a complete Grimoire context request; this benchmark compares only exact owner retrieval from the respective seed-search surfaces.
+
 ## Report outputs
 
 The evaluators write JSON and Markdown under `evaluation/results/`. Source reports include source and structural recall, irrelevant-selection rates, ranking recall and MRR, query-profile agreement, latency, package size, budget utilization, provider warnings, and loss attribution through retrieval, merge, curation, adaptive assembly, and final fitting. Arcana paired reports include seed and final structural recall, recall@k, MRR, latency, payload size, provider calls, and vector-minus-baseline deltas. Documentation reports include required-section recall, recall@k, MRR, irrelevant selections, vector usage/errors, per-case latency, and deterministic rankings.
