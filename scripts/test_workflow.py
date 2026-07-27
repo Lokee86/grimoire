@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 import workflow
 
@@ -59,6 +60,41 @@ class WorkflowSmokeTests(unittest.TestCase):
             self.assertTrue((subset / "lexicon.exe").is_file())
             self.assertFalse((subset / "grimoire.exe").exists())
             self.assertFalse((subset / "lodestone_ffi.dll").exists())
+
+    def test_component_tests_are_cpu_bounded_by_default(self) -> None:
+        calls: list[tuple[list[str], Path, dict[str, str] | None]] = []
+
+        def record(command: list[str], cwd: Path, env: dict[str, str] | None = None) -> None:
+            calls.append((list(command), cwd, env))
+
+        with mock.patch.object(workflow, "cargo_command", return_value="cargo"), \
+                mock.patch.object(workflow, "run", side_effect=record):
+            workflow.test()
+
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(calls[0][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
+        self.assertEqual(calls[1][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
+        self.assertEqual(
+            calls[2][0],
+            [
+                "cargo", "test", "--jobs", "1", "--all-targets", "--locked",
+                "--manifest-path", str(workflow.ROOT / "arcana" / "Cargo.toml"),
+                "--", "--test-threads", "1",
+            ],
+        )
+        for _, _, environment in calls:
+            self.assertIsNotNone(environment)
+            self.assertEqual(environment["GOMAXPROCS"], "1")
+            self.assertEqual(environment["CARGO_BUILD_JOBS"], "1")
+            self.assertEqual(environment["RUST_TEST_THREADS"], "1")
+
+    def test_release_jobs_default_and_override(self) -> None:
+        default = workflow.parse_args(["release", "--version", "1.2.3"])
+        self.assertEqual(default.jobs, 1)
+        overridden = workflow.parse_args(["release", "--version", "1.2.3", "--jobs", "3"])
+        self.assertEqual(overridden.jobs, 3)
+        with self.assertRaises(ValueError):
+            workflow.validate_jobs(0)
 
     def test_version_validation_rejects_path_values(self) -> None:
         with self.assertRaises(ValueError):

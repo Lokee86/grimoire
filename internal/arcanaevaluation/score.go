@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
@@ -149,9 +148,9 @@ func countRequiredSeedsAtK(expectations []SeedExpectation, seeds []RankedSeed, k
 	return count
 }
 
-func structuralMatchesAny(expected evaluation.StructuralExpectation, evidence []structure.Evidence) bool {
+func structuralMatchesAny(expected StructuralExpectation, evidence []structure.Evidence) bool {
 	for _, item := range evidence {
-		if evaluation.StructuralExpectationMatches(expected, item) {
+		if structuralExpectationMatches(expected, item) {
 			return true
 		}
 	}

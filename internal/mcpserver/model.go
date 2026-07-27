@@ -38,10 +38,10 @@ func (options Options) normalized() Options {
 		options.Version = "0.1.0-dev"
 	}
 	if options.ToolName == "" {
-		options.ToolName = "grimoire_query"
+		options.ToolName = "grimoire_discover"
 	}
 	if options.Description == "" {
-		options.Description = "Query deterministic repository structure, source, and knowledge with progressive stable handles."
+		options.Description = "Discover exact source, implementation, documentation, symbols, and relationships with progressive stable handles."
 	}
 	if options.InputSchema == nil {
 		options.InputSchema = map[string]any{

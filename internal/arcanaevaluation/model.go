@@ -3,7 +3,6 @@ package arcanaevaluation
 import (
 	"time"
 
-	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
@@ -23,14 +22,14 @@ type SeedExpectation struct {
 }
 
 type Case struct {
-	ID                   string                             `json:"id"`
-	Query                string                             `json:"query"`
-	Category             string                             `json:"category"`
-	RequiredSeeds        []SeedExpectation                  `json:"required_seeds"`
-	SupportingSeeds      []SeedExpectation                  `json:"supporting_seeds,omitempty"`
-	RequiredStructural   []evaluation.StructuralExpectation `json:"required_structural"`
-	SupportingStructural []evaluation.StructuralExpectation `json:"supporting_structural,omitempty"`
-	Notes                string                             `json:"notes,omitempty"`
+	ID                   string                  `json:"id"`
+	Query                string                  `json:"query"`
+	Category             string                  `json:"category"`
+	RequiredSeeds        []SeedExpectation       `json:"required_seeds"`
+	SupportingSeeds      []SeedExpectation       `json:"supporting_seeds,omitempty"`
+	RequiredStructural   []StructuralExpectation `json:"required_structural"`
+	SupportingStructural []StructuralExpectation `json:"supporting_structural,omitempty"`
+	Notes                string                  `json:"notes,omitempty"`
 }
 
 type Corpus struct {
@@ -65,8 +64,8 @@ type RecallMetric struct {
 }
 
 type StructuralJudgment struct {
-	Expectation evaluation.StructuralExpectation `json:"expectation"`
-	Matched     bool                             `json:"matched"`
+	Expectation StructuralExpectation `json:"expectation"`
+	Matched     bool                  `json:"matched"`
 }
 
 type Timings struct {

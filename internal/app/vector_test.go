@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/Lokee86/grimoire/internal/compiler"
+	"github.com/Lokee86/grimoire/internal/agentruntime"
 	"github.com/Lokee86/grimoire/internal/knowledge"
 	"github.com/Lokee86/grimoire/internal/knowledgevector"
 	"github.com/Lokee86/grimoire/internal/vectorstore"
@@ -113,19 +113,22 @@ func TestKnowledgeVectorBuildReusesObjectsAndSearches(t *testing.T) {
 		t.Fatalf("unexpected knowledge vector search: %+v", result)
 	}
 
-	var contextOutput, contextErrors bytes.Buffer
+	var discoveryOutput bytes.Buffer
 	if err := Run([]string{
-		"context", "--root", root, "--query", "where is damage resolved",
-		"--candidate-limit", "1", "--budget", "500", "--structure=false",
-	}, &contextOutput, &contextErrors); err != nil {
+		"search", "--root", root, "--query", "where is damage resolved",
+		"--limit", "1", "--code-only",
+	}, &discoveryOutput, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	var contextPackage compiler.Package
-	if err := json.Unmarshal(contextOutput.Bytes(), &contextPackage); err != nil {
+	var discovery agentruntime.Response
+	if err := json.Unmarshal(discoveryOutput.Bytes(), &discovery); err != nil {
 		t.Fatal(err)
 	}
-	if contextErrors.Len() != 0 || len(contextPackage.RetrievalSources) != 1 || contextPackage.RetrievalSources[0] != "lexical" {
-		t.Fatalf("source context should remain lexical-only: warnings=%q sources=%+v", contextErrors.String(), contextPackage.RetrievalSources)
+	if len(discovery.SourceMatches) != 1 || discovery.SourceMatches[0].Provider != "lexical" {
+		t.Fatalf("source discovery should remain independently lexical: %+v", discovery.SourceMatches)
+	}
+	if len(discovery.DocumentMatches) != 0 {
+		t.Fatalf("code-only discovery returned documentation: %+v", discovery.DocumentMatches)
 	}
 
 	if err := os.WriteFile(filepath.Join(root, "docs", "damage.md"), []byte("# Damage resolution\n\nDamage now resolves through ApplyDamage.\n"), 0o644); err != nil {

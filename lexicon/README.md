@@ -120,7 +120,7 @@ Lexicon owns language extraction, normalized fact identities, source ownership, 
 Lexicon does not own:
 
 - graph query algorithms or packed graph traversal; Arcana owns those concerns;
-- retrieval ranking or context-package construction; Grimoire owns those concerns;
+- repository discovery policy, source/document ranking, or investigation sessions; Grimoire owns those concerns;
 - documentation policy or repository documentation repair; Demon Docs owns those concerns;
 - runtime instrumentation providers; the runtime-evidence contract only defines their exchange boundary;
 - general repository version control; the private Git mirror is an internal change detector, not a user-facing history.
@@ -156,7 +156,7 @@ Detailed prerequisites, focused commands, race checks, validation rules, and doc
 
 ## Grimoire and the Warlock toolchain
 
-Lexicon is independently usable, but its canonical source now shares the Grimoire repository with Arcana and the context engine. Arcana consumes Lexicon snapshots to build queryable graphs; Grimoire Context and other Warlock tools can consume the same facts without maintaining duplicate language adapters. Repository consolidation does not make Lexicon depend on either downstream component.
+Lexicon is independently usable, but its canonical source now shares the Grimoire repository with Arcana and Grimoire's discovery application. Arcana consumes Lexicon snapshots to build queryable graphs; Grimoire and other Warlock tools can consume the same facts without maintaining duplicate language adapters. Repository consolidation does not make Lexicon depend on either downstream component.
 
 ## License
 

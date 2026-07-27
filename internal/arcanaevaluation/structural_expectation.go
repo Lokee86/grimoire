@@ -1,4 +1,4 @@
-package evaluation
+package arcanaevaluation
 
 import (
 	"strings"
@@ -6,48 +6,22 @@ import (
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
-func scoreStructuralGroup(group []StructuralExpectation, stages Stages) []StructuralEvidenceStatus {
-	result := make([]StructuralEvidenceStatus, 0, len(group))
-	for _, expected := range group {
-		status := StructuralEvidenceStatus{
-			Evidence:  expected,
-			Produced:  structuralEvidencePresent(expected, stages.StructuralProduced),
-			Composed:  structuralEvidencePresent(expected, stages.StructuralComposed),
-			Assembled: structuralEvidencePresent(expected, stages.StructuralAssembled),
-			Included:  structuralEvidencePresent(expected, stages.StructuralIncluded),
-		}
-		switch {
-		case status.Included:
-		case status.Assembled:
-			status.FailureStage = FailureStructuralBudgetFittingLoss
-		case status.Composed:
-			status.FailureStage = FailureStructuralAssemblyLoss
-		case status.Produced:
-			status.FailureStage = FailureStructuralCompositionLoss
-		default:
-			status.FailureStage = FailureStructuralProviderMiss
-		}
-		result = append(result, status)
-	}
-	return result
-}
-
-func structuralEvidencePresent(expected StructuralExpectation, evidence []structure.Evidence) bool {
-	for _, item := range evidence {
-		if structuralExpectationMatches(expected, item) {
-			return true
-		}
-	}
-	return false
-}
-
-func structuralMatchesAny(group []StructuralExpectation, item structure.Evidence) bool {
-	for _, expected := range group {
-		if structuralExpectationMatches(expected, item) {
-			return true
-		}
-	}
-	return false
+// StructuralExpectation describes one Arcana fact required by an evaluation
+// case. Empty optional fields are wildcards. Chain is matched as an ordered
+// subsequence of call-chain node names or qualified names.
+type StructuralExpectation struct {
+	Provider     string   `json:"provider"`
+	Kind         string   `json:"kind"`
+	Symbol       string   `json:"symbol,omitempty"`
+	Path         string   `json:"path,omitempty"`
+	Relation     string   `json:"relation,omitempty"`
+	Direction    string   `json:"direction,omitempty"`
+	Certainty    string   `json:"certainty,omitempty"`
+	TargetSymbol string   `json:"target_symbol,omitempty"`
+	TargetPath   string   `json:"target_path,omitempty"`
+	Chain        []string `json:"chain,omitempty"`
+	Expression   string   `json:"expression,omitempty"`
+	Reason       string   `json:"reason,omitempty"`
 }
 
 func structuralExpectationMatches(expected StructuralExpectation, item structure.Evidence) bool {
@@ -68,17 +42,9 @@ func structuralExpectationMatches(expected StructuralExpectation, item structure
 	}
 	if expected.Relation != "" || expected.Direction != "" || expected.Certainty != "" ||
 		expected.TargetSymbol != "" || expected.TargetPath != "" {
-		if !evidenceHasRelatedTarget(item, expected) {
-			return false
-		}
+		return evidenceHasRelatedTarget(item, expected)
 	}
 	return true
-}
-
-// StructuralExpectationMatches exposes the judged structural matcher to
-// specialized evaluation lanes without making it part of runtime retrieval.
-func StructuralExpectationMatches(expected StructuralExpectation, item structure.Evidence) bool {
-	return structuralExpectationMatches(expected, item)
 }
 
 func evidenceHasSubject(item structure.Evidence, symbol, path string) bool {
@@ -195,7 +161,7 @@ func nodeMatches(node structure.Node, symbol, path string) bool {
 	if actual == "" && node.Span != nil {
 		actual = node.Span.Path
 	}
-	return filepathKey(actual) == filepathKey(path)
+	return seedPathKey(actual) == seedPathKey(path)
 }
 
 func nodeNameMatches(node structure.Node, expected string) bool {
@@ -204,25 +170,4 @@ func nodeNameMatches(node structure.Node, expected string) bool {
 
 func sameFold(left, right string) bool {
 	return strings.EqualFold(strings.TrimSpace(left), strings.TrimSpace(right))
-}
-
-func structuralRecall(statuses []StructuralEvidenceStatus) float64 {
-	if len(statuses) == 0 {
-		return 0
-	}
-	included := 0
-	for _, status := range statuses {
-		if status.Included {
-			included++
-		}
-	}
-	return float64(included) / float64(len(statuses))
-}
-
-func requiredSatisfied(statuses []EvidenceStatus) bool {
-	return len(statuses) == 0 || recall(statuses) == 1
-}
-
-func structuralRequiredSatisfied(statuses []StructuralEvidenceStatus) bool {
-	return len(statuses) == 0 || structuralRecall(statuses) == 1
 }

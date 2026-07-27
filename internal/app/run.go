@@ -45,8 +45,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		return runStatus(args[1:], stdout, stderr)
 	case "knowledge":
 		return runKnowledge(args[1:], stdout, stderr)
-	case "context":
-		return runContext(args[1:], stdout, stderr)
+	case "orient", "search", "trace", "impact", "inspect":
+		return runQuery(args, stdout, stderr)
 	case "query":
 		return runQuery(args[1:], stdout, stderr)
 	case "eval":
@@ -56,7 +56,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		if len(args) > 1 && args[1] == "knowledge" {
 			return runEvalKnowledge(args[2:], stdout, stderr)
 		}
-		return runEval(args[1:], stdout, stderr)
+		return errors.New("expected evaluation command: arcana or knowledge")
 	case "model":
 		return runModel(args[1:], stdout, stderr)
 	case "vector":
@@ -74,7 +74,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 }
 
 func writeRootHelp(writer io.Writer) error {
-	_, err := fmt.Fprint(writer, `Grimoire builds task-focused repository context from source, Lexicon facts, and Arcana graphs.
+	_, err := fmt.Fprint(writer, `Grimoire is a unified repository discovery interface over source, documentation, Lexicon symbols, and Arcana relationships.
 
 Usage:
   grimoire <command> [flags]
@@ -88,20 +88,25 @@ Core workflow:
   grimoire vector build --root .       Build or refresh documentation vectors
   grimoire eval knowledge --cases ...  Judge documentation retrieval against a frozen corpus
   grimoire eval arcana --cases ...     Compare Arcana graph retrieval with and without vectors
-  grimoire query orient --root .       Discover compact repository anchors
-  grimoire query trace --anchor <id>   Expand an exact structural handle
-  grimoire mcp --root .                Serve the progressive agent tool over stdio
-  grimoire context --root . --query "Trace this behavior"
+  grimoire orient --root .             Discover compact repository anchors
+  grimoire search --root . --query ... Search independent evidence lanes
+  grimoire trace --anchor <id>         Expand an exact structural handle
+  grimoire inspect --handle <id>       Read exact source or documentation
+  grimoire mcp --root .                Serve the unified discovery tool over stdio
 
 Commands:
-  query     Progressively orient, search, trace, impact, and inspect
-  context   Build a context package
+  orient    Discover compact source and symbol anchors
+  search    Search exact, source, documentation, symbol, and relationship lanes
+  trace     Expand bounded structural paths from a returned handle
+  impact    Find bounded incoming or outgoing dependents
+  inspect   Read exact evidence for returned handles
+  query     Compatibility entry point for the discovery modes
   index     Prepare repository source state
   status    Inspect or prepare repository analysis state
   knowledge Index, search, inspect, or vectorize repository knowledge
   vector    Build or inspect documentation vector state
   investigation  Create, inspect, or close an agent investigation ledger session
-  mcp       Serve the unified progressive agent query tool over stdio
+  mcp       Serve the unified repository discovery tool over stdio
   model     Set up and manage the embedding runtime
   eval      Run judged retrieval evaluation
   version   Print the Grimoire version

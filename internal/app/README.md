@@ -1,52 +1,57 @@
 # Application package
 
-`internal/app` owns Grimoire's CLI surface and cross-package orchestration. It converts commands and flags into typed package calls without absorbing domain ownership.
+`internal/app` owns Grimoire's CLI and MCP surfaces plus cross-package orchestration. It converts commands and flags into typed calls without absorbing provider domain ownership.
 
 ## Commands
 
-- `model setup`, `info`, `serve`, and lifecycle commands — managed embedding runtime operations.
+- `orient`, `search`, `trace`, `impact`, and `inspect` — the unified discovery interface.
+- `query` — compatibility entry point for the same discovery modes.
+- `mcp` — stdio server exposing one `grimoire_discover` tool.
+- `status` — repository and provider state inspection or refresh.
 - `index` — prepared source-state construction.
-- `knowledge index|search|inspect|vector` — independent documentation and rationale retrieval.
-- `vector build|info` — aliases for documentation-vector workflows.
-- `query` and `mcp` — progressive code and knowledge retrieval.
-- `context` — deterministic source, structural, policy, assembly, and package orchestration.
-- `eval retrieval` — judged deterministic source/structural corpus execution and report publication.
-- `eval knowledge` — judged documentation retrieval with optional vector supplementation.
+- `knowledge index|search|inspect` — standalone document-lane diagnostics.
+- `vector build|info` — optional document-vector workflows.
+- `model setup|info|serve|start|stop|probe` — managed embedding runtime operations.
 - `investigation create|status|close` — persistent discovery-ledger lifecycle.
+- `eval knowledge` and `eval arcana` — component evaluation.
 - `version` — build identity.
 
-## Context pipeline
+The former `context` command is retired.
 
-The production context path:
+## Discovery flow
 
-1. resolves repository and prepared source state;
-2. performs deterministic BM25 source retrieval;
-3. performs concrete exact recovery;
-4. schedules Lexicon and Arcana work under bounded timeouts;
-5. merges exact, lexical, and structural source candidates;
-6. asks `queryshape` for a profile and retrieval policy;
-7. curates source candidates;
-8. activates `assembly` only when no positive fixed budget was supplied; and
-9. invokes `compiler` with source and structural evidence.
+1. Normalize the repository and requested state mode.
+2. Align Grimoire source state with available Lexicon and Arcana snapshots.
+3. Execute provider-neutral source and structural discovery through `internal/agentquery`.
+4. Execute the independent document lane through `internal/knowledge`.
+5. Return exact, source, document, symbol, and relationship evidence as separate lanes.
+6. Expand returned handles through inspect, trace, or impact.
+7. Optionally record evidence in one investigation session.
 
-Repository-wide source vectors are not part of this path. Provider failures become warnings when deterministic source retrieval can continue.
+No package compiler or token-fitting stage sits between discovered evidence and the agent.
 
-## Knowledge pipeline
+## State preparation
 
-`knowledge search` always uses BM25. Documentation vectors are opt-in; when requested and current, `internal/knowledgevector` supplies supplemental scores through the existing `knowledge.VectorRanker` seam. Missing, stale, or unavailable vectors leave BM25 results intact and expose a vector warning in the response.
+`discovery_prepare.go` runs Grimoire-owned source and document preparation in process while preserving Lexicon and Arcana as explicit executable boundaries. Provider failures become warnings when other discovery lanes can continue.
+
+## Document lane
+
+Document BM25 is deterministic and independent. Optional vectors supplement only document ranking. Missing or stale vectors preserve BM25 results and produce a warning.
 
 ## File map
 
-- `run.go` — top-level dispatch and shared source-index command.
-- `model*.go` — runtime setup, discovery, serving, and endpoint probes.
-- `knowledge.go` and `knowledge_vectors.go` — knowledge CLI and documentation vectors.
-- `context.go` — public deterministic context command.
-- `context_evaluation.go` — judged production source/structural retrieval execution.
-- `context_structure.go` — Lexicon/Arcana discovery, scheduling, and composition.
-- `eval_retrieval.go` — deterministic source/structural corpus flags and reports.
-- `eval_knowledge.go` — documentation corpus execution and reports.
-- `investigation.go` — investigation-ledger lifecycle commands.
+- `run.go` — top-level dispatch and help.
+- `query.go` — direct discovery CLI parsing.
+- `mcp.go` — unified MCP schema and server.
+- `discovery_prepare.go` — in-process Grimoire preparation plus external provider execution.
+- `index.go` and related files — source preparation.
+- `knowledge.go` and `knowledge_vectors.go` — document diagnostics and optional vectors.
+- `model*.go` — embedding runtime setup and lifecycle.
+- `investigation.go` — investigation-ledger lifecycle.
+- `eval_knowledge.go` and `eval_arcana.go` — component evaluation.
+
+The retired context command and its package assembly, compiler, curation, query-shape, diff-context, graph-ranking, and source-evaluation implementations have been removed.
 
 ## Boundary
 
-`internal/app` may coordinate packages and translate errors, but ranking formulas, query classification, evidence coverage, graph semantics, token fitting, vector storage, knowledge-vector identity, and corpus scoring belong to `retrieve`, `queryshape`, `assembly`, `structure`, `compiler`, `vectorstore`, `knowledgevector`, and `evaluation` respectively.
+`internal/app` coordinates packages and translates errors. Source ranking belongs to `retrieve`; document ranking to `knowledge`; language facts to Lexicon; graph semantics to Arcana; vector storage to Lodestone; and investigation persistence to `investigation`.

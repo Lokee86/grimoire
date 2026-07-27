@@ -1,47 +1,58 @@
-# Agent MCP runtime
+# Grimoire MCP interface
 
-`grimoire mcp` serves one progressive repository tool over MCP stdio:
+`grimoire mcp` serves the unified discovery contract over stdio.
 
 ```bash
-grimoire mcp --root /path/to/repository
+grimoire mcp --root .
 ```
 
-The exposed tool is `grimoire_query`. It accepts the `grimoire.query.v1` orient, search, trace, impact, and inspect fields plus:
+The server exposes one tool: `grimoire_discover`.
+
+## Normal workflow
+
+1. Call `search` with the repository question.
+2. Review the independent exact, source, document, symbol, and relationship lanes.
+3. Use returned handles with `inspect`, `trace`, or `impact`.
+4. Reuse one `session` name for the investigation so previously returned evidence is represented by compact prior handles rather than replayed.
+
+`orient` is useful when the repository is unfamiliar, but agents should normally begin a concrete task with `search`.
+
+## Input
+
+The tool accepts the `grimoire.discovery.v1` fields documented in [Unified discovery contract](agent-query.md), plus automatic-state and session fields:
 
 - `state_mode`: `current-only`, `refresh-if-needed`, or `force-refresh`;
-- `session`: a stable investigation name used to deduplicate evidence across calls;
-- `include_knowledge`: whether documentation and design-rationale retrieval is included;
-- `use_knowledge_vectors`: whether the optional documentation-vector ranker is used; the default is BM25-only;
-- `code_only`: an explicit override for excluding documentation from source results.
+- `session`: optional investigation-session name;
+- `include_documents`: whether the separate documentation lane is returned;
+- `use_document_vectors`: whether current documentation vectors augment document BM25 ranking.
 
-The default state mode is `refresh-if-needed`. Grimoire checks the source fingerprint and repository-local `.lexicon`, `.arcana`, and `.grimoire` state before each call. Provider commands are resolved in this order: explicit request path, repository `.grimoire/providers.json`, executables beside Grimoire, a canonical Grimoire checkout, and finally `PATH`. Checkout discovery accepts `GRIMOIRE_HOME` and can derive the checkout from the target repository's Lexicon `adapter_root`, so child processes do not depend on inherited shell `PATH`. Structural-provider failures become warnings and source retrieval remains available; a required Grimoire source-index refresh still fails the request if it cannot complete.
+Provider override fields are accepted for controlled environments, but agents should not choose between Grimoire, Lexicon, and Arcana. Grimoire owns that routing.
 
-Repository provider configuration is optional:
+## Output
 
-```json
-{
-  "version": 1,
-  "lexicon_command": "C:/tools/grimoire/bin/lexicon.exe",
-  "arcana_command": "C:/tools/grimoire/bin/arcana.exe"
-}
-```
+The MCP response is the same flattened discovery response used by the CLI:
 
-Relative command paths are resolved from the analyzed repository root.
+- `exact_matches`
+- `source_matches`
+- `document_matches`
+- `symbol_matches`
+- `relationship_matches`
+- mode-specific `paths`, `dependents`, or `inspections`
+- `snapshot`, `preparation`, `warnings`, and `truncated_lanes`
 
-## Progressive response behavior
+When `session` is supplied, newly discovered evidence is returned through `delta`; repeated evidence is represented by prior handles.
 
-Without `session`, the response contains typed query evidence and bounded knowledge excerpts. Search and orientation results include at most 1,200 bytes of section text, four ranking reasons, and eight code-link hints. Returned query handles can be passed to later `trace`, `impact`, or `inspect` calls. Inspecting a `knowledge://` handle returns the complete exact section.
+## Evidence semantics
 
-With `session`, Grimoire records evidence under `.grimoire/investigations/<session>/`. The first call returns new nodes, source ranges, graph paths, documents, questions, and accepted or rejected branches. Repeated evidence is replaced with prior ledger handles rather than replayed content. Query handles and suggestions remain available so the caller can continue expanding the investigation.
+Source and documentation must be interpreted separately:
 
-Sessions are bound to the prepared source identity and active provider snapshot identities. A stale handle or a session opened against different state is rejected rather than silently rediscovered.
+- Source is the authority for current implementation behavior.
+- Documentation supplies intent, rationale, plans, or historical constraints.
 
-## Recommended agent loop
+Documentation is never inserted into source or symbol lanes and never consumes their result limits.
 
-1. Call `orient` once for an unfamiliar repository.
-2. Call `search` with a concrete behavior, symbol, contract, endpoint, or message.
-3. Reuse a returned handle with `trace` or `impact`.
-4. Use `inspect` only for exact source or knowledge handles needed for the implementation.
-5. Reuse one `session` throughout the task to avoid evidence replay.
+## State preparation
 
-Code and knowledge are deliberately separate lanes. When knowledge retrieval is enabled, `orient` and `search` automatically keep documentation out of code results and return relevant documentation through the knowledge results instead.
+The MCP runtime aligns Grimoire, Lexicon, Arcana, and documentation state before querying when `state_mode` permits refresh. Missing or failed structural providers are reported as warnings. Source and document discovery continue when possible.
+
+Vector state is never required for source, symbol, or relationship discovery. Documentation vectors are optional and are validated for freshness before use.

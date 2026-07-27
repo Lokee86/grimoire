@@ -12,7 +12,7 @@ The default state path is:
 <repository-root>/.grimoire
 ```
 
-`grimoire index --state <path>` and `grimoire context --state <path>` select another location. Relative state paths are resolved from the repository root. The active state path is excluded from indexing.
+`grimoire index --state <path>` and discovery commands with `--state <path>` select another location. Relative state paths are resolved from the repository root. The active state path is excluded from indexing.
 
 ## Snapshot layout
 
@@ -112,9 +112,9 @@ Loading verifies:
 
 ## Migration and legacy cleanup
 
-Prepared state before version 4 lacks the current preparation hashes, semantic chunk metadata, and required lexical sidecar. `grimoire index` recognizes the incompatible manifest, uses the current state root as its compare-and-swap base, rebuilds all eligible file and lexical records, and publishes a version-4 snapshot without deleting the state repository first. `grimoire context` requires a compatible index and reports the incompatibility until indexing is run.
+Prepared state before version 4 lacks the current preparation hashes, semantic chunk metadata, and required lexical sidecar. `grimoire index` recognizes the incompatible manifest, uses the current state root as its compare-and-swap base, rebuilds all eligible file and lexical records, and publishes a version-4 snapshot without deleting the state repository first. Discovery commands require a compatible source snapshot and refresh or report the incompatibility according to the selected state mode.
 
-Successful saves also remove the former `.grimoire/index.json` file when present. The active prepared state is object-backed; JSON is used only for command output and context packages.
+Successful saves also remove the former `.grimoire/index.json` file when present. The active prepared state is object-backed; JSON is used only for command and MCP output.
 
 ## Code map
 

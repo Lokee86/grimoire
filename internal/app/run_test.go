@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/agentquery"
-	"github.com/Lokee86/grimoire/internal/compiler"
+	"github.com/Lokee86/grimoire/internal/agentruntime"
 	"github.com/Lokee86/grimoire/internal/index"
 )
 
@@ -18,7 +18,7 @@ func TestRootHelpIsUseful(t *testing.T) {
 		if err := Run(args, &output, &bytes.Buffer{}); err != nil {
 			t.Fatalf("Run(%v): %v", args, err)
 		}
-		for _, expected := range []string{"Usage:", "grimoire model start", "grimoire query orient", "grimoire context", "Lexicon", "Arcana"} {
+		for _, expected := range []string{"Usage:", "grimoire model start", "grimoire orient", "grimoire search", "Lexicon", "Arcana"} {
 			if !bytes.Contains(output.Bytes(), []byte(expected)) {
 				t.Fatalf("Run(%v) help missing %q:\n%s", args, expected, output.String())
 			}
@@ -30,6 +30,14 @@ func TestUnknownCommandPointsToHelp(t *testing.T) {
 	err := Run([]string{"unknown"}, &bytes.Buffer{}, &bytes.Buffer{})
 	if err == nil || !bytes.Contains([]byte(err.Error()), []byte("grimoire help")) {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRetiredContextAndRetrievalEvalAreUnavailable(t *testing.T) {
+	for _, args := range [][]string{{"context"}, {"eval", "retrieval"}} {
+		if err := Run(args, &bytes.Buffer{}, &bytes.Buffer{}); err == nil {
+			t.Fatalf("retired command remained available: %v", args)
+		}
 	}
 }
 
@@ -112,49 +120,38 @@ func TestIndexIncludeGeneratedFlag(t *testing.T) {
 	}
 }
 
-func TestIndexThenCompileContext(t *testing.T) {
+func TestIndexThenSearchUnifiedDiscovery(t *testing.T) {
 	root := t.TempDir()
 	content := "package damage\n\nfunc ResolveDamage() int { return 10 }\n"
 	if err := os.WriteFile(filepath.Join(root, "damage.go"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	var indexOutput bytes.Buffer
-	if err := Run([]string{"index", "--root", root}, &indexOutput, &bytes.Buffer{}); err != nil {
+	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".grimoire", "objects")); err != nil {
 		t.Fatal(err)
 	}
 
-	var contextOutput bytes.Buffer
-	var contextErrors bytes.Buffer
+	var output bytes.Buffer
 	if err := Run([]string{
-		"context", "--root", root,
-		"--query", "resolve damage",
-		"--budget", "500",
-	}, &contextOutput, &contextErrors); err != nil {
+		"search", "--root", root,
+		"--query", "ResolveDamage",
+		"--code-only",
+	}, &output, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
 
-	var result compiler.Package
-	if err := json.Unmarshal(contextOutput.Bytes(), &result); err != nil {
+	var result agentruntime.Response
+	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Selections) != 1 {
-		t.Fatalf("expected one selection, got %+v", result.Selections)
+	if result.Schema != agentquery.SchemaVersion || len(result.ExactMatches)+len(result.SourceMatches) == 0 {
+		t.Fatalf("unexpected discovery result: %+v", result)
 	}
-	if result.Selections[0].Path != "damage.go" {
-		t.Fatalf("unexpected selection: %+v", result.Selections[0])
-	}
-	if len(result.RetrievalSources) != 2 || result.RetrievalSources[0] != "lexical" || result.RetrievalSources[1] != "lexical-file" {
-		t.Fatalf("expected chunk and file lexical discovery, got %+v", result.RetrievalSources)
-	}
-	if result.Selections[0].RetrievalSource != "lexical" || result.Selections[0].RetrievalRank != 1 {
-		t.Fatalf("unexpected fallback provenance: %+v", result.Selections[0])
-	}
-	if contextErrors.Len() != 0 {
-		t.Fatalf("unexpected context warning: %q", contextErrors.String())
+	if len(result.DocumentMatches) != 0 {
+		t.Fatalf("code-only search returned documents: %+v", result.DocumentMatches)
 	}
 }
 
@@ -178,12 +175,12 @@ func TestQueryAcceptsVersionedJSONRequest(t *testing.T) {
 	if err := Run([]string{"query", "--request", string(request)}, &output, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	var response agentquery.Response
+	var response agentruntime.Response
 	if err := json.Unmarshal(output.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
 	if response.Schema != agentquery.SchemaVersion || response.Mode != "search" ||
-		len(response.Results) == 0 || response.Results[0].Node.Handle.Value == "" {
+		len(response.ExactMatches)+len(response.SourceMatches) == 0 {
 		t.Fatalf("unexpected query response: %+v", response)
 	}
 }

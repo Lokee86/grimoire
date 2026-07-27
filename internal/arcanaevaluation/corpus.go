@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"github.com/Lokee86/grimoire/internal/evaluation"
 )
 
 var structuralKinds = map[string]struct{}{
@@ -74,7 +72,7 @@ func LoadCorpus(path string) (Corpus, error) {
 				}
 			}
 		}
-		for _, group := range [][]evaluation.StructuralExpectation{entry.RequiredStructural, entry.SupportingStructural} {
+		for _, group := range [][]StructuralExpectation{entry.RequiredStructural, entry.SupportingStructural} {
 			for _, expectation := range group {
 				if err := validateStructuralExpectation(entry.ID, expectation); err != nil {
 					return Corpus{}, err
@@ -95,7 +93,7 @@ func validateSeedExpectation(caseID string, expectation SeedExpectation) error {
 	return nil
 }
 
-func validateStructuralExpectation(caseID string, expectation evaluation.StructuralExpectation) error {
+func validateStructuralExpectation(caseID string, expectation StructuralExpectation) error {
 	if !strings.EqualFold(strings.TrimSpace(expectation.Provider), "arcana") {
 		return fmt.Errorf("case %q structural provider must be Arcana, got %q", caseID, expectation.Provider)
 	}

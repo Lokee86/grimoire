@@ -1,78 +1,102 @@
-# Agent query API
+# Unified discovery contract
 
-`grimoire query` is a progressive, JSON-first repository query interface. It
-uses prepared source plus repository-local Lexicon and Arcana state; vectors are
-not required. Evidence order is deterministic: literal source, Lexicon facts,
-Arcana graph, then prepared-source BM25. `--code-only` excludes documentation
-from the source and structural lanes so a separate knowledge consumer can own
-repository rationale without duplicating it as code evidence.
+Grimoire exposes one progressive repository-discovery interface over prepared source, repository documentation, Lexicon symbols, and Arcana relationships. Consumers do not select a provider. Grimoire routes each operation internally and returns provider provenance with every result.
+
+The schema is `grimoire.discovery.v1`.
 
 ## Modes
 
 ```bash
-grimoire query orient --root .
-grimoire query search --root . --query "SubmitLogin"
-grimoire query trace --root . --anchor "<handle>" --depth 3
-grimoire query impact --root . --anchor "<handle>" --direction incoming
-grimoire query inspect --root . --handle "<handle>" --adjacent-context 3
+grimoire orient --root .
+grimoire search --root . --query "SubmitLogin"
+grimoire trace --root . --anchor "<handle>" --depth 3
+grimoire impact --root . --anchor "<handle>" --direction incoming
+grimoire inspect --root . --handle "<handle>" --adjacent-context 3
 ```
 
-- `orient` returns compact symbol, file, contract, test, and documentation
-  anchors plus suggested `search`, `trace`, or `inspect` expansions.
-- `search` combines exact, Lexicon, Arcana, and lexical results without source
-  package assembly.
-- `trace` returns behavior-ranked paths and Arcana unresolved alternatives.
-  Summary detail is the default: containment is collapsed, equivalent paths are
-  deduplicated, repeated entry-method variants are bounded, and each path
-  returns a readable summary, relation list, exact evidence handles, and stable
-  continuation handles. Use `--detail full` only when the complete node and
-  step objects are required. Interstack `calls-endpoint`, `handled-by`,
-  `publishes`, `consumes`, and `reads-config` relations are ordinary traversable
-  edges.
-- `impact` performs bounded incoming, outgoing, or bidirectional traversal with
-  depth and repeatable `--relation` filters.
-- `inspect` reads the exact prepared source selected by a handle, returning its
-  declaration and containing span. `--adjacent-context` is bounded to 200
-  lines. A supplied handle is never fuzzily rediscovered.
+`grimoire query <mode>` remains a compatibility spelling for the same interface.
 
-`trace` defaults to eight paths; other modes default to twelve. `--limit` is
-bounded to 200 and `--depth` to 16. Query state discovery matches the existing
-context workflow: `.grimoire`, `.lexicon`, and `.arcana` are found under
-`--root` unless explicit state paths are supplied.
+- `orient` returns compact source and symbol anchors plus suggested expansions.
+- `search` returns independent exact, source, document, symbol, and relationship lanes.
+- `trace` expands one stable structural handle through bounded paths.
+- `impact` performs bounded incoming, outgoing, or bidirectional traversal.
+- `inspect` reads exact source or document evidence by stable handle. Supplied handles are never fuzzily rediscovered.
 
-## Request and response contract
+## Search lanes
 
-The request and response schema is `grimoire.query.v1`. A complete request can
-be supplied as one JSON object:
+A search response may contain:
+
+| Field | Meaning |
+| --- | --- |
+| `exact_matches` | Literal source matches for concrete identifiers, paths, routes, and configuration keys |
+| `source_matches` | BM25-ranked implementation ranges |
+| `document_matches` | Separately indexed documentation sections, including text, line ranges, freshness metadata, reasons, and code links |
+| `symbol_matches` | Lexicon-grounded declarations and definitions |
+| `relationship_matches` | Direct Arcana graph relationships, with Lexicon relationship fallback |
+
+`limit` applies independently to each lane. A full exact lane does not suppress source, symbol, relationship, or document results. `truncated_lanes` identifies lanes whose per-lane cap was reached.
+
+Documentation never appears in `exact_matches`, `source_matches`, or `symbol_matches`. Use `--code-only` or `include_documents: false` to omit the document lane entirely.
+
+## Source and documentation semantics
+
+Source and documentation are separate evidence classes:
+
+- Source describes current executable behavior.
+- Documentation describes intent, rationale, constraints, plans, or historical decisions.
+
+A document result may be relevant while stale. Its path, line range, commit metadata, reasons, and stable `knowledge://` handle remain visible so the consumer can assess it independently rather than allowing it to displace implementation evidence.
+
+## Relationship results
+
+Each `relationship_matches` entry contains:
+
+- `subject` and `object` nodes with stable handles;
+- `direction` and typed `relation`;
+- certainty where the provider distinguishes definite and possible edges;
+- provider provenance;
+- source spans and occurrence evidence when available.
+
+The lane is intended for direct, useful relationships around discovered symbols. Longer paths belong in `trace`; transitive dependents belong in `impact`.
+
+## Request fields
+
+A complete request may be supplied as JSON:
 
 ```bash
-grimoire query --request '{"schema":"grimoire.query.v1","mode":"search","root":".","query":"SubmitLogin","limit":8}'
+grimoire query --request '{"schema":"grimoire.discovery.v1","mode":"search","root":".","query":"SubmitLogin","limit":8}'
 ```
 
-Common request fields are `mode`, `root`, `state`, `query`, `anchor`, `target`,
-`handles`, `limit`, `depth`, `direction`, `relations`, `adjacent_context`,
-`code_only`, and `detail`. `detail` accepts `summary` or `full`. Provider
-overrides are `lexicon_facts`, `lexicon_state`,
-`lexicon_command`, `arcana_state`, and `arcana_command`.
+Common fields:
 
-Every returned node and source range includes a `handle`. Its `value` is the
-string accepted by later calls, while its expanded fields expose provider,
-snapshot, durable node identity or Arcana node ID, and normalized source range.
-Source handles use the immutable prepared-index tree identity. Lexicon and
-Arcana handles include their immutable snapshot ID when automatic state
-discovery provides one. Handles are rejected if their snapshot does not match
-the active state.
+- `mode`, `root`, `state`, and `state_mode`;
+- `query`, `anchor`, `target`, and `handles`;
+- `limit`, `depth`, `direction`, and `relations`;
+- `adjacent_context` and `detail`;
+- `code_only`, `include_documents`, and `use_document_vectors`;
+- optional repository-provider state or executable overrides.
 
-Responses use mode-specific arrays:
+`trace` defaults to eight paths. Other modes default to twelve results per lane. `limit` is bounded to 200, `depth` to 16, and adjacent inspection context to 200 lines.
 
-| Mode | Primary fields |
-| --- | --- |
-| `orient`, `search` | `results`, optionally `suggestions` |
-| `trace` | `paths`, `unresolved`; compact paths contain `summary`, `relations`, `evidence`, and `continuation_handles` |
-| `impact` | `dependents` |
-| `inspect` | `inspections` |
+## Handles
 
-All responses include `schema`, `mode`, and `snapshot`; degraded structural
-providers are reported in `warnings`. The unified MCP runtime wraps this
-contract directly and adds automatic state preparation, repository-knowledge
-results, and investigation-session deltas.
+Every source range and structural node includes a stable snapshot-qualified handle. Document sections expose `knowledge://` handles.
+
+- Source handles identify an exact prepared-index range.
+- Lexicon handles identify a durable symbol in one immutable Lexicon snapshot.
+- Arcana handles identify a durable node plus its snapshot-local graph ID.
+- Document handles identify one exact indexed section.
+
+Follow-up operations should use handles rather than repeating a broad search. Handles are rejected when their snapshot no longer matches active repository state.
+
+## Other response fields
+
+All responses include `schema`, `mode`, and `snapshot`. Depending on mode they may also contain:
+
+- `paths` and `unresolved` for trace;
+- `dependents` for impact;
+- `inspections` for source inspection;
+- `document_matches` for document inspection;
+- `suggestions`, `warnings`, `preparation`, and investigation-session `delta` metadata.
+
+Provider degradation is reported in `warnings`; remaining lanes still return when possible.

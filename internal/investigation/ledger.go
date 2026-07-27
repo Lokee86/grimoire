@@ -116,6 +116,16 @@ func Open(stateDir, sessionID string, expected ...Snapshot) (*Ledger, error) {
 		return nil, fmt.Errorf("resolve investigation state: %w", err)
 	}
 	dir := filepath.Join(stateDir, "investigations", sessionID)
+	if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+		return nil, ErrSessionNotFound
+	} else if err != nil {
+		return nil, fmt.Errorf("inspect investigation session: %w", err)
+	}
+	unlock, err := acquireLock(dir)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
 	current, err := loadManifest(dir)
 	if err != nil {
 		return nil, err
@@ -461,7 +471,7 @@ func writeJSONAtomic(path string, value any) error {
 	if err := temp.Close(); err != nil {
 		return err
 	}
-	if err := os.Rename(tempName, path); err != nil {
+	if err := replaceFile(tempName, path); err != nil {
 		return fmt.Errorf("publish %s: %w", filepath.Base(path), err)
 	}
 	return nil

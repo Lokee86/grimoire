@@ -72,21 +72,24 @@ func TestManualRepositorySmoke(t *testing.T) {
 		t.Log(string(encoded))
 		t.Fatal(err)
 	}
-	if search.Query == nil || len(search.Query.Results) == 0 {
+	codeResults := append([]agentquery.Result(nil), search.ExactMatches...)
+	codeResults = append(codeResults, search.SourceMatches...)
+	codeResults = append(codeResults, search.SymbolMatches...)
+	if len(codeResults) == 0 {
 		t.Fatalf("search returned no code results: %#v", search)
 	}
-	if len(search.Knowledge) == 0 {
-		t.Fatalf("search returned no knowledge results: %#v", search)
+	if len(search.DocumentMatches) == 0 {
+		t.Fatalf("search returned no document results: %#v", search)
 	}
-	for _, result := range search.Query.Results {
+	for _, result := range codeResults {
 		if strings.HasPrefix(result.Node.Path, "docs/") || strings.HasSuffix(result.Node.Path, ".md") {
 			t.Fatalf("code lane returned documentation: %+v", result)
 		}
 	}
 	encoded, _ := json.Marshal(search)
-	t.Logf("search response bytes=%d code_results=%d knowledge_results=%d", len(encoded), len(search.Query.Results), len(search.Knowledge))
+	t.Logf("search response bytes=%d code_results=%d document_results=%d", len(encoded), len(codeResults), len(search.DocumentMatches))
 
-	anchor := search.Query.Results[0].Node.Handle.Value
+	anchor := codeResults[0].Node.Handle.Value
 	inspection, err := Execute(context.Background(), Request{
 		Request: agentquery.Request{
 			Mode: "inspect", Root: absolute, Handles: []string{anchor}, Adjacent: 2,
@@ -96,9 +99,9 @@ func TestManualRepositorySmoke(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if inspection.Query == nil || len(inspection.Query.Inspections) != 1 || inspection.Query.Inspections[0].Source == "" {
+	if len(inspection.Inspections) != 1 || inspection.Inspections[0].Source == "" {
 		t.Fatalf("inspect did not return exact code: %#v", inspection)
 	}
 	inspectionJSON, _ := json.Marshal(inspection)
-	t.Logf("inspect response bytes=%d inspections=%d", len(inspectionJSON), len(inspection.Query.Inspections))
+	t.Logf("inspect response bytes=%d inspections=%d", len(inspectionJSON), len(inspection.Inspections))
 }

@@ -49,10 +49,10 @@
       "category": "mechanism-explanation",
       "required_seeds": [
         {
-          "name": "collectStructuralContext",
-          "path": "internal/app/context_structure.go",
+          "name": "measureArcanaEvaluationMode",
+          "path": "internal/app/eval_arcana.go",
           "kind": "function",
-          "reason": "This function owns the complete provider composition path."
+          "reason": "This function owns the paired Lexicon-only and Lexicon-plus-vector seed composition path before deterministic graph expansion."
         },
         {
           "name": "RerankSeeds",
@@ -65,13 +65,13 @@
         {
           "provider": "arcana",
           "kind": "operational_role",
-          "symbol": "collectStructuralContext",
-          "path": "internal/app/context_structure.go",
+          "symbol": "measureArcanaEvaluationMode",
+          "path": "internal/app/eval_arcana.go",
           "relation": "calls",
           "direction": "outgoing",
           "target_symbol": "RerankSeeds",
           "target_path": "internal/arcanagraph/rerank.go",
-          "reason": "Final evidence must connect provider collection to hybrid seed selection."
+          "reason": "Evaluation evidence must connect paired provider measurement to hybrid seed selection."
         }
       ],
       "notes": "This is the primary paired case for whether semantic seeds add useful entry points beyond Lexicon vocabulary."

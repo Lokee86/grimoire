@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
@@ -42,7 +41,7 @@ func TestScoreCaseMeasuresSeedsStructurePayloadAndCalls(t *testing.T) {
 		ID: "target", Query: "find target", Category: "direct-location",
 		RequiredSeeds:   []SeedExpectation{{Name: "Target", Path: "target.go"}},
 		SupportingSeeds: []SeedExpectation{{Name: "Helper", Path: "helper.go"}},
-		RequiredStructural: []evaluation.StructuralExpectation{{
+		RequiredStructural: []StructuralExpectation{{
 			Provider: "arcana", Kind: "operational_role", Symbol: "Target", Path: "target.go",
 			Relation: "calls", Direction: "outgoing", TargetSymbol: "Helper", TargetPath: "helper.go",
 		}},
@@ -80,7 +79,7 @@ func TestScoreCasePreservesExactSymbolRecallAcrossCallableKinds(t *testing.T) {
 		RequiredSeeds: []SeedExpectation{{
 			Name: "SemanticSeeds", Path: "internal/arcanagraph/semantic.go", Kind: "function",
 		}},
-		RequiredStructural: []evaluation.StructuralExpectation{{
+		RequiredStructural: []StructuralExpectation{{
 			Provider: "arcana", Kind: "operational_role",
 			Symbol: "SemanticSeeds", Path: "internal/arcanagraph/semantic.go",
 		}},

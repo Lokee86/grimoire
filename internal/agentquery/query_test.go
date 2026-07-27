@@ -21,14 +21,16 @@ func TestSearchHandleInspectsExactPreparedSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	var source Handle
-	for _, result := range search.Results {
-		if result.Node.Handle.Provider == "source" && result.Node.Path == "client/login.gd" {
-			source = result.Node.Handle
-			break
+	for _, lane := range [][]Result{search.ExactMatches, search.SourceMatches} {
+		for _, result := range lane {
+			if result.Node.Handle.Provider == "source" && result.Node.Path == "client/login.gd" {
+				source = result.Node.Handle
+				break
+			}
 		}
 	}
 	if source.Value == "" || source.Snapshot == "" {
-		t.Fatalf("search did not return a snapshot-qualified source handle: %+v", search.Results)
+		t.Fatalf("search did not return a snapshot-qualified source handle: exact=%+v source=%+v", search.ExactMatches, search.SourceMatches)
 	}
 
 	inspection, err := Execute(context.Background(), Request{
@@ -47,7 +49,7 @@ func TestSearchHandleInspectsExactPreparedSource(t *testing.T) {
 	}
 }
 
-func TestCodeOnlySearchExcludesDocumentation(t *testing.T) {
+func TestSearchKeepsDocumentationOutOfSourceLanes(t *testing.T) {
 	root, facts := queryFixture(t)
 	response, err := Execute(context.Background(), Request{
 		Schema: SchemaVersion, Mode: "search", Root: root,
@@ -56,13 +58,39 @@ func TestCodeOnlySearchExcludesDocumentation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(response.Results) == 0 {
-		t.Fatal("code-only search returned no results")
+	if len(response.ExactMatches)+len(response.SourceMatches) == 0 {
+		t.Fatal("search returned no source evidence")
 	}
-	for _, result := range response.Results {
-		if strings.HasPrefix(result.Node.Path, "docs/") || strings.HasSuffix(result.Node.Path, ".md") {
-			t.Fatalf("code-only search returned documentation: %+v", result)
+	for _, lane := range [][]Result{response.ExactMatches, response.SourceMatches, response.SymbolMatches} {
+		for _, result := range lane {
+			if strings.HasPrefix(result.Node.Path, "docs/") || strings.HasSuffix(result.Node.Path, ".md") {
+				t.Fatalf("source or symbol lane returned documentation: %+v", result)
+			}
 		}
+	}
+}
+
+func TestSearchAppliesLimitPerEvidenceLane(t *testing.T) {
+	root, facts := queryFixture(t)
+	response, err := Execute(context.Background(), Request{
+		Schema: SchemaVersion, Mode: "search", Root: root,
+		Query: "SubmitLogin session start", LexiconFacts: facts, Limit: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(response.ExactMatches) != 1 || len(response.SourceMatches) != 1 ||
+		len(response.SymbolMatches) != 1 || len(response.RelationshipMatches) != 1 {
+		t.Fatalf("lane limits were not independent: exact=%d source=%d symbols=%d relationships=%d",
+			len(response.ExactMatches), len(response.SourceMatches),
+			len(response.SymbolMatches), len(response.RelationshipMatches))
+	}
+	if response.ExactMatches[0].Excerpt == "" || response.SourceMatches[0].Excerpt == "" || response.SymbolMatches[0].Excerpt == "" {
+		t.Fatalf("discovery results lack bounded source excerpts: exact=%+v source=%+v symbol=%+v",
+			response.ExactMatches[0], response.SourceMatches[0], response.SymbolMatches[0])
+	}
+	if response.RelationshipMatches[0].Relation != "calls-endpoint" {
+		t.Fatalf("unexpected relationship match: %+v", response.RelationshipMatches[0])
 	}
 }
 
@@ -76,13 +104,13 @@ func TestTraceFollowsInterstackEndpointFromReturnedHandle(t *testing.T) {
 		t.Fatal(err)
 	}
 	var anchor string
-	for _, result := range search.Results {
+	for _, result := range search.SymbolMatches {
 		if result.Provider == "lexicon" && result.Node.Name == "SubmitLogin" {
 			anchor = result.Node.Handle.Value
 		}
 	}
 	if anchor == "" {
-		t.Fatalf("missing Lexicon anchor: %+v", search.Results)
+		t.Fatalf("missing Lexicon anchor: %+v", search.SymbolMatches)
 	}
 
 	trace, err := Execute(context.Background(), Request{
@@ -117,12 +145,14 @@ func TestOrientIsCompactAndSuggestsProgressiveExpansion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(response.Results) == 0 || len(response.Suggestions) == 0 {
+	if len(response.SourceMatches)+len(response.SymbolMatches) == 0 || len(response.Suggestions) == 0 {
 		t.Fatalf("orient did not return anchors and expansions: %+v", response)
 	}
-	for _, result := range response.Results {
-		if result.Node.Handle.Value == "" {
-			t.Fatalf("orient result has no stable handle: %+v", result)
+	for _, lane := range [][]Result{response.SourceMatches, response.SymbolMatches} {
+		for _, result := range lane {
+			if result.Node.Handle.Value == "" {
+				t.Fatalf("orient result has no stable handle: %+v", result)
+			}
 		}
 	}
 }
@@ -137,7 +167,7 @@ func TestImpactHonorsIncomingRelationFilter(t *testing.T) {
 		t.Fatal(err)
 	}
 	var anchor string
-	for _, result := range search.Results {
+	for _, result := range search.SymbolMatches {
 		if result.Provider == "lexicon" && result.Node.Name == "create" {
 			anchor = result.Node.Handle.Value
 		}

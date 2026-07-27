@@ -1,11 +1,11 @@
 # Arcana Semantic Graph Index
 
-Arcana can build an optional semantic index over the current immutable repository graph. The index provides semantic entry points into Arcana's deterministic graph traversal without moving graph ownership into Grimoire Context.
+Arcana can build an optional semantic index over the current immutable repository graph. The index provides semantic entry points into Arcana's deterministic graph traversal without moving graph ownership into Grimoire.
 
 ## Ownership
 
 - Arcana owns graph-document generation, vector persistence, index invalidation, and semantic graph search.
-- Grimoire Context owns the existing embedding model runtime and endpoint.
+- Grimoire owns the existing embedding model runtime and endpoint.
 - Arcana requests embeddings from that endpoint; it does not install or load a second model.
 - Lexicon remains the authority for language facts and source identities.
 
@@ -141,17 +141,8 @@ The JSON response has this shape:
 
 Semantic query performs cheap manifest and file-size checks when opening the pinned snapshot, then decodes and finite-checks each vector in the same single scoring pass. It does not checksum or pre-scan the complete vector file on every query. Full checksums and exhaustive structural validation remain build and `grimoire status` boundary work.
 
-## Grimoire Context integration
+## Process integration
 
 Process integrations can pass `--expected-snapshot sha256:<digest>` to `semantic-query`. Arcana then rejects the query if `.arcana/CURRENT` no longer matches the graph snapshot that the caller already resolved. This prevents semantic seeds from one graph snapshot being expanded through another.
 
-When Arcana is enabled for a context request, Grimoire checks for a vector index matching the exact Arcana snapshot already selected for deterministic traversal and the configured embedding identity. Semantic seeds are conditional recall expansion rather than an equal mandatory provider. `--arcana-semantic=auto` is the default: Grimoire skips the embedding call when the query explicitly names a compound Lexicon seed or its path, and uses semantic expansion for conceptual queries without that deterministic anchor. `on` forces semantic expansion and `off` preserves Lexicon-seeded Arcana traversal only.
-
-When semantic expansion is selected and a matching index is present, Grimoire:
-
-1. asks Arcana for semantic graph matches using the same embedding endpoint supplied to Grimoire;
-2. interleaves those matches with Lexicon-derived symbol seeds under the six-seed production bound;
-3. resolves the combined seeds through `arcana.query.v1`; and
-4. requests deterministic operational-role, impact, unresolved-reference, and call-chain evidence.
-
-Grimoire does not automatically build the Arcana vector index. If no matching index exists, it silently continues with Lexicon-seeded Arcana traversal. If semantic querying fails after a matching index is found, including a concurrent snapshot change, Grimoire warns and continues with the remaining structural and source retrieval paths. Provider discovery uses explicit command overrides, repository configuration, executables installed beside Grimoire, a discoverable Grimoire checkout, and only then `PATH`.
+The active Grimoire discovery interface does not automatically query or build the Arcana semantic index. It resolves symbols through Lexicon and uses deterministic Arcana neighbors, paths, impact, and inspection operations. The semantic index remains available to Arcana's standalone CLI and paired graph-retrieval evaluation.

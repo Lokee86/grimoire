@@ -1,94 +1,92 @@
 # Component architecture
 
-Grimoire is one repository containing three independently usable applications. Repository consolidation reduces coordination and release friction; it does not erase technical ownership boundaries.
+Grimoire, Lexicon, and Arcana share one repository but retain separate ownership, state, and advanced command surfaces.
 
-## Components
+## Grimoire
 
-### Lexicon
+The repository-root Go application is the primary discovery interface. It owns:
 
-Location: [`lexicon/`](../../lexicon/)
+- exact and BM25 source discovery;
+- independent documentation discovery;
+- stable handles and progressive inspect, trace, and impact operations;
+- repository-state preparation and provider routing;
+- investigation-session deduplication;
+- the CLI and MCP discovery contracts.
 
-Lexicon owns language parsing, semantic analysis, normalized fact identities, source ownership, immutable analysis objects, snapshot publication, and language-adapter contracts.
+Grimoire does not own language parsing or graph semantics.
 
-Lexicon does not own graph-wide traversal, context ranking, package budgeting, or documentation policy.
+## Lexicon
 
-### Arcana
+`lexicon/` owns:
 
-Location: [`arcana/`](../../arcana/)
+- one adapter per supported programming language;
+- normalized symbols, spans, and relationships;
+- immutable analysis objects and snapshots;
+- incremental and Git-aware source analysis;
+- standalone scan, export, and inspection commands.
 
-Arcana consumes verified Lexicon snapshots and owns graph ingestion, packed forward and reverse storage, overlays, compaction, graph snapshots, graph-derived semantic documents and vector indexes, traversal, impact analysis, call-chain queries, unresolved-reference queries, and graph protocol compatibility.
+Grimoire consumes Lexicon snapshots through immutable exports. Lexicon does not depend on Grimoire or Arcana.
 
-Arcana does not own language adapters, the embedding model runtime, or Grimoire's context-selection policy. Its optional vector-index commands call the same OpenAI-compatible embedding endpoint already operated by Grimoire Context.
+## Arcana
 
-### Grimoire Context
+`arcana/` owns:
 
-Location: repository root, primarily `cmd/grimoire` and `internal`, with vector persistence supplied by the sibling Lodestone repository.
+- ingestion of one immutable Lexicon snapshot;
+- packed forward and reverse repository graphs;
+- neighbors, paths, impact, call chains, unresolved references, and graph inspection;
+- optional semantic graph entry points;
+- standalone graph commands and protocol behavior.
 
-The context engine owns source preparation, the shared embedding model runtime, deterministic exact and lexical source retrieval, independent documentation knowledge and vector state, structural-provider orchestration, deterministic ranking, query-shape analysis, evidence assembly, token accounting, and context-package serialization.
-
-It consumes Lexicon and Arcana through their application and state contracts rather than importing their domain internals.
+Arcana does not own language adapters or Grimoire's discovery response. Optional semantic indexing uses a compatible external embedding endpoint.
 
 ## Dependency direction
 
 ```text
-Lexicon
-   ↓ immutable facts and snapshots
-Arcana
-   ↓ graph evidence
-Grimoire Context
+repository source
+    -> Lexicon snapshot
+        -> Arcana graph snapshot
+
+repository source and documentation
+    -> Grimoire prepared state
+
+Grimoire discovery
+    -> reads Lexicon snapshot
+    -> queries Arcana graph
+    -> returns one provider-neutral response
 ```
 
-Grimoire Context may also consume Lexicon directly for symbol and source-span evidence. Lexicon does not depend on either downstream component. Arcana's deterministic graph path does not depend on Grimoire Context; only its explicitly invoked semantic-index path depends on a compatible embedding endpoint, currently supplied by Grimoire's existing model server.
-
-The repository layout must not create reverse imports merely because the source now shares one Git root.
+Lexicon is upstream of Arcana. Grimoire may consume both but neither component calls back into Grimoire for deterministic analysis.
 
 ## Independent use
 
-Each component must remain meaningful on its own:
+- Lexicon can analyze and export source facts without Arcana or Grimoire.
+- Arcana can synchronize and answer graph queries without Grimoire.
+- Grimoire can return exact, source, and document evidence without Lexicon or Arcana.
+- Missing structural providers reduce available lanes and produce warnings; they do not invalidate unrelated evidence.
 
-- Lexicon can scan and export normalized facts without building Arcana or Grimoire Context.
-- Arcana can synchronize and answer deterministic graph queries without running Grimoire Context; semantic indexing is optional and uses an external compatible embedding endpoint.
-- Grimoire Context can index and retrieve source without Lexicon or Arcana state.
+## State ownership
 
-Standalone operation is a product contract, not a requirement for separate repositories.
+| State | Owner |
+| --- | --- |
+| `.grimoire/` source index | Grimoire |
+| `.grimoire/knowledge/` documents and optional vectors | Grimoire |
+| `.lexicon/` immutable language-analysis snapshots | Lexicon |
+| `.arcana/` graph snapshots and optional graph vectors | Arcana |
 
-## Runtime and state boundaries
+Consumers interact through immutable manifests, exported facts, stable handles, and explicit protocols. No component mutates another component's state directly.
 
-The components continue to publish separate repository-local state:
+## Build and release boundaries
 
-- `.lexicon/` — immutable language-analysis state.
-- `.arcana/` — immutable graph state plus optional snapshot- and model-bound semantic graph indexes.
-- `.grimoire/` — prepared source state, investigation state, and independent documentation knowledge state; optional documentation vectors live under `.grimoire/knowledge/vectors/`.
+The repository-root workflow builds and packages the components together while preserving separate binaries:
 
-Co-location does not permit one component to mutate another component's state format directly. Integration occurs through versioned manifests, exports, protocols, and explicit command boundaries.
+- `grimoire`
+- `lexicon`
+- `arcana`
 
-## Build boundaries
+The workflow defaults to one build or test worker to avoid uncontrolled CPU fan-out. Higher concurrency requires an explicit `--jobs N`.
 
-The monorepo intentionally contains multiple build roots:
+Each component may still be built and used independently from its owning source root.
 
-- the repository-root Go module for Grimoire Context;
-- the external Lodestone repository for vector storage, snapshots, and exact search;
-- `lexicon/go.mod` plus adapter-specific runtimes;
-- `arcana/Cargo.toml` for the graph engine.
+## Product boundary
 
-A root build does not imply all components were verified. Release and CI work must run the owning component's test matrix.
-
-## Source history and former repositories
-
-Arcana and Lexicon were imported with Git subtree history under `arcana/` and `lexicon/`. Their former repositories remain available as migration pointers and may later serve as release mirrors if that is useful for existing installation paths.
-
-The canonical source of truth is now:
-
-- `github.com/Lokee86/grimoire/arcana`
-- `github.com/Lokee86/grimoire/lexicon`
-
-## Release workflow
-
-The root `scripts/workflow.py` command coordinates builds and tests while
-delegating compilation to each component's existing Go or Cargo build root.
-`build` produces a collected layout, `install` copies the three CLI binaries
-and the native library into a caller-selected bin directory, and `release`
-creates independently usable component archives plus a combined bundle and
-SHA-256 checksums. These conveniences do not merge component APIs or state
-ownership; each application remains directly buildable and usable from its
-own directory.
+The active product path is Grimoire's progressive discovery interface. The former context-package compiler is not part of the CLI or MCP contract. Historical package evaluators and reports do not define current architecture.

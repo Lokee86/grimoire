@@ -1,334 +1,115 @@
 # Testing and benchmarks
 
-Grimoire uses component-owned unit and integration suites for deterministic contracts and repository-owned judged corpora for context-retrieval behavior.
+Verification is split by owning component and by discovery outcome.
 
-## Required checks
+## CPU-bounded root workflow
 
-The repository contains multiple build roots. A root Go or Cargo command does not verify Lexicon or Arcana automatically.
-
-The portable root orchestration runs each owning suite explicitly and is the
-preferred local smoke path:
+The root workflow defaults to one worker:
 
 ```bash
 python scripts/workflow.py test
-python scripts/workflow.py smoke
+python scripts/workflow.py build --version dev
+python scripts/workflow.py release --version 0.1.0
 ```
 
-The smoke command is deterministic and uses temporary fixture files to verify
-archive layout, checksums, combined-bundle contents, and Windows-style DLL
-installation. It does not replace the compiler-backed matrix below.
-
-Grimoire Context and native vector engine, from the repository root:
+This constrains Go package concurrency, Go test parallelism, Cargo build jobs, and Rust test threads. Increase concurrency only explicitly:
 
 ```bash
-cargo fmt --manifest-path ../lodestone/Cargo.toml --all --check
-cargo test --manifest-path ../lodestone/Cargo.toml --workspace
-cargo clippy --manifest-path ../lodestone/Cargo.toml --workspace --all-targets -- -D warnings
-cargo build --manifest-path ../lodestone/Cargo.toml -p lodestone-ffi --release
-gofmt -w ./cmd ./internal
-go test ./...
-go vet ./...
+python scripts/workflow.py test --jobs 2
 ```
 
-Lexicon:
+Do not use a high `--jobs` value as a routine default. Component test suites may each contain many packages and test binaries.
+
+The workflow smoke suite does not compile the full product:
+
+```bash
+python scripts/test_workflow.py
+```
+
+## Direct bounded Go verification
+
+For focused Grimoire work:
+
+```bash
+GOMAXPROCS=1 go test -p 1 -parallel 1 ./internal/agentquery ./internal/agentruntime ./internal/app
+GOMAXPROCS=1 go test -p 1 -parallel 1 ./...
+```
+
+## Lexicon and Arcana
+
+Lexicon retains its owning Go tests under `lexicon/`. Arcana retains its owning Cargo tests under `arcana/`.
 
 ```bash
 cd lexicon
-python evaluation/run_tests.py
+go test -p 1 -parallel 1 ./...
+
+cd ../arcana
+cargo test --jobs 1 --all-targets --locked -- --test-threads 1
 ```
 
-Arcana:
+## Discovery contract tests
 
-```bash
-cd arcana
-cargo fmt -- --check
-cargo check --all-targets
-cargo test --all-targets
-```
+The active Grimoire contract is covered by:
 
-Formatting should produce no diff after the final run.
-
-## Test ownership
-
-Lexicon adapter and snapshot coverage is documented in [`lexicon/docs/DEVELOPMENT.md`](../../lexicon/docs/DEVELOPMENT.md). Arcana graph coverage is documented in [`arcana/README.md`](../../arcana/README.md). The table below covers Grimoire Context.
-
-| Area | Primary coverage |
+| Concern | Tests |
 | --- | --- |
-| CLI dispatch and flags | `internal/app/run_test.go`, `model_test.go`, evaluation tests |
-| Prepared traversal and state | `internal/index/*_test.go`, app exclusion tests |
-| Embedding contract and query batching | `internal/embedding/*_test.go` |
-| Runtime backend selection | `internal/embedding/setup_backend_test.go`, app model tests |
-| Native object, snapshot, and search behavior | Lodestone repository tests |
-| Go-to-Rust ABI | `internal/vectorstore/integration_windows_test.go` |
-| Documentation-vector build, reuse, stale fallback, and concurrency | `internal/app/vector*_test.go`, `internal/knowledgevector` |
-| Exact, lexical, and merged retrieval | `internal/retrieve/*_test.go`, app context tests |
-| Curation and neighbour expansion | `internal/selection/*_test.go` |
-| Query profiling and assembly | `internal/queryshape/*_test.go`, `internal/assembly/*_test.go` |
-| Structural providers | `internal/lexiconfacts`, `internal/arcanagraph`, and app structure tests |
-| Package fitting and exact tokens | `internal/compiler/*_test.go` |
-| Corpus scoring and reports | `internal/evaluation/*_test.go`, `internal/knowledgeevaluation/*_test.go` |
+| Independent exact, source, symbol, and relationship limits | `internal/agentquery/query_test.go` |
+| Bounded source excerpts | `internal/agentquery/query_test.go` |
+| Separate document lane and document-handle inspection | `internal/agentruntime/runtime_test.go` |
+| Session deduplication for nodes, documents, relationships, and paths | `internal/agentruntime/*_test.go` and `internal/investigation/*_test.go` |
+| Direct CLI commands and retired context command | `internal/app/run_test.go`, `internal/app/exact_context_test.go` |
+| MCP schema and state preparation | `internal/app/*_test.go`, `internal/repostate/*_test.go` |
+| Release concurrency bounds | `scripts/test_workflow.py` |
 
-Most tests use temporary repositories, local HTTP servers, and synthetic vectors. Native integration requires a built DLL and skips when unavailable.
+## Documentation retrieval evaluation
 
-## Runtime verification
-
-After managed setup:
+The independent document lane uses the checked-in knowledge evaluator:
 
 ```bash
-grimoire model info
-grimoire model serve
+grimoire eval knowledge --cases evaluation/knowledge/grimoire.json --root .
 ```
 
-In another terminal:
+Record corpus revision, document-index identity, vector mode, model identity, top-k, and date.
+
+## Arcana evaluation
+
+Graph discovery and optional semantic entry points use:
 
 ```bash
-grimoire model probe
-grimoire vector info --root .
+grimoire eval arcana --cases evaluation/arcana/grimoire.json --root .
+grimoire eval arcana --cases evaluation/arcana/space-rocks.json --root C:/!bin/workspace/space-rocks
 ```
 
-`model info` verifies discovery only. `model probe` sends a real query/document pair to the running endpoint.
+Record Lexicon snapshot, Arcana snapshot, vector mode, model identity, and date.
 
-## Prepared source and knowledge-vector smoke test
+## Agent discovery evaluation
 
-```bash
-grimoire index --root .
-grimoire knowledge index --root .
-grimoire vector build --root .
-grimoire knowledge search --root . --query "why is context compilation structured this way"
-grimoire context --root . --query "explain context compilation"
-```
+`evaluation/agent_discovery` scores complete progressive investigation traces. It measures:
 
-The knowledge search exercises BM25 plus optional documentation vectors. The context command runs whole-file and chunk BM25 first, then scoped Lexicon/Arcana inspection, and exercises automatic policy; add a positive `--budget` to exercise fixed fitting. Use `--structural-scope global` only for a paired comparison with the former repository-wide structural discovery path.
+- required source and structural evidence found;
+- ownership-boundary identification;
+- unsupported conclusions;
+- discovery calls;
+- input and output tokens;
+- latency to first required evidence and completion;
+- irrelevant branches opened.
 
-## Warm algorithm benchmarks
+The evaluator accepts progressive JSONL and generic raw tool traces. External CBM adapters can be registered without coupling Grimoire to CBM.
 
-```bash
-go test ./internal/retrieve ./internal/selection \
-  -bench 'Benchmark(Search|Exact|Curate)' \
-  -benchmem
-```
+A fair Grimoire-versus-CBM comparison must use:
 
-These isolate deterministic source BM25, conditional exact recovery, and bounded candidate curation. They exclude repository loading, documentation embedding inference, native vector scanning, and package serialization unless the benchmark explicitly includes them.
+- the same repository revision and task wording;
+- equivalent warm or cold state;
+- the same agent model and completion criteria;
+- all tool calls, source opens, tokens, and elapsed time;
+- no free preassembled Grimoire context package.
 
-## Live query-embedding benchmarks
+Grimoire should be exercised through `search`, `inspect`, `trace`, and `impact`, beginning with the same information available to the CBM agent.
 
-With the local model service running:
+## Report interpretation
 
-```bash
-GRIMOIRE_EMBEDDING_BENCHMARK_ENDPOINT=http://127.0.0.1:9876/v1 \
-  go test ./internal/embedding -run '^$' \
-  -bench 'BenchmarkLiveQuery(EmbeddingModes|RequestBatching)' \
-  -benchtime=3x -count=3
-```
+Checked-in reports are evidence for their exact corpus, repository revision, provider state, and date. They are not permanent product guarantees.
 
-Compare modes within the same run. Hardware backend, prompt cache, system load, and runtime version materially affect absolute latency.
+Do not compare source-lane scores directly with document, symbol, or relationship scores. Cross-provider scores are not globally calibrated. Compare end-to-end evidence coverage and agent outcomes instead.
 
-## Judged retrieval evaluation
-
-Run the repository-owned corpus:
-
-```bash
-grimoire eval retrieval \
-  --root . \
-  --cases evaluation/retrieval/grimoire.json \
-  --modes lexical,fast,full,quality
-```
-
-Provider comparisons:
-
-```bash
-grimoire eval retrieval --root . --cases evaluation/retrieval/grimoire.json \
-  --modes lexical --structural-providers none --variant standalone
-
-grimoire eval retrieval --root . --cases evaluation/retrieval/grimoire.json \
-  --modes lexical --structural-providers lexicon --variant lexicon
-
-grimoire eval retrieval --root . --cases evaluation/retrieval/grimoire.json \
-  --modes lexical --structural-providers lexicon,arcana --structural-scope lexical --variant lexical-first
-grimoire eval retrieval --root . --cases evaluation/retrieval/grimoire.json \
-  --modes lexical --structural-providers lexicon,arcana --structural-scope global --variant global-structural
-```
-
-Automatic policy and assembly:
-
-```bash
-grimoire eval retrieval \
-  --root . \
-  --cases evaluation/retrieval/grimoire.json \
-  --modes lexical \
-  --adaptive \
-  --variant adaptive
-```
-
-`--adaptive` cannot be combined with a fixed `--budget` override.
-
-## Paired Arcana semantic graph evaluation
-
-Prepare one immutable source index, Lexicon export, Arcana graph snapshot, and
-matching Arcana vector index, then run the checked-in judged corpus:
-
-```bash
-grimoire index --root .
-arcana sync
-arcana vectorize
-grimoire eval arcana \
-  --root . \
-  --cases evaluation/arcana/grimoire.json \
-  --variant paired
-```
-
-The external Space Rocks corpus is checked in at
-[`evaluation/arcana/space-rocks.json`](../../evaluation/arcana/space-rocks.json).
-It contains semantic Go, GDScript, Ruby, cross-language ownership, lifecycle,
-networking, and observability cases pinned to the revision recorded in the
-corpus. From the Grimoire checkout, validate every referenced path and symbol
-against a live Space Rocks checkout without running vector retrieval:
-
-```bash
-GRIMOIRE_ARCANA_SPACE_ROCKS_ROOT=C:/!bin/workspace/space-rocks \
-  go test ./internal/app \
-  -run TestCheckedInSpaceRocksArcanaCorpusReferencesExternalSymbols
-```
-
-The schema and semantic coverage gate runs with the normal Go suite in
-`internal/arcanaevaluation`. Once the matching Arcana vector cache is available,
-run the paired evaluator from the Grimoire checkout with:
-
-```bash
-grimoire eval arcana \
-  --root C:/!bin/workspace/space-rocks \
-  --cases evaluation/arcana/space-rocks.json \
-  --variant paired
-```
-
-No Space Rocks vector report is checked in with the corpus. A judged corpus is
-an input contract, not evidence that either retrieval mode has passed.
-
-`grimoire eval arcana` executes both modes for every case against those same
-snapshots. `lexicon-seeds` bypasses semantic lookup. `lexicon-plus-vector`
-retains a bounded ranked Arcana semantic pool, combines it with Lexicon rank,
-query-to-identifier and path evidence, declaration quality, provider agreement,
-and bounded graph-neighborhood evidence, then applies the production six-seed
-limit. Both modes use the same deterministic Arcana graph expansion. The
-evaluator requires an existing matching vector manifest and never builds
-vector state. A semantic-query failure fails the vector-mode measurement rather
-than exercising the runtime fallback, because a fallback would make the paired
-comparison invalid.
-
-The report records required seed recall, seed recall@k, seed MRR, final required
-structural-evidence recall, evaluator-visible provider calls, latency, and
-serialized payload bytes. Payload is the ranked seed JSON plus final Arcana
-structural-evidence JSON. Provider calls count Lexicon seed search, optional
-Arcana semantic query, and Arcana graph expansion; they do not claim to count
-internal HTTP requests or JSONL batch lines. JSON and Markdown include
-vector-minus-baseline deltas and complete per-case seed rankings.
-
-Documentation evaluation is an independent production path:
-
-```bash
-grimoire knowledge index --root .
-grimoire eval knowledge \
-  --root . \
-  --cases evaluation/knowledge/grimoire.json \
-  --vectors=false
-```
-
-Use `--vectors` (the default) to compare the same BM25 run with the optional current documentation-vector snapshot. Vector errors are expected fallback observations when the model service, native engine, or snapshot is unavailable; they do not fail the case execution. The documentation report is separate from `grimoire eval retrieval` and never exercises source-code retrieval.
-
-## CBM owner comparison
-
-`evaluation/run_cbm_owner_benchmark.py` scores an indexed Codebase Memory MCP project against an Arcana owner corpus. It reports CBM's natural-language BM25 results and keyword-array semantic results separately at the corpus top-k. The script does not fuse the two rankings or treat corpus judgments as absolute ground truth.
-
-```bash
-python evaluation/run_cbm_owner_benchmark.py \
-  --cbm-command C:/!bin/workspace/cbm-bin/codebase-memory-mcp.exe \
-  --project C-bin-workspace-grimoire \
-  --repository-root . \
-  --cases evaluation/arcana/grimoire.json \
-  --output-prefix cbm-grimoire-owner-benchmark
-```
-
-Index the target working tree with CBM immediately before comparison. Record CBM version, project name, corpus revision, and top-k. CBM latency is not directly comparable to a complete Grimoire context request; this benchmark compares only exact owner retrieval from the respective seed-search surfaces.
-
-## Report outputs
-
-The evaluators write JSON and Markdown under `evaluation/results/`. Source reports include source and structural recall, irrelevant-selection rates, ranking recall and MRR, query-profile agreement, latency, package size, budget utilization, provider warnings, and loss attribution through retrieval, merge, curation, adaptive assembly, and final fitting. Arcana paired reports include seed and final structural recall, recall@k, MRR, latency, payload size, provider calls, and vector-minus-baseline deltas. Documentation reports include required-section recall, recall@k, MRR, irrelevant selections, vector usage/errors, per-case latency, and deterministic rankings.
-
-Important report families include ranking calibration baselines/current runs, query-profile reports, fixed/adaptive query-shape comparisons, and standalone/Lexicon/Lexicon-plus-Arcana comparisons.
-
-Do not compare reports from different repository contents, prepared snapshots, corpora, modes, provider sets, or hardware as though they were paired experiments.
-
-## Multi-repository retrieval suite
-
-The suite runner builds Grimoire once, verifies pinned repository revisions, prepares each selected repository, runs adaptive lexical evaluation, and writes per-repository plus macro-averaged reports under the ignored `evaluation/validation/` directory.
-
-Calibration run:
-
-```bash
-python evaluation/run_retrieval_suite.py \
-  --workspace-root C:/!bin/workspace \
-  --grimoire-root . \
-  --split calibration \
-  --variant frozen-baseline
-```
-
-Validation run:
-
-```bash
-python evaluation/run_retrieval_suite.py \
-  --workspace-root C:/!bin/workspace \
-  --grimoire-root . \
-  --split validation \
-  --variant candidate-name
-```
-
-The test split is deliberately sealed. Run it only after the implementation and constants are frozen:
-
-```bash
-python evaluation/run_retrieval_suite.py \
-  --workspace-root C:/!bin/workspace \
-  --grimoire-root . \
-  --split test \
-  --variant final \
-  --allow-test
-```
-
-Use `--skip-index` only for the second half of a paired comparison after the first half rebuilt the same pinned checkout state. A normal `grimoire index` may reuse prepared objects, so a benchmark described as fresh must remove the checkout's `.grimoire/` directory before the first run and record the resulting `scanned`, `reused`, and `updated` counts. Reused-state and fresh-state reports are not paired measurements.
-
-The runner refuses revision drift and changes outside the declared calibration seams. Bounded calibration runs may override the frozen selection values with `--selection-file-penalty`, `--selection-subsystem-penalty`, and `--selection-adjacent-primaries`; compare `--assembly-strategy legacy|coverage` and `--assembly-facet-depth`; or vary `--lexical-declaration-alias-bonus`. Every report records the effective ranking, selection, and assembly values plus aggregate required-evidence failure stages.
-
-## Candidate-selection calibration
-
-The evaluator can vary the production curation configuration without changing the normal context CLI:
-
-```bash
-grimoire eval retrieval \
-  --root . \
-  --cases evaluation/retrieval/grimoire.json \
-  --modes lexical \
-  --adaptive \
-  --selection-file-penalty 10 \
-  --selection-subsystem-penalty 18 \
-  --selection-adjacent-primaries 4 \
-  --assembly-strategy coverage \
-  --assembly-facet-depth 3 \
-  --variant selection-calibrated
-```
-
-The current defaults are file penalty 10, subsystem penalty 18, four neighbor anchors, coverage-aware assembly with three distinct candidates reserved per query facet, repository-derived declaration aliases with bonus `1`, and final compiler protection for one facet owner plus one novel same-file companion. The alias ranker selects at most one high-similarity code-facing identifier for an absent query term and scores only declaration/path evidence; exact-token BM25 remains primary.
-
-Standalone explicit direct-location questions also use bounded facet-specificity ranking. Each query term contributes only its strongest observed evidence signal, with body and declaration evidence weighted above filename and path matches. The correction applies only to full-weight location questions such as `where`, `find`, `locate`, and `which function`; decomposed direct-location sub-facets retain the established ranking behavior.
-
-During exact fitting, coverage-aware adaptive packages protect one source candidate per facet. Pure mechanism, call-chain, and direct-location owners may protect one additional same-file chunk only when it adds new BM25, declaration-alias, or leading-line evidence. Architecture and mixed-intent companions are excluded. Required source links are also fitted atomically by default and can be disabled for paired evaluation with `--compiler-required-link-protection=false`. Paired evaluation can disable facet protection with `--compiler-facet-protection=false` or vary its bounded companion count with `--compiler-companion-depth`.
-
-Selection values were established in the earlier bounded grid; facet depth was selected on the multi-repository calibration split and validated against Space Rocks, RuboCop, and Actual `loot-core`. Declaration aliases improved calibration MRR and fresh-state test R@10 without changing validation quality metrics. Standalone location specificity then improved calibration and validation ranking plus validation package recall. Facet-preserving final fitting subsequently reduced calibration and validation budget-fitting losses by one each without a repository-level primary-metric regression. These values are measured defaults, not a universal optimum. See [the selection comparison](../../evaluation/results/selection-calibration-comparison-2026-07-23.md), [the coverage-aware comparison](../../evaluation/results/coverage-aware-retrieval-calibration-2026-07-24.md), [the declaration-alias ranking comparison](../../evaluation/results/declaration-alias-ranking-calibration-2026-07-24.md), [the standalone location-specificity comparison](../../evaluation/results/standalone-location-specificity-calibration-2026-07-24.md), and [the facet-preserving fitting comparison](../../evaluation/results/facet-preserving-budget-fitting-calibration-2026-07-24.md).
-
-## Calibration discipline
-
-1. Remove `.grimoire/` and rebuild prepared source state for a fresh source baseline. Rebuild `.grimoire/knowledge/` and its vector snapshot separately for knowledge-vector experiments.
-2. Record index reuse counts and run compared variants against that same immutable rebuilt state.
-3. Preserve corpus, command parameters, and provider set with the report.
-4. Inspect per-case failure stages before acting on aggregate recall.
-5. Correct invalid expectations instead of treating them as implementation failures.
-6. Add a deterministic regression fixture for confirmed defects.
-7. Commit only reports that document a meaningful baseline, comparison, or gate.
+Historical context-package reports remain useful for measuring the retired pipeline but must be labeled historical.

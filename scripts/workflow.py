@@ -55,6 +55,21 @@ def validate_version(version: str) -> str:
     return version
 
 
+def validate_jobs(jobs: int) -> int:
+    if jobs < 1:
+        raise ValueError("jobs must be at least 1")
+    return jobs
+
+
+def bounded_env(jobs: int) -> dict[str, str]:
+    jobs = validate_jobs(jobs)
+    environment = os.environ.copy()
+    environment["GOMAXPROCS"] = str(jobs)
+    environment["CARGO_BUILD_JOBS"] = str(jobs)
+    environment["RUST_TEST_THREADS"] = str(jobs)
+    return environment
+
+
 def run(command: Sequence[str], cwd: Path, env: dict[str, str] | None = None) -> None:
     print("+", " ".join(str(part) for part in command))
     subprocess.run(list(command), cwd=cwd, env=env, check=True)
@@ -82,9 +97,11 @@ def write_utf8(path: Path, content: str) -> None:
     path.write_bytes(content.encode("utf-8"))
 
 
-def build(version: str, output: Path) -> Path:
-    """Build every owning component into one disposable layout."""
+def build(version: str, output: Path, jobs: int = 1) -> Path:
+    """Build every owning component into one disposable, CPU-bounded layout."""
     validate_version(version)
+    jobs = validate_jobs(jobs)
+    build_env = bounded_env(jobs)
     output = output.resolve()
     if output == ROOT:
         raise ValueError("build output must not replace the source tree")
@@ -97,23 +114,25 @@ def build(version: str, output: Path) -> Path:
 
     go_ldflags = f"-X github.com/Lokee86/grimoire/internal/app.Version={version}"
     run(
-        ["go", "build", "-trimpath", "-buildvcs=false", "-ldflags", go_ldflags,
+        ["go", "build", "-p", str(jobs), "-trimpath", "-buildvcs=false", "-ldflags", go_ldflags,
          "-o", str(bin_dir / executable_name("grimoire")), "./cmd/grimoire"],
         ROOT,
+        build_env,
     )
 
     lexicon_ldflags = f"-X github.com/Lokee86/lexicon/internal/cli.version={version}"
     run(
-        ["go", "build", "-trimpath", "-buildvcs=false", "-ldflags", lexicon_ldflags,
+        ["go", "build", "-p", str(jobs), "-trimpath", "-buildvcs=false", "-ldflags", lexicon_ldflags,
          "-o", str(bin_dir / executable_name("lexicon")), "./cmd/lexicon"],
         ROOT / "lexicon",
+        build_env,
     )
 
-    release_env = os.environ.copy()
+    release_env = build_env.copy()
     release_env["GRIMOIRE_RELEASE_VERSION"] = version
     cargo = cargo_command()
     run(
-        [cargo, "build", "--release", "--locked", "--manifest-path", str(ROOT / "arcana" / "Cargo.toml")],
+        [cargo, "build", "--jobs", str(jobs), "--release", "--locked", "--manifest-path", str(ROOT / "arcana" / "Cargo.toml")],
         ROOT,
         release_env,
     )
@@ -126,7 +145,7 @@ def build(version: str, output: Path) -> Path:
             f"Lodestone repository was not found at {lodestone}; set LODESTONE_ROOT"
         )
     run(
-        [cargo, "build", "--release", "--locked", "--manifest-path", str(lodestone_manifest), "-p", "lodestone-ffi"],
+        [cargo, "build", "--jobs", str(jobs), "--release", "--locked", "--manifest-path", str(lodestone_manifest), "-p", "lodestone-ffi"],
         lodestone,
         release_env,
     )
@@ -151,12 +170,19 @@ def verify_versions(build_root: Path, version: str) -> None:
             raise RuntimeError(f"{command[0]} reported {actual!r}; expected {expected!r}")
 
 
-def test() -> None:
-    """Run each component's owning test command from its own build root."""
+def test(jobs: int = 1) -> None:
+    """Run component suites sequentially with bounded package and test parallelism."""
+    jobs = validate_jobs(jobs)
+    environment = bounded_env(jobs)
     cargo = cargo_command()
-    run(["go", "test", "./..."], ROOT)
-    run(["go", "test", "./..."], ROOT / "lexicon")
-    run([cargo, "test", "--all-targets", "--locked", "--manifest-path", str(ROOT / "arcana" / "Cargo.toml")], ROOT)
+    go_test = ["go", "test", "-p", str(jobs), "-parallel", str(jobs), "./..."]
+    run(go_test, ROOT, environment)
+    run(go_test, ROOT / "lexicon", environment)
+    run([
+        cargo, "test", "--jobs", str(jobs), "--all-targets", "--locked",
+        "--manifest-path", str(ROOT / "arcana" / "Cargo.toml"),
+        "--", "--test-threads", str(jobs),
+    ], ROOT, environment)
 
 
 def install(source: Path, bin_dir: Path, components: Sequence[str] = ("grimoire", "lexicon", "arcana")) -> None:
@@ -265,12 +291,13 @@ def package_artifacts(build_root: Path, output: Path, version: str, platform_nam
     return release_root
 
 
-def release(version: str, output: Path) -> Path:
+def release(version: str, output: Path, jobs: int = 1) -> Path:
     validate_version(version)
+    jobs = validate_jobs(jobs)
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="grimoire-release-build-") as temporary:
-        build_root = build(version, Path(temporary) / "build")
+        build_root = build(version, Path(temporary) / "build", jobs)
         return package_artifacts(build_root, output, version)
 
 
@@ -281,8 +308,10 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     build_parser = subparsers.add_parser("build", help="build all components into one disposable layout")
     build_parser.add_argument("--version", default="dev")
     build_parser.add_argument("--output", type=Path, default=DEFAULT_BUILD)
+    build_parser.add_argument("--jobs", type=int, default=1, help="maximum build workers; defaults to 1")
 
-    subparsers.add_parser("test", help="run all component-owned test suites")
+    test_parser = subparsers.add_parser("test", help="run all component-owned test suites")
+    test_parser.add_argument("--jobs", type=int, default=1, help="maximum package and test workers; defaults to 1")
 
     install_parser = subparsers.add_parser("install", help="install a combined build into a selected bin directory")
     install_parser.add_argument("--source", type=Path, default=DEFAULT_BUILD)
@@ -292,6 +321,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     release_parser = subparsers.add_parser("release", help="test, build, package, and checksum a release")
     release_parser.add_argument("--version", required=True)
     release_parser.add_argument("--output", type=Path, default=DEFAULT_DIST)
+    release_parser.add_argument("--jobs", type=int, default=1, help="maximum build and test workers; defaults to 1")
 
     subparsers.add_parser("smoke", help="run deterministic workflow packaging and install smoke checks")
     return parser.parse_args(argv)
@@ -301,14 +331,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
     try:
         if args.command == "build":
-            build(args.version, args.output)
+            build(args.version, args.output, args.jobs)
         elif args.command == "test":
-            test()
+            test(args.jobs)
         elif args.command == "install":
             install(args.source, args.bin_dir, args.components or ("grimoire", "lexicon", "arcana"))
         elif args.command == "release":
-            test()
-            release(args.version, args.output)
+            test(args.jobs)
+            release(args.version, args.output, args.jobs)
         elif args.command == "smoke":
             from test_workflow import run_smoke
             run_smoke()

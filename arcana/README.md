@@ -5,7 +5,7 @@
 Arcana is the repository-graph component of Grimoire and the [**Warlock Toolchain**](https://github.com/Lokee86/warlock-toolchain).
 It models repositories as queryable graphs and provides the storage, snapshot,
 and traversal foundations used by higher-level Warlock tools such as Demon Docs,
-Grimoire Context, and Pitlord.
+Grimoire, and Pitlord.
 
 ## Ownership boundaries
 
@@ -15,9 +15,9 @@ Grimoire Context, and Pitlord.
 - **Demon Docs** owns documentation semantics, policy, review history, and
   Codemap decisions. It consumes Arcana facts without owning the graph
   engine.
-- **Grimoire Context** owns task interpretation, the shared embedding runtime,
-  relevance ranking, token budgets, and final context construction. It queries
-  Arcana and Demon Docs without becoming either system's storage layer.
+- **Grimoire** owns the provider-neutral discovery interface, source and document
+  retrieval, stable handles, repository-state preparation, and investigation
+  sessions. It queries Arcana without becoming the graph storage layer.
 
 Arcana remains a standalone Rust process or CLI boundary. Go consumers do
 not link it through cgo or FFI.
@@ -192,10 +192,10 @@ fields, imports, exports, directories, and repository roots remain in the comple
 graph but are not indexed directly. Semantic matches provide entry points; exact
 Arcana traversal remains authoritative for relationships, impact, and call chains.
 
-Grimoire Context automatically uses a matching existing Arcana semantic index
-when Arcana structural retrieval is enabled. It never builds the index as a side
-effect of a context query and falls back to Lexicon-seeded graph traversal when
-the index is absent.
+The semantic index is currently consumed by Arcana's standalone `semantic-query`
+command and paired Arcana evaluation. Grimoire's unified discovery interface uses
+deterministic Lexicon symbol resolution and Arcana graph queries; it does not
+silently build or require the semantic index.
 
 See [`docs/vector-index.md`](docs/vector-index.md) for storage, invalidation,
 commands, and integration details.

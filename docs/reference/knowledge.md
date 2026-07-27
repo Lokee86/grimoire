@@ -30,7 +30,7 @@ Missing, stale, incompatible, timed-out, or unavailable vectors do not fail know
 
 The vector builder deduplicates identical section text, reuses immutable content-addressed vector objects, writes successful batches immediately, and publishes a packed exact-search snapshot only after all required vectors are available. A failed build leaves completed objects reusable by the next run. An unchanged current snapshot returns immediately without object probes or rematerialization.
 
-Documentation vectors are consumed only when explicitly requested by `knowledge search --vectors=true` or MCP `use_knowledge_vectors: true`. They never enter source-context ranking and never affect `grimoire context` readiness or warnings.
+Documentation vectors are consumed only when explicitly requested by `knowledge search --vectors=true`, discovery `--document-vectors`, or MCP `use_document_vectors: true`. They never enter exact, source, symbol, or relationship ranking.
 
 ## Judged documentation evaluation
 

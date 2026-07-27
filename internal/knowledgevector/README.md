@@ -26,4 +26,4 @@ The default knowledge state is `<root>/.grimoire/knowledge`. Repository location
 
 ## Boundary
 
-This package never embeds production source chunks and never contributes candidates to `grimoire context`. BM25 ranking remains owned by `internal/knowledge`; native object and snapshot operations remain owned by `internal/vectorstore`; embedding requests remain owned by `internal/embedding`.
+This package never embeds production source chunks and contributes only to the independent `document_matches` lane. BM25 ranking remains owned by `internal/knowledge`; native object and snapshot operations remain owned by `internal/vectorstore`; embedding requests remain owned by `internal/embedding`.

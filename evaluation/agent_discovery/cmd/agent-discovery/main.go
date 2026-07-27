@@ -22,7 +22,7 @@ func run(args []string) error {
 	flags := flag.NewFlagSet("agent-discovery", flag.ContinueOnError)
 	cases := flags.String("cases", "", "versioned discovery case corpus")
 	adapterName := flags.String("adapter", "", "raw, grimoire-context, progressive-jsonl, or registered adapter")
-	input := flags.String("input", "", "recorded transcript or grimoire context JSON")
+	input := flags.String("input", "", "recorded progressive or raw transcript; historical adapters may accept legacy artifacts")
 	caseID := flags.String("case", "", "case id for a context output without case_id")
 	outputDir := flags.String("output-dir", "evaluation/results", "comparison report directory")
 	name := flags.String("name", "agent-discovery-report", "report filename without extension")

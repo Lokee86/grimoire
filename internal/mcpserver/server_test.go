@@ -24,7 +24,7 @@ func TestServerHandshakeListsAndCallsQueryTool(t *testing.T) {
 		`{"jsonrpc":"2.0","id":"init","method":"initialize","params":{"protocolVersion":"2025-11-25"}}`,
 		`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
 		`{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}`,
-		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"grimoire_query","arguments":{"mode":"orient","query":"trace respawn"}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"grimoire_discover","arguments":{"mode":"orient","query":"trace respawn"}}}`,
 	}, "\n") + "\n"
 	var output bytes.Buffer
 	if err := server.Serve(context.Background(), strings.NewReader(input), &output); err != nil {
@@ -44,7 +44,7 @@ func TestServerHandshakeListsAndCallsQueryTool(t *testing.T) {
 	if err := json.Unmarshal([]byte(lines[1]), &listed); err != nil {
 		t.Fatal(err)
 	}
-	if len(listed.Result.Tools) != 1 || listed.Result.Tools[0].Name != "grimoire_query" {
+	if len(listed.Result.Tools) != 1 || listed.Result.Tools[0].Name != "grimoire_discover" {
 		t.Fatalf("unexpected tools response: %s", lines[1])
 	}
 	if !strings.Contains(string(received), `"trace respawn"`) {
@@ -62,7 +62,7 @@ func TestServerPreservesStringIDsAndReportsToolErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	input := `{"jsonrpc":"2.0","id":"call-7","method":"tools/call","params":{"name":"grimoire_query","arguments":{}}}` + "\n"
+	input := `{"jsonrpc":"2.0","id":"call-7","method":"tools/call","params":{"name":"grimoire_discover","arguments":{}}}` + "\n"
 	var output bytes.Buffer
 	if err := server.Serve(context.Background(), strings.NewReader(input), &output); err != nil {
 		t.Fatal(err)

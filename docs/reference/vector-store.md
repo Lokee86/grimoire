@@ -60,7 +60,7 @@ A documentation snapshot is accepted only when its manifest agrees with the curr
 
 On Windows, Grimoire checks `LODESTONE_LIBRARY`, the legacy `GRIMOIRE_VECTOR_ENGINE`, the executable directory, and sibling `lodestone/target/{release,debug}` builds beneath workspace ancestors. Lodestone's Rust core is portable, but equivalent non-Windows Go loaders are not yet implemented.
 
-Missing, stale, incompatible, or unavailable documentation vectors cause knowledge search to continue with BM25 and expose the vector error in its JSON response. They never affect `grimoire context`.
+Missing, stale, incompatible, or unavailable documentation vectors leave the document lane on BM25 and expose a warning. They never affect exact, source, symbol, relationship, trace, or impact discovery.
 
 ## Ownership boundary
 

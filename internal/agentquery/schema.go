@@ -2,7 +2,7 @@ package agentquery
 
 import "github.com/Lokee86/grimoire/internal/structure"
 
-const SchemaVersion = "grimoire.query.v1"
+const SchemaVersion = "grimoire.discovery.v1"
 
 type Request struct {
 	Schema       string   `json:"schema"`
@@ -28,17 +28,21 @@ type Request struct {
 }
 
 type Response struct {
-	Schema      string       `json:"schema"`
-	Mode        string       `json:"mode"`
-	Snapshot    Snapshot     `json:"snapshot"`
-	Results     []Result     `json:"results,omitempty"`
-	Paths       []Path       `json:"paths,omitempty"`
-	Dependents  []Dependent  `json:"dependents,omitempty"`
-	Inspections []Inspection `json:"inspections,omitempty"`
-	Suggestions []Suggestion `json:"suggestions,omitempty"`
-	Unresolved  []Unresolved `json:"unresolved,omitempty"`
-	Warnings    []string     `json:"warnings,omitempty"`
-	Truncated   bool         `json:"truncated,omitempty"`
+	Schema              string              `json:"schema"`
+	Mode                string              `json:"mode"`
+	Snapshot            Snapshot            `json:"snapshot"`
+	ExactMatches        []Result            `json:"exact_matches,omitempty"`
+	SourceMatches       []Result            `json:"source_matches,omitempty"`
+	SymbolMatches       []Result            `json:"symbol_matches,omitempty"`
+	RelationshipMatches []RelationshipMatch `json:"relationship_matches,omitempty"`
+	Paths               []Path              `json:"paths,omitempty"`
+	Dependents          []Dependent         `json:"dependents,omitempty"`
+	Inspections         []Inspection        `json:"inspections,omitempty"`
+	Suggestions         []Suggestion        `json:"suggestions,omitempty"`
+	Unresolved          []Unresolved        `json:"unresolved,omitempty"`
+	Warnings            []string            `json:"warnings,omitempty"`
+	TruncatedLanes      []string            `json:"truncated_lanes,omitempty"`
+	Truncated           bool                `json:"truncated,omitempty"`
 }
 
 type Snapshot struct {
@@ -80,8 +84,22 @@ type Result struct {
 	Provider string   `json:"provider"`
 	Kind     string   `json:"kind"`
 	Node     Node     `json:"node"`
+	Excerpt  string   `json:"excerpt,omitempty"`
 	Score    float64  `json:"score,omitempty"`
 	Reasons  []string `json:"reasons"`
+}
+
+type RelationshipMatch struct {
+	Rank      int      `json:"rank"`
+	Provider  string   `json:"provider"`
+	Subject   Node     `json:"subject"`
+	Direction string   `json:"direction"`
+	Relation  string   `json:"relation"`
+	Certainty string   `json:"certainty,omitempty"`
+	Object    Node     `json:"object"`
+	Reasons   []string `json:"reasons,omitempty"`
+	Evidence  []string `json:"evidence,omitempty"`
+	Spans     []Range  `json:"spans,omitempty"`
 }
 
 type Path struct {

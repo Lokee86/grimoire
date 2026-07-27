@@ -1,435 +1,269 @@
-# CLI Reference
+# Grimoire CLI
 
 ## Invocation
 
-```text
+```bash
 grimoire <command> [flags]
 ```
 
-Current top-level commands are `status`, `index`, `knowledge`, `query`, `mcp`, `context`, `eval`, `model`, `vector`, `investigation`, `version`, and `help`. Running `grimoire` with no arguments, or using `grimoire help`, `grimoire -h`, or `grimoire --help`, prints the normal workflow and exits successfully.
+Run `grimoire help` for the installed command summary.
 
-## `grimoire status`
+## Discovery commands
 
-Inspect repository identity and the prepared Lexicon, Arcana, and Grimoire state:
+### `grimoire search`
 
-```bash
-grimoire status --root <repository>
-grimoire status --root <repository> --refresh
-grimoire status --root <repository> --refresh --force
-```
-
-The command emits status schema version 2 with Git/source identity, Lexicon, Arcana, prepared-source, knowledge-index, Arcana-vector, and documentation-vector freshness; it also reports stale reasons, performed actions, elapsed times, warnings, and deterministic-query readiness. `status` is read-only by default. `--refresh` incrementally prepares Lexicon, Arcana, Grimoire source state, and the documentation knowledge index only when needed; `--force` refreshes all deterministic state. Vector indexes are inspected but never built by this command.
-
-## `grimoire knowledge`
-
-`knowledge index` builds the independent documentation/rationale index under `<root>/.grimoire/knowledge`; `knowledge search` returns exact cited sections as JSON; `knowledge inspect` reports state or one document/section; and `knowledge vector build|info` owns optional documentation embeddings. Search uses deterministic BM25 by default. Pass `--vectors=true` to opt into the current documentation vector snapshot as a supplemental ranker. See [Knowledge retrieval](knowledge.md).
-
-## `grimoire investigation`
-
-The investigation ledger stores deduplicated agent-facing discovery evidence under `<grimoire-state>/investigations/<session-id>/`. Sessions are bound to one repository snapshot and optional provider snapshot identities.
+Search all repository evidence lanes through one interface:
 
 ```bash
-grimoire investigation create --session <id> --snapshot <repository-id> [--provider name=identity]
-grimoire investigation status --session <id>
-grimoire investigation close --session <id>
+grimoire search --root . --query "Where is session creation handled?"
 ```
 
-All commands accept `--root <path>` and `--state <path>`; state defaults to `<root>/.grimoire`. Evidence recording is owned by `internal/investigation` for the query and MCP layers. See [`internal/investigation`](../../internal/investigation/README.md) for the package contract.
+The response uses schema `grimoire.discovery.v1` and may include:
+
+- `exact_matches`
+- `source_matches`
+- `document_matches`
+- `symbol_matches`
+- `relationship_matches`
+
+`--limit` applies to each lane independently. The default is 12 and the maximum is 200.
+
+Useful flags:
+
+```text
+--root <path>                 Repository root
+--state <path>                Grimoire state directory
+--state-mode <mode>           current-only, refresh-if-needed, or force-refresh
+--query <text>                Literal, symbol, behavior, or documentation query
+--limit <n>                   Maximum results per lane
+--code-only                   Omit the documentation lane
+--include-documents=<bool>    Include separately ranked documentation
+--document-vectors            Use current documentation vectors when available
+--session <name>              Reuse one investigation ledger
+--timeout <duration>          Complete operation timeout
+```
+
+Provider-state and executable overrides exist for controlled environments, but normal callers should allow Grimoire to discover and route Lexicon and Arcana internally.
+
+### `grimoire orient`
+
+Return compact source and symbol anchors for an unfamiliar repository:
+
+```bash
+grimoire orient --root .
+```
+
+Orient uses the same response schema and returns suggested follow-up operations. A concrete repository question should normally begin with `search` instead.
+
+### `grimoire inspect`
+
+Read exact evidence by stable handle:
+
+```bash
+grimoire inspect --root . --handle '<handle>'
+grimoire inspect --root . --handle '<handle>' --adjacent-context 3
+```
+
+Source, Lexicon, and Arcana handles are snapshot-qualified. Documentation uses `knowledge://` section handles. Inspection does not fuzzily rerun the original query.
+
+`--adjacent-context` applies to source inspection and is bounded to 200 lines.
+
+### `grimoire trace`
+
+Expand bounded graph paths from one returned symbol or relationship node:
+
+```bash
+grimoire trace --root . --anchor '<handle>' --depth 4
+```
+
+Trace defaults to eight paths. `--detail summary` is the default; `--detail full` returns complete node and step objects. Optional `--target`, `--direction`, and repeated `--relation` filters narrow traversal.
+
+### `grimoire impact`
+
+Find bounded incoming, outgoing, or bidirectional dependents:
+
+```bash
+grimoire impact --root . --anchor '<handle>' --direction incoming --depth 4
+```
+
+### Compatibility spelling
+
+The former subcommand shape remains accepted:
+
+```bash
+grimoire query search --root . --query "SubmitLogin"
+```
+
+It executes the same discovery path. New integrations should use the direct commands.
+
+### JSON requests
+
+A complete request may be supplied as JSON:
+
+```bash
+grimoire query --request '{"schema":"grimoire.discovery.v1","mode":"search","root":".","query":"SubmitLogin","limit":8}'
+```
+
+See [Unified discovery contract](agent-query.md).
 
 ## `grimoire mcp`
 
-Serve the unified `grimoire_query` agent tool over MCP stdio:
+Serve the same discovery interface over stdio:
 
 ```bash
-grimoire mcp --root <repository>
-grimoire mcp --root <repository> --state-mode current-only
+grimoire mcp --root .
 ```
 
-The default `--state-mode` is `refresh-if-needed`. The server checks and incrementally prepares repository state before each call, retrieves code and repository knowledge through separate lanes, and supports persistent `session` names that replace repeated evidence with prior handles. See [Agent MCP runtime](agent-mcp.md).
+The exposed tool is `grimoire_discover`. The MCP server adds automatic repository preparation and optional investigation-session deduplication but does not change the evidence-lane contract.
 
-## `grimoire model setup`
+See [Grimoire MCP interface](agent-mcp.md).
 
-Install Grimoire's pinned local embedding runtime and model:
+## Repository preparation
+
+### `grimoire status`
+
+Inspect current source, documentation, Lexicon, Arcana, and optional vector state:
 
 ```bash
-grimoire model setup [flags]
+grimoire status --root .
+grimoire status --root . --refresh
+grimoire status --root . --force-refresh
 ```
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--cache <path>` | operating-system user cache plus `grimoire` | Managed runtime and model directory |
-| `--backend <name>` | `auto` | `auto`, `cuda`, `vulkan`, or `cpu` llama.cpp runtime |
-| `--force` | `false` | Revalidate and atomically reinstall the selected runtime |
-| `--timeout <duration>` | `45m` | Complete download and installation timeout |
+Normal discovery commands use `refresh-if-needed` unless another state mode is selected.
 
-On Windows x64 the command downloads a pinned `llama.cpp` runtime and `Qwen3-Embedding-0.6B-Q8_0.gguf`, verifies fixed SHA-256 digests, and publishes them atomically into the cache. `auto` selects CUDA when a compatible NVIDIA driver is present, otherwise Vulkan when available, then CPU. Set `GRIMOIRE_LLAMA_BACKEND` or pass `--backend` to override detection. Repeated setup reuses verified files.
+### `grimoire index`
 
-The JSON result contains the cache, runtime, and model paths plus their identities.
-
-## `grimoire model info`
-
-Report the fixed model contract and whether a runtime and local model are discoverable:
+Prepare source state directly:
 
 ```bash
-grimoire model info [--runtime <path>] [--endpoint <url>]
+grimoire index --root .
 ```
 
-This command does not start a server or send an embedding request.
+Useful flags:
 
-## `grimoire model serve`
+```text
+--state <path>
+--ignore-file <path>
+--exclude <path>              Repeatable
+--max-file-bytes <n>
+--include-generated
+--lexicon-facts <path>
+--lexicon-state <path>
+--lexicon-command <path>
+```
 
-Start a blocking local `llama.cpp` embeddings service:
+The source index owns exact and BM25 source discovery. Documentation is filtered from source results and indexed independently.
+
+### `grimoire knowledge index`
+
+Prepare the document lane:
 
 ```bash
-grimoire model serve [flags]
+grimoire knowledge index --root .
 ```
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--runtime <path>` | discovered runtime | `llama-server` or `llama` executable |
-| `--model-file <path>` | managed model, then fixed remote model reference | Local GGUF file |
-| `--backend <name>` | `auto` | Runtime backend contract |
-| `--host <address>` | `127.0.0.1` | Bind address |
-| `--port <n>` | `9876` | Bind port |
-| `--context-size <n>` | `8192` | Runtime context size |
-| `--ubatch-size <n>` | `2048` | Runtime physical batch size |
-| `--parallel <n>` | `4` | Concurrent llama.cpp server slots |
-| `--gpu-layers <n>` | `-1` | Automatic all-GPU placement for CUDA/Vulkan, zero for CPU, or explicit layer count |
+The standalone `knowledge search` and `knowledge inspect` commands remain available for diagnostics, but normal agents should use `grimoire search` and `grimoire inspect`.
 
-The command enables embedding mode and last-token pooling. Grimoire performs final 512-dimensional truncation and L2 normalization in its client.
+## Documentation vectors
 
-## Managed runtime lifecycle
+### `grimoire vector build`
 
-Start a detached supervised service:
+Build or refresh optional document vectors:
 
 ```bash
-grimoire model start [flags]
+grimoire vector build --root .
 ```
 
-`model start` accepts the same runtime, model, backend, host, port, context, ubatch, parallel, and GPU-layer settings as `model serve`, plus:
+Vectors affect only `document_matches`. Exact, source, symbol, relationship, trace, and impact operations do not require them.
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--cache <path>` | user cache plus `grimoire` | Runtime config, state, stop marker, and default log root |
-| `--startup-timeout <duration>` | `2m` | Time allowed for a verified embedding probe |
-| `--restart-limit <n>` | `5` | Child crashes restarted before failure; zero disables restart |
-| `--restart-delay <duration>` | `2s` | Delay before a crash restart |
-| `--health-interval <duration>` | `15s` | Health-probe interval |
-| `--log <path>` | managed log path | Combined supervisor and llama.cpp log |
-| `--log-max-bytes <n>` | `16777216` | Rotation threshold |
-| `--log-backups <n>` | `3` | Rotated log files retained |
+### `grimoire vector info`
 
-The supervisor rejects duplicate live instances, verifies CUDA/Vulkan initialization from the runtime log, and writes an atomic state file containing process IDs, backend, model/runtime paths, context values, maximum accepted input tokens, readiness, restart count, and last error.
+Inspect document-vector freshness and storage:
 
 ```bash
-grimoire model status [--cache <path>] [--timeout 10s]
-grimoire model stop [--cache <path>] [--timeout 30s]
-grimoire model restart [start flags]
+grimoire vector info --root .
 ```
 
-`model status` performs a real embedding probe and includes NVIDIA utilization, memory, temperature, power, graphics clock, and available thermal/power slowdown reasons. `model stop` uses the supervisor stop marker first and forcibly terminates stale managed processes only after the timeout.
+A stale or missing vector snapshot falls back to document BM25 before embedding the query.
 
-## `grimoire model probe`
+## Embedding runtime
 
-Verify the running embeddings endpoint with a real query/document pair:
+### `grimoire model setup`
+
+Install or validate the managed embedding runtime:
 
 ```bash
-grimoire model probe [flags]
+grimoire model setup
 ```
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
-| `--query <text>` | sample code-retrieval query | Query to instruct and embed |
-| `--document <text>` | sample source passage | Raw document to embed |
-| `--timeout <duration>` | `2m` | Request timeout |
+### `grimoire model start`
 
-The result reports the fixed identity, endpoint, 512 dimensions, and inner-product similarity.
-
-## Arcana semantic graph index
-
-Arcana uses the same running embedding endpoint; no second model installation or model process is required.
-
-Build an index for the current `.arcana/CURRENT` graph snapshot:
+Start the managed embedding service:
 
 ```bash
-arcana vectorize [--state .arcana] [--endpoint http://127.0.0.1:9876/v1] [--batch-size 32] [--batch-concurrency 1]
+grimoire model start
 ```
 
-Search the graph index:
+### `grimoire model info`
+
+Inspect runtime and model state:
 
 ```bash
-arcana semantic-query --query "where is profile persistence handled?" [--limit 10] [--json]
+grimoire model info
 ```
 
-The index is stored under `.arcana/vectors/<snapshot-digest>/<embedding-identity>/`; content-addressed graph-document vectors are stored under `.arcana/vector-cache/<embedding-identity>/` and reused across snapshots only for byte-identical rendered content and the same embedding contract. Arcana indexes declaration-level semantic entry points rather than every graph node; variables, parameters, fields, imports, exports, directories, and repository roots remain available through exact graph traversal. `--batch-concurrency` bounds simultaneous endpoint requests. Successful batches persist immediately for resume, while deterministic snapshot materialization and atomic publication remain serialized. Output reports embedded/reused vectors, exact-snapshot reuse, request count, snapshot bytes, and duration.
+### `grimoire model serve`
 
-Building is explicit. `grimoire context` can use a validated index matching the exact resolved Arcana snapshot, but never builds the index as a query side effect. Semantic vectors are conditional recall expansion controlled by `--arcana-semantic=auto|on|off`; `auto` skips the embedding call when the query explicitly names a compound Lexicon seed or its path. Missing, stale, corrupt, policy-incompatible, or concurrently invalidated vector state falls back to Lexicon-seeded deterministic Arcana traversal. `grimoire status` reports the matching default-model index as `current` only after validating its graph identity, embedding and eligibility-policy contract, indexed-document data sizes, record count, and data checksums. Query scoring reads the vector file once; full-file checksums and exhaustive finite-value scans are not repeated per query.
-
-See [`../../arcana/docs/vector-index.md`](../../arcana/docs/vector-index.md).
-
-## `grimoire query`
-
-Run bounded, progressive repository queries without building a one-shot context
-package or requiring vectors:
+Run the managed service in the foreground:
 
 ```bash
-grimoire query <orient|search|trace|impact|inspect> [flags]
+grimoire model serve
 ```
 
-The common flags are `--root`, `--state`, `--query`, `--anchor`, `--target`,
-`--limit`, `--depth`, `--direction`, repeatable `--relation`, repeatable
-`--handle`, `--adjacent-context`, and the existing Lexicon/Arcana state and
-command overrides. `--request <json>` accepts one complete
-`grimoire.query.v1` request object. Results are JSON and every node or source
-range carries a snapshot-qualified handle accepted by later `trace`, `impact`,
-or `inspect` calls.
+### `grimoire model probe`
 
-See [Agent query API](agent-query.md) for the schema and mode behavior.
-
-## `grimoire index`
-
-Prepare or incrementally update source retrieval state:
+Probe the configured embedding endpoint:
 
 ```bash
-grimoire index [flags]
+grimoire model probe
 ```
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--root <path>` | `.` | Repository root |
-| `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
-| `--ignore-file <path>` | root and nested `.gitignore` files | Replacement Git-ignore file |
-| `--max-file-bytes <n>` | 2 MiB | Maximum eligible source file size |
-| `--include-generated` | `false` | Include generated, vendored, lock, bundled, and minified content |
-| `--exclude <path>` | none | Root-relative or absolute path to exclude; repeatable |
-| `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory for semantic source spans |
-| `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
-| `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
+## Investigation sessions
 
-The command prepares Lexicon-aligned declaration chunks when current facts are available, fills every uncovered source region with deterministic fallback chunks, and stores exact token counts. Source chunks are not embedded; source retrieval is lexical, exact, and structural.
-
-Output:
-
-```json
-{
-  "state": "/absolute/path/to/repository/.grimoire",
-  "files": 21,
-  "chunking": "lexicon",
-  "lexicon_snapshot": "sha256:...",
-  "stats": {
-    "scanned": 21,
-    "reused": 20,
-    "updated": 1,
-    "removed": 0,
-    "generated_skipped": 4,
-    "semantic_files": 16,
-    "semantic_chunks": 93
-  }
-}
-```
-
-## `grimoire vector build`
-
-Build or refresh the optional documentation vector snapshot for the independent knowledge index:
+Create, inspect, or close a persistent ledger explicitly:
 
 ```bash
-grimoire knowledge index --root <repository>
-grimoire vector build --root <repository> [flags]
+grimoire investigation create --root . --session task-1 --snapshot <source-id>
+grimoire investigation inspect --root . --session task-1
+grimoire investigation close --root . --session task-1
 ```
 
-`grimoire vector build` is an alias for `grimoire knowledge vector build`. It never embeds source-code chunks.
+Normal CLI and MCP discovery can create and reuse the ledger automatically when `--session` or `session` is supplied.
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--root <path>` | `.` | Repository root |
-| `--state <path>` | `<root>/.grimoire/knowledge` | Knowledge-state directory |
-| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
-| `--engine <path>` | discovered DLL | Rust vector-engine library |
-| `--batch-size <n>` | `8` | Documentation sections per embedding request |
-| `--batch-concurrency <n>` | `1` | Concurrent embedding requests; object ingestion remains serialized |
-| `--timeout <duration>` | `30m` | Complete build timeout |
+## Evaluation
 
-The builder deduplicates identical section text, reuses immutable content-addressed vector objects, persists successful batches immediately, and publishes a packed snapshot bound to the exact knowledge-index identity. A changed knowledge index makes the old snapshot stale; knowledge search then falls back to BM25 without embedding the query.
+### `grimoire eval knowledge`
 
-## `grimoire vector info`
-
-Inspect documentation-vector availability and freshness:
+Evaluate the independent documentation retriever against a frozen corpus:
 
 ```bash
-grimoire vector info [--root <path>] [--state <path>] [--engine <path>]
+grimoire eval knowledge --cases evaluation/knowledge/cases.json --root .
 ```
 
-The result reports the knowledge identity, expected identity, snapshot identity, model, dimensions, count, size, and whether the snapshot is current. Semantic documentation search is performed through `grimoire knowledge search`; there is no separate source-vector search command.
+### `grimoire eval arcana`
 
-## `grimoire context`
-
-Compile a bounded deterministic context package from prepared source and structural state:
+Evaluate Arcana graph retrieval and optional semantic graph entry points:
 
 ```bash
-grimoire context [flags]
+grimoire eval arcana --cases evaluation/arcana/cases.json --root .
 ```
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--root <path>` | `.` | Repository root used to resolve state |
-| `--state <path>` | `<root>/.grimoire` | Prepared-state repository |
-| `--query <text>` | none | Retrieval task; optional when `--diff` is set |
-| `--diff <scope>` | none | `working-tree`, `staged`, `unstaged`, or one Git revision/range |
-| `--diff-timeout <duration>` | `10s` | Complete Git diff and untracked-file discovery timeout |
-| `--budget <n>` | `0` | Maximum `o200k_base` tokens; zero selects a deterministic automatic target |
-| `--candidate-limit <n>` | `200` | Maximum merged exact, lexical, and structural candidates before curation |
-| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | OpenAI-compatible embeddings base URL |
-| `--structure <bool>` | `true` | Include available Lexicon and Arcana structural evidence |
-| `--structure-timeout <duration>` | `30s` | Complete structural-provider timeout |
-| `--structural-scope <mode>` | `lexical` | `lexical` resolves structural evidence inside BM25 discovery scopes; `global` enables repository-wide structural discovery |
-| `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
-| `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
-| `--lexicon-command <path>` | discovered | Executable override used for immutable snapshot export |
-| `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph-state directory |
-| `--arcana-command <path>` | discovered | Executable override used for graph synchronization, semantic search, and protocol queries |
-| `--arcana-semantic <mode>` | `auto` | Semantic seed expansion for `--structural-scope global`: `auto`, `on`, or `off` |
+### Agent discovery evaluation
 
-The default pipeline is lexical-first. It ranks prepared chunks and whole production files independently with deterministic BM25, preserves candidates from both granularities, then resolves Lexicon declarations only inside those lexical ranges. Arcana expands from the resolved declarations to supply graph evidence; it does not perform repository-wide semantic discovery in the default `lexical` scope. Context fitting protects the first 12 source candidates, admits at most eight interleaved Lexicon/Arcana facts, then continues fitting remaining source candidates. Targeted exact recovery remains a separate source lane. Repository-wide source embeddings are not built or queried.
+The repository-owned agent-discovery evaluator scores progressive discovery traces and end-to-end investigation outcomes. See [Testing and benchmarks](../development/testing-and-benchmarks.md) and `evaluation/agent_discovery/README.md`.
 
-Use `--structural-scope global` to retain the former repository-wide Lexicon and optional Arcana semantic seed-discovery path for diagnostics and explicit comparisons. Direct `grimoire query search|trace|impact|inspect` operations remain global regardless of the context setting.
-
-Provider commands are resolved from explicit overrides, repository `.grimoire/providers.json`, adjacent installed executables, a discoverable Grimoire checkout, and finally `PATH`. When `--budget` is omitted or zero, focused queries select 3,000 tokens, bounded queries 6,000, and exploratory queries 12,000. A positive explicit budget bypasses automatic selection. Candidates are then deduplicated, diversified, and expanded with bounded prepared neighbours. Automatic assembly stops after deterministic evidence coverage is reached; the emitted package records the assembly decision. Explicit-budget requests retain the existing fit-to-budget behavior.
-
-Diff-aware context treats changed prepared chunks as primary candidates and emits bounded `git-diff` structural evidence for every changed span. Changed paths, hunk headings, and declaration lines are added only to the internal retrieval query so Lexicon and Arcana can locate callers, dependencies, contracts, and tests; the package retains the human-facing query. `working-tree` compares tracked files with `HEAD` and also includes untracked, non-ignored files. `staged` compares `HEAD` with the index, `unstaged` compares the index with tracked working files, and any other value is passed to Git as one revision/range argument. A diff with no changed spans is an error rather than silently producing ordinary query context.
-
-```bash
-grimoire context --diff working-tree
-grimoire context --diff HEAD~1 --query "review these changes for regressions"
-grimoire context --diff main...HEAD --query "identify affected callers and missing tests"
-```
-
-Structural enrichment is enabled by default. When Lexicon state exists, Grimoire resolves `.lexicon/CURRENT`, creates or reuses a cached `lexicon export`, and maps declarations overlapping the lexical discovery ranges into first-class source and structural evidence. It then resolves the Arcana snapshot for the same Lexicon ID, invokes one-shot `arcana sync` when necessary, and queries Arcana's JSONL protocol from those declarations for operational roles, impact, unresolved references, and shortest call chains. In `global` scope, Lexicon may search repository-wide and `--arcana-semantic=auto|on|off` controls optional semantic seed discovery. The component executables are independently built from `lexicon/` and `arcana/` in this repository or discovered through the configured command paths. Structural failures warn and preserve source-only retrieval. Use `--structure=false` to skip both components or the explicit state, command, and facts flags to override discovery.
-
-Documentation vectors are intentionally independent of context assembly. Missing or stale documentation vectors affect only the knowledge lane and never produce context warnings.
-
-## `grimoire eval knowledge`
-
-Run the checked-in documentation corpus against the production `internal/knowledge` search seam:
-
-```bash
-grimoire eval knowledge \
-  --root . \
-  --cases evaluation/knowledge/grimoire.json \
-  --vectors=false
-```
-
-The command loads an existing `grimoire knowledge index`, executes every frozen case in corpus order, and writes a JSON report plus a Markdown review under `evaluation/results/`. Knowledge search always runs BM25. Vectors are disabled by default; pass `--vectors=true` for a paired supplemental-vector run. Vector failures are recorded per case while BM25 results remain scoreable.
-
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--cases <path>` | none | Frozen documentation corpus JSON |
-| `--root <path>` | `.` | Repository being evaluated |
-| `--state <path>` | `<root>/.grimoire/knowledge` | Prepared knowledge state |
-| `--vectors` | `false` | Attempt optional documentation vectors as a BM25 supplement |
-| `--top-k <n>` | corpus value | Override the corpus result limit |
-| `--recall-at-k <list>` | corpus value | Override ordered cutoffs such as `1,3,5,10` |
-| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint for vector queries |
-| `--engine <path>` | discovered DLL | Rust vector-engine library |
-| `--timeout <duration>` | `2m` | Per-case knowledge search timeout |
-| `--output-dir <path>` | `evaluation/results` | JSON and Markdown result directory |
-| `--output-prefix <name>` | generated | Shared result filename prefix |
-
-Reports include pass rate, required-section recall, recall@k, MRR, irrelevant selections, vector usage/errors, per-case latency, aggregate median/p95 latency, and deterministic per-case rankings. This path does not invoke source retrieval or the legacy source evaluator.
-
-## `grimoire eval arcana`
-
-Run the checked-in judged graph-seed corpus as one paired comparison:
-
-```bash
-grimoire eval arcana \
-  --root . \
-  --cases evaluation/arcana/grimoire.json
-```
-
-The command requires existing prepared Grimoire state, an immutable Lexicon
-export, a matching Arcana graph snapshot, and a matching Arcana vector index.
-For each case it runs `lexicon-seeds`, which bypasses semantic lookup, and
-`lexicon-plus-vector`, which retains ranked Arcana semantic candidates and
-fuses them with Lexicon rank, identifier and path evidence, declaration
-quality, and bounded graph-neighborhood evidence before the same deterministic
-graph expansion. It does not create or modify vector state.
-
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--cases <path>` | none | Frozen judged Arcana seed and structural-evidence corpus |
-| `--root <path>` | `.` | Repository being evaluated |
-| `--state <path>` | `<root>/.grimoire` | Prepared source state used for Lexicon candidate localization |
-| `--top-k <n>` | corpus value | Seed limit, bounded to the production maximum of six |
-| `--recall-at-k <list>` | corpus value | Override ordered seed-recall cutoffs such as `1,3,6` |
-| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint used by Arcana semantic query |
-| `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
-| `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
-| `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
-| `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph and vector state directory |
-| `--arcana-command <path>` | `arcana` | Executable used for graph synchronization and queries |
-| `--timeout <duration>` | `30s` | Per-mode provider timeout |
-| `--variant <name>` | `paired` | Report label |
-| `--output-dir <path>` | `evaluation/results` | JSON and Markdown result directory |
-| `--output-prefix <name>` | generated | Shared result filename prefix |
-
-Reports include seed recall, recall@k, MRR, final structural-evidence recall,
-latency, serialized seed-plus-evidence payload size, evaluator-visible provider
-calls, complete seed rankings, and vector-minus-baseline deltas. Semantic or
-graph provider errors remain case results instead of silently converting the
-vector mode into another baseline run.
-
-## `grimoire eval retrieval`
-
-Run a repository-owned judged retrieval corpus against one or more query modes:
-
-```bash
-grimoire eval retrieval --cases <path> --root <repository> [flags]
-```
-
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--cases <path>` | none | Required judged corpus JSON |
-| `--root <path>` | `.` | Repository being evaluated |
-| `--state <path>` | `<root>/.grimoire` | Prepared source state |
-| `--modes <list>` | `lexical` | Production deterministic source-retrieval mode |
-| `--variant <name>` | `standalone` | Result label for paired comparisons |
-| `--budget <n>` | case budget | Optional fixed budget override for every case |
-| `--adaptive` | `false` | Replace case budgets with query-shape targets and evidence-coverage assembly |
-| `--candidate-limit <n>` | `200` | Normal ranked candidate limit |
-| `--probe-limit <n>` | `800` | Broader diagnostic ranking probe used only for failure attribution |
-| `--selection-file-penalty <n>` | `10` | Evaluation-only curation penalty for each previously selected chunk from the same file |
-| `--selection-subsystem-penalty <n>` | `18` | Evaluation-only curation penalty for each previously selected chunk from the same subsystem |
-| `--selection-adjacent-primaries <n>` | `3` | Evaluation-only number of diversified primaries whose immediate prepared neighbors are promoted |
-| `--compiler-facet-protection <bool>` | `true` | Protect query-facet implementation owners during final fitting |
-| `--compiler-facet-file-depth <n>` | `2` | Distinct implementation files protected for eligible mechanism facets |
-| `--compiler-companion-depth <n>` | `1` | Additional same-file chunks protected for each selected facet file |
-| `--compiler-required-link-protection <bool>` | `true` | Retain complete provider-declared required source-link groups atomically |
-| `--endpoint <url>` | `http://127.0.0.1:9876/v1` | Embeddings endpoint used only by optional Arcana semantic graph seeds |
-| `--structural-providers <list>` | `none` | `none`, `lexicon`, or `lexicon,arcana` |
-| `--structural-scope <mode>` | `lexical` | Lexical-first scoped inspection or former `global` structural discovery |
-| `--structure-timeout <duration>` | `30s` | Per-case structural-provider timeout |
-| `--lexicon-facts <path>` | automatic snapshot export | Explicit Lexicon JSONL export directory override |
-| `--lexicon-state <path>` | `<root>/.lexicon` | Lexicon immutable state directory |
-| `--lexicon-command <path>` | `lexicon` | Executable used for immutable snapshot export |
-| `--arcana-state <path>` | `<root>/.arcana` | Arcana immutable graph-state directory |
-| `--arcana-command <path>` | `arcana` | Executable used for graph synchronization and protocol queries |
-| `--arcana-semantic <mode>` | `auto` | Semantic seed expansion for global structural scope: `auto`, `on`, or `off` |
-| `--timeout <duration>` | `10s` | Per-case source-retrieval timeout |
-| `--output-dir <path>` | `evaluation/results` | JSON and Markdown result directory |
-| `--output-prefix <name>` | generated | Shared result filename prefix |
-
-The corpus is separate from deterministic unit-test fixtures. A case may require source evidence, structural evidence, or both. Source expectations use `required`, `supporting`, and `forbidden`. Structural expectations use `required_structural`, `supporting_structural`, and `forbidden_structural`.
-
-Structural expectations require `provider` and `kind`. Optional assertions include subject `symbol` and `path`, relationship `relation`, `direction`, and `certainty`, related `target_symbol` and `target_path`, an ordered `chain` subsequence, and unresolved-reference `expression`. Before retrieval, the runner verifies every referenced source path and any symbol paired with a path.
-
-`--structural-providers none` runs the source-only baseline. With the default `--structural-scope lexical`, `lexicon` resolves declarations only inside whole-file and chunk BM25 discovery ranges; `lexicon,arcana` additionally expands those declarations through Arcana. `--structural-scope global` restores repository-wide Lexicon and optional Arcana semantic discovery for paired diagnostics. Arcana cannot be enabled without Lexicon because resolved Lexicon symbols are its bounded graph-query seeds.
-
-For each case the runner records source and structural timings, provider warnings, selected source chunks, retained structural facts, immutable provider snapshots, final serialized package tokens, separate source and structural recall, separate irrelevant-evidence rates, and failure attribution. `--adaptive` also records the selected automatic budget, curated and assembled candidate counts, represented evidence coverage, and the assembly stop reason. Source and structural failures distinguish adaptive assembly loss from later budget-fitting loss. `--adaptive` cannot be combined with a fixed `--budget` override. The broad source-ranking probe does not contribute to reported context latency.
-
-The three `--selection-*` flags substitute explicit values into the production curation implementation for judged experiments. They do not exist on `grimoire context`, and omitting them evaluates the current production defaults. This keeps calibration on the real algorithm rather than a parallel evaluator-only implementation.
-
-Outputs are a machine-readable JSON report and a concise Markdown comparison grouped by category. Package comparison includes median and p95 tokens, median selected chunks, and median budget utilization. A case passes only when every required source and structural expectation survives into the final context package.
+The former context-package command and package-focused retrieval evaluator are retired from the normal product workflow.
 
 ## `grimoire version`
 
@@ -437,26 +271,25 @@ Outputs are a machine-readable JSON report and a concise Markdown comparison gro
 grimoire version
 ```
 
-Current value: `0.1.0-dev`.
+Release builds override the development version through linker flags.
 
 ## Environment variables
 
-| Variable | Meaning |
-| --- | --- |
-| `GRIMOIRE_LLAMA_BACKEND` | Managed setup backend: `auto`, `cuda`, `vulkan`, or `cpu` |
-| `GRIMOIRE_LLAMA_SERVER` | Explicit `llama.cpp` runtime executable |
-| `GRIMOIRE_EMBEDDING_MODEL` | Explicit local GGUF model file |
-| `GRIMOIRE_EMBEDDING_MAX_TOKENS` | Override client-side per-input token limit; zero disables preflight enforcement |
-| `GRIMOIRE_VECTOR_ENGINE` | Explicit Rust vector-engine DLL |
+Provider and embedding configuration is documented with the owning component. Common discovery does not require environment variables when the consolidated binaries are installed together.
+
+`GRIMOIRE_HOME` may identify the consolidated checkout for provider discovery. Repository-local `.grimoire/providers.json` can pin Lexicon and Arcana commands.
 
 ## Error behavior
 
-Errors remain human-readable and do not yet have stable diagnostic codes or exit-code classes.
+- Invalid requests fail before querying.
+- Stale handles fail rather than being fuzzily rediscovered.
+- Missing structural providers produce warnings while source and document discovery continue when possible.
+- Missing or stale documentation vectors fall back to BM25.
+- A repository that cannot produce current source state fails discovery instead of returning stale implementation evidence.
 
 ## Related documentation
 
-- [Embedding model](embedding-model.md)
-- [Vector store](vector-store.md)
-- [Indexing](indexing.md)
-- [Context package](context-package.md)
-- [Prepared index](../architecture/prepared-index.md)
+- [Unified discovery contract](agent-query.md)
+- [Grimoire MCP interface](agent-mcp.md)
+- [System overview](../architecture/system-overview.md)
+- [Current limitations](../limits/current-limitations.md)

@@ -12,53 +12,15 @@ import (
 	"github.com/Lokee86/grimoire/internal/knowledge"
 )
 
-func collectHandles(response agentquery.Response) []agentquery.Handle {
-	seen := make(map[string]bool)
-	result := make([]agentquery.Handle, 0)
-	add := func(handle agentquery.Handle) {
-		if handle.Value != "" && !seen[handle.Value] {
-			seen[handle.Value] = true
-			result = append(result, handle)
-		}
-	}
-	addNode := func(node agentquery.Node) {
-		add(node.Handle)
-		if node.Span != nil {
-			add(node.Span.Handle)
-		}
-	}
-	for _, value := range response.Results {
-		addNode(value.Node)
-	}
-	for _, path := range response.Paths {
-		for _, node := range path.Nodes {
-			addNode(node)
-		}
-		for _, step := range path.Steps {
-			add(step.From)
-			add(step.To)
-			for _, span := range step.Spans {
-				add(span.Handle)
-			}
-		}
-	}
-	for _, dependent := range response.Dependents {
-		addNode(dependent.Node)
-		for _, span := range dependent.Spans {
-			add(span.Handle)
-		}
-	}
-	for _, inspection := range response.Inspections {
-		add(inspection.Handle)
-		if inspection.Node != nil {
-			addNode(*inspection.Node)
-		}
-		if inspection.Declaration != nil {
-			add(inspection.Declaration.Handle)
-		}
-		add(inspection.ContainingSpan.Handle)
-	}
-	return result
+func copyDiscoveryResponse(target *Response, source agentquery.Response) {
+	target.ExactMatches = source.ExactMatches
+	target.SourceMatches = source.SourceMatches
+	target.SymbolMatches = source.SymbolMatches
+	target.RelationshipMatches = source.RelationshipMatches
+	target.Paths = source.Paths
+	target.Dependents = source.Dependents
+	target.Inspections = source.Inspections
+	target.Unresolved = source.Unresolved
 }
 
 func investigationResponse(query agentquery.Response, documents []knowledge.Result) investigation.Response {
@@ -84,8 +46,26 @@ func investigationResponse(query agentquery.Response, documents []knowledge.Resu
 			addRange(ranges, *node.Span, "")
 		}
 	}
-	for _, result := range query.Results {
-		addNode(result.Node)
+	for _, lane := range [][]agentquery.Result{
+		query.ExactMatches,
+		query.SourceMatches,
+		query.SymbolMatches,
+	} {
+		for _, result := range lane {
+			addNode(result.Node)
+		}
+	}
+	for _, relationship := range query.RelationshipMatches {
+		addNode(relationship.Subject)
+		addNode(relationship.Object)
+		nodes := []string{relationship.Subject.Handle.Value, relationship.Object.Handle.Value}
+		edges := []string{relationship.Relation}
+		response.GraphPaths = append(response.GraphPaths, investigation.GraphPath{
+			ID: graphPathID(nodes, edges), Nodes: nodes, Edges: edges, Label: relationship.Relation,
+		})
+		for _, span := range relationship.Spans {
+			addRange(ranges, span, "")
+		}
 	}
 	for _, path := range query.Paths {
 		graph := investigation.GraphPath{}

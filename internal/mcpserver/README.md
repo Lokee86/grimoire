@@ -1,12 +1,17 @@
-# MCP Server
+# MCP server package
 
-`internal/mcpserver` owns Grimoire's agent transport boundary.
+`internal/mcpserver` is the transport-only JSON-RPC 2.0 stdio server used by Grimoire.
 
-It exposes one structured `grimoire_query` tool over JSON-RPC 2.0 stdio. The
-server accepts newline-delimited MCP messages and `Content-Length` framing,
-preserves string or numeric request IDs, and returns both MCP text content and
-`structuredContent`.
+It exposes one structured `grimoire_discover` tool. The owning application supplies the discovery schema, handler, description, and instructions.
 
-The package does not own repository analysis, ranking, investigation state, or
-query semantics. Those are supplied through the `Handler` interface so the
-agent query engine remains independently testable and usable from the CLI.
+## Responsibilities
+
+- MCP initialization and capability negotiation.
+- Tool listing and one tool-call dispatch path.
+- Bounded message decoding.
+- Structured-content and text-content responses.
+- Protocol and handler error translation.
+
+## Boundary
+
+This package does not prepare repository state, interpret discovery requests, query source or documentation, or own provider routing. `internal/app` and `internal/agentruntime` own those responsibilities.

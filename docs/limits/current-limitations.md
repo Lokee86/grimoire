@@ -1,91 +1,97 @@
 # Current limitations
 
-These constraints apply to the merged system. They are not descriptions of future work.
+These constraints describe the active unified discovery system.
 
-## Retrieval quality remains corpus-bound
+## Discovery quality remains corpus-bound
 
-Grimoire has judged source and structural evaluation, but the primary corpora remain small relative to the variety of languages, repository layouts, and development tasks the product may encounter. A passing Grimoire or Gum corpus does not establish equivalent recall elsewhere.
+Current judged corpora cover only a fraction of possible languages, repository layouts, and development tasks. Passing Grimoire, Lexicon, Arcana, or agent-discovery cases does not establish equivalent recall elsewhere.
 
-Knowledge-vector, lexical, exact, structural, ranking, curation, assembly, and fitting stages can fail independently. Use per-case attribution rather than treating low final recall as one undifferentiated search problem.
+Exact source, BM25 source, document, symbol, and relationship lanes can fail independently. Evaluate them separately before attributing a missed investigation to the interface as a whole.
 
-## Automatic policy is deterministic heuristic policy
+## Independent lanes are not a global answer ranking
 
-Query-shape analysis does not use an LLM or learned classifier. It uses prompt features plus retrieval confidence and dispersion. Focused, bounded, and exploratory tiers are concrete calibration choices, not proof of evidence sufficiency.
+Grimoire deliberately does not merge heterogeneous evidence into one score. The consumer must decide whether implementation, documentation, symbols, or graph relationships are most useful for the current task.
 
-The public CLI supports automatic selection or one exact positive budget. It does not expose caller-supplied minimum/maximum ranges.
+Per-lane rank is meaningful only inside that lane. Scores from different providers are not calibrated against one another.
 
-## Evidence coverage is not semantic proof
+## Source excerpts are bounded
 
-Automatic assembly measures represented regions, roles, candidate reserves, exact anchors, and provider evidence. It cannot prove that retained evidence answers the question. Poor ranking or an unsuitable target can still omit useful evidence during final fitting.
+Search results include compact source excerpts to reduce unnecessary inspection calls. Excerpts are capped and may omit relevant surrounding context. Full evidence still requires `inspect` on the returned handle.
 
-## Managed model setup is Windows x64 only
+## Documentation can be stale
 
-`grimoire model setup` installs pinned CPU, Vulkan, or CUDA `llama.cpp` artifacts only on Windows x64. Other platforms require a compatible runtime through `GRIMOIRE_LLAMA_SERVER` or `PATH`, plus a local model through `GRIMOIRE_EMBEDDING_MODEL` when managed state is unavailable.
+Document results include freshness and provenance metadata where available, but relevance does not prove that a document still matches implementation. Current source remains the authority for executable behavior.
 
-Backend detection is capability-based and cannot guarantee that a detected GPU backend is fastest or most stable for every driver and device.
+## Relationship discovery is intentionally local
 
-## The model service is external process state
+The search relationship lane returns bounded direct relationships around discovered symbols. It is not an exhaustive transitive graph query. Use `trace` for paths and `impact` for bounded dependents.
 
-`grimoire model serve` is blocking. Grimoire does not supervise it as a persistent daemon or automatically restart it. Source indexing and context retrieval remain available without the service, but documentation-vector builds, vector-supplemented knowledge queries, and Arcana semantic graph queries require a live compatible endpoint.
-
-## The Go native loader is Windows-only
-
-The Rust vector engine is portable, but the production Go dynamic-library loader currently targets a Windows DLL. Non-Windows Go builds return `ErrUnavailable`; source context remains unaffected, while documentation-vector commands are unavailable and knowledge search remains BM25-only.
-
-## Documentation vector search is exact float32 scanning
-
-Snapshot format version 1 stores aligned `float32` vectors and performs exact inner-product scanning. It does not use float16, int8, specialized quantized kernels, or approximate-nearest-neighbour indexes. Exact search is deterministic but may become material for very large corpora.
-
-## Immutable vector objects are not garbage-collected
-
-Deleted or replaced documentation sections disappear from the current manifest and snapshot, but immutable vector objects remain in the object store for possible reuse. There is no reachability-based cleanup across retained snapshots.
-
-## Object ingestion is serialized
-
-Embedding requests may execute concurrently, but completed batches enter the native object store through a serialized JSONL ingestion boundary. Increasing request concurrency cannot remove that persistence cost and can instead increase endpoint and memory pressure.
-
-## Lexical state is fully materialized
-
-Prepared snapshots now persist identifier-aware BM25 terms, field tokens, document lengths, declaration vocabulary, and exact-recovery candidate postings. Loading reconstructs the in-memory posting maps from that compact sidecar. Query work is bounded by matching postings rather than prepared chunk count, but the complete lexical sidecar remains resident alongside source chunks.
-
-Exact recovery uses those postings to localize candidate chunks before preserving the existing case-sensitive and boundary-aware checks. A signal with no lexical token, such as a punctuation-only quoted phrase, still falls back to scanning prepared chunks so exact behavior is not silently lost.
-
-## Semantic source chunks depend on Lexicon coverage
-
-Prepared source uses Lexicon declaration spans when a current export is available. Files without valid spans and source regions outside those declarations retain line-window fallback chunking. Adapter omissions, unsupported constructs, stale or missing Lexicon state, and ambiguous overlapping spans therefore still produce less precise boundaries.
-
-Nested declaration containers are reduced to non-overlapping leaf spans to avoid duplicated source. This intentionally means a containing type is not emitted as one complete chunk when independently bounded methods occupy it. Oversized semantic declarations are still split at the hard 1,536-token ceiling.
-
-## Prepared snapshots are fully materialized
-
-`index.Load` decodes the prepared snapshot into memory. There is no lazy shard reader or resident retrieval process for very large repositories.
-
-## File eligibility is fixed
-
-Supported extensions and extensionless names are compiled into Grimoire. There is no repository configuration for additional file classes or generated-content classification beyond ignore rules and explicit exclusions.
-
-## State maintenance is explicit
-
-Grimoire does not continuously watch repositories or automatically build documentation vectors. Callers can use `grimoire status --refresh` to prepare missing or stale deterministic Lexicon, Arcana, and source state. Documentation indexing and vector construction remain explicit `grimoire knowledge index` and `grimoire vector build` operations. Freshness checks prevent silently using mismatched knowledge vectors.
+When Arcana is unavailable, Lexicon relationship facts provide a narrower fallback. Unsupported or unresolved language constructs can still omit edges.
 
 ## Structural components remain optional runtime dependencies
 
-Lexicon and Arcana source now lives in this repository, but their executables, state formats, and publication lifecycles remain independently owned. Grimoire Context does not yet build, install, start, or maintain them automatically. Missing, stale, timed-out, or incompatible structural components produce warnings and preserve source retrieval, but structural evidence is incomplete.
+Lexicon and Arcana retain independent executables, state formats, and publication lifecycles. Missing, stale, timed-out, or incompatible structural state produces warnings while exact, source, and document discovery continue when possible.
 
-Arcana queries use Lexicon matches as bounded graph seeds. A Lexicon miss can prevent otherwise relevant Arcana evidence from being requested. Current provider breadth is deliberately bounded rather than exhaustive.
+Grimoire prepares and aligns available state but does not supervise provider daemons.
 
-## Selection and fitting remain whole-item heuristics
+## Semantic source boundaries depend on Lexicon coverage
 
-Curation removes duplicates and overlaps, promotes diversity, and adds bounded neighbours. Assembly preserves scope-specific reserves. The compiler fits complete structural facts and complete source chunks in deterministic order; it does not trim items or solve a global optimization problem.
+Prepared source uses Lexicon declaration spans when current facts are available. Unsupported files, omitted constructs, stale state, ambiguous overlaps, and source outside declarations retain fallback line-window chunks.
 
-## One output tokenizer
+Nested declarations are reduced to non-overlapping leaf spans. Oversized semantic declarations are split at the hard token ceiling.
 
-Context packages are measured with `o200k_base`. Consumers using another tokenizer may count the same JSON differently. Chat framing, tool schemas, and wrapper overhead remain the consumer's responsibility.
+## Prepared state is fully materialized
 
-## Diagnostics are not a stable API
+Prepared source snapshots and lexical postings are decoded into memory. There is no lazy shard reader or long-lived resident retrieval service for very large repositories.
 
-Errors are human-readable, but diagnostic codes, JSON error envelopes, and exit-code classes are not stable. Stderr wording is not a compatibility contract.
+## File eligibility is fixed
 
-## Package compatibility is pre-release
+Supported extensions and extensionless names are compiled into Grimoire. Repositories can add ignore rules and explicit exclusions but cannot currently register new file classes or generated-content classifiers.
 
-The current context package version is 8. Consumers must reject unsupported versions rather than infer compatibility from field presence. CLI, prepared-state, vector-state, and package migration policy are not yet stable release promises.
+## Exact recovery has a scanning fallback
+
+Identifier-aware postings localize most exact searches. Queries with no lexical token, such as punctuation-only literals, still fall back to scanning prepared chunks to preserve exact behavior.
+
+## Managed model setup is Windows x64 only
+
+`grimoire model setup` installs pinned CPU, Vulkan, or CUDA `llama.cpp` artifacts only on Windows x64. Other platforms require a compatible runtime and local model configured externally.
+
+Backend detection cannot guarantee the fastest or most stable backend for every device and driver.
+
+## The embedding service is external process state
+
+`grimoire model serve` is blocking. Grimoire does not supervise or restart it as a daemon. Exact, source, symbol, and deterministic graph discovery remain available without embeddings. Document vectors and optional semantic graph entry points require a compatible live endpoint.
+
+## The Go native vector loader is Windows-only
+
+The Rust vector engine is portable, but the production Go dynamic-library loader currently targets a Windows DLL. On unsupported platforms the document lane remains BM25-only.
+
+## Document vector search is exact float32 scanning
+
+The current snapshot stores aligned `float32` vectors and performs exact inner-product search. It does not use quantized or approximate-nearest-neighbour indexes. This is deterministic but may become material for very large document corpora.
+
+## Immutable vector objects are not garbage-collected
+
+Replaced document sections disappear from current manifests and snapshots, but immutable vector objects remain available for reuse. There is no reachability-based cleanup across retained snapshots.
+
+## Object ingestion is serialized
+
+Embedding requests may overlap, but native object ingestion is serialized. Increasing endpoint concurrency can increase CPU, GPU, and memory pressure without removing persistence cost.
+
+## State maintenance is request-driven
+
+Grimoire does not continuously watch repositories. Discovery defaults to refresh-if-needed preparation. Documentation vectors remain explicit build artifacts, and freshness checks prevent silently using mismatched snapshots.
+
+## Investigation sessions store evidence, not reasoning
+
+Sessions deduplicate returned nodes, ranges, documents, relationships, and paths. They do not preserve an agent's private reasoning or guarantee that two semantically equivalent queries map to identical evidence handles.
+
+## Release workflow is deliberately conservative
+
+The root test, build, and release workflow defaults to one worker across Go and Cargo to prevent uncontrolled CPU fan-out. `--jobs N` is an explicit operator choice and can still overload a machine when set too high.
+
+## Diagnostics and compatibility are pre-release
+
+Human-readable errors, diagnostic codes, JSON error envelopes, exit-code classes, CLI spelling, and prepared/vector state migration policy are not yet stable release promises.
+
+The current public discovery schema is `grimoire.discovery.v1`. Consumers must reject unsupported schemas rather than infer compatibility from field presence.

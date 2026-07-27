@@ -1,15 +1,15 @@
 # Reference
 
-Reference pages describe the current public commands, data contracts, defaults, and operating behavior.
+Reference pages describe current public commands, schemas, defaults, and operating behavior.
 
-- [CLI](cli.md) — commands, flags, environment variables, and fallback behavior.
-- [Agent query API](agent-query.md) — progressive orient, search, trace, impact, inspect, and stable handles.
-- [Agent MCP runtime](agent-mcp.md) — automatic state preparation, code/knowledge lanes, and session evidence deduplication.
-- [Embedding model](embedding-model.md) — fixed model identity, managed runtime, backend selection, and service verification.
-- [Indexing](indexing.md) — prepared source snapshots, deterministic source retrieval state, and independent documentation indexing.
-- [Knowledge retrieval](knowledge.md) — documentation discovery, deterministic BM25 search, optional documentation vectors, citations, and code-link hints.
-- [Vector store](vector-store.md) — documentation-vector object storage, packed snapshots, ABI behavior, freshness, and exact search.
-- [Query shape and assembly](query-shape-and-assembly.md) — automatic budgets and evidence-coverage stopping.
-- [Context package](context-package.md) — version 8 JSON schema, source/structural evidence, assembly metadata, and token accounting.
+- [CLI](cli.md) — direct discovery commands, state preparation, vectors, and failure behavior.
+- [Unified discovery contract](agent-query.md) — independent exact, source, document, symbol, and relationship lanes plus progressive expansion.
+- [MCP runtime](agent-mcp.md) — the `grimoire_discover` tool, automatic preparation, and session deduplication.
+- [Embedding model](embedding-model.md) — model identity, managed runtime, backend selection, and service verification.
+- [Indexing](indexing.md) — prepared source snapshots and independent documentation indexing.
+- [Document retrieval](knowledge.md) — documentation discovery, BM25, optional vectors, citations, freshness, and code links.
+- [Vector store](vector-store.md) — document-vector object storage, packed snapshots, ABI behavior, freshness, and exact search.
+
+The former context-package and query-shape/assembly references are retired because those mechanisms are no longer part of the CLI or MCP product contract.
 
 Architecture rationale belongs under [Architecture](../architecture/INDEX.md). Evaluation procedure belongs under [Development](../development/INDEX.md).

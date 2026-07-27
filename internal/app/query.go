@@ -12,6 +12,7 @@ import (
 
 	"github.com/Lokee86/grimoire/internal/agentquery"
 	"github.com/Lokee86/grimoire/internal/agentruntime"
+	"github.com/Lokee86/grimoire/internal/repostate"
 )
 
 type queryListFlag []string
@@ -35,19 +36,23 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 		positionalMode = args[0]
 		args = args[1:]
 	}
-	flags := flag.NewFlagSet("query", flag.ContinueOnError)
+	flags := flag.NewFlagSet("discovery", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	mode := flags.String("mode", positionalMode, "query mode: orient, search, trace, impact, or inspect")
+	mode := flags.String("mode", positionalMode, "discovery mode: orient, search, trace, impact, or inspect")
 	root := flags.String("root", ".", "repository root")
-	state := flags.String("state", "", "prepared index repository path")
-	query := flags.String("query", "", "literal, symbol, or behavior query")
+	state := flags.String("state", "", "Grimoire state directory")
+	stateMode := flags.String("state-mode", string(repostate.RefreshIfNeeded), "current-only, refresh-if-needed, or force-refresh")
+	session := flags.String("session", "", "optional investigation session name")
+	query := flags.String("query", "", "literal, symbol, behavior, or documentation query")
 	anchor := flags.String("anchor", "", "name, query anchor, or stable returned handle")
 	target := flags.String("target", "", "optional trace target name or handle")
-	limit := flags.Int("limit", 0, "maximum returned results; defaults to 8 for trace and 12 otherwise")
+	limit := flags.Int("limit", 0, "maximum results per discovery lane; defaults to 8 for trace and 12 otherwise")
 	depth := flags.Int("depth", 3, "maximum graph traversal depth")
 	direction := flags.String("direction", "", "graph direction: incoming, outgoing, or both")
 	adjacent := flags.Int("adjacent-context", 0, "source lines adjacent to an inspected declaration")
-	codeOnly := flags.Bool("code-only", false, "exclude documentation from source and structural result lanes")
+	codeOnly := flags.Bool("code-only", false, "omit the documentation lane")
+	includeDocuments := flags.Bool("include-documents", true, "include separately ranked documentation matches")
+	documentVectors := flags.Bool("document-vectors", false, "use available documentation vectors in addition to BM25")
 	detail := flags.String("detail", "", "trace detail: summary or full; defaults to summary")
 	requestJSON := flags.String("request", "", "complete "+agentquery.SchemaVersion+" JSON request object")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
@@ -55,7 +60,7 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 	lexiconCommand := flags.String("lexicon-command", "", "Lexicon executable override; discovered when omitted")
 	arcanaState := flags.String("arcana-state", "", "Arcana state directory; defaults to <root>/.arcana")
 	arcanaCommand := flags.String("arcana-command", "", "Arcana executable override; discovered when omitted")
-	timeout := flags.Duration("timeout", 30*time.Second, "complete query timeout")
+	timeout := flags.Duration("timeout", 30*time.Second, "complete discovery timeout")
 	var handles queryListFlag
 	var relations queryListFlag
 	flags.Var(&handles, "handle", "stable handle to inspect; may be repeated")
@@ -64,13 +69,13 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return fmt.Errorf("unexpected query arguments: %s", strings.Join(flags.Args(), " "))
+		return fmt.Errorf("unexpected discovery arguments: %s", strings.Join(flags.Args(), " "))
 	}
 	if *timeout <= 0 {
 		return errors.New("positive --timeout is required")
 	}
 
-	var request agentquery.Request
+	var request agentruntime.Request
 	if strings.TrimSpace(*requestJSON) != "" {
 		if err := json.Unmarshal([]byte(*requestJSON), &request); err != nil {
 			return fmt.Errorf("decode --request: %w", err)
@@ -79,21 +84,45 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 			request.Mode = positionalMode
 		}
 	} else {
-		request = agentquery.Request{
-			Schema: agentquery.SchemaVersion, Mode: *mode, Root: *root, State: *state,
-			Query: *query, Anchor: *anchor, Target: *target, Handles: handles,
-			Limit: *limit, Depth: *depth, Direction: *direction,
-			Relations: relations, Adjacent: *adjacent, CodeOnly: *codeOnly, Detail: *detail,
-			LexiconFacts: *lexiconFacts, LexiconState: *lexiconState,
-			LexiconCmd: *lexiconCommand, ArcanaState: *arcanaState, ArcanaCmd: *arcanaCommand,
+		request = agentruntime.Request{
+			Request: agentquery.Request{
+				Schema:       agentquery.SchemaVersion,
+				Mode:         *mode,
+				Root:         *root,
+				State:        *state,
+				Query:        *query,
+				Anchor:       *anchor,
+				Target:       *target,
+				Handles:      handles,
+				Limit:        *limit,
+				Depth:        *depth,
+				Direction:    *direction,
+				Relations:    relations,
+				Adjacent:     *adjacent,
+				CodeOnly:     *codeOnly,
+				Detail:       *detail,
+				LexiconFacts: *lexiconFacts,
+				LexiconState: *lexiconState,
+				LexiconCmd:   *lexiconCommand,
+				ArcanaState:  *arcanaState,
+				ArcanaCmd:    *arcanaCommand,
+			},
+			Session:            *session,
+			StateMode:          repostate.Mode(*stateMode),
+			IncludeDocuments:   includeDocuments,
+			UseDocumentVectors: documentVectors,
 		}
 	}
-	request.LexiconCmd = agentruntime.ResolveProviderCommand(request.Root, request.LexiconCmd, "lexicon")
-	request.ArcanaCmd = agentruntime.ResolveProviderCommand(request.Root, request.ArcanaCmd, "arcana")
+	if request.CodeOnly {
+		include := false
+		request.IncludeDocuments = &include
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
-	response, err := agentquery.Execute(ctx, request)
+	response, err := agentruntime.Execute(ctx, request, agentruntime.Options{
+		EnsureRepository: ensureDiscoveryRepository,
+	})
 	if err != nil {
 		return err
 	}

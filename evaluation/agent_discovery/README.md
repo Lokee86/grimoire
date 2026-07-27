@@ -1,28 +1,48 @@
 # Agent discovery benchmark
 
-This evaluation-only harness compares recorded repository discovery work. It does not run an agent or alter Grimoire query behavior. Corpus files use [`schema.v1.json`](schema.v1.json); the initial Space Rocks corpus is [`space-rocks.v1.json`](space-rocks.v1.json), pinned to revision `ff882f636706e4917f86e156ce1ed7f40b467e83`.
+This evaluation-only harness compares recorded progressive repository investigations. It does not run an agent or alter Grimoire behavior.
 
-A case records the expected ownership boundary, required source and structural evidence, explicit unsupported conclusions, and completion criteria. Scores record input/output and repeated-input tokens, discovery/tool calls, opened source ranges, evidence timing, irrelevant branches, unsupported claims, correctness, and repeatability across equivalent runs.
+Corpus files use [`schema.v1.json`](schema.v1.json). The initial Space Rocks corpus is [`space-rocks.v1.json`](space-rocks.v1.json), pinned to its recorded revision.
 
-Run a generic progressive-query recording:
+Each case defines:
+
+- the expected ownership boundary;
+- required source and structural evidence;
+- forbidden unsupported conclusions;
+- completion criteria;
+- known relevant branches.
+
+Scores include correctness, required-evidence recall, input/output and repeated-input tokens, discovery calls, source opens, evidence timing, irrelevant branches, unsupported claims, and repeatability.
+
+## Progressive recordings
+
+Record complete Grimoire `search`, `inspect`, `trace`, and `impact` interactions as JSONL, then score them:
 
 ```powershell
 go run ./evaluation/agent_discovery/cmd/agent-discovery `
   --cases evaluation/agent_discovery/space-rocks.v1.json `
-  --adapter progressive-jsonl --input .\recordings\progressive.jsonl `
-  --output-dir evaluation\results --name progressive-space-rocks
+  --adapter progressive-jsonl --input .\recordings\grimoire.jsonl `
+  --output-dir evaluation\results --name grimoire-space-rocks
 ```
 
-Score a `grimoire context` JSON package for one case:
+`progressive-jsonl` accepts one event per line with `adapter`, `run_id`, `case_id`, `time_ms`, `kind`, token usage, path/range/symbol, optional branch/relevance, and claims. A line may instead contain a complete `{events:[...]}` transcript.
 
-```powershell
-grimoire context --root C:\!bin\workspace\space-rocks --query "Find config key readers" > context.json
-go run ./evaluation/agent_discovery/cmd/agent-discovery `
-  --cases evaluation/agent_discovery/space-rocks.v1.json `
-  --adapter grimoire-context --input context.json `
-  --case space-rocks-config-key-readers
+`raw` accepts generic JSON or JSONL tool records. It maps common open/read tool names, path and line arguments, symbols, token usage, and claims.
+
+## CBM comparison
+
+CBM execution remains external. A CBM exporter can register its transcript adapter with:
+
+```go
+agentdiscovery.RegisterAdapter("cbm", adapter)
 ```
 
-`raw` accepts JSONL/JSON raw tool records. It maps `tool=open_file` or `read_*`, `arguments.path/start_line/end_line/symbol`, and `usage.input_tokens/output_tokens`. `progressive-jsonl` accepts one event per line with `adapter`, `run_id`, `case_id`, `time_ms`, `kind`, token usage, path/range/symbol, optional branch/relevance, and claims. A line may instead contain a complete `{events:[...]}` transcript.
+No CBM dependency is embedded in Grimoire.
 
-CBM execution is external. A CBM exporter can ingest its own transcript shape by importing this package and calling `agentdiscovery.RegisterAdapter("cbm", adapter)`; no CBM dependency is embedded here. The runner writes a stable JSON comparison report and matching Markdown table. Multiple records with the same adapter and case are compared for score repeatability.
+A fair paired run uses the same repository revision, task, agent model, completion criteria, and warm/cold state. Grimoire receives no free preassembled context package; its discovery calls and source inspections are counted normally.
+
+## Historical adapter
+
+The `grimoire-context` adapter remains only to score frozen historical context-package artifacts. It is not a current execution mode and must be labeled historical in reports.
+
+The runner writes stable JSON and Markdown reports. Multiple records with the same adapter and case are compared for repeatability.

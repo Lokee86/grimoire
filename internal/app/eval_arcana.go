@@ -15,7 +15,6 @@ import (
 	"github.com/Lokee86/grimoire/internal/arcanaevaluation"
 	"github.com/Lokee86/grimoire/internal/arcanagraph"
 	"github.com/Lokee86/grimoire/internal/embedding"
-	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/index"
 	"github.com/Lokee86/grimoire/internal/lexiconfacts"
 	"github.com/Lokee86/grimoire/internal/structure"
@@ -292,7 +291,7 @@ func validateArcanaEvaluationCase(root string, entry arcanaevaluation.Case) erro
 			}
 		}
 	}
-	for _, group := range [][]evaluation.StructuralExpectation{
+	for _, group := range [][]arcanaevaluation.StructuralExpectation{
 		entry.RequiredStructural, entry.SupportingStructural,
 	} {
 		for _, expected := range group {

@@ -4,77 +4,134 @@ import (
 	"context"
 
 	"github.com/Lokee86/grimoire/internal/retrieve"
+	"github.com/Lokee86/grimoire/internal/structure"
 )
 
 func (engine *Engine) search(ctx context.Context, request Request, response *Response) error {
-	seen := make(map[string]bool)
-	candidateLimit := request.Limit
-	if request.CodeOnly {
-		candidateLimit = min(200, max(request.Limit*6, request.Limit))
-	}
-	add := func(result Result) bool {
-		key := handleKey(result.Node.Handle)
-		if request.CodeOnly && isDocumentationPath(result.Node.Path) {
-			return false
+	candidateLimit := min(200, max(request.Limit*8, request.Limit))
+
+	exactCandidates := retrieve.Exact(engine.source, request.Query, candidateLimit)
+	exactMatches, exactTruncated := engine.sourceResults(
+		exactCandidates,
+		request.Limit,
+		"exact",
+		"literal source match",
+	)
+	response.ExactMatches = exactMatches
+	markLaneTruncated(response, "exact_matches", exactTruncated)
+
+	sourceCandidates := retrieve.Search(engine.source, request.Query, candidateLimit)
+	sourceMatches, sourceTruncated := engine.sourceResults(
+		sourceCandidates,
+		request.Limit,
+		"lexical",
+		"prepared source BM25 match",
+	)
+	response.SourceMatches = sourceMatches
+	markLaneTruncated(response, "source_matches", sourceTruncated)
+
+	seeds := make([]structure.Node, 0, request.Limit)
+	if engine.lexicon != nil {
+		matches := engine.lexicon.Find(request.Query, candidateLimit)
+		eligible := 0
+		for _, match := range matches {
+			if isDocumentationPath(match.Node.Path) {
+				continue
+			}
+			eligible++
+			if len(response.SymbolMatches) >= request.Limit {
+				continue
+			}
+			response.SymbolMatches = append(response.SymbolMatches, Result{
+				Provider: "lexicon",
+				Kind:     match.Node.Kind,
+				Node:     engine.node("lexicon", engine.lexiconSnapshot, match.Node),
+				Excerpt:  engine.nodeExcerpt(match.Node),
+				Score:    match.Score,
+				Reasons:  append([]string(nil), match.Reasons...),
+			})
+			seeds = append(seeds, match.Node)
 		}
-		if seen[key] || len(response.Results) >= request.Limit {
-			return false
+		for index := range response.SymbolMatches {
+			response.SymbolMatches[index].Rank = index + 1
+		}
+		markLaneTruncated(response, "symbol_matches", eligible > len(response.SymbolMatches))
+	}
+
+	if len(response.SymbolMatches) == 0 && engine.arcanaSnapshot != "" {
+		nodes, err := engine.arcana.Resolve(ctx, engine.arcanaSnapshot, request.Query, "", candidateLimit)
+		if err != nil {
+			response.Warnings = append(response.Warnings, "Arcana symbol discovery unavailable: "+err.Error())
+		} else {
+			eligible := 0
+			for _, value := range nodes {
+				if isDocumentationPath(value.Path) {
+					continue
+				}
+				eligible++
+				if len(response.SymbolMatches) >= request.Limit {
+					continue
+				}
+				response.SymbolMatches = append(response.SymbolMatches, Result{
+					Provider: "arcana",
+					Kind:     value.Kind,
+					Node:     engine.node("arcana", engine.arcanaSnapshotID, value),
+					Excerpt:  engine.nodeExcerpt(value),
+					Reasons:  []string{"Arcana graph symbol match"},
+				})
+				seeds = append(seeds, value)
+			}
+			for index := range response.SymbolMatches {
+				response.SymbolMatches[index].Rank = index + 1
+			}
+			markLaneTruncated(response, "symbol_matches", eligible > len(response.SymbolMatches))
+		}
+	}
+
+	response.RelationshipMatches = engine.searchRelationships(ctx, request, seeds, response)
+	return nil
+}
+
+func (engine *Engine) sourceResults(
+	candidates []retrieve.Candidate,
+	limit int,
+	provider string,
+	reason string,
+) ([]Result, bool) {
+	results := make([]Result, 0, min(limit, len(candidates)))
+	seen := make(map[string]bool)
+	eligible := 0
+	for _, candidate := range candidates {
+		if isDocumentationPath(candidate.Chunk.Path) {
+			continue
+		}
+		node := engine.sourceNode(candidate.Chunk)
+		key := handleKey(node.Handle)
+		if seen[key] {
+			continue
 		}
 		seen[key] = true
-		result.Rank = len(response.Results) + 1
-		response.Results = append(response.Results, result)
-		return true
-	}
-
-	for _, candidate := range retrieve.Exact(engine.source, request.Query, candidateLimit) {
-		add(Result{
-			Provider: "exact", Kind: sourceKind(candidate.Chunk),
-			Node: engine.sourceNode(candidate.Chunk), Score: candidate.Score,
-			Reasons: append([]string{"literal source match"}, candidate.Reasons...),
+		eligible++
+		if len(results) >= limit {
+			continue
+		}
+		results = append(results, Result{
+			Rank:     len(results) + 1,
+			Provider: provider,
+			Kind:     sourceKind(candidate.Chunk),
+			Node:     node,
+			Excerpt:  chunkExcerpt(candidate.Chunk),
+			Score:    candidate.Score,
+			Reasons:  append([]string{reason}, candidate.Reasons...),
 		})
 	}
+	return results, eligible > len(results)
+}
 
-	var lexiconSeeds []string
-	if engine.lexicon != nil && len(response.Results) < request.Limit {
-		for _, match := range engine.lexicon.Find(request.Query, candidateLimit) {
-			node := engine.node("lexicon", engine.lexiconSnapshot, match.Node)
-			add(Result{
-				Provider: "lexicon", Kind: match.Node.Kind, Node: node,
-				Score: match.Score, Reasons: match.Reasons,
-			})
-			lexiconSeeds = append(lexiconSeeds, match.Node.Name)
-		}
+func markLaneTruncated(response *Response, lane string, truncated bool) {
+	if !truncated {
+		return
 	}
-
-	if engine.arcanaSnapshot != "" && len(response.Results) < request.Limit {
-		if len(lexiconSeeds) == 0 {
-			lexiconSeeds = []string{request.Query}
-		}
-		for _, seed := range unique(lexiconSeeds) {
-			nodes, err := engine.arcana.Resolve(ctx, engine.arcanaSnapshot, seed, "", candidateLimit)
-			if err != nil {
-				response.Warnings = append(response.Warnings, "Arcana search unavailable: "+err.Error())
-				break
-			}
-			for _, value := range nodes {
-				add(Result{
-					Provider: "arcana", Kind: value.Kind,
-					Node:    engine.node("arcana", engine.arcanaSnapshotID, value),
-					Reasons: []string{"Arcana exact graph node for structural anchor " + seed},
-				})
-			}
-		}
-	}
-
-	if len(response.Results) < request.Limit {
-		for _, candidate := range retrieve.Search(engine.source, request.Query, candidateLimit) {
-			add(Result{
-				Provider: "lexical", Kind: sourceKind(candidate.Chunk),
-				Node: engine.sourceNode(candidate.Chunk), Score: candidate.Score,
-				Reasons: append([]string{"prepared source BM25 fallback"}, candidate.Reasons...),
-			})
-		}
-	}
-	response.Truncated = len(response.Results) == request.Limit
-	return nil
+	response.Truncated = true
+	response.TruncatedLanes = append(response.TruncatedLanes, lane)
 }

@@ -57,13 +57,14 @@ func Execute(ctx context.Context, request Request, options Options) (Response, e
 	request.Root = preparation.Repository.Root
 	request.State = statePath
 
-	knowledgeHandles, codeHandles := splitHandles(request.Handles)
+	if request.Mode == "inspect" && strings.HasPrefix(strings.TrimSpace(request.Anchor), "knowledge://") {
+		request.Handles = append(request.Handles, strings.TrimSpace(request.Anchor))
+		request.Anchor = ""
+	}
+	documentHandles, codeHandles := splitHandles(request.Handles)
 	queryRequest := request.Request
 	queryRequest.Handles = codeHandles
-	if includeKnowledge(request) && (request.Mode == "orient" || request.Mode == "search") {
-		queryRequest.CodeOnly = true
-	}
-	queryOnlyForSnapshot := request.Mode == "inspect" && len(codeHandles) == 0 && len(knowledgeHandles) > 0
+	queryOnlyForSnapshot := request.Mode == "inspect" && len(codeHandles) == 0 && len(documentHandles) > 0
 	if queryOnlyForSnapshot {
 		queryRequest.Mode = "orient"
 		queryRequest.Limit = 1
@@ -84,26 +85,23 @@ func Execute(ctx context.Context, request Request, options Options) (Response, e
 		}
 	}
 	response.Snapshot = queryResponse.Snapshot
-	response.Handles = collectHandles(queryResponse)
 	response.Suggestions = queryResponse.Suggestions
 	response.Warnings = append(response.Warnings, preparation.Warnings...)
 	response.Warnings = append(response.Warnings, queryResponse.Warnings...)
 	response.Truncated = queryResponse.Truncated
+	response.TruncatedLanes = append(response.TruncatedLanes, queryResponse.TruncatedLanes...)
 
-	knowledgeResults, knowledgeWarnings, err := retrieveKnowledge(ctx, request, statePath, preparation, knowledgeHandles)
-	response.Warnings = append(response.Warnings, knowledgeWarnings...)
+	documentResults, documentWarnings, err := retrieveDocuments(ctx, request, statePath, preparation, documentHandles)
+	response.Warnings = append(response.Warnings, documentWarnings...)
 	if err != nil {
 		return response, err
-	}
-	for _, result := range knowledgeResults {
-		response.KnowledgeHandles = append(response.KnowledgeHandles, result.Handle)
 	}
 
 	if strings.TrimSpace(request.Session) == "" {
 		if !queryOnlyForSnapshot {
-			response.Query = &queryResponse
+			copyDiscoveryResponse(&response, queryResponse)
 		}
-		response.Knowledge = knowledgeResults
+		response.DocumentMatches = documentResults
 		return response, nil
 	}
 
@@ -121,7 +119,7 @@ func Execute(ctx context.Context, request Request, options Options) (Response, e
 	if err != nil {
 		return response, fmt.Errorf("open investigation session: %w", err)
 	}
-	ledgerResponse := investigationResponse(queryResponse, knowledgeResults)
+	ledgerResponse := investigationResponse(queryResponse, documentResults)
 	delta, err := ledger.RecordResponse(ledgerResponse)
 	if err != nil {
 		return response, fmt.Errorf("record investigation response: %w", err)
@@ -145,6 +143,13 @@ func normalizeRequest(request Request, options Options) Request {
 	}
 	if request.StateMode == "" {
 		request.StateMode = repostate.RefreshIfNeeded
+	}
+	if request.Limit == 0 {
+		if request.Mode == "trace" {
+			request.Limit = 8
+		} else {
+			request.Limit = 12
+		}
 	}
 	if strings.TrimSpace(request.LexiconCmd) == "" {
 		request.LexiconCmd = resolveProviderCommand(request.Root, request.LexiconCmd, "lexicon")
@@ -180,13 +185,16 @@ func splitHandles(handles []string) (knowledgeHandles, codeHandles []string) {
 	return knowledgeHandles, codeHandles
 }
 
-func useKnowledgeVectors(request Request) bool {
-	return request.UseKnowledgeVectors != nil && *request.UseKnowledgeVectors
+func useDocumentVectors(request Request) bool {
+	return request.UseDocumentVectors != nil && *request.UseDocumentVectors
 }
 
-func includeKnowledge(request Request) bool {
-	if request.IncludeKnowledge != nil {
-		return *request.IncludeKnowledge
+func includeDocuments(request Request) bool {
+	if request.CodeOnly {
+		return false
+	}
+	if request.IncludeDocuments != nil {
+		return *request.IncludeDocuments
 	}
 	if request.Mode == "orient" || request.Mode == "search" || strings.TrimSpace(request.Query) != "" {
 		return true
@@ -195,8 +203,8 @@ func includeKnowledge(request Request) bool {
 	return anchor != "" && !strings.Contains(anchor, "://")
 }
 
-func retrieveKnowledge(ctx context.Context, request Request, statePath string, preparation repostate.Status, handles []string) ([]knowledge.Result, []string, error) {
-	if !includeKnowledge(request) && len(handles) == 0 {
+func retrieveDocuments(ctx context.Context, request Request, statePath string, preparation repostate.Status, handles []string) ([]knowledge.Result, []string, error) {
+	if !includeDocuments(request) && len(handles) == 0 {
 		return nil, nil, nil
 	}
 	knowledgeState := filepath.Join(statePath, "knowledge")
@@ -246,11 +254,18 @@ func retrieveKnowledge(ctx context.Context, request Request, statePath string, p
 		return results, nil, nil
 	}
 	topK := request.Limit
-	if topK <= 0 || topK > 8 {
-		topK = 8
+	if topK <= 0 {
+		if request.Mode == "trace" {
+			topK = 8
+		} else {
+			topK = 12
+		}
+	}
+	if topK > 200 {
+		topK = 200
 	}
 	searchOptions := knowledge.SearchOptions{TopK: topK}
-	if useKnowledgeVectors(request) && knowledgevector.Available(knowledgeState) {
+	if useDocumentVectors(request) && knowledgevector.Available(knowledgeState) {
 		searchOptions.Vector = knowledgevector.Ranker{State: knowledgeState, Index: current, Endpoint: embedding.DefaultEndpoint}
 	}
 	searched, err := knowledge.Search(ctx, current, query, searchOptions)

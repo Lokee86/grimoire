@@ -10,7 +10,6 @@ import (
 
 	"github.com/Lokee86/grimoire/internal/arcanaevaluation"
 	"github.com/Lokee86/grimoire/internal/arcanagraph"
-	"github.com/Lokee86/grimoire/internal/evaluation"
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
@@ -91,7 +90,7 @@ func TestMeasureArcanaEvaluationModeScoresSemanticDeclarationEntry(t *testing.T)
 		RequiredSeeds: []arcanaevaluation.SeedExpectation{{
 			Name: "SemanticSeeds", Path: "internal/arcanagraph/semantic.go", Kind: "function",
 		}},
-		RequiredStructural: []evaluation.StructuralExpectation{{
+		RequiredStructural: []arcanaevaluation.StructuralExpectation{{
 			Provider: "arcana", Kind: "operational_role",
 			Symbol: "SemanticSeeds", Path: "internal/arcanagraph/semantic.go",
 		}},
