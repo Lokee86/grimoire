@@ -13,7 +13,7 @@ The repository-root Go application is the primary discovery interface. It owns:
 - investigation-session deduplication;
 - the CLI and MCP discovery contracts.
 
-Grimoire does not own language parsing or graph semantics.
+Grimoire does not own language parsing or graph semantics. It exposes `grimoire lexicon ...` and `grimoire arcana ...` as thin product namespaces that delegate specialist operations to the owning binaries.
 
 ## Lexicon
 
@@ -85,8 +85,8 @@ The repository-root workflow builds and packages the components together while p
 
 The workflow defaults to one build or test worker to avoid uncontrolled CPU fan-out. Higher concurrency requires an explicit `--jobs N`.
 
-Each component may still be built and used independently from its owning source root.
+Each component may still be built and used independently from its owning source root. Ordinary product use does not require invoking those binaries directly: Grimoire resolves the bundled or configured provider and forwards namespaced commands while preserving process isolation and native exit behavior.
 
 ## Product boundary
 
-The active product path is Grimoire's progressive discovery interface. The former context-package compiler is not part of the CLI or MCP contract. Historical package evaluators and reports do not define current architecture.
+The active investigation path is Grimoire's progressive discovery interface. Direct Lexicon and Arcana commands remain available as namespaced specialist operations, not competing repository-discovery interfaces. The former context-package compiler is not part of the CLI or MCP contract. Historical package evaluators and reports do not define current architecture.

@@ -18,7 +18,7 @@ func TestRootHelpIsUseful(t *testing.T) {
 		if err := Run(args, &output, &bytes.Buffer{}); err != nil {
 			t.Fatalf("Run(%v): %v", args, err)
 		}
-		for _, expected := range []string{"Usage:", "grimoire model start", "grimoire orient", "grimoire search", "Lexicon", "Arcana"} {
+		for _, expected := range []string{"Usage:", "grimoire model start", "grimoire orient", "grimoire search", "grimoire lexicon", "grimoire arcana", "Lexicon", "Arcana"} {
 			if !bytes.Contains(output.Bytes(), []byte(expected)) {
 				t.Fatalf("Run(%v) help missing %q:\n%s", args, expected, output.String())
 			}

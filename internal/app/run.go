@@ -45,6 +45,10 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		return runStatus(args[1:], stdout, stderr)
 	case "knowledge":
 		return runKnowledge(args[1:], stdout, stderr)
+	case "lexicon":
+		return runEngineNamespace(lexiconEngine, args[1:], stdout, stderr)
+	case "arcana":
+		return runEngineNamespace(arcanaEngine, args[1:], stdout, stderr)
 	case "orient", "search", "trace", "impact", "inspect":
 		return runQuery(args, stdout, stderr)
 	case "query":
@@ -92,6 +96,8 @@ Core workflow:
   grimoire search --root . --query ... Search independent evidence lanes
   grimoire trace --anchor <id>         Expand an exact structural handle
   grimoire inspect --handle <id>       Read exact source or documentation
+  grimoire lexicon doctor --repo .     Run language-analysis diagnostics
+  grimoire arcana sync                 Synchronize structural graph state
   grimoire mcp --root .                Serve the unified discovery tool over stdio
 
 Commands:
@@ -104,6 +110,8 @@ Commands:
   index     Prepare repository source state
   status    Inspect or prepare repository analysis state
   knowledge Index, search, inspect, or vectorize repository knowledge
+  lexicon   Run direct Lexicon analysis, adapter, snapshot, and diagnostic commands
+  arcana    Run direct Arcana graph, synchronization, and structural commands
   vector    Build or inspect documentation vector state
   investigation  Create, inspect, or close an agent investigation ledger session
   mcp       Serve the unified repository discovery tool over stdio
@@ -113,8 +121,8 @@ Commands:
   help      Show this help
 
 Lexicon and Arcana remain independently usable components. Grimoire uses their
-repository-local state automatically when it is available and falls back safely
-when it is not.
+repository-local state automatically during discovery and also exposes their
+specialist commands under grimoire lexicon and grimoire arcana.
 `)
 	return err
 }

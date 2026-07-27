@@ -20,7 +20,7 @@ repository
 
 Agents and users do not choose a provider. Grimoire routes each operation internally and returns independent evidence lanes so one kind of evidence cannot suppress another.
 
-Grimoire is part of the [Warlock toolchain](https://github.com/Lokee86/warlock-toolchain). Lexicon and Arcana remain independently usable advanced components, but Grimoire is the primary interface for repository investigation.
+Grimoire is part of the [Warlock toolchain](https://github.com/Lokee86/warlock-toolchain). Lexicon and Arcana remain independently usable advanced components, but Grimoire is the primary interface for repository investigation and the normal product entry point for their specialist commands.
 
 ## Discovery contract
 
@@ -41,6 +41,22 @@ grimoire impact --anchor <handle> --direction incoming
 ```
 
 Source and documentation are intentionally separate. Source describes current repository behavior. Documentation describes intent, rationale, constraints, or historical decisions and may be stale.
+
+## Engine command namespaces
+
+Grimoire exposes direct administrative and specialist operations without making users locate or invoke provider binaries themselves:
+
+```bash
+grimoire lexicon status --repo .
+grimoire lexicon doctor --repo .
+grimoire lexicon scan --repo .
+grimoire arcana sync --lexicon .lexicon --state .arcana
+grimoire arcana query --graph <graph> --catalogue <catalogue> --name <symbol>
+```
+
+`grimoire lexicon check` and `grimoire arcana check` report the resolved provider command and version. All other arguments are forwarded to the owning engine with stdin, stdout, stderr, and exit status preserved.
+
+The standalone `lexicon` and `arcana` binaries remain available for component development and independent use. Product documentation and ordinary installations can treat `grimoire` as the single entry point.
 
 The former context-package command is retired. Grimoire no longer attempts to predict and deterministically compress an entire investigation into one answer-shaped bundle. Agents discover evidence progressively instead.
 
@@ -176,7 +192,7 @@ grimoire mcp --root .
 
 The server exposes one `grimoire_discover` tool. Start with `search`, then use returned handles with `inspect`, `trace`, or `impact`. Reuse one investigation `session` across a task to avoid replaying evidence already returned.
 
-Lexicon and Arcana executables are discovered beside Grimoire, through repository configuration, in the consolidated checkout, or on `PATH`. Provider failures are reported as warnings; Grimoire continues with the evidence lanes that remain available.
+Lexicon and Arcana executables are discovered beside Grimoire, through repository configuration, in the consolidated checkout, or on `PATH`. `GRIMOIRE_LEXICON_COMMAND` and `GRIMOIRE_ARCANA_COMMAND` provide explicit command overrides for the namespaced command surface. Discovery-provider failures are reported as warnings; Grimoire continues with the evidence lanes that remain available.
 
 ## Documentation
 

@@ -118,6 +118,38 @@ The exposed tool is `grimoire_discover`. The MCP server adds automatic repositor
 
 See [Grimoire MCP interface](agent-mcp.md).
 
+## Engine command namespaces
+
+### `grimoire lexicon`
+
+Run Lexicon-owned analysis, adapter, snapshot, and diagnostic commands through the Grimoire entry point:
+
+```bash
+grimoire lexicon check
+grimoire lexicon status --repo .
+grimoire lexicon doctor --repo .
+grimoire lexicon scan --repo .
+grimoire lexicon export --repo . --output <directory>
+```
+
+Except for Grimoire's `check`, `help`, and normalized `version` commands, arguments are forwarded unchanged to Lexicon. The namespace preserves native stdout, stderr, stdin, and exit status.
+
+### `grimoire arcana`
+
+Run Arcana-owned graph synchronization, exact structural queries, protocols, and graph maintenance commands:
+
+```bash
+grimoire arcana check
+grimoire arcana sync --lexicon .lexicon --state .arcana
+grimoire arcana query --graph <graph> --catalogue <catalogue> --name <symbol>
+grimoire arcana semantic-query --state .arcana --query "session creation"
+grimoire arcana vectorize --state .arcana
+```
+
+Arguments are forwarded unchanged, with `grimoire arcana version` normalized to Arcana's native `--version` flag. These commands are specialist operations; repository investigation should still begin with `grimoire search`.
+
+The standalone provider binaries remain independently usable. The namespaces make Grimoire the normal product entry point without removing process isolation or component development workflows.
+
 ## Repository preparation
 
 ### `grimoire status`
@@ -277,7 +309,7 @@ Release builds override the development version through linker flags.
 
 Provider and embedding configuration is documented with the owning component. Common discovery does not require environment variables when the consolidated binaries are installed together.
 
-`GRIMOIRE_HOME` may identify the consolidated checkout for provider discovery. Repository-local `.grimoire/providers.json` can pin Lexicon and Arcana commands.
+`GRIMOIRE_HOME` may identify the consolidated checkout for provider discovery. Repository-local `.grimoire/providers.json` can pin Lexicon and Arcana commands. `GRIMOIRE_LEXICON_COMMAND` and `GRIMOIRE_ARCANA_COMMAND` override command discovery for the corresponding namespaced engine commands.
 
 ## Error behavior
 
