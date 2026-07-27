@@ -4,6 +4,7 @@ mod analysis_queries;
 mod architecture_queries;
 mod diff;
 mod error;
+mod graph_export;
 mod path_queries;
 mod queries;
 mod request;

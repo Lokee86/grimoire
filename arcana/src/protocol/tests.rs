@@ -117,6 +117,68 @@ fn serves_repository_queries_and_snapshot_diffs() {
 }
 
 #[test]
+fn exports_paged_graph_nodes_and_page_internal_edges() {
+    let directory = TestDirectory::new();
+    let snapshot_path = directory.path.join("graph-export");
+    write_snapshot(&snapshot_path, current_facts());
+    let snapshot = ProtocolSnapshot::open(snapshot_path).unwrap();
+
+    let first_page = request(
+        &snapshot,
+        r#"{"op":"export_graph","path_prefix":"src\\lib.go","limit":2}"#,
+    );
+    assert_eq!(first_page["result"]["count"], 3);
+    assert_eq!(first_page["result"]["offset"], 0);
+    assert_eq!(first_page["result"]["returned"], 2);
+    assert_eq!(first_page["result"]["truncated"], true);
+    assert_eq!(first_page["result"]["next_offset"], 2);
+    assert_eq!(first_page["result"]["edges"], json!([]));
+
+    let second_page = request(
+        &snapshot,
+        r#"{"op":"export_graph","path_prefix":"src/lib.go","offset":1,"limit":2}"#,
+    );
+    let listed = request(
+        &snapshot,
+        r#"{"op":"list_nodes","path_prefix":"src/lib.go","offset":1,"limit":2}"#,
+    );
+    assert_eq!(second_page["result"]["count"], 3);
+    assert_eq!(second_page["result"]["offset"], 1);
+    assert_eq!(second_page["result"]["returned"], 2);
+    assert_eq!(second_page["result"]["truncated"], false);
+    assert_eq!(second_page["result"]["next_offset"], Value::Null);
+    assert_eq!(second_page["result"]["nodes"], listed["result"]["nodes"]);
+    assert_eq!(
+        second_page["result"]["edges"],
+        json!([{
+            "source_node_id": 1,
+            "target_node_id": 2,
+            "relation": "calls",
+        }])
+    );
+    assert_eq!(
+        second_page["result"],
+        request(
+            &snapshot,
+            r#"{"op":"export_graph","path_prefix":"src/lib.go","offset":1,"limit":2}"#,
+        )["result"]
+    );
+}
+
+#[test]
+fn graph_export_uses_visible_overlay_edges() {
+    let directory = TestDirectory::new();
+    let snapshot_path = directory.path.join("graph-export-overlay");
+    write_overlay_snapshot(&snapshot_path);
+    let snapshot = ProtocolSnapshot::open(snapshot_path).unwrap();
+
+    let export = request(&snapshot, r#"{"op":"export_graph"}"#);
+    assert_eq!(export["result"]["count"], 3);
+    assert_eq!(export["result"]["returned"], 3);
+    assert_eq!(export["result"]["edges"], json!([]));
+}
+
+#[test]
 fn opens_verified_overlay_snapshots() {
     let directory = TestDirectory::new();
     let snapshot_path = directory.path.join("overlay");

@@ -30,6 +30,11 @@ pub(crate) enum RequestCommand {
         offset: Option<usize>,
         limit: Option<usize>,
     },
+    ExportGraph {
+        path_prefix: Option<String>,
+        offset: Option<usize>,
+        limit: Option<usize>,
+    },
     Neighbors {
         node_id: u32,
         direction: QueryDirection,
