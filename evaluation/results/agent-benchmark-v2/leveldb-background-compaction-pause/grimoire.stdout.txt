@@ -1,172 +1,192 @@
 Investigation scope
 
-Read-only inspection of checked-out HEAD `99b3c03b3284f5886f9ef9a4ef703d57373e61be`. No repository files were modified, no generators were run, and no tests were executed. The only untracked paths remain discovery metadata: `.arcana/`, `.grimoire/`, and `.lexicon/`.
+Checked revision: `99b3c03b3284f5886f9ef9a4ef703d57373e61be` (LevelDB 1.23). The only worktree entries were the pre-existing discovery directories `.arcana/`, `.grimoire/`, and `.lexicon/`. No repository files were modified and no generators or tests were run.
 
 Verified current behavior
 
-1. Public and implementation ownership
+1. Public surface and ownership
 
-- `DB` is the caller-facing, concurrently accessible interface, and `CompactRange()` is already its explicit compaction operation (`include/leveldb/db.h:43-46`, `include/leveldb/db.h:137-147`).
-- `DBImpl` owns all per-database compaction coordination: the mutex, completion condition variable, scheduled/running flag, manual-compaction pointer, version set, and background error (`db/db_impl.h:173-203`).
-- Consequently, the safest ownership seam is `DBImpl`, exposed through `DB`. `Env` only executes opaque work items, while `VersionSet` only decides whether and what to compact; neither owns the per-DB pause state, manual request, shutdown protocol, or wakeups (`util/env_posix.cc:781-818`, `db/version_set.h:236-254`).
+- `leveldb::DB` is the per-database public ownership object and is documented as safe for concurrent callers. Its only explicit compaction control is synchronous `CompactRange`; there is no pause/resume API (`include/leveldb/db.h:43-46`, `include/leveldb/db.h:137-147`).
+- `DBImpl` is the concrete owner of the database’s compaction state. It implements `CompactRange`, owns the mutex and completion condition variable, and stores both the single scheduled/running flag and the pending manual-compaction pointer (`db/db_impl.h:29-50`, `db/db_impl.h:173-203`).
+- The C API similarly exposes manual `leveldb_compact_range` but no automatic-compaction control (`include/leveldb/c.h:108-121`, `db/c.cc:263-270`).
 
-2. Scheduling and completion
+This makes `DBImpl`’s per-instance scheduler—not `Env` and not `VersionSet`—the safest ownership seam.
 
-- `MaybeScheduleCompaction()` schedules one callback when there is an immutable memtable, a manual request, or `VersionSet::NeedsCompaction()`. It suppresses duplicate work, shutdown work, and work following a background error (`db/db_impl.cc:662-676`).
-- A scheduled callback runs under `DBImpl::mutex_`, performs one unit of background work, clears `background_compaction_scheduled_`, tries to schedule another unit, and broadcasts the completion condition (`db/db_impl.cc:683-700`).
-- The destructor uses exactly that flag and condition variable as its lifetime barrier: it marks shutdown and waits until no callback remains scheduled or running (`db/db_impl.cc:152-159`).
-- Automatic compaction demand can originate from writes, read statistics, and read sampling: memtable rotation calls the scheduler, and reads call it when their statistics select a file for compaction (`db/db_impl.cc:1376-1382`, `db/db_impl.cc:1153-1155`, `db/db_impl.cc:1174-1178`).
+2. One scheduler currently multiplexes three kinds of work
 
-3. Automatic versus explicit work
+`MaybeScheduleCompaction` schedules the same `BGWork` callback whenever any of these is present:
 
-- `BackgroundCompaction()` gives immutable-memtable flushing first priority. Otherwise it chooses an installed manual request; only when no manual request exists does it call `VersionSet::PickCompaction()` for automatic level compaction (`db/db_impl.cc:702-728`).
-- Manual range compaction is not a separate execution mechanism. `CompactRange()` first explicitly flushes the current memtable, then invokes per-level manual compaction (`db/db_impl.cc:582-597`).
-- Each per-level request installs a stack-owned `ManualCompaction` under the mutex, calls the same scheduler, and waits on the same completion condition until the request is done (`db/db_impl.cc:599-636`).
-- The implementation documentation treats memtable conversion to an SSTable separately from the “Compactions” section, then describes oversized-level compaction as background work (`doc/impl.md:72-80`). That is documentation rationale, not additional implementation behavior.
+- an immutable memtable (`imm_`);
+- a manual request (`manual_compaction_`);
+- an automatic level/seek compaction (`versions_->NeedsCompaction()`).
 
-Safest proposed contract
+It records one boolean covering both queued and running work, then submits the callback through `Env::Schedule` (`db/db_impl.cc:662-677`).
 
-Add two C++ methods to `DB` and overrides to `DBImpl`, for example:
+`BackgroundCompaction` then chooses work in strict order:
 
-- `PauseBackgroundCompaction()`
-- `ResumeBackgroundCompaction()`
+1. flush `imm_` and return;
+2. process `manual_compaction_`;
+3. otherwise call `VersionSet::PickCompaction` for automatic work (`db/db_impl.cc:702-727`).
 
-Define “background compaction” narrowly as automatic level-to-level compaction. Immutable-memtable flushing and explicit `CompactRange()` remain runnable.
+Consequently, “background” describes the execution mechanism, not ownership or intent: explicit manual compaction also executes through the background callback.
 
-This scope is important: it permits ordinary flush progress and preserves the existing manual path without adding a second executor or temporarily changing global `Env` state. It also agrees with the implementation’s existing three-way work distinction: immutable memtable, manual request, or automatic `NeedsCompaction()` (`db/db_impl.cc:670-675`, `db/db_impl.cc:702-728`).
+3. Manual compaction depends on that shared scheduler
 
-Recommended semantics:
+- Public `CompactRange` first forces the current memtable to an SSTable and then invokes per-level manual compaction (`db/db_impl.cc:582-597`).
+- `TEST_CompactRange`, which is the implementation path used by public `CompactRange`, installs a stack-owned `ManualCompaction` request, calls `MaybeScheduleCompaction`, and waits on `background_work_finished_signal_` until the request is done (`db/db_impl.cc:599-636`).
+- `TEST_CompactMemTable` likewise forces a write-buffer rotation and waits while `imm_` remains non-null (`db/db_impl.cc:638-651`).
+- A manual request can require multiple background callbacks: after each partial range, `BackgroundCompaction` advances the request’s begin key and clears `manual_compaction_`; the waiting caller reinstalls it and schedules the next segment (`db/db_impl.cc:768-780`, `db/db_impl.cc:622-630`).
 
-- Pause is idempotent and synchronous: when it returns, no automatic level compaction that was already scheduled is still running.
-- Resume is idempotent and immediately re-evaluates pending automatic demand.
-- Explicit manual compaction remains legal while paused.
-- Immutable-memtable flushing remains legal while paused.
-- Concurrent manual compaction may extend the time a synchronous pause waits, because the current scheduled/running flag does not distinguish work types. That is safe, though conservative.
+Therefore, a blanket “paused” return at the top of `MaybeScheduleCompaction` would make explicit `CompactRange` wait forever.
 
-Minimal implementation plan
+4. Automatic work originates from several paths
 
-1. Public API
+Automatic level/seek compaction can be requested:
 
-Add the two virtual operations adjacent to `CompactRange()` in `include/leveldb/db.h`. Document the scope explicitly:
+- after read statistics select a file (`db/db_impl.cc:1151-1155`);
+- after explicit read sampling (`db/db_impl.cc:1174-1179`);
+- after a memtable becomes immutable (`db/db_impl.cc:1376-1382`);
+- on open/recovery (`db/db_impl.cc:1512-1515`);
+- after every background callback, because one compaction can expose more work (`db/db_impl.cc:694-699`).
 
-- automatic level compaction is paused;
-- immutable-memtable flushes are not paused;
-- `CompactRange()` remains available;
-- prolonged pauses may eventually stall writes because L0 can reach its stop threshold.
+`VersionSet::NeedsCompaction` represents only table-level automatic work: it checks the computed size score and seek-selected file (`db/version_set.h:251-255`). `PickCompaction` chooses size work first, then seek work, and returns null if neither exists (`db/version_set.cc:1253-1286`).
 
-Adding pure virtual methods is consistent with the existing interface style, but it is a source/ABI change for subclasses. The repository’s only other `DB` subclass is test-only `ModelDB`, which currently supplies no-op `CompactRange()` and would need no-op pause/resume overrides (`db/db_test.cc:2046-2053`, `db/db_test.cc:2100-2108`).
+5. Existing scheduling and concurrency constraints
 
-2. Per-DB state
+- `background_compaction_scheduled_` deliberately means “scheduled or running,” preventing duplicate callbacks and allowing destruction to wait for outstanding work (`db/db_impl.h:195-198`, `db/db_impl.cc:152-159`).
+- `BackgroundCall` currently always executes `BackgroundCompaction` unless shutting down or in background-error state. It then clears the scheduled flag, reschedules if needed, and signals all waiters (`db/db_impl.cc:683-700`).
+- Actual table compaction releases `mutex_` while iterating and writing output, so a pause call can interleave with an already-running compaction; that operation cannot simply be made nonexistent after pause returns (`db/db_impl.cc:892-921`).
+- During a table compaction, newly created immutable memtables are deliberately flushed with priority so writers can proceed (`db/db_impl.cc:921-933`).
+- `Env` is the wrong seam: an `Env` can be shared and its scheduled functions are not even guaranteed to be serialized (`include/leveldb/env.h:192-198`). Blocking or filtering `Env::Schedule` would affect unrelated database instances and potentially unrelated background tasks.
 
-Add a mutex-guarded boolean such as `background_compaction_paused_` next to `background_compaction_scheduled_`, initialized to `false` in the constructor (`db/db_impl.h:173-198`, `db/db_impl.cc:126-150`).
+Dangerous behavior to avoid
 
-3. Scheduling gate
+1. Do not pause immutable-memtable flushing.
 
-Restructure the “no work” branch in `MaybeScheduleCompaction()` so that:
+When a memtable fills, `MakeRoomForWrite` installs it as `imm_` and schedules background work. A later write waits while that immutable table remains (`db/db_impl.cc:1351-1355`, `db/db_impl.cc:1371-1382`). Suppressing `imm_` work would turn a compaction pause into an immediate write deadlock after one additional full buffer. It would also deadlock the memtable-flush step at the start of explicit `CompactRange` (`db/db_impl.cc:582-595`, `db/db_impl.cc:638-646`).
 
-- `imm_ != nullptr` remains runnable;
-- `manual_compaction_ != nullptr` remains runnable;
-- automatic `versions_->NeedsCompaction()` is runnable only when the pause flag is false.
+2. Do not suppress manual requests.
 
-Conceptually, the runnable-work predicate should be:
+A manual caller publishes a pointer to its stack request and waits for the shared worker (`db/db_impl.cc:604-630`). Refusing to schedule that request while paused leaves the caller blocked indefinitely and violates the central requirement.
 
-`imm_ != nullptr || manual_compaction_ != nullptr || (!paused && versions_->NeedsCompaction())`
+3. Do not gate only new scheduling.
 
-This is the smallest safe seam because all current scheduling paths converge there (`db/db_impl.cc:662-676`).
+A callback may already be queued when pause acquires `DBImpl::mutex_`. Current `BackgroundCall` would still run automatic compaction unconditionally (`db/db_impl.cc:683-692`). The callback’s execution-time eligibility must also be checked.
 
-4. Pause implementation
+4. Do not attempt to interrupt an in-flight table compaction.
 
-Under `mutex_`:
+Compaction creates pending output files, writes and verifies them with the mutex released, then installs a version edit and cleans up inputs and obsolete files (`db/db_impl.cc:800-889`, `db/db_impl.cc:892-921`). The existing mid-operation termination path is tied to database shutdown and dedicated cleanup (`db/db_impl.cc:783-797`, `db/db_impl.cc:921-933`). Reusing or imitating that path for pause would enlarge the change into cancellation/recovery logic and risk leaked pending outputs, incomplete metadata installation, or incorrect input lifetime.
 
-- set the pause flag;
-- wait on `background_work_finished_signal_` while `background_compaction_scheduled_` is true.
+The safe contract is: pause prevents queued and future automatic table compactions from starting; an automatic table compaction already in progress may finish.
 
-The condition-variable wait releases the mutex, allowing an already queued/running callback to finish. The callback then clears the flag, observes the pause in `MaybeScheduleCompaction()`, refrains from chaining another automatic compaction, and signals the waiter (`db/db_impl.cc:683-700`).
+5. Do not promise indefinite write availability.
 
-5. Resume implementation
+Even with memtable flushing preserved, pausing table-to-table compaction allows L0 files to accumulate. Current policy starts automatic L0 compaction at four files, slows writes at eight, and stops writes at twelve (`db/dbformat.h:27-34`). `MakeRoomForWrite` implements those slowdown and stop behaviors (`db/db_impl.cc:1335-1346`, `db/db_impl.cc:1356-1359`). This is an expected operational consequence that the new API documentation must disclose.
 
-Under `mutex_`:
+Proposed design
 
-- clear the pause flag;
-- call `MaybeScheduleCompaction()`.
+The following is proposed behavior, not present in the checked-out revision.
 
-That restarts any demand accumulated in `VersionSet` while paused without inventing new state or selecting compactions outside the existing scheduler (`db/version_set.h:251-254`, `db/db_impl.cc:662-676`).
+API contract
 
-Dangerous designs to avoid
+Add per-DB methods named for intent rather than worker placement:
 
-1. Do not block or sleep inside the scheduled callback while paused.
+- `PauseAutomaticCompactions()`
+- `ResumeAutomaticCompactions()`
 
-Both POSIX and Windows `Env` implementations maintain a FIFO and execute callbacks serially on one detached worker thread (`util/env_posix.cc:781-818`, `util/env_windows.cc:691-728`). Parking that worker would prevent every later callback on the same `Env` from running, including work for other databases. It could also leave `background_compaction_scheduled_` true indefinitely, causing DB destruction to wait forever (`db/db_impl.cc:152-159`).
+Recommended documented semantics:
 
-2. Do not put an unconditional pause check before all work in `MaybeScheduleCompaction()`.
+- Scope is one `DB` instance.
+- Calls are safe concurrently with normal database operations.
+- Pause is idempotent and non-blocking.
+- It prevents queued and future automatic table-to-table compactions from starting.
+- A table compaction already executing may complete.
+- Immutable-memtable flushing and explicit `CompactRange` remain enabled.
+- Resume is idempotent and promptly schedules any accumulated automatic work.
+- Extended pauses may cause L0 write slowdown or blocking.
 
-That would also suppress immutable-memtable flushing and manual requests. In particular, public `CompactRange()` first calls `TEST_CompactMemTable()`, which forces a memtable switch and waits for `imm_` to become null (`db/db_impl.cc:582-595`, `db/db_impl.cc:638-649`). If paused scheduling rejected that immutable memtable, explicit compaction could deadlock before it ever installs `manual_compaction_`.
+A boolean state is preferable to a nesting counter unless the API explicitly assigns pause ownership through a token. With plain paired methods, a counter makes an accidental duplicate pause permanently require duplicate resumes. If independent subsystems require composable ownership, that should instead be a separate RAII/token API, not an undocumented counter.
 
-3. Do not implement pause in `VersionSet::PickCompaction()`.
+Minimal C++ implementation
 
-By the time that method is reached, a callback has already consumed the `Env` worker and set the scheduled/running state. `VersionSet` also has no ownership of the condition variable, shutdown state, or manual request (`db/db_impl.h:173-203`, `db/version_set.h:236-254`).
+1. `include/leveldb/db.h`
+   - Add the two virtual methods with the contract above near `CompactRange`.
+   - Making them pure virtual gives honest semantics but requires source changes in custom `DB` subclasses. A default no-op implementation would be source-compatible but dangerous because callers would believe compaction was paused when it was not.
 
-4. Do not modify or pause `Env` globally.
+2. `db/db_impl.h`
+   - Override both methods publicly.
+   - Add `bool automatic_compactions_paused_ GUARDED_BY(mutex_);` next to `background_compaction_scheduled_`.
+   - Initialize it to false in the constructor.
+   - The name should say “automatic”; naming it `background_compaction_paused_` invites future code to suppress manual requests and memtable flushing.
 
-The scheduling queue belongs to the environment, not an individual DB (`util/env_posix.cc:740-745`, `util/env_posix.cc:781-818`). A global control would unintentionally affect unrelated databases and arbitrary non-compaction users of `Env::Schedule()`.
+3. `db/db_impl.cc`
+   - `PauseAutomaticCompactions`: lock `mutex_` and set the boolean true.
+   - `ResumeAutomaticCompactions`: lock `mutex_`, clear the boolean, and call `MaybeScheduleCompaction`.
+   - Refine `MaybeScheduleCompaction` so paused state suppresses only the `versions_->NeedsCompaction()` branch. In logical terms, work remains eligible whenever `imm_ != nullptr` or `manual_compaction_ != nullptr`; automatic `NeedsCompaction()` work is eligible only when not paused.
+   - Add the same distinction in `BackgroundCall` before calling `BackgroundCompaction`. This closes the race where an automatic callback was queued before pause.
+   - Do not alter `BackgroundCompaction`, `VersionSet`, compaction selection, or output cleanup.
 
-5. Do not merely set a boolean and return from pause.
+4. `db/db_test.cc`
+   - Update `ModelDB`, the only additional `DB` subclass in this checkout, to implement the new pure virtual methods (`db/db_test.cc:2046-2053`, `db/db_test.cc:2100-2108`).
 
-A callback may already be queued or running. Without waiting for `background_compaction_scheduled_` to clear, the API would be a scheduling hint rather than a pause barrier (`db/db_impl.cc:683-700`).
+5. C API, if the feature is intended for all supported callers
+   - Add `leveldb_pause_automatic_compactions` and `leveldb_resume_automatic_compactions` beside `leveldb_compact_range` in `include/leveldb/c.h`.
+   - Add one-line forwarding implementations beside the existing compact-range forwarding code in `db/c.cc`.
+   - Add a C API smoke test. The behavioral concurrency tests should remain in C++ because the existing C test does not expose DB internals.
 
-6. Document write backpressure.
+One subtle execution-time rule is required: if paused and a queued callback wakes with both `imm_` and `manual_compaction_` absent, it must skip `BackgroundCompaction`, clear `background_compaction_scheduled_`, run the normal rescheduling check—which now sees pause—and signal waiters. If a manual request or immutable memtable appeared after pause, the same queued callback may safely service it.
 
-Pausing compaction does not make unlimited L0 growth safe. LevelDB slows writes at eight L0 files and waits at twelve (`db/dbformat.h:27-34`, `db/db_impl.cc:1335-1359`). A long pause can therefore block writers by design; silently bypassing those limits would be more dangerous than preserving the stall.
+Minimal test plan
 
-Minimal deterministic test plan
+Use `db/db_test.cc`, whose fixture already exposes `DBImpl`, forces memtable flushes, counts table files by level, and builds overlapping tables (`db/db_test.cc:286-316`, `db/db_test.cc:407-464`).
 
-Add focused cases to `db/db_test.cc`, which is already registered as a test target (`CMakeLists.txt:352-356`).
+Add a deterministic internal wait helper rather than using sleeps:
 
-1. `PauseSuppressesAutomaticCompactionAndResumeRestartsIt`
+- `DBImpl::TEST_WaitForBackgroundWork()` should hold `mutex_` and wait while `background_compaction_scheduled_` is true.
+- Because `BackgroundCall` clears the flag and invokes `MaybeScheduleCompaction` under the same mutex before signaling, this helper observes quiescence after the complete rescheduling chain, not a transient gap (`db/db_impl.cc:683-700`).
+- Keep this helper explicitly test-only.
 
-- Pause first.
-- Use the existing explicit memtable-compaction helper to create overlapping tables until automatic level compaction is needed.
-- Confirm L0 reaches at least `config::kL0_CompactionTrigger`, currently four (`db/dbformat.h:27-28`).
-- Wait through a deterministic test-only “background queue drained” barrier and assert the L0 file count does not fall while paused.
-- Resume, wait for background work, and assert the level layout changes.
-- Use the existing property-based `NumTableFilesAtLevel()` helper rather than filesystem timing (`db/db_test.cc:407-419`).
+Tests:
 
-2. `ManualCompactionWorksWhilePaused`
+1. `AutomaticCompactionsRemainPaused`
+   - Pause immediately after opening an empty DB, ensuring there is no in-flight automatic compaction.
+   - Create enough overlapping SSTables with repeated writes plus `TEST_CompactMemTable` to exceed `kL0_CompactionTrigger`.
+   - Verify each forced flush returns and data remains readable; this proves immutable-memtable work was not paused.
+   - Wait for background quiescence and assert L0 remains at or above the trigger instead of being automatically compacted.
+   - This directly covers both scheduler-time suppression and the queued-callback execution check.
 
-- Pause.
-- Write a value so data remains in the mutable memtable.
-- Call public `CompactRange(nullptr, nullptr)`.
-- Assert the call completes, the value remains readable, and table-file state demonstrates that both its explicit memtable flush and manual level compaction ran.
-- This specifically catches the dangerous unconditional scheduler gate because `CompactRange()` flushes before installing per-level manual requests (`db/db_impl.cc:582-597`, `db/db_impl.cc:599-636`).
+2. `ManualCompactionWorksWhileAutomaticCompactionsPaused`
+   - While still paused with an automatic backlog, call public `db_->CompactRange(nullptr, nullptr)`.
+   - Assert it returns, all inserted keys remain readable, and the L0/table distribution changes in the direction expected from manual compaction.
+   - This catches the most dangerous regression: blanket suppression of the shared worker.
 
-3. `PauseWaitsForInFlightCompaction`
+3. `ResumeSchedulesAccumulatedAutomaticWork`
+   - Rebuild an automatic backlog while paused.
+   - Call resume, then `TEST_WaitForBackgroundWork`.
+   - Assert the backlog falls below the automatic trigger or otherwise verify the pre-resume L0 files were moved/merged, with all data intact.
+   - Call resume a second time and verify it is harmless, establishing idempotence.
 
-- Use `SpecialEnv::delay_data_sync_` to hold an already-started table write; this hook blocks data-file `Sync()` until released (`db/db_test.cc:101-105`, `db/db_test.cc:154-161`).
-- Trigger automatic work, start pause on another thread, and verify pause has not returned.
-- Release sync and verify pause returns.
-- This proves barrier semantics, not merely future-scheduling suppression.
+4. `PauseAndResumeAreIdempotent`
+   - Pause twice, create a backlog, resume once, and verify work resumes. This locks in boolean—not reference-counted—semantics.
+   - Pause/resume again after quiescence to cover the no-work path.
 
-4. `PausedDatabaseDoesNotBlockSharedEnv`
+5. `QueuedAutomaticCallbackHonorsPause`
+   - For deterministic race coverage, extend the test `Env` with a narrowly scoped scheduled-work barrier or queue counter: allow DBImpl to enqueue BG work, block before callback entry, call pause, then release it.
+   - Assert the callback reaches quiescence without reducing the automatic backlog.
+   - Avoid the existing one-second sleep style used by older automatic-compaction tests (`db/db_test.cc:765-773`); this race requires synchronization, not timing.
 
-- Open two databases using the same `SpecialEnv`.
-- Pause the first after giving it automatic compaction demand.
-- Trigger and complete background work on the second.
-- This catches implementations that park the single `Env` worker instead of draining the first DB’s callback (`util/env_posix.cc:802-818`).
+6. `InFlightCompactionMayFinish`
+   - Block an automatic compaction after it has entered output work using a test-only `Env` barrier, call pause, release the barrier, and verify the operation completes cleanly.
+   - Then create another automatic backlog and verify it remains pending until resume.
+   - This validates the documented boundary between “already running may finish” and “no later automatic compaction starts.”
 
-5. API/subclass compilation
+7. C API smoke test, if wrappers are added
+   - Call pause, manual compact-range, and resume through C entry points and verify existing key reads still work. Existing compact-range coverage is at `db/c_test.c:214-220`.
 
-- Add no-op pause/resume overrides to `ModelDB`, or make an explicit compatibility decision if the new methods are non-pure.
-- Build `db_test`; its existing subclass is an immediate compile-time check of the public interface (`db/db_test.cc:2046-2053`, `db/db_test.cc:2100-2108`).
+Documentation rationale versus current behavior
 
-6. Regression coverage
+- Current public documentation says manual compaction discards obsolete versions and rearranges storage and should be invoked only by users who understand the implementation (`include/leveldb/db.h:137-147`). The proposed pause documentation should use the same caution level.
+- Current comments explain why L0 automatic compaction is driven by file count—L0 files are merged on every read and too many small files are expensive (`db/version_set.cc:1037-1052`). That is rationale for warning that a long pause can degrade reads and eventually stall writes; it is not evidence that pause currently exists.
+- Current tests already regard read-triggered compaction as automatic behavior (`db/db_test.cc:739-773`) and dedicate a suite to proving reads eventually compact obsolete data (`db/autocompact_test.cc:57-103`). New tests should distinguish “automatic work suppressed” from “manual work unavailable.”
 
-Run at minimum:
-
-- `db_test`
-- `autocompact_test`
-- `fault_injection_test`
-- `corruption_test`
-
-These are all existing registered targets in the current CMake test configuration (`CMakeLists.txt:341-355`).
-
-BENCHMARK_EVIDENCE_JSON:{"evidence":[{"path":"include/leveldb/db.h","symbol":"leveldb::DB / CompactRange","lines":"43-46,137-147","claim":"DB is the concurrent caller-facing interface and CompactRange is its explicit compaction operation."},{"path":"db/db_impl.h","symbol":"leveldb::DBImpl compaction state","lines":"173-203","claim":"DBImpl owns the mutex, completion condition, scheduled flag, manual request, version set, and background error, making it the per-database ownership seam."},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::CompactRange","lines":"582-597","claim":"Public manual compaction first flushes the memtable and then performs per-level explicit compactions.","handle":"g1_eyJ2IjoxLCJrIjoic291cmNlIiwicyI6InNoYTI1NjozMzRjZDgyNGRkNzY0ZTExY2E1MWJkYzMwNWY1ZmY3MGJjYzliNDE4NmFjZmU5ZDJmMDg3OTNkNzIwOWIzNjkwIiwiZCI6Ijc2YjVkZGI2M2FlNjhkMzkzYWZiZjYwNzI1NWE0OGIzMTdjNWUzYjRiZDNlMzg5MDZhNDAwOTcwOWQzYWVhMWUifQ_180c0728179e48d5"},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::TEST_CompactRange","lines":"599-636","claim":"A manual request is installed under the DB mutex and uses the same scheduler and completion condition as automatic work."},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::MaybeScheduleCompaction","lines":"662-676","claim":"All immutable-memtable, manual, and automatic compaction scheduling converges in MaybeScheduleCompaction.","handle":"g1_eyJ2IjoxLCJrIjoic291cmNlIiwicyI6InNoYTI1NjozMzRjZDgyNGRkNzY0ZTExY2E1MWJkYzMwNWY1ZmY3MGJjYzliNDE4NmFjZmU5ZDJmMDg3OTNkNzIwOWIzNjkwIiwiZCI6Ijk1ZWRhMDRiZTk1YjI3Yzk4NGFmYzc2Zjg1Y2IxZDY2OWVkYWI2MmY3MzExZDdhOTNlZDNkMDNiNGM2NWUxNmUifQ_ba28172038d51202"},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::BackgroundCall","lines":"683-700","claim":"A callback performs one work unit, clears the scheduled flag, conditionally chains another callback, and broadcasts completion.","handle":"g1_eyJ2IjoxLCJrIjoic291cmNlIiwicyI6InNoYTI1NjozMzRjZDgyNGRkNzY0ZTExY2E1MWJkYzMwNWY1ZmY3MGJjYzliNDE4NmFjZmU5ZDJmMDg3OTNkNzIwOWIzNjkwIiwiZCI6ImZlNzgyMzc3OTg4MmY3MWU0Y2VhNjEzMWM2ODNlMTg3YTVlMTA1OGE1YTU1ZDYwMWU4OGY5NWE0ZTc2MmQ5NTYifQ_72d7e2446fd7ceb9"},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::BackgroundCompaction","lines":"702-781","claim":"Immutable-memtable work has priority, then an installed manual request; only the remaining path selects an automatic compaction.","handle":"g1_eyJ2IjoxLCJrIjoic291cmNlIiwicyI6InNoYTI1NjozMzRjZDgyNGRkNzY0ZTExY2E1MWJkYzMwNWY1ZmY3MGJjYzliNDE4NmFjZmU5ZDJmMDg3OTNkNzIwOWIzNjkwIiwiZCI6IjMzMDNiNjQxZDBmMWJkMTZkZmIwZWFjNTI1YzUwMWJiN2UxNzBhMTQxZDQ5YWFiZWE2ZDk2MjhmZjM5ZmQ4OGYifQ_46050362b5b97a61"},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::~DBImpl","lines":"152-159","claim":"DB destruction waits for the scheduled/running background callback flag to clear."},{"path":"util/env_posix.cc","symbol":"leveldb::PosixEnv::Schedule / BackgroundThreadMain","lines":"781-818","claim":"The POSIX Env queues work and executes callbacks serially on one background worker, so a paused callback must not park that worker."},{"path":"util/env_windows.cc","symbol":"leveldb::WindowsEnv::Schedule / BackgroundThreadMain","lines":"691-728","claim":"The Windows Env has the same single-worker FIFO execution model."},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::MakeRoomForWrite","lines":"1335-1359","claim":"Current write flow slows at the L0 slowdown threshold and waits at the L0 stop threshold."},{"path":"db/dbformat.h","symbol":"leveldb::config L0 triggers","lines":"27-34","claim":"Automatic L0 compaction starts at four files, writes slow at eight, and writes stop at twelve."},{"path":"doc/impl.md","symbol":"Memtable flush and Compactions documentation","lines":"72-80","claim":"Documentation separately describes memtable-to-SSTable processing and oversized-level background compaction; this supports, but does not itself implement, the proposed scope distinction."},{"path":"db/db_test.cc","symbol":"leveldb::DBTest::NumTableFilesAtLevel / SpecialEnv","lines":"101-105,154-161,407-419","claim":"Existing tests provide a data-sync blocking hook and property-based table-file counting suitable for deterministic pause tests."},{"path":"db/db_test.cc","symbol":"leveldb::ModelDB","lines":"2046-2053,2100-2108","claim":"The repository's test ModelDB subclass implements the current pure virtual DB surface and would require compatibility handling for new virtual methods."}]}
+BENCHMARK_EVIDENCE_JSON:{"evidence":[{"path":"include/leveldb/db.h","symbol":"leveldb::DB","lines":"43-46,137-147","claim":"DB is the concurrent per-database public interface; CompactRange is the only current explicit compaction control and no pause/resume API exists."},{"path":"db/db_impl.h","symbol":"leveldb::DBImpl compaction state","lines":"173-203","claim":"DBImpl owns the mutex, completion condition, scheduled/running flag, manual request pointer, VersionSet, and background error state."},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::MaybeScheduleCompaction","lines":"662-677","claim":"The single scheduler callback is eligible for immutable-memtable, manual, or VersionSet automatic compaction work.","handle":"g1_eyJ2IjoxLCJrIjoic291cmNlIiwicyI6InNoYTI1NjoxZjMxM2YzMGY0MDExZjQ5OTk4MDk0ODk2YWI1Y2Y5YzQyMWYwNDUzNjEwMjkxYWYwNmM2Nzc3MTE2ZTA0MzBhIiwiZCI6IjllYzI4NWEyNWU2MjkyMWRiODFmMDUzNWUyZjBhMjdiMzg4OTAxNTM2YjZjYTg1MTQ5Njk3NWI2N2JjYmU1OTAifQ_8a5b681a68954674"},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::BackgroundCall","lines":"683-700","claim":"A queued callback currently runs BackgroundCompaction unless shutting down or errored, then clears the flag, reschedules, and signals waiters.","handle":"g1_eyJ2IjoxLCJrIjoic291cmNlIiwicyI6InNoYTI1NjoxZjMxM2YzMGY0MDExZjQ5OTk4MDk0ODk2YWI1Y2Y5YzQyMWYwNDUzNjEwMjkxYWYwNmM2Nzc3MTE2ZTA0MzBhIiwiZCI6ImYwZTc0MDZhODJmNTE2NjUzNTQyNTUwOTNiMjc2NDc3NzViYTNmMDMxNzEzYzNkOGU5NzA2ZGQwZDQ4ODQ5OWEifQ_108bf1b323583e3d"},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::BackgroundCompaction","lines":"702-727","claim":"Background execution prioritizes immutable-memtable flushes, then manual requests, and only otherwise chooses automatic VersionSet compaction.","handle":"g1_eyJ2IjoxLCJrIjoic291cmNlIiwicyI6InNoYTI1NjoxZjMxM2YzMGY0MDExZjQ5OTk4MDk0ODk2YWI1Y2Y5YzQyMWYwNDUzNjEwMjkxYWYwNmM2Nzc3MTE2ZTA0MzBhIiwiZCI6IjE1NjNiODMzNTVhNzUyYzE5YmZlYWI3YWQ2MzcyMzQwMzljZjUwNGM2OThjNGY0ZTZiMmM3ZjJmYjM5ZTk4NWYifQ_1903e55fba460fc6"},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::TEST_CompactRange","lines":"599-636","claim":"Manual compaction publishes a stack-owned request, invokes the shared scheduler, and waits for background completion; suppressing all scheduling would deadlock it.","handle":"g1_eyJ2IjoxLCJrIjoic291cmNlIiwicyI6InNoYTI1NjoxZjMxM2YzMGY0MDExZjQ5OTk4MDk0ODk2YWI1Y2Y5YzQyMWYwNDUzNjEwMjkxYWYwNmM2Nzc3MTE2ZTA0MzBhIiwiZCI6IjQ2NmVjNDE0NzgwNjE4OTA2ZWEzMjE1NGUyZWE1ODUzOGE4MTRmNTI3ZWY1ZjNkNDQyNDEwODJkOGU1N2M0NDQifQ_d5c91257ea9ac841"},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::TEST_CompactMemTable","lines":"638-651","claim":"Forced memtable compaction waits until imm_ is cleared, so pausing immutable flushes would also block explicit CompactRange."},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::MakeRoomForWrite","lines":"1335-1382","claim":"Writes slow at the L0 soft limit, wait at the hard limit, and rely on scheduled immutable-memtable compaction after buffer rotation."},{"path":"db/dbformat.h","symbol":"leveldb::config L0 thresholds","lines":"27-34","claim":"Automatic L0 compaction starts at four files, writes slow at eight, and writes stop at twelve."},{"path":"db/version_set.h","symbol":"leveldb::VersionSet::NeedsCompaction","lines":"251-255","claim":"VersionSet automatic eligibility consists of size-score or seek-selected-file pressure."},{"path":"db/version_set.cc","symbol":"leveldb::VersionSet::PickCompaction","lines":"1253-1286","claim":"Automatic selection prefers size compaction, then seek compaction, and returns null when neither exists."},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::DoCompactionWork","lines":"892-933","claim":"Table compaction releases DBImpl's mutex during work and prioritizes immutable flushes encountered in flight, so pause can race with already-running work and must not cancel it unsafely."},{"path":"include/leveldb/env.h","symbol":"leveldb::Env::Schedule","lines":"192-198","claim":"Env scheduling is not a safe per-DB pause seam because scheduled functions may run concurrently and Env can service work beyond one DB instance."},{"path":"db/db_impl.cc","symbol":"leveldb::DBImpl::~DBImpl","lines":"152-159","claim":"The scheduled flag covers outstanding work strongly enough for destruction to wait until it clears."},{"path":"db/db_test.cc","symbol":"leveldb::DBTest helpers","lines":"407-464","claim":"The existing DB test fixture can count per-level files, call public CompactRange, and create overlapping SSTables for pause/resume tests."},{"path":"db/db_test.cc","symbol":"leveldb::ModelDB","lines":"2046-2108","claim":"ModelDB is an additional DB subclass in this checkout and must implement any new pure virtual DB methods."},{"path":"include/leveldb/c.h","symbol":"leveldb_compact_range","lines":"108-121","claim":"The public C API currently exposes manual compact-range but no automatic-compaction pause or resume operation."}]}

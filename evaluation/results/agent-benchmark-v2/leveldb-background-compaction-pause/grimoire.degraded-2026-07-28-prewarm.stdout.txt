@@ -10,14 +10,16 @@
   },
   "lexicon": {
     "status": "current",
-    "snapshot": "sha256:47d675e03a73f00914e07d9e2c69724b34e2e0d5996ddd1e4eb33be9c9fdb4e4",
+    "snapshot": "sha256:14679994d55284be706a5121c9fa173063196a77f94213da4d63f210e7c48885",
     "prepared": true
   },
   "arcana": {
-    "status": "current",
-    "snapshot": "sha256:47d675e03a73f00914e07d9e2c69724b34e2e0d5996ddd1e4eb33be9c9fdb4e4",
-    "expected_snapshot": "sha256:47d675e03a73f00914e07d9e2c69724b34e2e0d5996ddd1e4eb33be9c9fdb4e4",
-    "prepared": true
+    "status": "absent",
+    "expected_snapshot": "sha256:14679994d55284be706a5121c9fa173063196a77f94213da4d63f210e7c48885",
+    "stale_reasons": [
+      "CURRENT is missing"
+    ],
+    "prepared": false
   },
   "grimoire": {
     "status": "current",
@@ -32,9 +34,7 @@
   },
   "arcana_vectors": {
     "status": "missing",
-    "snapshot": "sha256:47d675e03a73f00914e07d9e2c69724b34e2e0d5996ddd1e4eb33be9c9fdb4e4",
-    "expected_snapshot": "sha256:47d675e03a73f00914e07d9e2c69724b34e2e0d5996ddd1e4eb33be9c9fdb4e4",
-    "reason": "matching vector index is not prepared"
+    "reason": "no current Arcana snapshot"
   },
   "knowledge_vectors": {
     "status": "missing",
@@ -45,36 +45,40 @@
     {
       "name": "refresh-lexicon",
       "status": "completed",
-      "elapsed_ms": 7532
+      "elapsed_ms": 6887
     },
     {
       "name": "synchronize-arcana",
-      "status": "completed",
-      "elapsed_ms": 328
+      "status": "failed",
+      "elapsed_ms": 232,
+      "error": "exit status 1: arcana sync: Lexicon snapshot is malformed: unresolved reason"
     },
     {
       "name": "prepare-grimoire",
       "status": "completed",
-      "elapsed_ms": 2122
+      "elapsed_ms": 2031
     },
     {
       "name": "prepare-knowledge",
       "status": "completed",
-      "elapsed_ms": 402
+      "elapsed_ms": 398
     }
   ],
   "timings": {
-    "initial_inspection_ms": 300,
-    "lock_wait_ms": 0,
-    "reinspection_ms": 1287,
-    "lexicon_ms": 7532,
-    "arcana_ms": 328,
-    "source_index_ms": 2122,
-    "documentation_ms": 402,
-    "marker_write_ms": 4,
-    "final_verification_ms": 138,
-    "total_ms": 12121
+    "initial_inspection_ms": 301,
+    "lock_wait_ms": 1,
+    "reinspection_ms": 1241,
+    "lexicon_ms": 6887,
+    "arcana_ms": 232,
+    "source_index_ms": 2031,
+    "documentation_ms": 398,
+    "marker_write_ms": 6,
+    "final_verification_ms": 152,
+    "total_ms": 11258
   },
+  "warnings": [
+    "Arcana synchronization unavailable; continuing without graph traversal: synchronize-arcana: exit status 1: arcana sync: Lexicon snapshot is malformed: unresolved reason"
+  ],
   "deterministic_query_ready": true,
-  "elapsed_ms": 12121
+  "elapsed_ms": 11258
 }

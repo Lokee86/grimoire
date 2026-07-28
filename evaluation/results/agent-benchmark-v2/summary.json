@@ -886,40 +886,39 @@
           "elapsed_seconds": 1.171
         },
         "grimoire": {
-          "elapsed_seconds": 11.285,
+          "elapsed_seconds": 12.145,
           "timings": {
-            "initial_inspection_ms": 301,
-            "lock_wait_ms": 1,
-            "reinspection_ms": 1241,
-            "lexicon_ms": 6887,
-            "arcana_ms": 232,
-            "source_index_ms": 2031,
-            "documentation_ms": 398,
-            "marker_write_ms": 6,
-            "final_verification_ms": 152,
-            "total_ms": 11258
+            "initial_inspection_ms": 300,
+            "lock_wait_ms": 0,
+            "reinspection_ms": 1287,
+            "lexicon_ms": 7532,
+            "arcana_ms": 328,
+            "source_index_ms": 2122,
+            "documentation_ms": 402,
+            "marker_write_ms": 4,
+            "final_verification_ms": 138,
+            "total_ms": 12121
           },
           "actions": [
             {
               "name": "refresh-lexicon",
               "status": "completed",
-              "elapsed_ms": 6887
+              "elapsed_ms": 7532
             },
             {
               "name": "synchronize-arcana",
-              "status": "failed",
-              "elapsed_ms": 232,
-              "error": "exit status 1: arcana sync: Lexicon snapshot is malformed: unresolved reason"
+              "status": "completed",
+              "elapsed_ms": 328
             },
             {
               "name": "prepare-grimoire",
               "status": "completed",
-              "elapsed_ms": 2031
+              "elapsed_ms": 2122
             },
             {
               "name": "prepare-knowledge",
               "status": "completed",
-              "elapsed_ms": 398
+              "elapsed_ms": 402
             }
           ]
         }
@@ -987,38 +986,37 @@
         },
         "grimoire": {
           "exit_code": 0,
-          "elapsed_seconds": 390.199,
+          "elapsed_seconds": 333.124,
           "usage": {
             "estimated_cost_usd": 0.0,
             "cost_status": "included",
             "cost_source": "none",
-            "input_tokens": 148616,
-            "output_tokens": 12125,
-            "cache_read_tokens": 1405440,
+            "input_tokens": 134310,
+            "output_tokens": 12299,
+            "cache_read_tokens": 1141248,
             "cache_write_tokens": 0,
-            "reasoning_tokens": 5377,
-            "total_tokens": 1566181,
-            "api_calls": 16,
+            "reasoning_tokens": 4503,
+            "total_tokens": 1287857,
+            "api_calls": 17,
             "model": "gpt-5.6-sol",
             "provider": "openai-codex",
-            "session_id": "20260728_133557_3bb8da",
+            "session_id": "20260728_153505_a728e0",
             "completed": true,
             "failed": false,
             "service_tier": null
           },
-          "answer_bytes": 15989,
+          "answer_bytes": 20491,
           "discovery_output": {
-            "calls": 4,
-            "response_bytes": 137982,
+            "calls": 1,
+            "response_bytes": 31976,
             "modes": {
-              "search": 3,
-              "inspect": 1
+              "search": 1
             },
-            "new_nodes": 89,
-            "new_source_ranges": 92,
-            "new_documents": 10,
+            "new_nodes": 26,
+            "new_source_ranges": 20,
+            "new_documents": 0,
             "new_relationships": 0,
-            "new_graph_paths": 26,
+            "new_graph_paths": 8,
             "tool_errors": 0,
             "invalid_records": 0
           },
@@ -1028,10 +1026,10 @@
             "refusal_detected": false,
             "evidence_json_found": true,
             "evidence_json_valid": true,
-            "inline_citations": 48,
-            "structured_items": 15,
+            "inline_citations": 50,
+            "structured_items": 17,
             "handle_items": 4,
-            "canonical_handle_items": 1,
+            "canonical_handle_items": 3,
             "required_prefixes_found": [
               "db/db_impl",
               "include/leveldb",
@@ -1041,29 +1039,15 @@
             "findings": [
               {
                 "code": "handle_range_mismatch",
-                "message": "evidence[4] claims db/db_impl.cc:662-676; handle resolves to db/db_impl.cc:657-682",
-                "path": "db/db_impl.cc",
-                "start_line": 662,
-                "end_line": 676
-              },
-              {
-                "code": "handle_range_mismatch",
-                "message": "evidence[5] claims db/db_impl.cc:683-700; handle resolves to db/db_impl.cc:678-705",
-                "path": "db/db_impl.cc",
-                "start_line": 683,
-                "end_line": 700
-              },
-              {
-                "code": "handle_range_mismatch",
-                "message": "evidence[6] claims db/db_impl.cc:702-781; handle resolves to db/db_impl.cc:697-786",
+                "message": "evidence[4] claims db/db_impl.cc:702-727; handle resolves to db/db_impl.cc:702-781",
                 "path": "db/db_impl.cc",
                 "start_line": 702,
-                "end_line": 781
+                "end_line": 727
               }
             ]
           },
           "valid": false,
-          "completed_at": "2026-07-28T20:42:19.632962+00:00"
+          "completed_at": "2026-07-28T22:40:31.548090+00:00"
         },
         "plain": {
           "exit_code": 0,
@@ -1120,10 +1104,11 @@
           "valid": true,
           "completed_at": "2026-07-28T20:42:32.692749+00:00"
         }
-      }
+      },
+      "grimoire_rerun_note": "Healthy Arcana rerun after compatibility fix; prior degraded artifacts retained with grimoire.degraded-2026-07-28 prefixes."
     }
   },
-  "completed_at": "2026-07-28T20:42:35.695256+00:00",
-  "revalidated_at": "2026-07-28T20:50:02.827972+00:00",
+  "completed_at": "2026-07-28T22:40:34.549406+00:00",
+  "revalidated_at": "2026-07-28T22:51:42.668917+00:00",
   "last_run_started_at": "2026-07-28T20:35:35.954097+00:00"
 }

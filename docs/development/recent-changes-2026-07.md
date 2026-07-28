@@ -133,11 +133,13 @@ The third version 2 locator run favored plain inspection and CBM over Grimoire. 
 
 That run also exposed summary replacement when running one selected task into an existing canonical output. The runner now preserves compatible existing task entries, records the latest run start separately, and rejects incompatible suite/model/provider metadata. Summary-only recovery can merge a selected task back onto a committed base without rerunning agents.
 
-The fourth version 2 LevelDB run was won by CBM: 4m 52s including preparation, 10 calls, and 495k total tokens. Plain produced a strong valid answer in 6m 43s with 12 calls and 598k tokens. Grimoire took 6m 41s including preparation, 16 calls, and 1.57M tokens, then failed grounding because three model-authored ranges did not match their canonical handles.
+The fourth version 2 LevelDB task was won by CBM: 4m 52s including preparation, 10 calls, and 495k total tokens. Plain produced a strong valid answer in 6m 43s with 12 calls and 598k tokens.
 
-LevelDB also exposed a provider-compatibility failure. Lexicon completed in 6.9 seconds, but Arcana rejected the C/C++ snapshot as malformed with `unresolved reason`; Grimoire continued in degraded source/lexical mode. Four discovery calls returned 138 KB of structured context.
+The original Grimoire condition ran without Arcana because the C-family `unsupported-macro-expansion` reason was missing from Arcana's enum. It took 6m 41s including preparation, used 16 calls and 1.57M tokens, expanded 138 KB of fallback discovery output, and failed three canonical handle/range checks.
 
-The compatibility defect was fixed after the benchmark. Arcana now includes first-class C-family macro unresolved-reason enums, preserves future unknown reason labels, degrades unknown node kinds to `symbol`, skips relations whose semantics it cannot recognize, emits loud deduplicated sync warnings, persists those warnings in the Arcana snapshot, and exposes them through Grimoire repository status. The pinned LevelDB snapshot now completes Lexicon-to-Arcana synchronization and reports all 19 `unsupported-macro-expansion` records in Arcana statistics.
+After the compatibility fix, the Grimoire-only rerun completed with Lexicon and Arcana current and aligned. It took 5m 45s including preparation, used 17 calls and 1.29M tokens, and made one 32 KB search call. The answer now found the queued-callback race and proposed gating both scheduling and callback execution, but retained unsafe idempotent boolean ownership semantics. It was still automatically invalidated because one narrower evidence range did not match its broader canonical handle.
+
+The healthy rerun is recorded as the current Grimoire condition. The original degraded artifacts remain archived with `grimoire.degraded-2026-07-28` prefixes.
 
 ## Documentation and verification
 

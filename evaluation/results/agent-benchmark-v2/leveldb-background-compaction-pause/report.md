@@ -10,7 +10,7 @@ Pinned revision: `99b3c03b3284f5886f9ef9a4ef703d57373e61be`
 
 Model/provider: GPT-5.6 Sol through OpenAI Codex
 
-Conditions ran concurrently in separate clean detached worktrees. Every condition had normal shell, Git, and direct source inspection. CBM and Grimoire were optional, mutually exclusive additions.
+Plain, CBM, and the original Grimoire condition ran concurrently in separate clean detached worktrees. After fixing the Lexicon-to-Arcana compatibility defect, only the Grimoire condition was rerun against the same pinned revision. The agent investigation used fully prepared current Lexicon, Arcana, Grimoire, and documentation state.
 
 ## Task
 
@@ -18,13 +18,13 @@ Conditions ran concurrently in separate clean detached worktrees. Every conditio
 
 The prompt did not disclose the hidden scheduling, manual-compaction, write-pressure, concurrency, or lifecycle checklist.
 
-## Result summary
+## Current comparison
 
 | Condition | Preparation | Agent elapsed | Total elapsed | Model calls | Total tokens | Answer bytes | Grounding |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | CBM | 1.2s | **4m 51s** | **4m 52s** | **10** | **494,724** | 18,724 | Pass |
+| Grimoire, healthy rerun | 12.1s | 5m 33s | 5m 45s | 17 | 1,287,857 | 20,491 | **Invalid** |
 | Plain | none | 6m 43s | 6m 43s | 12 | 597,777 | 19,399 | Pass |
-| Grimoire | 11.3s | 6m 30s | 6m 41s | 16 | 1,566,181 | 15,989 | **Invalid** |
 
 Grounding details:
 
@@ -32,137 +32,135 @@ Grounding details:
 | --- | ---: | ---: | ---: | ---: | --- |
 | CBM | 60 | 18 | 0 | 0 | none |
 | Plain | 62 | 23 | 0 | 0 | none |
-| Grimoire | 48 | 15 | 4 | 1 | three handle/range mismatches |
+| Grimoire, healthy rerun | 50 | 17 | 4 | 3 | one handle/range mismatch |
 
-Every condition covered the hidden `db/db_impl*`, `include/leveldb/`, and `db/` path families. Grimoire's cited files and line ranges existed, but three evidence items paired narrower model-authored ranges with broader canonical inspected handles. The harness correctly marked the completed run invalid rather than accepting process success.
+Every condition covered the hidden `db/db_impl*`, `include/leveldb/`, and `db/` path families. The healthy Grimoire answer cited existing files and valid line ranges, but one evidence item claimed `db/db_impl.cc:702-727` while its canonical handle resolved to `db/db_impl.cc:702-781`. The hardened harness therefore rejected the answer.
 
 ## Shared technical conclusion
 
-All three found the same central ownership boundary:
+All conditions found the central ownership boundary:
 
 - `DBImpl` owns the per-database mutex, condition variable, scheduled/running flag, immutable memtable, manual request, version set, shutdown state, and background error.
 - `MaybeScheduleCompaction()` is the common scheduling seam for immutable-memtable flushes, explicit manual requests, and automatic `VersionSet::NeedsCompaction()` work.
 - The pause must apply only to automatic table-to-table compaction.
 - Immutable-memtable flushing must remain available or ordinary writes and `CompactRange()` can deadlock.
-- Explicit manual compaction must remain available because it installs `manual_compaction_` and waits on the same scheduler/condition-variable path.
+- Explicit manual compaction must remain available because it installs `manual_compaction_` and waits on the same scheduler and condition-variable path.
 - Resume must call `MaybeScheduleCompaction()` so accumulated automatic demand is not left dormant.
-- Pausing for long enough can still reach Level-0 slowdown and stop thresholds; preserving that backpressure is safer than bypassing it.
+- Long pauses may still reach Level-0 slowdown and stop thresholds; preserving that backpressure is safer than bypassing it.
 - The control belongs per `DBImpl`, not in `Env` or `VersionSet`.
 
-All three also rejected mid-compaction cancellation and global `Env` pausing.
+All answers rejected mid-compaction cancellation and global `Env` pausing.
 
 ## Qualitative comparison
 
 ### CBM
 
-CBM produced the strongest answer.
+CBM remains the strongest answer.
 
-It identified an important queued-callback race that the other answers did not fully close: checking only `MaybeScheduleCompaction()` does not stop an automatic callback that was queued before the pause. Its design applies one automatic-work predicate in both `MaybeScheduleCompaction()` and `BackgroundCall()`. A pre-pause callback can then acquire the mutex, observe that only paused automatic work remains, clear the scheduled flag, and wake the pause waiter without starting another compaction.
+It closes the queued-callback race by applying one automatic-work predicate in both `MaybeScheduleCompaction()` and `BackgroundCall()`. A callback queued before pause can acquire the mutex, observe that only paused automatic work remains, clear the scheduled flag, and wake waiters without beginning another table compaction.
 
 CBM also:
 
-- used a balanced per-database pause count rather than an unowned boolean;
-- preserved immutable and manual work in both scheduling and callback execution;
-- accounted for the test-only `ModelDB` subclass and optional C API parity;
-- proposed a shared-`Env`, two-database regression test to catch implementations that park the single environment worker;
-- covered read-triggered and write-triggered automatic compaction, queued/running work, write stalls, manual progress, resume, and API compatibility.
-
-Its plan is the smallest one that cleanly distinguishes automatic policy from shared execution machinery.
+- uses balanced per-database pause ownership rather than an unowned boolean;
+- preserves immutable and manual work in scheduling and callback execution;
+- accounts for the test-only `ModelDB` subclass and optional C API parity;
+- proposes a shared-`Env`, two-database regression test;
+- covers read-triggered and write-triggered automatic compaction, queued and running work, write stalls, manual progress, resume, shutdown, and API compatibility.
 
 ### Plain
 
-Plain produced a strong second-place answer.
+Plain remains a strong valid answer.
 
-It used a balanced pause depth, gave the clearest public contract, and had the strongest nested-pause and deterministic barrier test plan. It correctly set the pause state before waiting, preserved immutable/manual scheduling, and resumed accumulated work explicitly.
+It uses balanced pause depth, gives the clearest synchronous public contract, and has strong nested-pause and deterministic barrier tests. Its main omission is that it changes only `MaybeScheduleCompaction()`. A callback already queued before pause may still enter automatic `BackgroundCompaction()` while pause waits for the scheduled flag to clear.
 
-Its main omission relative to CBM is that it changed only `MaybeScheduleCompaction()`. A callback already queued before pause may still enter `BackgroundCompaction()` and start automatic work after the pause call begins. Because pause waits for `background_compaction_scheduled_` to clear, the proposed synchronous contract remains safe when the method returns, but the implementation performs avoidable automatic work during the pause transition and does not close the scheduling/execution race as precisely.
+### Grimoire healthy rerun
 
-### Grimoire
+The healthy rerun is substantially better than the original degraded Grimoire answer.
 
-The Grimoire answer found the correct broad ownership seam and most major failure modes, but it was weaker and cannot be accepted as a valid benchmark answer.
+It now identifies the queued-callback race explicitly and proposes gating both `MaybeScheduleCompaction()` and `BackgroundCall()`. It preserves immutable-memtable and manual work, rejects cancellation, accounts for `ModelDB` and optional C wrappers, and provides deterministic tests for queued work, in-flight work, manual progress, resume, and write pressure.
 
-Its proposed state was an idempotent boolean. `DB` is explicitly safe for concurrent use, so two independent pause owners could race: one caller's resume can restart automatic compaction while another still expects it paused. The answer acknowledged that manual work might conservatively extend pause time but did not define balanced ownership or an error path for unmatched resume.
+Its remaining architectural weakness is pause ownership. It recommends idempotent non-blocking boolean semantics and explicitly tests that two pauses followed by one resume restart work. Because `DB` is safe for concurrent callers, two independent owners can both pause and one owner can resume while the other still expects automatic compaction suppressed. A balanced count or explicit ownership token is safer unless the API deliberately defines global last-writer-wins state.
 
-Like plain, it gated `MaybeScheduleCompaction()` but did not add the CBM answer's explicit callback-execution predicate. It also submitted three structured claims with handles that resolved to different canonical ranges, causing automatic invalidation.
+The healthy Grimoire plan is more complete than plain on callback execution, but weaker than plain on overlapping-caller semantics. CBM combines both strengths and remains the best plan.
 
 ## Efficiency interpretation
 
-Compared with CBM, Grimoire used:
+Compared with CBM, the healthy Grimoire rerun used:
 
-- six more model calls;
-- 1,071,457 more total tokens, about 217% more;
-- about 99 seconds more agent time;
-- about 109 seconds more total time including preparation.
-
-Compared with plain, Grimoire used:
-
-- four more model calls;
-- 968,404 more total tokens, about 162% more;
-- roughly the same total wall time;
+- seven more model calls;
+- 793,133 more total tokens, about 160% more;
+- about 42 seconds more agent time;
+- about 53 seconds more total time including preparation;
 - an invalid final evidence submission.
 
-CBM won on wall time, token use, call count, grounding, and technical completeness.
+Compared with plain, the healthy Grimoire rerun:
 
-## Grimoire preparation failure
+- finished about 70 seconds earlier at the agent stage and 58 seconds earlier including preparation;
+- used five more model calls;
+- used 690,080 more total tokens, about 115% more;
+- produced a stronger queued-callback analysis but weaker pause-ownership semantics;
+- remained grounding-invalid.
 
-Grimoire cold preparation took 11.285 seconds externally and 11.258 seconds in internal timing buckets:
+This is no longer the severe efficiency failure shown by the degraded run, but it is not a Grimoire win. CBM still wins on wall time, calls, tokens, grounding, and overall technical completeness.
+
+## Healthy Grimoire preparation
+
+The rerun used the rebuilt packaged binaries after the Arcana compatibility fix. Preparation completed successfully:
 
 | Stage | Time |
 | --- | ---: |
-| Lexicon | 6.887s |
-| Source index | 2.031s |
-| Reinspection | 1.241s |
-| Documentation | 0.398s |
-| Initial inspection | 0.301s |
-| Arcana | 0.232s, failed |
-| Final verification | 0.152s |
-| Marker writes | 0.006s |
+| Lexicon | 7.532s |
+| Source index | 2.122s |
+| Reinspection | 1.287s |
+| Documentation | 0.402s |
+| Arcana | 0.328s |
+| Initial inspection | 0.300s |
+| Final verification | 0.138s |
+| Marker writes | 0.004s |
 
-Arcana synchronization failed with:
+Lexicon and Arcana were current and aligned on snapshot `sha256:47d675e03a73f00914e07d9e2c69724b34e2e0d5996ddd1e4eb33be9c9fdb4e4`. No provider warning or fallback occurred.
 
-> `Lexicon snapshot is malformed: unresolved reason`
+The agent used one Grimoire search:
 
-The fallback kept deterministic source discovery available, so the agent run completed, but this was not a healthy full Grimoire stack. The failure is still a product result: a supported C/C++ repository produced Lexicon state that Arcana rejected, and the degradation was visible only as a preparation warning.
+- 31,976 response bytes;
+- 26 new nodes;
+- 20 new source ranges;
+- eight graph paths;
+- no documents;
+- no tool errors or malformed records.
 
-The benchmark therefore does not measure whether healthy Arcana graph traversal would improve this task. It measures the fallback behavior and preparation reliability at the recorded commit.
+It then switched to direct source inspection. This is materially healthier than the degraded run's four calls and 137,982 response bytes.
 
-Post-run diagnosis found contract drift rather than corrupt Lexicon state: the C-family adapter emitted the documented `unsupported-macro-expansion` reason, while Arcana still accepted only the older generic enum. The defect was fixed after this run. The same pinned LevelDB revision now synchronizes successfully, and Arcana statistics retain all 19 macro-specific unresolved records. The original Grimoire benchmark condition remains invalid and is not retroactively reclassified; a clean full-stack rerun would be required for a valid comparison.
+## Original degraded run
 
-## Discovery behavior
+The original Grimoire condition ran before the compatibility fix. Arcana rejected the valid C-family `unsupported-macro-expansion` label as an unknown enum value and Grimoire continued in source and lexical fallback mode.
 
-The degraded Grimoire condition made four calls:
+That run took 6m 30s of agent time, used 16 calls and 1,566,181 tokens, emitted 137,982 bytes across four discovery calls, proposed only a scheduler-time gate, and was invalidated by three canonical handle/range mismatches.
 
-- three searches;
-- one inspect;
-- 137,982 bytes of structured responses;
-- 89 new nodes;
-- 92 new source ranges;
-- 10 documents;
-- 26 graph-path records;
-- no MCP execution errors after preparation.
-
-This is the largest discovery expansion in the first four version 2 tasks despite LevelDB being smaller than Space Rocks. The agent consumed over three times CBM's total token volume without producing a superior or valid answer.
+Its full artifacts remain retained with `grimoire.degraded-2026-07-28` filename prefixes. They are historical evidence of fallback behavior and provider compatibility failure, not the current graph-assisted result.
 
 ## Conclusions
 
-This is a strong negative result for Grimoire in its current form.
+The healthy rerun changes the LevelDB interpretation:
 
-The task required impact analysis across scheduling, manual progress, write pressure, concurrency, shutdown, public API, and tests. It was not a trivial symbol lookup, yet CBM and plain inspection both outperformed Grimoire. The result exposes three separate issues:
-
-1. C/C++ prepared-state compatibility is not reliable enough: Arcana rejected the Lexicon snapshot.
-2. Broad lexical/source fallback can expand aggressively when structural graph support is unavailable.
-3. Canonical handle use is not yet reliably transferred into exact final evidence ranges.
-
-It also validates the benchmark hardening: without automatic handle/range checking, the Grimoire answer would have appeared grounded and might have been manually accepted.
+1. The fixed Arcana graph can support a materially better impact-analysis answer. The agent found the prequeued-callback race that the degraded run missed and reduced discovery output from 138 KB to 32 KB.
+2. Grimoire still did not beat CBM. CBM produced the safest ownership semantics, the most complete test surface, lower latency, fewer calls, fewer tokens, and valid evidence.
+3. Grimoire and plain have mixed qualitative advantages. Grimoire is stronger on callback execution; plain is stronger on balanced caller ownership.
+4. Canonical handle transfer remains defective. Even with a healthy graph and only one discovery call, the final answer attached a narrower range to a broader handle and was automatically invalidated.
+5. This result no longer supports a claim that graph-assisted Grimoire is ineffective on this task. It supports a narrower claim: healthy structural discovery improved the answer and response shape, but did not establish superiority over CBM or plain inspection.
 
 ## Retained artifacts
 
-- `plain.stdout.txt`, `cbm.stdout.txt`, `grimoire.stdout.txt`: full unedited answers;
-- matching `.usage.json`: model telemetry;
-- matching `.grounding.json`: automatic grounding reports;
-- `grimoire.mcp-audit.jsonl`: exact Grimoire requests and structured responses;
-- `grimoire-prewarm.stdout.txt`: preparation state, warning, and timing breakdown;
-- CBM indexing stdout/stderr;
-- `evaluation/results/agent-benchmark-v2/summary.json`: combined machine-readable suite summary.
+Current healthy rerun:
 
-Transient CBM databases and detached benchmark worktrees are not part of the retained evidence.
+- `grimoire.stdout.txt`: full unedited answer;
+- `grimoire.usage.json`: model telemetry;
+- `grimoire.grounding.json`: automatic grounding report;
+- `grimoire.mcp-audit.jsonl`: exact search request and structured response;
+- `grimoire-prewarm.stdout.txt`: healthy preparation state and timings.
+
+Original degraded condition:
+
+- files prefixed `grimoire.degraded-2026-07-28` in the same task directory.
+
+The canonical `evaluation/results/agent-benchmark-v2/summary.json` now records the healthy rerun while preserving plain and CBM. Transient benchmark worktrees are not retained.

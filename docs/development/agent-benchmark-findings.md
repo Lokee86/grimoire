@@ -13,9 +13,9 @@ The results also suggest a task-size inversion rather than a simple overhead rul
 
 This lost-in-the-middle explanation is a working hypothesis consistent with the observed answers, not a controlled causal result. The suite has one trial per condition and was not designed to isolate context-position effects.
 
-The strongest valid assisted result remains the Space Rocks network-interest benchmark, where Grimoire reduced the amount of context and repeated searching required for a broad cross-language architecture task. HikariCP favored plain inspection because the requested lifecycle was compact and concretely named. The replacement Detekt ownership task favored plain inspection and CBM. The cross-language locator task favored plain and CBM on both architecture and efficiency. The LevelDB impact-analysis task was won by CBM; Grimoire ran without Arcana, expanded 138 KB of discovery output, and was automatically invalidated for canonical handle/range mismatches.
+The strongest valid assisted result remains the Space Rocks network-interest benchmark, where Grimoire reduced the amount of context and repeated searching required for a broad cross-language architecture task. HikariCP favored plain inspection because the requested lifecycle was compact and concretely named. The replacement Detekt ownership task favored plain inspection and CBM. The cross-language locator task favored plain and CBM on both architecture and efficiency. The healthy LevelDB rerun produced a materially better graph-assisted answer than the original degraded run, but CBM remained strongest and Grimoire was still invalidated by one canonical handle/range mismatch.
 
-The practical conclusion is narrower than the original product hypothesis: use Grimoire only when it demonstrably reduces a genuinely broad and ambiguous working set, and stop using it when direct inspection has already narrowed the task. Across the first four version 2 tasks, Grimoire has one strong win, two clear semantic/efficiency losses, and one invalid degraded result. Grounding success remains separate from architecture quality, while provider health and canonical-handle compliance must also be scored separately.
+The practical conclusion is narrower than the original product hypothesis: use Grimoire only when it demonstrably reduces a genuinely broad and ambiguous working set, and stop using it when direct inspection has already narrowed the task. Across the first four version 2 tasks, Grimoire has one strong win, two clear losses, and one mixed but grounding-invalid result. Provider health, architectural quality, efficiency, and canonical-handle compliance must be scored separately.
 
 ## Version 2 benchmark infrastructure
 
@@ -90,16 +90,16 @@ The fourth version 2 task asked for a safe pause/resume boundary for automatic L
 | Condition | Preparation | Agent elapsed | Total elapsed | Model calls | Total tokens | Grounding |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | CBM | **1.2s** | **4m 51s** | **4m 52s** | **10** | **494,724** | Pass |
+| Grimoire, healthy rerun | 12.1s | 5m 33s | 5m 45s | 17 | 1,287,857 | **Invalid** |
 | Plain | none | 6m 43s | 6m 43s | 12 | 597,777 | Pass |
-| Grimoire | 11.3s | 6m 30s | 6m 41s | 16 | 1,566,181 | **Invalid** |
 
-All three found `DBImpl` and `MaybeScheduleCompaction()` as the owning seam and correctly preserved immutable-memtable flushing, manual compaction, resume scheduling, and Level-0 write backpressure. CBM produced the strongest plan because it also closed the prequeued-callback race by applying one automatic-work predicate in both scheduling and callback execution. Plain was a strong second with better balanced-pause tests but allowed a queued automatic callback to run while pause waited.
+All three found `DBImpl` and `MaybeScheduleCompaction()` as the owning seam and correctly preserved immutable-memtable flushing, manual compaction, resume scheduling, and Level-0 write backpressure. CBM remains strongest because it combines balanced pause ownership with an execution-time gate for callbacks queued before pause.
 
-Grimoire used an idempotent boolean that lets overlapping callers resume one another, omitted the callback-execution gate, and attached three narrower claims to broader canonical handles. The harness therefore rejected the answer even though every path and line existed.
+The healthy Grimoire rerun also found the prequeued-callback race and proposed gating both scheduling and callback execution. That is materially better than the original degraded answer and stronger than plain on this dimension. Grimoire still proposed an idempotent boolean that lets overlapping callers resume one another, while plain used safer balanced ownership. The Grimoire answer was also invalidated because one claim cited `db/db_impl.cc:702-727` with a canonical handle resolving to `702-781`.
 
-Arcana synchronization failed before the run with `Lexicon snapshot is malformed: unresolved reason`. Grimoire continued in degraded source/lexical mode and emitted 137,982 bytes across four calls: 89 nodes, 92 source ranges, 10 documents, and 26 graph-path records. This remains a provider-degradation benchmark result, not a valid graph-assisted Grimoire comparison.
+Healthy Grimoire used one 31,976-byte search response containing 26 nodes, 20 source ranges, and eight graph paths, then switched to direct inspection. The original degraded run used four calls and 137,982 response bytes. Its artifacts remain archived with `grimoire.degraded-2026-07-28` prefixes.
 
-Post-run diagnosis found schema drift: Lexicon emitted the documented C-family `unsupported-macro-expansion` reason, while Arcana's enum still accepted only older generic reasons. Arcana now accepts all four C-family macro reasons, preserves future unknown reason labels, and surfaces compatibility warnings instead of rejecting the snapshot. The same pinned LevelDB revision now synchronizes and retains all 19 macro-specific unresolved records. The original benchmark result is unchanged; it would require a full rerun to become a valid Grimoire condition.
+The fixed Arcana graph therefore improved both answer quality and response shape, but Grimoire still did not beat CBM and did not produce a valid final evidence submission.
 
 ## Network-interest architecture benchmark
 
