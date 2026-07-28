@@ -40,6 +40,31 @@ func TestEnsureCurrentOnlyReportsPreparedStateWithoutMutation(t *testing.T) {
 	}
 }
 
+func TestEnsureSurfacesArcanaCompatibilityWarnings(t *testing.T) {
+	root := t.TempDir()
+	writeSource(t, root, "package main\n")
+	id := testID('a')
+	writeLexicon(t, root, id)
+	writeArcana(t, root, id)
+	writeGrimoire(t, root, id)
+	writeKnowledge(t, root)
+	directory := filepath.Join(root, ".arcana", "snapshots", strings.TrimPrefix(id, "sha256:"))
+	if err := os.WriteFile(filepath.Join(directory, "compatibility.warnings"), []byte("unrecognized Lexicon unresolved reason future-signal; preserving label\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	status, err := Ensure(context.Background(), Options{Root: root, Mode: CurrentOnly})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(status.Arcana.Warnings) != 1 || !strings.Contains(status.Arcana.Warnings[0], "future-signal") {
+		t.Fatalf("Arcana warning was not retained: %+v", status.Arcana)
+	}
+	if len(status.Warnings) != 1 || !strings.Contains(status.Warnings[0], "Arcana compatibility warning") {
+		t.Fatalf("top-level warning was not surfaced: %+v", status.Warnings)
+	}
+}
+
 func TestEnsureReportsOnlyValidatedCurrentArcanaVectors(t *testing.T) {
 	root := t.TempDir()
 	writeSource(t, root, "package main\n")

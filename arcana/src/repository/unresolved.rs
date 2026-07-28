@@ -12,10 +12,15 @@ pub enum UnresolvedReason {
     GeneratedTarget,
     TypeConversion,
     SelfTarget,
+    UnsupportedMacroExpansion,
+    MacroArgumentMismatch,
+    MacroExpansionCycle,
+    MacroExpansionDepth,
+    Unknown(String),
 }
 
 impl UnresolvedReason {
-    pub(crate) fn as_str(&self) -> &'static str {
+    pub(crate) fn as_str(&self) -> &str {
         match self {
             Self::MissingTarget => "missing-target",
             Self::AmbiguousTarget => "ambiguous-target",
@@ -26,10 +31,18 @@ impl UnresolvedReason {
             Self::GeneratedTarget => "generated-target",
             Self::TypeConversion => "type-conversion",
             Self::SelfTarget => "self-target",
+            Self::UnsupportedMacroExpansion => "unsupported-macro-expansion",
+            Self::MacroArgumentMismatch => "macro-argument-mismatch",
+            Self::MacroExpansionCycle => "macro-expansion-cycle",
+            Self::MacroExpansionDepth => "macro-expansion-depth",
+            Self::Unknown(value) => value,
         }
     }
 
     pub(crate) fn parse(value: &str) -> Option<Self> {
+        if value.is_empty() {
+            return None;
+        }
         Some(match value {
             "missing-target" => Self::MissingTarget,
             "ambiguous-target" => Self::AmbiguousTarget,
@@ -40,8 +53,16 @@ impl UnresolvedReason {
             "generated-target" => Self::GeneratedTarget,
             "type-conversion" => Self::TypeConversion,
             "self-target" => Self::SelfTarget,
-            _ => return None,
+            "unsupported-macro-expansion" => Self::UnsupportedMacroExpansion,
+            "macro-argument-mismatch" => Self::MacroArgumentMismatch,
+            "macro-expansion-cycle" => Self::MacroExpansionCycle,
+            "macro-expansion-depth" => Self::MacroExpansionDepth,
+            other => Self::Unknown(other.to_owned()),
         })
+    }
+
+    pub(crate) fn is_unknown(&self) -> bool {
+        matches!(self, Self::Unknown(_))
     }
 }
 
@@ -62,9 +83,36 @@ mod tests {
     use super::UnresolvedReason;
 
     #[test]
-    fn parses_and_formats_generated_target() {
-        let reason = UnresolvedReason::parse("generated-target").unwrap();
-        assert_eq!(reason, UnresolvedReason::GeneratedTarget);
-        assert_eq!(reason.as_str(), "generated-target");
+    fn parses_known_macro_reasons() {
+        for (value, expected) in [
+            (
+                "unsupported-macro-expansion",
+                UnresolvedReason::UnsupportedMacroExpansion,
+            ),
+            (
+                "macro-argument-mismatch",
+                UnresolvedReason::MacroArgumentMismatch,
+            ),
+            (
+                "macro-expansion-cycle",
+                UnresolvedReason::MacroExpansionCycle,
+            ),
+            (
+                "macro-expansion-depth",
+                UnresolvedReason::MacroExpansionDepth,
+            ),
+        ] {
+            let reason = UnresolvedReason::parse(value).unwrap();
+            assert_eq!(reason, expected);
+            assert_eq!(reason.as_str(), value);
+            assert!(!reason.is_unknown());
+        }
+    }
+
+    #[test]
+    fn preserves_unknown_reason_labels() {
+        let reason = UnresolvedReason::parse("future-adapter-signal").unwrap();
+        assert_eq!(reason.as_str(), "future-adapter-signal");
+        assert!(reason.is_unknown());
     }
 }

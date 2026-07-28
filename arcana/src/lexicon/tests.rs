@@ -99,6 +99,7 @@ fn synthetic_snapshot(files: BTreeMap<(String, String), String>) -> LexiconSnaps
         facts: Default::default(),
         files,
         shared_objects: Default::default(),
+        compatibility_warnings: Vec::new(),
     }
 }
 

@@ -10,7 +10,7 @@ import (
 
 const (
 	Language       = "interstack"
-	AdapterVersion = "0.1.0"
+	AdapterVersion = "0.1.1"
 )
 
 func AdapterFingerprint() string {

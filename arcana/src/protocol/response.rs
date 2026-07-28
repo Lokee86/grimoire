@@ -74,6 +74,6 @@ pub(crate) fn span_value(span: &SourceSpan) -> Value {
     })
 }
 
-pub(crate) fn reason_name(reason: &UnresolvedReason) -> &'static str {
+pub(crate) fn reason_name(reason: &UnresolvedReason) -> &str {
     reason.as_str()
 }

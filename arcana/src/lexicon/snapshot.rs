@@ -95,12 +95,13 @@ pub fn load(root: impl AsRef<Path>, id: &str) -> Result<LexiconSnapshot, Lexicon
         }
     }
 
-    let facts = build_repository_facts(all_records)?;
+    let (facts, compatibility_warnings) = build_repository_facts(all_records)?;
     Ok(LexiconSnapshot {
         id: id.to_owned(),
         facts,
         files,
         shared_objects,
+        compatibility_warnings,
     })
 }
 

@@ -67,6 +67,7 @@ type ComponentStatus struct {
 	Snapshot     string   `json:"snapshot,omitempty"`
 	Expected     string   `json:"expected_snapshot,omitempty"`
 	StaleReasons []string `json:"stale_reasons,omitempty"`
+	Warnings     []string `json:"warnings,omitempty"`
 	Prepared     bool     `json:"prepared"`
 }
 

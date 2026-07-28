@@ -135,7 +135,9 @@ That run also exposed summary replacement when running one selected task into an
 
 The fourth version 2 LevelDB run was won by CBM: 4m 52s including preparation, 10 calls, and 495k total tokens. Plain produced a strong valid answer in 6m 43s with 12 calls and 598k tokens. Grimoire took 6m 41s including preparation, 16 calls, and 1.57M tokens, then failed grounding because three model-authored ranges did not match their canonical handles.
 
-LevelDB also exposed a provider-compatibility failure. Lexicon completed in 6.9 seconds, but Arcana rejected the C/C++ snapshot as malformed with `unresolved reason`; Grimoire continued in degraded source/lexical mode. Four discovery calls returned 138 KB of structured context. This is now documented as both a C/C++ Lexicon-to-Arcana integration defect and a degraded-mode response-shaping problem.
+LevelDB also exposed a provider-compatibility failure. Lexicon completed in 6.9 seconds, but Arcana rejected the C/C++ snapshot as malformed with `unresolved reason`; Grimoire continued in degraded source/lexical mode. Four discovery calls returned 138 KB of structured context.
+
+The compatibility defect was fixed after the benchmark. Arcana now includes first-class C-family macro unresolved-reason enums, preserves future unknown reason labels, degrades unknown node kinds to `symbol`, skips relations whose semantics it cannot recognize, emits loud deduplicated sync warnings, persists those warnings in the Arcana snapshot, and exposes them through Grimoire repository status. The pinned LevelDB snapshot now completes Lexicon-to-Arcana synchronization and reports all 19 `unsupported-macro-expansion` records in Arcana statistics.
 
 ## Documentation and verification
 

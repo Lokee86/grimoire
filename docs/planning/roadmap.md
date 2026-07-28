@@ -22,7 +22,7 @@ This page contains work that is not yet complete. Implemented behavior is docume
 ## Near-term priorities
 
 1. Run the remaining source-plus-rationale task in the hidden-rubric version 2 agent suite and consolidate the five-task conclusion.
-2. Fix C/C++ Lexicon snapshots that Arcana rejects as malformed with `unresolved reason`, and add a release-path integration fixture.
+2. Add release-path contract fixtures that carry C-family macro reasons and deliberately unknown labels through Lexicon, Arcana, and Grimoire warning propagation.
 3. Use the provider and state-overhead timing buckets to target remaining first-use preparation cost without weakening alignment or determinism.
 4. Calibrate compact search defaults, excerpt caps, duplicate-payload references, and degraded-provider response bounds against end-to-end agent outcomes.
 5. Expand judged corpora across repositories, languages, sizes, and task categories.

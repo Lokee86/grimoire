@@ -17,6 +17,9 @@ pub fn run_sync(command: &SyncCommand) -> Result<String, SyncError> {
     fs::create_dir_all(&command.state)?;
     let _lock = SyncLock::acquire(&command.state)?;
     let current = LexiconSnapshot::current(&lexicon_root)?;
+    for warning in current.compatibility_warnings() {
+        eprintln!("arcana sync WARNING: {warning}");
+    }
     fs::create_dir_all(command.state.join("snapshots"))?;
 
     let output = snapshot_directory(&command.state, current.id())?;
@@ -40,10 +43,11 @@ pub fn run_sync(command: &SyncCommand) -> Result<String, SyncError> {
         register_consumer(&lexicon_root, &command.state)?;
     }
     Ok(format!(
-        "synced Lexicon snapshot {} mode={} registered={}\n",
+        "synced Lexicon snapshot {} mode={} registered={} compatibility_warnings={}\n",
         current.id(),
         mode,
-        command.register
+        command.register,
+        current.compatibility_warnings().len()
     ))
 }
 
@@ -71,6 +75,12 @@ fn build_snapshot(
         }
     };
     fs::write(temp.join("lexicon.snapshot"), format!("{}\n", current.id()))?;
+    if !current.compatibility_warnings().is_empty() {
+        fs::write(
+            temp.join("compatibility.warnings"),
+            current.compatibility_warnings().join("\n") + "\n",
+        )?;
+    }
     fs::rename(&temp, output)?;
     Ok(mode)
 }

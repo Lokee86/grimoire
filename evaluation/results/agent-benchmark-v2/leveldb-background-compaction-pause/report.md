@@ -124,7 +124,9 @@ Arcana synchronization failed with:
 
 The fallback kept deterministic source discovery available, so the agent run completed, but this was not a healthy full Grimoire stack. The failure is still a product result: a supported C/C++ repository produced Lexicon state that Arcana rejected, and the degradation was visible only as a preparation warning.
 
-The benchmark therefore does not measure whether healthy Arcana graph traversal would improve this task. It does measure current fallback behavior and preparation reliability.
+The benchmark therefore does not measure whether healthy Arcana graph traversal would improve this task. It measures the fallback behavior and preparation reliability at the recorded commit.
+
+Post-run diagnosis found contract drift rather than corrupt Lexicon state: the C-family adapter emitted the documented `unsupported-macro-expansion` reason, while Arcana still accepted only the older generic enum. The defect was fixed after this run. The same pinned LevelDB revision now synchronizes successfully, and Arcana statistics retain all 19 macro-specific unresolved records. The original Grimoire benchmark condition remains invalid and is not retroactively reclassified; a clean full-stack rerun would be required for a valid comparison.
 
 ## Discovery behavior
 

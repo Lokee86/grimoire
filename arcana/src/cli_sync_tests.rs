@@ -101,6 +101,93 @@ fn sync_builds_reuses_and_registers_a_lexicon_snapshot() {
     assert!(summary.contains("mode=existing"));
 }
 
+#[test]
+fn sync_persists_forward_compatibility_warnings() {
+    let directory = TestDirectory::new();
+    let lexicon = directory.path.join(".lexicon");
+    let state = directory.path.join(".arcana");
+    fs::create_dir_all(lexicon.join("objects")).unwrap();
+    fs::create_dir_all(lexicon.join("snapshots")).unwrap();
+
+    let source_id = sha_id("future-source");
+    let target_id = sha_id("future-target");
+    let object_id = write_object(
+        &lexicon,
+        vec![
+            json!({
+                "record": "node",
+                "id": source_id,
+                "kind": "future-node-kind",
+                "path": "source.cc",
+                "name": "source",
+                "qualified_name": "demo::source"
+            }),
+            json!({
+                "record": "node",
+                "id": target_id,
+                "kind": "function",
+                "path": "source.cc",
+                "name": "target",
+                "qualified_name": "demo::target"
+            }),
+            json!({
+                "record": "edge",
+                "relation": "future-edge-relation",
+                "source": source_id,
+                "target": target_id
+            }),
+            json!({
+                "record": "unresolved",
+                "source": source_id,
+                "relation": "calls",
+                "expression": "future()",
+                "reason": "future-unresolved-reason"
+            }),
+        ],
+    );
+    let manifest = json!({
+        "version": 1,
+        "state_commit": "state",
+        "languages": [{
+            "language": "go",
+            "adapter_version": "1",
+            "schema_version": 1,
+            "repository": "example/repository",
+            "analysis_config_id": sha_id("config"),
+            "shared_object_id": object_id,
+            "files": []
+        }]
+    });
+    let snapshot_id = write_snapshot(&lexicon, &manifest);
+    fs::write(lexicon.join("CURRENT"), format!("{snapshot_id}\n")).unwrap();
+
+    let summary = run_sync(&SyncCommand {
+        lexicon,
+        state: state.clone(),
+        register: false,
+    })
+    .unwrap();
+    assert!(summary.contains("compatibility_warnings=3"));
+
+    let digest = snapshot_id.strip_prefix("sha256:").unwrap();
+    let output = state.join("snapshots").join(digest);
+    let warnings = fs::read_to_string(output.join("compatibility.warnings")).unwrap();
+    for label in [
+        "future-node-kind",
+        "future-edge-relation",
+        "future-unresolved-reason",
+    ] {
+        assert!(
+            warnings.contains(label),
+            "missing warning for {label}: {warnings}"
+        );
+    }
+    let snapshot = RepositorySnapshot::open(output.join("repository.manifest")).unwrap();
+    assert_eq!(snapshot.facts().nodes.len(), 2);
+    assert!(snapshot.facts().edges.is_empty());
+    assert_eq!(snapshot.facts().unresolved.len(), 1);
+}
+
 fn write_object(root: &Path, records: Vec<Value>) -> String {
     let object = json!({
         "version": 1,

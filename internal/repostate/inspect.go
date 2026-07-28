@@ -75,6 +75,9 @@ func inspectWithFingerprint(ctx context.Context, location paths, fingerprint str
 	status := Status{Version: 2, Repository: repository}
 	status.Lexicon = inspectLexicon(location, fingerprint, repository.GitDirty)
 	status.Arcana = inspectArcana(location, status.Lexicon.Snapshot)
+	for _, warning := range status.Arcana.Warnings {
+		status.Warnings = append(status.Warnings, "Arcana compatibility warning: "+warning)
+	}
 	status.Grimoire = inspectGrimoire(location, fingerprint, status.Lexicon.Snapshot)
 	var currentKnowledge knowledge.Index
 	var knowledgeAvailable bool
@@ -144,6 +147,15 @@ func inspectArcana(location paths, expected string) ComponentStatus {
 		status.StaleReasons = append(status.StaleReasons, "Arcana snapshot does not match Lexicon CURRENT")
 	}
 	directory := filepath.Join(location.arcana, "snapshots", strings.TrimPrefix(id, "sha256:"))
+	if warningBytes, warningErr := os.ReadFile(filepath.Join(directory, "compatibility.warnings")); warningErr == nil {
+		for _, warning := range strings.Split(strings.TrimSpace(string(warningBytes)), "\n") {
+			if warning != "" {
+				status.Warnings = append(status.Warnings, warning)
+			}
+		}
+	} else if !errors.Is(warningErr, os.ErrNotExist) {
+		status.Warnings = append(status.Warnings, "read Arcana compatibility warnings: "+warningErr.Error())
+	}
 	if !fileExists(filepath.Join(directory, "repository.manifest")) || !fileExists(filepath.Join(directory, "lexicon.snapshot")) {
 		status.Status = "stale"
 		status.StaleReasons = append(status.StaleReasons, "Arcana snapshot is incomplete")

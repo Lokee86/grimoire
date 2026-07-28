@@ -9,15 +9,17 @@ import (
 )
 
 type httpContract struct {
-	Method      string
-	Path        string
-	Shape       string
-	Service     string
-	EndpointID  string
-	HandlerID   string
-	Span        *Span
-	Framework   string
-	HandlerName string
+	Method            string
+	Path              string
+	Shape             string
+	Service           string
+	EndpointID        string
+	HandlerID         string
+	HandlerConfidence float64
+	HandlerStrategy   string
+	Span              *Span
+	Framework         string
+	HandlerName       string
 }
 
 type httpProducer struct {
@@ -29,7 +31,7 @@ type httpProducer struct {
 	Evidence string
 }
 
-var quotedHTTPValue = regexp.MustCompile(`["']([^"']*(?:https?://|/api/|/health\b|/ws\b)[^"']*)["']`)
+var quotedHTTPValue = regexp.MustCompile(`["']([^"']*(?:https?://|/api/|/internal/|/health\b|/ws\b)[^"']*)["']`)
 var placeholderPattern = regexp.MustCompile(`\{[^}/]+\}|:[A-Za-z_][A-Za-z0-9_]*|%\{[^}]+\}|%s|#\{[^}]+\}`)
 var configuredHTTPMethodPattern = regexp.MustCompile(`(?i)["']method["']\s*:\s*["'](GET|POST|PUT|PATCH|DELETE)["']`)
 var httpClientMethodPattern = regexp.MustCompile(`(?i)(?:^|[^A-Za-z0-9_])(get|post|put|patch|delete)(?:_json)?\s*\(`)
@@ -202,12 +204,19 @@ func (r *resolver) addHTTPContract(contract httpContract) {
 	r.http = append(r.http, contract)
 	r.result.Summary.HTTPContracts++
 	if contract.HandlerID != "" {
+		confidence := contract.HandlerConfidence
+		if confidence == 0 {
+			confidence = 1.0
+		}
+		attributes := map[string]any{
+			"confidence": confidence, "framework": contract.Framework, "transport": "http",
+		}
+		if contract.HandlerStrategy != "" {
+			attributes["strategy"] = contract.HandlerStrategy
+		}
 		r.addEdge(factEdge{
 			Source: contract.EndpointID, Target: contract.HandlerID,
-			Relation: "handled-by", Span: contract.Span,
-			Attributes: map[string]any{
-				"confidence": 1.0, "framework": contract.Framework, "transport": "http",
-			},
+			Relation: "handled-by", Span: contract.Span, Attributes: attributes,
 		})
 		return
 	}
@@ -305,9 +314,15 @@ func httpMethodFromLine(line string) string {
 
 func normalizeHTTPPath(value string) string {
 	value = strings.TrimSpace(strings.ReplaceAll(value, `\/`, "/"))
+	lower := strings.ToLower(value)
+	if strings.HasPrefix(lower, "res://") || strings.HasPrefix(lower, "user://") {
+		return ""
+	}
 	if parsed, err := url.Parse(value); err == nil && parsed.Scheme != "" && parsed.Host != "" {
 		value = parsed.Path
 	} else if index := strings.Index(value, "/api/"); index >= 0 {
+		value = value[index:]
+	} else if index := strings.Index(value, "/internal/"); index >= 0 {
 		value = value[index:]
 	} else if index := strings.Index(value, "/health"); index >= 0 {
 		value = value[index:]

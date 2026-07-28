@@ -97,7 +97,9 @@ All three found `DBImpl` and `MaybeScheduleCompaction()` as the owning seam and 
 
 Grimoire used an idempotent boolean that lets overlapping callers resume one another, omitted the callback-execution gate, and attached three narrower claims to broader canonical handles. The harness therefore rejected the answer even though every path and line existed.
 
-Arcana synchronization failed before the run with `Lexicon snapshot is malformed: unresolved reason`. Grimoire continued in degraded source/lexical mode and emitted 137,982 bytes across four calls: 89 nodes, 92 source ranges, 10 documents, and 26 graph-path records. This is both a C/C++ prepared-state compatibility defect and a response-shaping failure under provider degradation.
+Arcana synchronization failed before the run with `Lexicon snapshot is malformed: unresolved reason`. Grimoire continued in degraded source/lexical mode and emitted 137,982 bytes across four calls: 89 nodes, 92 source ranges, 10 documents, and 26 graph-path records. This remains a provider-degradation benchmark result, not a valid graph-assisted Grimoire comparison.
+
+Post-run diagnosis found schema drift: Lexicon emitted the documented C-family `unsupported-macro-expansion` reason, while Arcana's enum still accepted only older generic reasons. Arcana now accepts all four C-family macro reasons, preserves future unknown reason labels, and surfaces compatibility warnings instead of rejecting the snapshot. The same pinned LevelDB revision now synchronizes and retains all 19 macro-specific unresolved records. The original benchmark result is unchanged; it would require a full rerun to become a valid Grimoire condition.
 
 ## Network-interest architecture benchmark
 

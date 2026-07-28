@@ -21,6 +21,17 @@ Arcana accepts the common Lexicon node and relation vocabulary, including:
 
 Source spans are preserved in the catalogue and unresolved-reference store. Explicit file ownership drives Arcana's file-scoped replacement model. Binary record attributes are length-prefixed, so Arcana can skip arbitrary Lexicon `attributes` without parsing or persisting them; adding a provenance sidecar later will not require changing graph identity.
 
+## Forward compatibility and warnings
+
+Arcana does not reject an otherwise valid Lexicon snapshot solely because a newer adapter emits an unrecognized semantic label:
+
+- known unresolved-reason labels remain typed, including the C-family macro reasons `unsupported-macro-expansion`, `macro-argument-mismatch`, `macro-expansion-cycle`, and `macro-expansion-depth`;
+- unknown unresolved-reason labels are preserved verbatim and remain queryable and visible in statistics;
+- unknown node kinds are conservatively represented as `symbol` so their identities and recognized relationships remain available;
+- edge and unresolved-reference records with unknown relation labels are skipped because Arcana cannot safely invent graph semantics for them.
+
+Every degradation is deduplicated and reported as an `arcana sync WARNING`. The warnings are also written to the immutable Arcana snapshot as `compatibility.warnings`, and Grimoire repository status promotes them into its top-level warnings. Empty or structurally malformed required fields remain hard errors.
+
 ## Snapshot synchronization
 
 `arcana sync` resolves Lexicon's atomic `CURRENT` pointer, verifies the content-addressed snapshot manifest and every referenced fact object, and compares file object identities with the Lexicon snapshot consumed by the previous Arcana state. Added, changed, and removed file-object paths become Arcana's file-scoped replacement set. Any language-level shared-object change conservatively forces a packed rebuild, including when file objects changed in the same snapshot.

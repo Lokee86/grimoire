@@ -9,10 +9,11 @@ use crate::repository::{
 
 pub(super) fn build_repository_facts(
     records: Vec<FactRecord>,
-) -> Result<RepositoryFacts, LexiconSnapshotError> {
+) -> Result<(RepositoryFacts, Vec<String>), LexiconSnapshotError> {
     let mut nodes = BTreeMap::<String, NodeRecord>::new();
     let mut edges = Vec::new();
     let mut unresolved = Vec::new();
+    let mut compatibility = BTreeMap::<String, usize>::new();
     for record in records {
         match record {
             FactRecord::Node(record) => match nodes.get(&record.id) {
@@ -52,8 +53,15 @@ pub(super) fn build_repository_facts(
                 Ok(ContentId::from_bytes(id.as_bytes()))
             })
             .transpose()?;
-        let kind =
-            NodeKind::parse(&record.kind).ok_or(LexiconSnapshotError::Malformed("node kind"))?;
+        let kind = NodeKind::parse(&record.kind).unwrap_or_else(|| {
+            *compatibility
+                .entry(format!(
+                    "unrecognized Lexicon node kind {:?}; treating as symbol",
+                    record.kind
+                ))
+                .or_default() += 1;
+            NodeKind::Symbol
+        });
         if record.qualified_name.is_empty() {
             return Err(LexiconSnapshotError::Malformed("node qualified name"));
         }
@@ -68,12 +76,14 @@ pub(super) fn build_repository_facts(
         });
     }
     for record in edges {
-        facts.edges.push(convert_edge(&external_ids, record)?);
+        if let Some(edge) = convert_edge(&external_ids, record, &mut compatibility)? {
+            facts.edges.push(edge);
+        }
     }
     for record in unresolved {
-        facts
-            .unresolved
-            .push(convert_unresolved(&external_ids, record)?);
+        if let Some(reference) = convert_unresolved(&external_ids, record, &mut compatibility)? {
+            facts.unresolved.push(reference);
+        }
     }
     facts.nodes.sort_unstable();
     facts.nodes.dedup();
@@ -81,39 +91,73 @@ pub(super) fn build_repository_facts(
     facts.edges.dedup();
     facts.unresolved.sort_unstable();
     facts.unresolved.dedup();
-    Ok(facts)
+    let warnings = compatibility
+        .into_iter()
+        .map(|(message, count)| format!("{message} ({count} record(s))"))
+        .collect();
+    Ok((facts, warnings))
 }
 
 fn convert_edge(
     ids: &BTreeMap<String, NodeKey>,
     record: EdgeRecord,
-) -> Result<EdgeFact, LexiconSnapshotError> {
+    compatibility: &mut BTreeMap<String, usize>,
+) -> Result<Option<EdgeFact>, LexiconSnapshotError> {
     validate_owner(record.owner.as_deref())?;
-    Ok(EdgeFact {
-        source: lookup_id(ids, &record.source)?,
-        target: lookup_id(ids, &record.target)?,
-        relation: RelationKind::parse(&record.relation)
-            .ok_or(LexiconSnapshotError::Malformed("edge relation"))?,
+    let source = lookup_id(ids, &record.source)?;
+    let target = lookup_id(ids, &record.target)?;
+    let Some(relation) = RelationKind::parse(&record.relation) else {
+        *compatibility
+            .entry(format!(
+                "unrecognized Lexicon edge relation {:?}; skipping edge",
+                record.relation
+            ))
+            .or_default() += 1;
+        return Ok(None);
+    };
+    Ok(Some(EdgeFact {
+        source,
+        target,
+        relation,
         span: convert_span(record.span)?,
-    })
+    }))
 }
 
 fn convert_unresolved(
     ids: &BTreeMap<String, NodeKey>,
     record: UnresolvedRecord,
-) -> Result<UnresolvedReferenceFact, LexiconSnapshotError> {
+    compatibility: &mut BTreeMap<String, usize>,
+) -> Result<Option<UnresolvedReferenceFact>, LexiconSnapshotError> {
     validate_owner(record.owner.as_deref())?;
-    Ok(UnresolvedReferenceFact {
-        source: lookup_id(ids, &record.source)?,
-        relation: RelationKind::parse(&record.relation)
-            .ok_or(LexiconSnapshotError::Malformed("unresolved relation"))?,
+    let source = lookup_id(ids, &record.source)?;
+    let Some(relation) = RelationKind::parse(&record.relation) else {
+        *compatibility
+            .entry(format!(
+                "unrecognized Lexicon unresolved relation {:?}; skipping record",
+                record.relation
+            ))
+            .or_default() += 1;
+        return Ok(None);
+    };
+    let reason = UnresolvedReason::parse(&record.reason)
+        .ok_or(LexiconSnapshotError::Malformed("empty unresolved reason"))?;
+    if reason.is_unknown() {
+        *compatibility
+            .entry(format!(
+                "unrecognized Lexicon unresolved reason {:?}; preserving label",
+                record.reason
+            ))
+            .or_default() += 1;
+    }
+    Ok(Some(UnresolvedReferenceFact {
+        source,
+        relation,
         expression: record.expression,
         candidate_namespace: record.candidate_namespace,
         candidate_name: record.candidate_name,
-        reason: UnresolvedReason::parse(&record.reason)
-            .ok_or(LexiconSnapshotError::Malformed("unresolved reason"))?,
+        reason,
         span: convert_span(record.span)?,
-    })
+    }))
 }
 
 fn lookup_id(
@@ -155,6 +199,88 @@ fn normalize_path(path: &str) -> Result<String, LexiconSnapshotError> {
         field: "fact",
         path: path.to_owned(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repository::{NodeKind, UnresolvedReason};
+
+    fn id(value: char) -> String {
+        format!("sha256:{}", value.to_string().repeat(64))
+    }
+
+    fn node(identity: String, kind: &str, name: &str) -> FactRecord {
+        FactRecord::Node(NodeRecord {
+            attributes: None,
+            content_id: None,
+            id: identity,
+            kind: kind.to_owned(),
+            name: name.to_owned(),
+            owner: Some("source.cc".to_owned()),
+            path: "source.cc".to_owned(),
+            qualified_name: format!("demo::{name}"),
+            span: None,
+        })
+    }
+
+    #[test]
+    fn accepts_unknown_labels_with_explicit_degradation_warnings() {
+        let source = id('1');
+        let target = id('2');
+        let records = vec![
+            node(source.clone(), "future-node-kind", "source"),
+            node(target.clone(), "function", "target"),
+            FactRecord::Edge(EdgeRecord {
+                attributes: None,
+                owner: Some("source.cc".to_owned()),
+                relation: "future-edge-relation".to_owned(),
+                source: source.clone(),
+                span: None,
+                target,
+            }),
+            FactRecord::Unresolved(UnresolvedRecord {
+                attributes: None,
+                candidate_name: None,
+                candidate_namespace: None,
+                expression: "future()".to_owned(),
+                owner: Some("source.cc".to_owned()),
+                reason: "future-unresolved-reason".to_owned(),
+                relation: "calls".to_owned(),
+                source: source.clone(),
+                span: None,
+            }),
+            FactRecord::Unresolved(UnresolvedRecord {
+                attributes: None,
+                candidate_name: None,
+                candidate_namespace: None,
+                expression: "ignored()".to_owned(),
+                owner: Some("source.cc".to_owned()),
+                reason: "missing-target".to_owned(),
+                relation: "future-unresolved-relation".to_owned(),
+                source,
+                span: None,
+            }),
+        ];
+
+        let (facts, warnings) = build_repository_facts(records).unwrap();
+        assert_eq!(facts.nodes.len(), 2);
+        assert!(facts.nodes.iter().any(|node| node.kind == NodeKind::Symbol));
+        assert!(facts.edges.is_empty());
+        assert_eq!(facts.unresolved.len(), 1);
+        assert_eq!(
+            facts.unresolved[0].reason,
+            UnresolvedReason::Unknown("future-unresolved-reason".to_owned())
+        );
+        for expected in [
+            "future-node-kind",
+            "future-edge-relation",
+            "future-unresolved-reason",
+            "future-unresolved-relation",
+        ] {
+            assert!(warnings.iter().any(|warning| warning.contains(expected)));
+        }
+    }
 }
 
 fn validate_sha256_id(value: &str) -> Result<(), LexiconSnapshotError> {

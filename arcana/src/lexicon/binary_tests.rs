@@ -33,7 +33,8 @@ fn reads_go_produced_binary_golden_object() {
     assert_eq!(object.adapter_version, "1.0.0");
     assert_eq!(object.schema_version, 1);
 
-    let facts = build_repository_facts(object.records).unwrap();
+    let (facts, warnings) = build_repository_facts(object.records).unwrap();
+    assert!(warnings.is_empty());
     assert_eq!(facts.nodes.len(), 2);
     assert_eq!(facts.edges.len(), 1);
     assert_eq!(facts.unresolved.len(), 1);

@@ -32,6 +32,7 @@ pub struct LexiconSnapshot {
     facts: RepositoryFacts,
     files: BTreeMap<(String, String), String>,
     shared_objects: BTreeMap<String, Option<String>>,
+    compatibility_warnings: Vec<String>,
 }
 
 impl LexiconSnapshot {
@@ -53,6 +54,11 @@ impl LexiconSnapshot {
     /// Returns all fact records materialized from the snapshot's objects.
     pub const fn facts(&self) -> &RepositoryFacts {
         &self.facts
+    }
+
+    /// Returns compatibility degradations accepted while reading the snapshot.
+    pub fn compatibility_warnings(&self) -> &[String] {
+        &self.compatibility_warnings
     }
 
     /// Reports whether any language-level shared fact object changed.
