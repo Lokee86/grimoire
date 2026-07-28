@@ -43,7 +43,7 @@ func TestSearchUsesDefaultLimitPerLane(t *testing.T) {
 		len(response.SymbolMatches),
 		len(response.RelationshipMatches),
 	} {
-		if laneSize > 12 {
+		if laneSize > 6 {
 			t.Fatalf("default per-lane limit exceeded: %+v", response)
 		}
 	}

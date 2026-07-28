@@ -1,11 +1,10 @@
 package repostate
 
 import (
-	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -31,30 +30,39 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 	if mode != CurrentOnly && mode != RefreshIfNeeded && mode != ForceRefresh {
 		return Status{}, fmt.Errorf("unsupported repository state mode %q", mode)
 	}
+	inspectionStarted := now()
 	status, err := inspect(ctx, location)
 	if err != nil {
 		return Status{}, err
 	}
+	status.Timings.InitialInspectionMS = elapsedMS(inspectionStarted)
 	status.Mode = mode
 	status.ElapsedMS = elapsedMS(started)
+	status.Timings.TotalMS = status.ElapsedMS
 	if mode == CurrentOnly {
 		return status, nil
 	}
 
+	lockStarted := now()
 	guard := lockFor(location.grimoire)
 	guard.Lock()
 	defer guard.Unlock()
 	fileGuard, err := acquireFileLock(ctx, filepath.Join(location.grimoire, "repostate.lock"))
 	if err != nil {
-		return failStatus(status, fmt.Errorf("acquire repository refresh lock: %w", err))
+		return failStatus(status, started, fmt.Errorf("acquire repository refresh lock: %w", err))
 	}
 	defer fileGuard.Close()
+	priorTimings := status.Timings
+	priorTimings.LockWaitMS += elapsedMS(lockStarted)
 
 	// Another caller may have completed the work while this caller waited.
+	reinspectionStarted := now()
 	status, err = inspect(ctx, location)
 	if err != nil {
 		return Status{}, err
 	}
+	priorTimings.ReinspectionMS += elapsedMS(reinspectionStarted)
+	status.Timings = priorTimings
 	status.Mode = mode
 	lexiconChanged := false
 	arcanaChanged := false
@@ -73,7 +81,7 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		})
 		if refreshErr != nil {
 			status.Warnings = append(status.Warnings, "Lexicon refresh unavailable; continuing with source analysis: "+refreshErr.Error())
-		} else if markerErr := markLexiconPrepared(location); markerErr != nil {
+		} else if markerErr := markLexiconPrepared(location, status.Repository.SourceFingerprint); markerErr != nil {
 			status.Warnings = append(status.Warnings, "Lexicon preparation metadata unavailable; continuing with source analysis: "+markerErr.Error())
 		} else {
 			lexiconChanged = true
@@ -117,14 +125,10 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 			Executable: commandFor(options.GrimoireCommand, "grimoire"),
 			Arguments:  arguments,
 		}); err != nil {
-			return failStatus(status, err)
+			return failStatus(status, started, err)
 		}
-		fingerprint, fingerprintErr := sourceFingerprint(location.root)
-		if fingerprintErr != nil {
-			return failStatus(status, fmt.Errorf("fingerprint source after Grimoire preparation: %w", fingerprintErr))
-		}
-		if err := writeMarkers(location, fingerprint, currentLexiconSnapshot(status)); err != nil {
-			return failStatus(status, err)
+		if err := writeMarkersTimed(&status, location, status.Repository.SourceFingerprint, currentLexiconSnapshot(status)); err != nil {
+			return failStatus(status, started, err)
 		}
 	}
 	status, err = reinspect(ctx, location, status, mode)
@@ -146,14 +150,24 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		}
 		status.Mode = mode
 	}
+	verificationStarted := now()
+	finalFingerprint, fingerprintErr := fingerprintRepository(location.root)
+	status.Timings.FinalVerificationMS += elapsedMS(verificationStarted)
+	if fingerprintErr != nil {
+		return failStatus(status, started, fmt.Errorf("verify source after repository preparation: %w", fingerprintErr))
+	}
+	if finalFingerprint != status.Repository.SourceFingerprint {
+		return failStatus(status, started, errors.New("repository source changed during preparation; retry the request"))
+	}
 	if status.Grimoire.Status == "current" {
-		if err := writeMarkers(location, status.Repository.SourceFingerprint, currentLexiconSnapshot(status)); err != nil {
-			return failStatus(status, err)
+		if err := writeMarkersTimed(&status, location, finalFingerprint, currentLexiconSnapshot(status)); err != nil {
+			return failStatus(status, started, err)
 		}
 		// Marker writes are deliberately excluded from the source fingerprint.
 	}
 	status.DeterministicQueryReady = status.Grimoire.Status == "current"
 	status.ElapsedMS = elapsedMS(started)
+	status.Timings.TotalMS = status.ElapsedMS
 	return status, nil
 }
 
@@ -167,6 +181,7 @@ func perform(ctx context.Context, status *Status, name string, runner CommandRun
 	err := runner(ctx, command)
 	last := &status.Actions[len(status.Actions)-1]
 	last.ElapsedMS = elapsedMS(started)
+	status.Timings.addAction(name, last.ElapsedMS)
 	if err != nil {
 		last.Status = "failed"
 		last.Error = err.Error()
@@ -176,11 +191,20 @@ func perform(ctx context.Context, status *Status, name string, runner CommandRun
 	return nil
 }
 
-func failStatus(status Status, err error) (Status, error) {
+func failStatus(status Status, started time.Time, err error) (Status, error) {
+	status.ElapsedMS = elapsedMS(started)
+	status.Timings.TotalMS = status.ElapsedMS
 	status.Error = err.Error()
 	status.Warnings = append(status.Warnings, err.Error())
 	status.DeterministicQueryReady = false
 	return status, err
+}
+
+func writeMarkersTimed(status *Status, location paths, fingerprint, lexiconID string) error {
+	started := now()
+	err := writeMarkers(location, fingerprint, lexiconID)
+	status.Timings.MarkerWriteMS += elapsedMS(started)
+	return err
 }
 
 func writeMarkers(location paths, fingerprint, lexiconID string) error {
@@ -200,11 +224,7 @@ func writeMarkers(location paths, fingerprint, lexiconID string) error {
 	return nil
 }
 
-func markLexiconPrepared(location paths) error {
-	fingerprint, err := sourceFingerprint(location.root)
-	if err != nil {
-		return fmt.Errorf("fingerprint source after Lexicon refresh: %w", err)
-	}
+func markLexiconPrepared(location paths, fingerprint string) error {
 	id, err := readCurrent(filepath.Join(location.lexicon, "CURRENT"))
 	if err != nil {
 		return fmt.Errorf("read Lexicon CURRENT after refresh: %w", err)
@@ -220,12 +240,15 @@ func markLexiconPrepared(location paths) error {
 }
 
 func reinspect(ctx context.Context, location paths, previous Status, mode Mode) (Status, error) {
-	status, err := inspect(ctx, location)
+	started := now()
+	status, err := inspectWithFingerprint(ctx, location, previous.Repository.SourceFingerprint)
 	if err != nil {
 		return Status{}, err
 	}
 	status.Mode = mode
 	status.Actions = previous.Actions
+	status.Timings = previous.Timings
+	status.Timings.ReinspectionMS += elapsedMS(started)
 	status.Warnings = previous.Warnings
 	return status, nil
 }
@@ -256,44 +279,4 @@ func atomicWrite(path string, data []byte) error {
 func lockFor(path string) *sync.Mutex {
 	value, _ := repositoryLocks.LoadOrStore(path, &sync.Mutex{})
 	return value.(*sync.Mutex)
-}
-
-func runCommand(ctx context.Context, command ProcessCommand) error {
-	var stdout, stderr bytes.Buffer
-	process := exec.CommandContext(ctx, command.Executable, command.Arguments...)
-	if len(command.Environment) > 0 {
-		process.Env = command.Environment
-	}
-	process.Stdout, process.Stderr = &stdout, &stderr
-	if err := process.Run(); err != nil {
-		message := strings.TrimSpace(stderr.String())
-		if message == "" {
-			message = strings.TrimSpace(stdout.String())
-		}
-		if message != "" {
-			return fmt.Errorf("%w: %s", err, message)
-		}
-		return err
-	}
-	return nil
-}
-
-func commandEnvironment(key, value string) []string {
-	environment := os.Environ()
-	filtered := environment[:0]
-	for _, entry := range environment {
-		name, _, found := strings.Cut(entry, "=")
-		if found && strings.EqualFold(name, key) {
-			continue
-		}
-		filtered = append(filtered, entry)
-	}
-	return append(filtered, key+"="+value)
-}
-
-func commandFor(value, fallback string) string {
-	if strings.TrimSpace(value) == "" {
-		return fallback
-	}
-	return value
 }

@@ -20,6 +20,10 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 	response.ExactMatches = exactMatches
 	markLaneTruncated(response, "exact_matches", exactTruncated)
 
+	exactHandles := make(map[string]string, len(exactMatches))
+	for _, result := range exactMatches {
+		exactHandles[handleKey(result.Node.Handle)] = result.Node.Handle.Value
+	}
 	sourceCandidates := retrieve.Search(engine.source, request.Query, candidateLimit)
 	sourceMatches, sourceTruncated := engine.sourceResults(
 		sourceCandidates,
@@ -27,6 +31,13 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 		"lexical",
 		"prepared source BM25 match",
 	)
+	for index := range sourceMatches {
+		if duplicate := exactHandles[handleKey(sourceMatches[index].Node.Handle)]; duplicate != "" {
+			sourceMatches[index].DuplicateOf = duplicate
+			sourceMatches[index].Excerpt = ""
+			sourceMatches[index].Reasons = []string{"same source range as exact match"}
+		}
+	}
 	response.SourceMatches = sourceMatches
 	markLaneTruncated(response, "source_matches", sourceTruncated)
 

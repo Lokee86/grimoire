@@ -111,6 +111,66 @@ func TestEnsureReportsOnlyValidatedCurrentArcanaVectors(t *testing.T) {
 	}
 }
 
+func TestEnsureReusesFingerprintAcrossProviderPreparation(t *testing.T) {
+	root := t.TempDir()
+	writeSource(t, root, "package main\n")
+	calls := make([]string, 0, 4)
+	var mu sync.Mutex
+	original := fingerprintRepository
+	fingerprints := 0
+	fingerprintRepository = func(path string) (string, error) {
+		fingerprints++
+		return original(path)
+	}
+	defer func() { fingerprintRepository = original }()
+
+	status, err := Ensure(context.Background(), Options{
+		Root: root, Mode: RefreshIfNeeded, Run: fixtureRunner(t, root, &mu, &calls, false),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fingerprints != 3 {
+		t.Fatalf("source fingerprint computed %d times, want initial, post-lock, and final verification", fingerprints)
+	}
+	if status.Version != 2 || status.Timings.TotalMS != status.ElapsedMS {
+		t.Fatalf("preparation timings were not reported: %+v", status)
+	}
+	if status.Timings.LexiconMS < 0 || status.Timings.ArcanaMS < 0 || status.Timings.SourceIndexMS < 0 || status.Timings.DocumentationMS < 0 {
+		t.Fatalf("invalid provider timings: %+v", status.Timings)
+	}
+}
+
+func TestEnsureRejectsSourceChangesDuringPreparation(t *testing.T) {
+	root := t.TempDir()
+	writeSource(t, root, "package main\n")
+	calls := make([]string, 0, 4)
+	var mu sync.Mutex
+	base := fixtureRunner(t, root, &mu, &calls, false)
+	status, err := Ensure(context.Background(), Options{
+		Root: root,
+		Mode: RefreshIfNeeded,
+		Run: func(ctx context.Context, command ProcessCommand) error {
+			if err := base(ctx, command); err != nil {
+				return err
+			}
+			if command.Executable == "grimoire" && command.Arguments[0] == "knowledge" {
+				writeSource(t, root, "package changed\n")
+			}
+			return nil
+		},
+	})
+	if err == nil || !strings.Contains(err.Error(), "source changed during preparation") {
+		t.Fatalf("source change was not rejected: status=%+v err=%v", status, err)
+	}
+	if status.DeterministicQueryReady {
+		t.Fatalf("source-changing preparation was marked ready: %+v", status)
+	}
+	if status.Timings.TotalMS != status.ElapsedMS {
+		t.Fatalf("failed preparation did not retain total timing: %+v", status)
+	}
+}
+
 func TestEnsureRefreshesAbsentStateInOrder(t *testing.T) {
 	root := t.TempDir()
 	writeSource(t, root, "package main\n")

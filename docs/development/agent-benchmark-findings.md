@@ -17,6 +17,14 @@ The strongest valid assisted result remains the Space Rocks network-interest ben
 
 The practical conclusion is to use Grimoire when it reduces an otherwise large or ambiguous working set, and stop using it when direct inspection has already narrowed the task sufficiently. The evidence supports **selective Grimoire-assisted normal inspection**, not mandatory discovery-tool use.
 
+## Version 2 benchmark infrastructure
+
+A replacement suite is prepared but has not been run. `evaluation/agent_benchmark_tasks.v2.json` replaces checklist-shaped prompts with natural problem reports and hidden rubrics covering architectural exploration, unclear ownership, cross-language change, impact analysis, and source-plus-rationale investigation.
+
+The canonical runner automatically invalidates completed answers when citations or structured evidence reference missing files, invalid paths, or out-of-range lines. Any Grimoire evidence that includes an inspected source-range handle must match its audited canonical path and lines; handle coverage is reported without forcing agents to replace cheaper direct source reads. The runner also reports non-gating coverage of the hidden rubric's expected path families. Preparation timing and discovery-output volume are recorded separately so future conclusions can distinguish provider startup cost, response size, process completion, and grounded answer quality.
+
+No version 2 benchmark result is claimed in this document until those tasks are actually executed.
+
 ## Network-interest architecture benchmark
 
 Report: [`evaluation/results/network-interest-agent-benchmark-2026-07-27-v4/report.md`](../../evaluation/results/network-interest-agent-benchmark-2026-07-27-v4/report.md)

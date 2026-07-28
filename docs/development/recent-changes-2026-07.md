@@ -113,6 +113,16 @@ The HikariCP result confirms that discovery can be counterproductive when direct
 
 See [Agent benchmark findings](agent-benchmark-findings.md) for methodology, limitations, and raw report links.
 
+## Benchmark hardening and preparation telemetry
+
+The next agent benchmark suite is defined in `evaluation/agent_benchmark_tasks.v2.json` but has not been executed. It replaces prompt-supplied subsystem checklists with natural problem reports and hidden rubrics across five intended task classes.
+
+Benchmark grounding is now automatic. Every inline and structured path/range is checked against the pinned checkout, refusals and empty evidence are invalid, and Grimoire evidence handles are checked against exact inspected source ranges through an optional `grimoire.mcp.audit.v1` log, while handle coverage remains a metric rather than a mandatory tool-usage quota. Summaries distinguish process completion from grounded validity.
+
+Repository preparation status now separates initial inspection, lock wait, reinspection, Lexicon, Arcana, source indexing, documentation indexing, marker writes, final source verification, and total time. The refresh path reuses one post-lock source fingerprint through provider preparation instead of repeatedly walking the repository after each action, then performs one final fingerprint check before marking state current.
+
+Search and orient default to six results per lane, discovery excerpts are capped at 700 bytes, and duplicate exact/lexical source ranges preserve both independent lane entries while replacing the repeated lexical excerpt with a `duplicate_of` handle reference.
+
 ## Documentation and verification
 
 The README now starts with release installation, first use, and agent configuration rather than developer build internals. New documentation covers:

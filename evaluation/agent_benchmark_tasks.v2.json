@@ -1,0 +1,117 @@
+{
+  "version": 2,
+  "evidence_sections": ["evidence"],
+  "tasks": [
+    {
+      "id": "space-rocks-room-scale-architecture",
+      "category": "architectural-exploration",
+      "repository": "space-rocks",
+      "revision": "460da4af05c44d1835401fa853f5fc6b718262c8",
+      "prompt": "The current multiplayer networking works, but larger rooms are expected to make remote entity updates the bottleneck. Investigate the existing architecture and recommend a scalable direction. Produce an implementation-ready plan grounded in the current code, and do not assume any particular proposed solution is correct.",
+      "rubric": {
+        "dimensions": [
+          {"id": "ownership", "weight": 2, "description": "Finds the authoritative simulation, receiver-specific projection, transport lanes, and client application owners."},
+          {"id": "membership", "weight": 2, "description": "Accounts for entry, persistence, departure, baseline, delta, lifecycle, self, and spectated-target behavior."},
+          {"id": "budgeting", "weight": 1, "description": "Separates interest selection from prioritization and packet budgeting."},
+          {"id": "cross_stack", "weight": 2, "description": "Traces shared/generated contracts through Go and Godot without moving authority to the client."},
+          {"id": "verification", "weight": 1, "description": "Provides failure-oriented tests and rollout observability."}
+        ],
+        "required_evidence": [
+          {"path_prefix": "services/", "reason": "authoritative simulation and receiver-specific network state"},
+          {"path_prefix": "shared/", "reason": "wire or generated contract ownership"},
+          {"path_prefix": "client/", "reason": "Godot routing and state application"}
+        ],
+        "disallowed_assumptions": ["client-authoritative interest", "dropping departure/lifecycle state", "equating interest selection with packet prioritization"]
+      }
+    },
+    {
+      "id": "detekt-cli-gradle-plugin-divergence",
+      "category": "unclear-ownership",
+      "repository": "corpus/kotlin-detekt",
+      "revision": "f9e1d5cc239ab740ce499b1edb36b872012648e2",
+      "prompt": "A third-party rule-set JAR works when detekt is run from the command line, but under the Gradle plugin it is missing or behaves as though it was configured differently. Determine where responsibility for the divergence most likely lives, identify the smallest correct fix boundary, and provide a verification plan.",
+      "rubric": {
+        "dimensions": [
+          {"id": "entry_paths", "weight": 2, "description": "Finds the CLI and Gradle plugin input paths without assuming they share setup."},
+          {"id": "classloading", "weight": 2, "description": "Locates classloader, ServiceLoader, worker/process, and provider lifetime boundaries."},
+          {"id": "convergence", "weight": 2, "description": "Identifies where both paths should converge and where configuration can diverge."},
+          {"id": "failure_modes", "weight": 1, "description": "Covers malformed services, duplicate providers, incompatible plugins, and propagated errors."},
+          {"id": "verification", "weight": 1, "description": "Tests the same fixture through both entry points."}
+        ],
+        "required_evidence": [
+          {"path_prefix": "detekt-cli/", "reason": "command-line plugin ownership"},
+          {"path_prefix": "detekt-gradle-plugin/", "reason": "Gradle task and worker ownership"},
+          {"path_prefix": "detekt-core/", "reason": "shared provider discovery and execution"}
+        ],
+        "disallowed_assumptions": ["one global classloader", "identical CLI and Gradle configuration", "silent plugin failure"]
+      }
+    },
+    {
+      "id": "space-rocks-distant-player-locator",
+      "category": "cross-language-change",
+      "repository": "space-rocks",
+      "revision": "460da4af05c44d1835401fa853f5fc6b718262c8",
+      "prompt": "Players still need reliable offscreen indicators for distant players after full-rate movement updates become receiver-filtered. Plan the smallest end-to-end change that preserves those indicators without restoring full hot updates for distant players.",
+      "rubric": {
+        "dimensions": [
+          {"id": "server_seam", "weight": 2, "description": "Chooses a low-cadence server-owned data seam separate from hot movement."},
+          {"id": "protocol", "weight": 2, "description": "Defines compact shared/generated wire data and compatibility behavior."},
+          {"id": "client", "weight": 2, "description": "Routes and applies locator data without flattening indicator identity or color."},
+          {"id": "cadence_budget", "weight": 1, "description": "Defines cadence, prioritization, staleness, and packet-budget behavior."},
+          {"id": "verification", "weight": 1, "description": "Covers interest transitions, spectating, wraparound, loss, and stale locators."}
+        ],
+        "required_evidence": [
+          {"path_prefix": "services/", "reason": "server lane and candidate ownership"},
+          {"path_prefix": "shared/", "reason": "generated packet contract"},
+          {"path_prefix": "client/", "reason": "offscreen indicator application"}
+        ],
+        "disallowed_assumptions": ["reusing reliable control traffic for hot state", "client extrapolation as authority", "full movement payload for distant players"]
+      }
+    },
+    {
+      "id": "leveldb-background-compaction-pause",
+      "category": "impact-analysis",
+      "repository": "corpus/leveldb",
+      "revision": "99b3c03b3284f5886f9ef9a4ef703d57373e61be",
+      "prompt": "We want callers to pause and resume automatic background compaction while explicit manual compaction remains available. Investigate the safest ownership seam, explain what behavior would be dangerous, and produce a minimal implementation and test plan.",
+      "rubric": {
+        "dimensions": [
+          {"id": "scheduling", "weight": 2, "description": "Finds background scheduling predicates and wakeup/resume ownership."},
+          {"id": "manual_compaction", "weight": 2, "description": "Preserves manual compaction progress and completion semantics."},
+          {"id": "write_pressure", "weight": 2, "description": "Accounts for write stalls, immutable memtables, shutdown, and pending work."},
+          {"id": "concurrency", "weight": 1, "description": "Defines mutex/condition-variable and API lifetime semantics."},
+          {"id": "verification", "weight": 1, "description": "Covers pause, resume, close, manual work, and write-pressure failure cases."}
+        ],
+        "required_evidence": [
+          {"path_prefix": "db/db_impl", "reason": "compaction scheduling and execution owner"},
+          {"path_prefix": "include/leveldb/", "reason": "caller-visible API boundary"},
+          {"path_prefix": "db/", "reason": "compaction and lifecycle tests"}
+        ],
+        "disallowed_assumptions": ["blocking every compaction path", "pausing while holding the database mutex", "resuming without scheduling pending work"]
+      }
+    },
+    {
+      "id": "grimoire-state-maintenance-ownership",
+      "category": "source-plus-rationale",
+      "repository": "grimoire",
+      "revision": "HEAD",
+      "prompt": "Grimoire's first query may need substantial repository preparation, while Warlock is becoming the shared lifecycle supervisor. Decide whether repository watching and change-event ownership should live in Grimoire, Warlock, or be split between them. Ground the recommendation in implemented boundaries and repository documentation, and preserve standalone one-shot use.",
+      "rubric": {
+        "dimensions": [
+          {"id": "implemented_ownership", "weight": 2, "description": "Separates Grimoire request-driven preparation from provider and daemon ownership."},
+          {"id": "rationale", "weight": 2, "description": "Uses architecture, roadmap, and limitation documents as rationale rather than executable truth."},
+          {"id": "seam", "weight": 2, "description": "Defines an explicit event/input seam without making one-shot commands daemon-dependent."},
+          {"id": "state_alignment", "weight": 1, "description": "Preserves Lexicon, Arcana, Grimoire, and documentation freshness contracts."},
+          {"id": "verification", "weight": 1, "description": "Covers no-daemon fallback, coalescing, branch changes, missed events, and cold start."}
+        ],
+        "required_evidence": [
+          {"path_prefix": "internal/repostate/", "reason": "implemented preparation and state-alignment owner"},
+          {"path_prefix": "internal/agentruntime/", "reason": "request-time orchestration"},
+          {"path_prefix": "docs/architecture/", "reason": "component boundaries and rationale"},
+          {"path_prefix": "docs/planning/", "reason": "explicit future lifecycle work"}
+        ],
+        "disallowed_assumptions": ["mandatory daemon dependency", "provider state mutated by Warlock directly", "documentation treated as current executable behavior"]
+      }
+    }
+  ]
+}

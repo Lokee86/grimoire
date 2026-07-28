@@ -28,6 +28,8 @@ type stateMarker struct {
 	LexiconSnapshot   string `json:"lexicon_snapshot,omitempty"`
 }
 
+var fingerprintRepository = sourceFingerprint
+
 func normalize(options Options) (paths, error) {
 	root := options.Root
 	if root == "" {
@@ -55,11 +57,18 @@ func normalize(options Options) (paths, error) {
 }
 
 func inspect(ctx context.Context, location paths) (Status, error) {
+	return inspectWithFingerprint(ctx, location, "")
+}
+
+func inspectWithFingerprint(ctx context.Context, location paths, fingerprint string) (Status, error) {
 	started := now()
 	repository := RepositoryStatus{Root: location.root}
-	fingerprint, err := sourceFingerprint(location.root)
-	if err != nil {
-		return Status{}, fmt.Errorf("fingerprint source: %w", err)
+	var err error
+	if fingerprint == "" {
+		fingerprint, err = fingerprintRepository(location.root)
+		if err != nil {
+			return Status{}, fmt.Errorf("fingerprint source: %w", err)
+		}
 	}
 	repository.SourceFingerprint = fingerprint
 	repository.GitHead, repository.GitDirty, repository.GitAvailable = gitIdentity(ctx, location.root)

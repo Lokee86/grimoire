@@ -93,6 +93,17 @@ Record Lexicon snapshot, Arcana snapshot, vector mode, model identity, and date.
 
 ## Agent discovery evaluation
 
+The canonical end-to-end runner is:
+
+```bash
+python evaluation/run_agent_benchmark.py --help
+python evaluation/run_agent_benchmark.py --check
+```
+
+`--check` validates the task catalogue and selected packaged dependencies without creating worktrees, profiles, indexes, or agent runs. Do not run the benchmark itself as part of ordinary verification. The task catalogue is `evaluation/agent_benchmark_tasks.v2.json`. It contains natural problem reports plus hidden rubrics for architectural exploration, unclear ownership, cross-language change, impact analysis, and source-plus-rationale investigation. The prompt receives only the problem report and one generic evidence envelope; rubric dimensions and expected ownership areas are not disclosed to the agent.
+
+`evaluation/benchmark_grounding.py` validates every backticked `path:line` citation and every structured evidence path/range against the pinned checkout. Missing files, path traversal, line overruns, malformed or empty evidence, refusals, and nonzero process exits make the run invalid. When Grimoire evidence includes an inspected source-range handle, it must resolve through the MCP audit log to the same canonical path and lines. Handle coverage is measured separately so direct source verification remains valid. Hidden-rubric path-family coverage is also reported without changing factual grounding validity; semantic completeness remains a separate answer-quality judgment. Each condition writes `<condition>.grounding.json`, and the suite summary records `valid: false` for failed grounding even when the agent process completed.
+
 `evaluation/agent_discovery` scores complete progressive investigation traces. It measures:
 
 - required source and structural evidence found;
@@ -113,7 +124,8 @@ A fair assisted-agent comparison must use:
 - exactly one optional discovery system per assisted condition;
 - the product's installed skill rather than ad hoc prompt instructions;
 - all setup, refresh, discovery, direct-read, token, model-call, and elapsed costs;
-- citation and structured-deliverable validation;
+- automatic citation and structured-deliverable validation against the pinned checkout;
+- strict validation of any supplied Grimoire source-range handles against `grimoire.mcp.audit.v1` records, plus separate handle-coverage reporting;
 - no free preassembled context package or hidden prepared answer.
 
 ### Task suitability
@@ -126,6 +138,8 @@ Benchmark task selection should distinguish two context regimes:
 - **Large/ambiguous working set:** unclear ownership, cross-language boundaries, transitive impact, generated contracts, conflicting source and documentation, or incomplete problem reports. Structured discovery can prevent lost-in-the-middle by reducing and organizing the context the model must retain.
 
 This task-size inversion should be treated as a hypothesis to test explicitly. A useful suite needs both regimes and should include tasks whose starting vocabulary does not reveal the complete investigation plan. Citation validity, irrelevant branches opened, context volume, and whether key evidence survives into the final answer should be measured separately.
+
+The version 2 runner records answer bytes and, for Grimoire, audited discovery response bytes, operation counts, and newly emitted evidence counts. Cold preparation summaries retain provider actions plus explicit timing buckets for Lexicon, Arcana, source indexing, documentation indexing, inspection, lock wait, marker overhead, and final source verification. This allows later optimization to target measured stages rather than total wall time alone.
 
 Grimoire should be exercised through `search`, `inspect`, `trace`, and `impact`, while allowing the agent to use direct source inspection whenever it is cheaper. Do not require a minimum number of Grimoire calls.
 

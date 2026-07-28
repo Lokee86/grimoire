@@ -80,13 +80,14 @@ type Node struct {
 }
 
 type Result struct {
-	Rank     int      `json:"rank"`
-	Provider string   `json:"provider"`
-	Kind     string   `json:"kind"`
-	Node     Node     `json:"node"`
-	Excerpt  string   `json:"excerpt,omitempty"`
-	Score    float64  `json:"score,omitempty"`
-	Reasons  []string `json:"reasons"`
+	Rank        int      `json:"rank"`
+	Provider    string   `json:"provider"`
+	Kind        string   `json:"kind"`
+	Node        Node     `json:"node"`
+	Excerpt     string   `json:"excerpt,omitempty"`
+	DuplicateOf string   `json:"duplicate_of,omitempty"`
+	Score       float64  `json:"score,omitempty"`
+	Reasons     []string `json:"reasons"`
 }
 
 type RelationshipMatch struct {

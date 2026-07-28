@@ -49,6 +49,30 @@ func TestSearchHandleInspectsExactPreparedSource(t *testing.T) {
 	}
 }
 
+func TestSearchCompactsDuplicateExactAndLexicalRanges(t *testing.T) {
+	root, facts := queryFixture(t)
+	response, err := Execute(context.Background(), Request{
+		Schema: SchemaVersion, Mode: "search", Root: root,
+		Query: "SubmitLogin", LexiconFacts: facts, Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	exact := make(map[string]string)
+	for _, result := range response.ExactMatches {
+		exact[handleKey(result.Node.Handle)] = result.Node.Handle.Value
+	}
+	for _, result := range response.SourceMatches {
+		if duplicate := exact[handleKey(result.Node.Handle)]; duplicate != "" {
+			if result.DuplicateOf != duplicate || result.Excerpt != "" {
+				t.Fatalf("duplicate lexical evidence was not compacted: %+v", result)
+			}
+			return
+		}
+	}
+	t.Fatal("fixture did not produce duplicate exact and lexical evidence")
+}
+
 func TestSearchKeepsDocumentationOutOfSourceLanes(t *testing.T) {
 	root, facts := queryFixture(t)
 	response, err := Execute(context.Background(), Request{
@@ -85,8 +109,10 @@ func TestSearchAppliesLimitPerEvidenceLane(t *testing.T) {
 			len(response.ExactMatches), len(response.SourceMatches),
 			len(response.SymbolMatches), len(response.RelationshipMatches))
 	}
-	if response.ExactMatches[0].Excerpt == "" || response.SourceMatches[0].Excerpt == "" || response.SymbolMatches[0].Excerpt == "" {
-		t.Fatalf("discovery results lack bounded source excerpts: exact=%+v source=%+v symbol=%+v",
+	if response.ExactMatches[0].Excerpt == "" ||
+		(response.SourceMatches[0].Excerpt == "" && response.SourceMatches[0].DuplicateOf == "") ||
+		response.SymbolMatches[0].Excerpt == "" {
+		t.Fatalf("discovery results lack excerpts or duplicate references: exact=%+v source=%+v symbol=%+v",
 			response.ExactMatches[0], response.SourceMatches[0], response.SymbolMatches[0])
 	}
 	if response.RelationshipMatches[0].Relation != "calls-endpoint" {

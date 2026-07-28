@@ -21,9 +21,9 @@ This page contains work that is not yet complete. Implemented behavior is docume
 
 ## Near-term priorities
 
-1. Expand end-to-end agent benchmarks across lookup, focused trace, architecture, impact, and source-plus-document tasks.
-2. Reduce first-use preparation latency without weakening state alignment or determinism.
-3. Keep discovery responses compact enough that structural evidence reduces rather than increases model interaction cost.
+1. Run and evaluate the prepared hidden-rubric version 2 agent suite across architecture, ownership, cross-language, impact, and source-plus-rationale tasks.
+2. Use the new provider and state-overhead timing buckets to target remaining first-use preparation cost without weakening alignment or determinism.
+3. Calibrate the new compact search defaults, excerpt cap, and duplicate-payload references against end-to-end agent outcomes.
 4. Expand judged corpora across repositories, languages, sizes, and task categories.
 5. Add stable machine-readable diagnostic codes and documented exit classes.
 6. Improve installation verification and host-specific MCP setup guidance as supported hosts stabilize.

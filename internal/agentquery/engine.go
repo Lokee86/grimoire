@@ -115,10 +115,11 @@ func normalizeRequest(request Request) Request {
 		request.Root = "."
 	}
 	if request.Limit == 0 {
-		if request.Mode == "trace" {
+		switch request.Mode {
+		case "search", "orient":
+			request.Limit = 6
+		default:
 			request.Limit = 8
-		} else {
-			request.Limit = 12
 		}
 	}
 	if request.Depth == 0 {

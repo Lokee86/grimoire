@@ -37,20 +37,21 @@ type Options struct {
 }
 
 type Status struct {
-	Version                 int              `json:"version"`
-	Mode                    Mode             `json:"mode"`
-	Repository              RepositoryStatus `json:"repository"`
-	Lexicon                 ComponentStatus  `json:"lexicon"`
-	Arcana                  ComponentStatus  `json:"arcana"`
-	Grimoire                ComponentStatus  `json:"grimoire"`
-	Knowledge               ComponentStatus  `json:"knowledge"`
-	ArcanaVectors           VectorStatus     `json:"arcana_vectors"`
-	KnowledgeVectors        VectorStatus     `json:"knowledge_vectors"`
-	Actions                 []Action         `json:"actions,omitempty"`
-	Warnings                []string         `json:"warnings,omitempty"`
-	DeterministicQueryReady bool             `json:"deterministic_query_ready"`
-	ElapsedMS               int64            `json:"elapsed_ms"`
-	Error                   string           `json:"error,omitempty"`
+	Version                 int                `json:"version"`
+	Mode                    Mode               `json:"mode"`
+	Repository              RepositoryStatus   `json:"repository"`
+	Lexicon                 ComponentStatus    `json:"lexicon"`
+	Arcana                  ComponentStatus    `json:"arcana"`
+	Grimoire                ComponentStatus    `json:"grimoire"`
+	Knowledge               ComponentStatus    `json:"knowledge"`
+	ArcanaVectors           VectorStatus       `json:"arcana_vectors"`
+	KnowledgeVectors        VectorStatus       `json:"knowledge_vectors"`
+	Actions                 []Action           `json:"actions,omitempty"`
+	Timings                 PreparationTimings `json:"timings"`
+	Warnings                []string           `json:"warnings,omitempty"`
+	DeterministicQueryReady bool               `json:"deterministic_query_ready"`
+	ElapsedMS               int64              `json:"elapsed_ms"`
+	Error                   string             `json:"error,omitempty"`
 }
 
 type RepositoryStatus struct {

@@ -8,7 +8,7 @@ import (
 	"github.com/Lokee86/grimoire/internal/structure"
 )
 
-const maxDiscoveryExcerptBytes = 1200
+const maxDiscoveryExcerptBytes = 700
 
 func compactExcerpt(text string) string {
 	text = strings.TrimSpace(strings.ReplaceAll(text, "\r\n", "\n"))

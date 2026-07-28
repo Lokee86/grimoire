@@ -34,7 +34,7 @@ A search response may contain:
 | `symbol_matches` | Lexicon-grounded declarations and definitions |
 | `relationship_matches` | Direct Arcana graph relationships, with Lexicon relationship fallback |
 
-`limit` applies independently to each lane. A full exact lane does not suppress source, symbol, relationship, or document results. `truncated_lanes` identifies lanes whose per-lane cap was reached.
+`limit` applies independently to each lane. A full exact lane does not suppress source, symbol, relationship, or document results. `truncated_lanes` identifies lanes whose per-lane cap was reached. When an exact and lexical result identify the same source range, both lane entries remain, but the lexical entry may omit its repeated excerpt and set `duplicate_of` to the exact handle.
 
 Documentation never appears in `exact_matches`, `source_matches`, or `symbol_matches`. Use `--code-only` or `include_documents: false` to omit the document lane entirely.
 
@@ -76,7 +76,7 @@ Common fields:
 - `code_only`, `include_documents`, and `use_document_vectors`;
 - optional repository-provider state or executable overrides.
 
-`trace` defaults to eight paths. Other modes default to twelve results per lane. `limit` is bounded to 200, `depth` to 16, and adjacent inspection context to 200 lines.
+`search` and `orient` default to six results per lane. `trace`, `impact`, and other bounded expansion modes default to eight. `limit` is bounded to 200, `depth` to 16, and adjacent inspection context to 200 lines.
 
 ## Handles
 

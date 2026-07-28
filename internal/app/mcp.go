@@ -21,6 +21,7 @@ func runMCP(args []string, input io.Reader, output, stderr io.Writer) error {
 	state := flags.String("state", "", "default Grimoire state directory")
 	stateMode := flags.String("state-mode", string(repostate.RefreshIfNeeded), "current-only, refresh-if-needed, or force-refresh")
 	maxMessage := flags.Int("max-message", 10<<20, "maximum MCP request bytes")
+	auditLog := flags.String("audit-log", "", "optional JSONL log of MCP requests and structured responses")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -37,17 +38,19 @@ func runMCP(args []string, input io.Reader, output, stderr io.Writer) error {
 		return errors.New("positive --max-message is required")
 	}
 
+	audit := newMCPAuditLogger(*auditLog)
 	handler := mcpserver.HandlerFunc(func(ctx context.Context, arguments json.RawMessage) (any, error) {
 		var request agentruntime.Request
 		if err := json.Unmarshal(arguments, &request); err != nil {
 			return nil, fmt.Errorf("decode Grimoire agent request: %w", err)
 		}
-		return agentruntime.Execute(ctx, request, agentruntime.Options{
+		response, executeErr := agentruntime.Execute(ctx, request, agentruntime.Options{
 			DefaultRoot:      *root,
 			DefaultState:     *state,
 			DefaultMode:      mode,
 			EnsureRepository: ensureDiscoveryRepository,
 		})
+		return response, audit.Record(request, response, executeErr)
 	})
 	server, err := mcpserver.New(mcpserver.Options{
 		Name:         "grimoire",

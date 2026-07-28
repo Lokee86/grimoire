@@ -26,7 +26,7 @@ The response uses schema `grimoire.discovery.v1` and may include:
 - `symbol_matches`
 - `relationship_matches`
 
-`--limit` applies to each lane independently. The default is 12 and the maximum is 200.
+`--limit` applies to each lane independently. Search and orient default to 6 results per lane; trace and other bounded expansion modes default to 8. The maximum is 200.
 
 Useful flags:
 
@@ -116,6 +116,8 @@ grimoire mcp --root .
 
 The exposed tool is `grimoire_discover`. The MCP server adds automatic repository preparation and optional investigation-session deduplication but does not change the evidence-lane contract.
 
+`--audit-log <path>` writes one JSONL record per tool call using schema `grimoire.mcp.audit.v1`. Each record contains the decoded request, exact structured response, and any execution error. This is intended for benchmark grounding and controlled diagnostics; it is disabled by default.
+
 See [Grimoire MCP interface](agent-mcp.md).
 
 ## Engine command namespaces
@@ -162,7 +164,7 @@ grimoire status --root . --refresh
 grimoire status --root . --force-refresh
 ```
 
-Normal discovery commands use `refresh-if-needed` unless another state mode is selected.
+Normal discovery commands use `refresh-if-needed` unless another state mode is selected. Status output includes separate timing buckets for initial inspection, refresh-lock wait, reinspection, Lexicon, Arcana, source indexing, documentation indexing, marker writes, final source verification, and total preparation time.
 
 ### `grimoire index`
 
