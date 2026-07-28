@@ -554,8 +554,281 @@
           "completed_at": "2026-07-28T19:26:57.588434+00:00"
         }
       }
+    },
+    "space-rocks-distant-player-locator": {
+      "category": "cross-language-change",
+      "repository": "C:\\!bin\\workspace\\space-rocks",
+      "commit": "460da4af05c44d1835401fa853f5fc6b718262c8",
+      "rubric": {
+        "dimensions": [
+          {
+            "id": "server_seam",
+            "weight": 2,
+            "description": "Chooses a low-cadence server-owned data seam separate from hot movement."
+          },
+          {
+            "id": "protocol",
+            "weight": 2,
+            "description": "Defines compact shared/generated wire data and compatibility behavior."
+          },
+          {
+            "id": "client",
+            "weight": 2,
+            "description": "Routes and applies locator data without flattening indicator identity or color."
+          },
+          {
+            "id": "cadence_budget",
+            "weight": 1,
+            "description": "Defines cadence, prioritization, staleness, and packet-budget behavior."
+          },
+          {
+            "id": "verification",
+            "weight": 1,
+            "description": "Covers interest transitions, spectating, wraparound, loss, and stale locators."
+          }
+        ],
+        "required_evidence": [
+          {
+            "path_prefix": "services/",
+            "reason": "server lane and candidate ownership"
+          },
+          {
+            "path_prefix": "shared/",
+            "reason": "generated packet contract"
+          },
+          {
+            "path_prefix": "client/",
+            "reason": "offscreen indicator application"
+          }
+        ],
+        "disallowed_assumptions": [
+          "reusing reliable control traffic for hot state",
+          "client extrapolation as authority",
+          "full movement payload for distant players"
+        ]
+      },
+      "preparation": {
+        "cbm": {
+          "project": "C-bin-workspace-benchmark-checkouts-agent-benchmark-v2-space-rocks-distant-player-locator-cbm",
+          "elapsed_seconds": 5.349
+        },
+        "grimoire": {
+          "elapsed_seconds": 94.77,
+          "timings": {
+            "initial_inspection_ms": 1008,
+            "lock_wait_ms": 0,
+            "reinspection_ms": 4637,
+            "lexicon_ms": 66293,
+            "arcana_ms": 2262,
+            "source_index_ms": 14675,
+            "documentation_ms": 5651,
+            "marker_write_ms": 4,
+            "final_verification_ms": 187,
+            "total_ms": 94727
+          },
+          "actions": [
+            {
+              "name": "refresh-lexicon",
+              "status": "completed",
+              "elapsed_ms": 66293
+            },
+            {
+              "name": "synchronize-arcana",
+              "status": "completed",
+              "elapsed_ms": 2262
+            },
+            {
+              "name": "prepare-grimoire",
+              "status": "completed",
+              "elapsed_ms": 14675
+            },
+            {
+              "name": "prepare-knowledge",
+              "status": "completed",
+              "elapsed_ms": 5651
+            }
+          ]
+        }
+      },
+      "profiles": {
+        "plain": "bench-v2-space-rocks-distant--plain",
+        "cbm": "bench-v2-space-rocks-distant--cbm",
+        "grimoire": "bench-v2-space-rocks-distant--grimoire"
+      },
+      "runs": {
+        "plain": {
+          "exit_code": 0,
+          "elapsed_seconds": 327.133,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 196293,
+            "output_tokens": 11129,
+            "cache_read_tokens": 1969152,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 2885,
+            "total_tokens": 2176574,
+            "api_calls": 21,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_125918_fd0e2c",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 17083,
+          "discovery_output": {
+            "calls": 0,
+            "response_bytes": 0,
+            "modes": {},
+            "new_nodes": 0,
+            "new_source_ranges": 0,
+            "new_documents": 0,
+            "new_relationships": 0,
+            "new_graph_paths": 0,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 37,
+            "structured_items": 12,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "services",
+              "client"
+            ],
+            "missing_required_prefixes": [
+              "shared"
+            ],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T20:04:38.983150+00:00"
+        },
+        "cbm": {
+          "exit_code": 0,
+          "elapsed_seconds": 391.188,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 180727,
+            "output_tokens": 12680,
+            "cache_read_tokens": 2207744,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 3902,
+            "total_tokens": 2401151,
+            "api_calls": 25,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_125918_446a90",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 20834,
+          "discovery_output": {
+            "calls": 0,
+            "response_bytes": 0,
+            "modes": {},
+            "new_nodes": 0,
+            "new_source_ranges": 0,
+            "new_documents": 0,
+            "new_relationships": 0,
+            "new_graph_paths": 0,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 52,
+            "structured_items": 17,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "services",
+              "shared",
+              "client"
+            ],
+            "missing_required_prefixes": [],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T20:05:43.081899+00:00"
+        },
+        "grimoire": {
+          "exit_code": 0,
+          "elapsed_seconds": 486.293,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 186172,
+            "output_tokens": 15033,
+            "cache_read_tokens": 2178048,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 6239,
+            "total_tokens": 2379253,
+            "api_calls": 21,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_125918_6d6d0a",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 20275,
+          "discovery_output": {
+            "calls": 2,
+            "response_bytes": 50178,
+            "modes": {
+              "search": 1,
+              "inspect": 1
+            },
+            "new_nodes": 25,
+            "new_source_ranges": 19,
+            "new_documents": 8,
+            "new_relationships": 0,
+            "new_graph_paths": 8,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 56,
+            "structured_items": 12,
+            "handle_items": 1,
+            "canonical_handle_items": 1,
+            "required_prefixes_found": [
+              "services",
+              "client"
+            ],
+            "missing_required_prefixes": [
+              "shared"
+            ],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T20:07:18.170924+00:00"
+        }
+      }
     }
   },
-  "completed_at": "2026-07-28T19:36:03.951434+00:00",
-  "revalidated_at": "2026-07-28T19:43:27.714177+00:00"
+  "completed_at": "2026-07-28T20:13:27.379871+00:00",
+  "revalidated_at": "2026-07-28T20:20:31.716842+00:00"
 }

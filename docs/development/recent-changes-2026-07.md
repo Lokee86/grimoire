@@ -115,7 +115,7 @@ See [Agent benchmark findings](agent-benchmark-findings.md) for methodology, lim
 
 ## Benchmark hardening and preparation telemetry
 
-The next agent benchmark suite is defined in `evaluation/agent_benchmark_tasks.v2.json`. Its room-scale architecture and Detekt unclear-ownership tasks have now been executed; the remaining three tasks have not. It replaces prompt-supplied subsystem checklists with natural problem reports and hidden rubrics across five intended task classes.
+The next agent benchmark suite is defined in `evaluation/agent_benchmark_tasks.v2.json`. Its room-scale architecture, Detekt unclear-ownership, and Space Rocks cross-language locator tasks have now been executed; the remaining two tasks have not. It replaces prompt-supplied subsystem checklists with natural problem reports and hidden rubrics across five intended task classes.
 
 Benchmark grounding is now automatic. Every inline and structured path/range is checked against the pinned checkout, refusals and empty evidence are invalid, and Grimoire evidence handles are checked against exact inspected source ranges through an optional `grimoire.mcp.audit.v1` log, while handle coverage remains a metric rather than a mandatory tool-usage quota. Summaries distinguish process completion from grounded validity.
 
@@ -128,6 +128,10 @@ The first version 2 architecture run produced grounded implementation-grade answ
 The second version 2 Detekt run also produced grounded implementation-grade answers in all three conditions, but plain inspection won: 5m 04s, 14 calls, and 767k total tokens. CBM was effectively tied at 5m 05s including preparation, 16 calls, and 831k tokens. Grimoire took 6m 26s including preparation, 16 calls, and 1.46M tokens. All three found the same Gradle-to-CLI plugin-classloader defect and proposed the same adapter-layer repair. Grimoire's single 44.9 KB search response began with low-value import nodes, confirming that broad response shaping can still add cost after the task's working set becomes compact.
 
 The Detekt run also exposed two post-completion harness defects: relative output paths placed subprocess telemetry inside detached worktrees, and cleanup referenced `shutil` without importing it. Output paths are now absolute before launch, cleanup imports are complete, and isolated result roots can be imported into the canonical summary without rerunning agents.
+
+The third version 2 locator run favored plain inspection and CBM over Grimoire. Plain completed in 5m 27s with 21 calls and 2.18M total tokens; CBM completed in 6m 37s including preparation with 25 calls and 2.40M tokens; Grimoire completed in 9m 41s including preparation with 21 calls and 2.38M tokens. Plain and CBM chose a dedicated unreliable locator packet, while Grimoire reused the reliable overlay lane for changing coordinates and omitted stale expiry. All three missed durable per-player color metadata and complete spectating verification despite passing citation grounding.
+
+That run also exposed summary replacement when running one selected task into an existing canonical output. The runner now preserves compatible existing task entries, records the latest run start separately, and rejects incompatible suite/model/provider metadata. Summary-only recovery can merge a selected task back onto a committed base without rerunning agents.
 
 ## Documentation and verification
 

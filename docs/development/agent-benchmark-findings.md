@@ -15,7 +15,7 @@ This lost-in-the-middle explanation is a working hypothesis consistent with the 
 
 The strongest valid assisted result remains the Space Rocks network-interest benchmark, where Grimoire reduced the amount of context and repeated searching required for a broad cross-language architecture task. HikariCP favored plain inspection because the requested lifecycle was compact and concretely named. The earlier prompt-shaped Detekt Grimoire run failed semantically, while the replacement unclear-ownership Detekt task completed successfully in all conditions but favored plain inspection and CBM on efficiency. The repaired Now in Android run completed, but extensive invalid citations show that additional discovery context did not improve grounding on that prompt-shaped, `rg`-friendly task.
 
-The practical conclusion is to use Grimoire when it reduces an otherwise large or ambiguous working set, and stop using it when direct inspection has already narrowed the task sufficiently. The evidence supports **selective Grimoire-assisted normal inspection**, not mandatory discovery-tool use.
+The practical conclusion is to use Grimoire when it reduces an otherwise large or ambiguous working set, and stop using it when direct inspection has already narrowed the task sufficiently. The evidence supports **selective Grimoire-assisted normal inspection**, not mandatory discovery-tool use. The third version 2 task also shows that grounding success is not enough: all three answers cited real code, yet hidden architecture constraints still distinguished a sound unreliable locator seam from a reliable-overlay design and exposed a shared color-preservation omission.
 
 ## Version 2 benchmark infrastructure
 
@@ -60,6 +60,26 @@ All three found the same real boundary defect: Gradle resolves `detektPlugins` i
 Plain inspection produced the strongest overall answer by a small margin; CBM was a close second; Grimoire remained technically correct but added no unique ownership finding. Grimoire used about 90% more total tokens than plain and completed about 82 seconds later including preparation.
 
 The Grimoire agent made one 44,867-byte search call that emitted 26 nodes, 21 source ranges, eight documents, and eight graph paths. The response began with low-value import nodes. This is a concrete negative result for broad default response shaping on a task whose working set becomes compact after locating the two named entry paths.
+
+## Version 2 distant-player locator result
+
+Report: [`evaluation/results/agent-benchmark-v2/space-rocks-distant-player-locator/report.md`](../../evaluation/results/agent-benchmark-v2/space-rocks-distant-player-locator/report.md)
+
+The third version 2 task required a low-rate cross-language replacement for distant-player movement updates while preserving offscreen indicators.
+
+| Condition | Preparation | Agent elapsed | Total elapsed | Model calls | Total tokens | Grounding |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Plain | none | **5m 27s** | **5m 27s** | **21** | **2,176,574** | Pass |
+| CBM | **5.3s** | 6m 31s | 6m 37s | 25 | 2,401,151 | Pass |
+| Grimoire | 1m 35s | 8m 06s | 9m 41s | **21** | 2,379,253 | Pass |
+
+Plain and CBM chose a dedicated low-cadence locator packet on the existing unreliable ships transport with independent packet-family state, generated shared contracts, bounded extrapolation, stale expiry, and an indicator-specific client read model. CBM produced the strongest plan by a small margin; plain was close and substantially faster.
+
+Grimoire instead placed changing locator coordinates on the ordered/reliable overlay lane and broadened the existing remote-position read model. That conflicts with the hidden constraint against reusing reliable control traffic for movement-like state and risks head-of-line pressure and unintended effects on other position consumers. Grimoire also omitted stale expiry.
+
+All three answers missed one critical hidden requirement: filtered player removal also erases per-player hue state, but none transported or independently preserved durable color metadata. Their fallback-hue behavior would reproduce the known single-color distant-indicator failure. None fully verified spectating either. This result demonstrates why automatic grounding and hidden semantic rubrics must remain separate.
+
+Grimoire made one search and one handle-based inspect, returned 50,178 bytes of structured context, and successfully used the suite's first canonical source-range handle. The initial response still began with low-value fixture and helper symbols. Lexicon again dominated cold preparation at 66.3 of 94.7 internal seconds.
 
 ## Network-interest architecture benchmark
 

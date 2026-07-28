@@ -34,6 +34,50 @@ def select_tasks(suite: dict, selected: list[str]) -> list[dict]:
     return chosen
 
 
+def initialize_summary(
+    output: Path,
+    *,
+    task_suite: Path,
+    model: str,
+    provider: str,
+    conditions: tuple[str, ...],
+) -> dict:
+    started_at = datetime.now(timezone.utc).isoformat()
+    summary_path = output / "summary.json"
+    if not summary_path.is_file():
+        return {
+            "schema": "grimoire.agent-benchmark.v2",
+            "task_suite": str(task_suite),
+            "model": model,
+            "provider": provider,
+            "conditions": list(conditions),
+            "parallel_within_task": len(conditions) > 1,
+            "sequential_tasks": True,
+            "started_at": started_at,
+            "last_run_started_at": started_at,
+            "tasks": {},
+        }
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    expected = {
+        "schema": "grimoire.agent-benchmark.v2",
+        "task_suite": str(task_suite),
+        "model": model,
+        "provider": provider,
+    }
+    for key, value in expected.items():
+        if summary.get(key) != value:
+            raise ValueError(
+                f"existing benchmark summary has incompatible {key}: "
+                f"{summary.get(key)!r} != {value!r}"
+            )
+    summary.setdefault("tasks", {})
+    summary["conditions"] = list(dict.fromkeys([*summary.get("conditions", []), *conditions]))
+    summary["parallel_within_task"] = len(conditions) > 1
+    summary["sequential_tasks"] = True
+    summary["last_run_started_at"] = started_at
+    return summary
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the version 2 grounded agent benchmark suite.")
     parser.add_argument("--tasks", type=Path, default=DEFAULT_TASKS)
@@ -65,17 +109,13 @@ def main() -> int:
     args.output.mkdir(parents=True, exist_ok=True)
     args.checkout_root.mkdir(parents=True, exist_ok=True)
 
-    summary = {
-        "schema": "grimoire.agent-benchmark.v2",
-        "task_suite": str(args.tasks.resolve()),
-        "model": args.model,
-        "provider": args.provider,
-        "conditions": conditions,
-        "parallel_within_task": len(conditions) > 1,
-        "sequential_tasks": True,
-        "started_at": datetime.now(timezone.utc).isoformat(),
-        "tasks": {},
-    }
+    summary = initialize_summary(
+        args.output,
+        task_suite=args.tasks.resolve(),
+        model=args.model,
+        provider=args.provider,
+        conditions=conditions,
+    )
     for task in tasks:
         task_output = args.output / task["id"]
         task_output.mkdir(parents=True, exist_ok=True)
