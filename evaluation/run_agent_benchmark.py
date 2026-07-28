@@ -145,6 +145,10 @@ def main() -> int:
 
     summary["completed_at"] = datetime.now(timezone.utc).isoformat()
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    partial = args.output / "summary.partial.json"
+    partial.unlink(missing_ok=True)
+    for task in tasks:
+        shutil.rmtree(args.output / task["id"] / "cbm-cache", ignore_errors=True)
     print(json.dumps(summary, indent=2))
     return 0
 

@@ -82,6 +82,57 @@ class BenchmarkGroundingTests(unittest.TestCase):
             self.assertIn("inline_citation_out_of_range", codes)
             self.assertIn("handle_range_mismatch", codes)
 
+    def test_accepts_and_validates_noncontiguous_structured_ranges(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "target.go").write_text("one\ntwo\nthree\nfour\nfive\n", encoding="utf-8")
+            answer = (
+                'BENCHMARK_EVIDENCE_JSON:{"evidence":[{"path":"target.go","symbol":"Target",'
+                '"lines":"1-2,4-5","claim":"two source regions"}]}\n'
+            )
+            report = validate_answer(
+                root,
+                answer,
+                exit_code=0,
+                expected_sections=["evidence"],
+            )
+            self.assertTrue(report.valid, report.to_dict())
+
+            invalid = answer.replace("4-5", "4-9")
+            report = validate_answer(
+                root,
+                invalid,
+                exit_code=0,
+                expected_sections=["evidence"],
+            )
+            self.assertFalse(report.valid)
+            self.assertIn("structured_evidence_out_of_range", {finding.code for finding in report.findings})
+
+    def test_rejects_one_handle_for_multiple_ranges(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "target.go").write_text("one\ntwo\nthree\n", encoding="utf-8")
+            audit = root / "audit.jsonl"
+            audit.write_text(json.dumps({
+                "response": {"delta": {"new_source_ranges": [{
+                    "handle": "g1_range",
+                    "evidence": {"path": "target.go", "start_line": 1, "end_line": 1},
+                }]}},
+            }) + "\n", encoding="utf-8")
+            answer = (
+                'BENCHMARK_EVIDENCE_JSON:{"evidence":[{"path":"target.go","symbol":"Target",'
+                '"lines":"1,3","claim":"two ranges","handle":"g1_range"}]}\n'
+            )
+            report = validate_answer(
+                root,
+                answer,
+                exit_code=0,
+                expected_sections=["evidence"],
+                audit_log=audit,
+            )
+            self.assertFalse(report.valid)
+            self.assertIn("handle_multiple_ranges", {finding.code for finding in report.findings})
+
     def test_accepts_non_session_inspection_handles(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

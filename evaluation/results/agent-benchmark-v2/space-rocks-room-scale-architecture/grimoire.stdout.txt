@@ -1,0 +1,261 @@
+Investigation scope
+
+Read-only inspection was performed against revision `460da4af05c44d1835401fa853f5fc6b718262c8`; the worktree was clean. No files were modified and no generators were run.
+
+Verified current architecture
+
+1. Room scale is currently capped before networking becomes large-scale.
+
+The global player-ID limit is eight, and room capacity delegates directly to that limit (`services/game-server/internal/playerids/playerids.go:5-8`, `services/game-server/internal/rooms/constants.go:9-14`). Larger-room work therefore requires an explicit capacity change, but raising that constant alone would expose scaling characteristics that are mostly hidden at eight players.
+
+2. Simulation publication is room-wide; event selection is receiver-specific.
+
+Each published immutable presentation frame copies every player, asteroid, projectile, pickup, player session, and lifecycle record into room-wide maps (`services/game-server/internal/game/presentation_snapshot.go:9-63`). `GameplayPresentationSnapshot(playerID)` then returns those shared maps unchanged for every receiver; only `SelfID`, `Lives`, and the copied pending-event list are receiver-specific (`services/game-server/internal/game/presentation_snapshot.go:66-113`).
+
+This is already a useful room-level sharing seam: simulation state is copied once per published frame rather than once per connection. It does not, however, provide a receiver-specific spatial view.
+
+3. Outbound construction is performed independently for every connected player at 60 Hz.
+
+Each WebSocket session owns a ticker at `ServerTickRate`; every tick invokes `writeGameplayLaneProtocolMessage` (`services/game-server/internal/networking/websocket_write.go:15-42`). That function obtains the room game and calls `BuildActiveRealtimeResultForGame` with the connection’s player ID and session-specific realtime state (`services/game-server/internal/networking/websocket_write.go:45-78`). `BuildActiveRealtimeResultForGame` obtains a receiver snapshot and performs candidate assembly, chunking, scheduling, compact encoding, and byte accounting (`services/game-server/internal/protocol/realtime/active.go:35-104`).
+
+Consequently, with R receivers and E room entities, the existing outbound path repeats projection, comparison, candidate construction, and encoding R times per publication interval. The exact cost depends on which fields changed, but the initial world projection itself visits and sorts every entity family for every receiver.
+
+4. The world projection currently contains every room entity.
+
+`ProjectWorldLane` enumerates and sorts every player, bullet, asteroid, and pickup ID and emits a record for each one; there is no receiver position, viewport, relevance predicate, or visibility filter in its interface or implementation (`services/game-server/internal/protocol/realtime/projection_world.go:9-108`). Full packets therefore contain the complete projected room world (`services/game-server/internal/protocol/realtime/projection_world.go:110-129`).
+
+Delta comparison is also whole-projection work: it builds maps and sorted ID lists for both previous and current record sets, then field-compares matching records (`services/game-server/internal/protocol/realtime/delta.go:76-134`). Per-session baseline projections make the resulting wire delta receiver-safe, but they also mean the comparison work is repeated for each receiver (`services/game-server/internal/protocol/realtime/baseline.go:27-45`, `services/game-server/internal/protocol/realtime/baseline.go:83-98`).
+
+5. The current protocol already has strong mechanisms that should be preserved.
+
+The protocol separates baseline world state, receiver overlay, session state, events, hot movement lanes, and reliable lifecycle lanes (`services/game-server/internal/protocol/realtime/lanes.go:3-37`). World changes are divided so ship transform fields travel on the hot ship lane, while reliable ship fields and entity creates/deletes travel through lifecycle/world candidates (`services/game-server/internal/protocol/realtime/lane_candidate_world.go:43-85`, `services/game-server/internal/protocol/realtime/hot_lane_allocator.go:106-140`).
+
+Hot ship, asteroid, and bullet updates have independent per-session projections and sequences (`services/game-server/internal/protocol/realtime/hot_lane_projection.go:3-13`, `services/game-server/internal/protocol/realtime/hot_lane_projection.go:54-108`). Packet-size pressure can reduce hot-lane cadence from 60 Hz to 30/20/15 Hz, and oversized movement candidates are split into chunks (`services/game-server/internal/protocol/realtime/hot_lane_chunker.go:106-123`). Candidate construction uses a 500-byte planning target and 1,200-byte hard cap (`services/game-server/internal/protocol/realtime/size_estimate.go:3-8`).
+
+These mechanisms solve packet shape, loss semantics, and per-packet size. They do not reduce the number of remote entities considered for each receiver. In particular, hot-lane chunks are always admitted by the scheduler regardless of its remaining target budget (`services/game-server/internal/protocol/realtime/scheduler.go:25-58`), so a large moving population still produces proportionally more chunks and bytes.
+
+6. WebRTC lanes already separate reliability classes.
+
+World, overlay, session, event, and lifecycle channels are ordered; ship, asteroid, and bullet hot channels are unordered with zero retransmits (`services/game-server/internal/networking/webrtc_transport.go:27-41`). Sends enforce a 32 KiB buffered-amount threshold (`services/game-server/internal/networking/webrtc_transport.go:20-25`, `services/game-server/internal/networking/webrtc_transport.go:239-247`).
+
+Direct source shows send preflight is performed group by group: world plus lifecycle candidates share `world.reliable`, while other lanes form independent groups; a blocked group is skipped and processing continues with later groups (`services/game-server/internal/networking/websocket_write.go:84-150`, `services/game-server/internal/networking/websocket_write.go:162-184`). This conflicts with the broader documentation statement that one blocked lane skips every selected gameplay packet for the session tick (`docs/limits/current-system-limits.md:24-37`). The implementation should be treated as current behavior; the document should be corrected in a later documentation-scoped change.
+
+7. The client stores and presents the complete set it receives.
+
+A world full replaces all ship, bullet, asteroid, and pickup dictionaries (`client/scripts/protocol/realtime/world_lane_state.gd:48-86`). Reliable lifecycle messages create and delete entities, while hot updates only update existing entities or enter bounded pending-update buffers (`client/scripts/protocol/realtime/world_lane_applier.gd:43-101`, `client/scripts/protocol/realtime/world_lane_applier.gd:153-212`). `WorldSync` reconciles all ships and applies changed projectile and asteroid sets, then interpolates every entity family (`client/scripts/world/world_sync.gd:91-135`, `client/scripts/world/world_sync.gd:196-201`).
+
+This means reducing each receiver’s authoritative presentation set would reduce server bytes, client decode/apply work, retained dictionaries, scene nodes, and interpolation work together. Existing create/delete semantics are already suitable for an entity entering or leaving a receiver’s relevance set.
+
+8. The repository already has wrap-aware view primitives, but spectating creates an ownership complication.
+
+The game maintains camera views and tests visibility using the shortest toroidal delta (`services/game-server/internal/game/visibility.go:90-109`). Camera dimensions are clamped between supported zoom bounds (`services/game-server/internal/game/runtime/camera.go:8-38`), and shared spatial helpers expose wrapped delta and distance (`services/game-server/internal/game/space/space.go:52-76`).
+
+However, spectator view selection is currently client-local. The client changes `WorldSync`’s view target and camera focus without sending a server request (`client/scripts/gameplay/spectate/gameplay_spectate_flow.gd:33-54`). Player rendering then anchors to that selected player if the player exists in received world state (`client/scripts/world/player_render/player_render_api.gd:65-97`). A server-side relevance filter anchored unconditionally to the receiver’s own ship would therefore break dead-player spectating.
+
+9. Existing telemetry can establish the baseline, but it lacks relevance-specific measurements.
+
+Server telemetry already reports per-session, per-lane packet counts, encoded-byte totals, last/max packet sizes, room entity counts, CPU, RSS, heap, GC, and goroutines (`services/game-server/internal/tooling/telemetry.go:56-102`, `services/game-server/internal/tooling/telemetry.go:105-135`). The client packet pipeline measures per-packet lane application time (`client/scripts/networking/realtime/realtime_packet_pipeline.gd:197-218`). Packet metric records include hot entity counts, chunk modes, cadence, and encoded-size classifications (`services/game-server/internal/networking/packetmetrics/packet_metric_record.go:3-26`).
+
+Documentation rationale, not implementation proof
+
+The architecture documentation assigns lane projection, baseline/delta planning, candidate selection, quantization, and active encoding to `internal/protocol/realtime`, while networking owns routing and transport (`docs/protocol/realtime-websocket-protocol.md:125-164`). The architecture guardrails require policy to stay in its owner and broad networking/world-sync coordinators to remain thin (`docs/agent/architecture-rules.md:18-32`).
+
+The stable-limitations document records that an extreme 450–500 projectile run maintained 60 Hz server writes and complete bullet chunks, while client presentation was the suspected bottleneck (`docs/limits/stable-limitations.md:29-39`). That evidence is useful but does not answer the larger-room case: hundreds of projectiles in one current-size room and many receivers multiplying ordinary remote updates are different scaling axes.
+
+Scalable-direction assessment
+
+A. Binary encoding or additional quantization
+
+This would reduce bytes per entity but would not change the repeated R-by-E projection and comparison structure. The current compact-wire and quantization boundary is already substantial (`services/game-server/internal/protocol/realtime/active.go:206-220`). Binary framing can be a later optimization, but it is not the first architectural response to larger rooms.
+
+B. Lower the global send rate
+
+The current system already lowers hot-lane cadence under chunk pressure (`services/game-server/internal/protocol/realtime/hot_lane_chunker.go:113-123`). Applying a lower cadence globally would reduce throughput but also lower nearby-player responsiveness, and entity count would still determine each update’s work and size.
+
+C. Share one encoded room packet among receivers
+
+Most world state is initially identical, so shared canonical projection can reduce CPU and allocations. Complete packet sharing is not directly compatible with receiver-specific baselines, backpressure, overlay state, pending events, and future relevance sets (`services/game-server/internal/protocol/realtime/baseline.go:27-45`, `services/game-server/internal/protocol/realtime/projection_overlay.go:11-29`). Shared room projection should therefore be treated as a cache beneath per-session planning, not as a replacement for session state.
+
+D. Receiver-scoped spatial relevance with adaptive cadence
+
+This is the recommended direction because it attacks the dominant multiplicative term: each receiver should receive high-frequency world state only for a bounded neighborhood around its authoritative view anchor. Session/lifecycle summaries can remain room-wide at lower churn, while spatial entity creates, updates, and deletes use the existing world/hot/lifecycle machinery.
+
+This recommendation is conditional rather than assumed correct: the first implementation slice should add measurements and a shadow relevance calculation so expected savings and gameplay coverage are demonstrated before filtered packets become authoritative.
+
+Proposed implementation-ready design
+
+Phase 0 — Baseline and shadow validation
+
+1. Extend the existing packet/telemetry observations with:
+   - projection generation;
+   - total entities by family;
+   - relevant entities by family;
+   - entered/exited relevance counts;
+   - projection-build duration;
+   - delta-build duration;
+   - encode duration;
+   - selected bytes and chunks per receiver;
+   - current view-anchor kind and interest profile.
+
+2. Add a non-authoritative `InterestProjection` calculation in `services/game-server/internal/protocol/realtime/`. Run it from the active-result build boundary but continue sending the existing complete projection.
+
+3. Add room-scale benchmark fixtures with configurable receivers, moving ships, asteroids, bullets, and pickups. Compare:
+   - current total encoded bytes per simulated second;
+   - server projection/encoding CPU and allocations;
+   - client lane-apply time and scene-node counts;
+   - candidate/chunk counts;
+   - WebRTC buffered amount and skipped groups.
+
+Exit criterion: the measured relevant set must stay approximately bounded as room population grows, and shadow filtering must not omit required self, spectator-anchor, target, lifecycle, or event context. If visibility remains close to the entire room under intended maps and game modes, stop; AOI would add complexity without sufficient benefit.
+
+Phase 1 — Introduce an explicit projection context
+
+Add a protocol-owned value such as:
+
+- `ProjectionContext`
+  - `ReceiverID`
+  - `AnchorKind` (`self`, `spectate`)
+  - `AnchorEntityID`
+  - authoritative anchor position
+  - visible width/height
+  - enter margin
+  - leave margin
+  - family-specific update profile
+
+Do not let `websocket_write.go` contain spatial policy. Networking should only validate/assemble the current receiver context and pass it into a protocol projector. Radius, hysteresis, and cadence policy belong under `internal/protocol/realtime`, consistent with current projection ownership.
+
+The context should use `game/space.Delta` or an equivalent shared wrap-aware primitive, not ordinary Euclidean subtraction, because the authoritative world is toroidal.
+
+Phase 2 — Make spectator anchoring explicit
+
+Before filtering becomes authoritative, add a generated client request for changing realtime view interest:
+
+- client sends the selected spectator player ID on begin/cycle;
+- client clears it when spectating ends or gameplay resets;
+- server networking validates that the target belongs to the same active match and is lifecycle-eligible;
+- session transport state stores the validated target ID;
+- no gameplay target, simulation entity, or room policy is mutated.
+
+Likely touch points:
+
+- `shared/packets/gameplay.toml`;
+- generated client/server packet outputs through the normal data-sync path;
+- `client/scripts/gameplay/spectate/gameplay_spectate_flow.gd`;
+- client networking outbound wrapper;
+- `services/game-server/internal/networking/inbound/`;
+- transient fields on the server connection/session;
+- context assembly adjacent to `writeGameplayLaneProtocolMessage`.
+
+This is intentionally a presentation subscription, not `target_kind`/`target_id` gameplay targeting.
+
+Phase 3 — Filter world projection with hysteresis
+
+Extend `RealtimeSessionState` with per-family relevance membership, or add a concrete `InterestState` owned by it. Membership must be session- and match-scoped, just like baselines.
+
+Suggested rules:
+
+- always include the receiver’s ship if it exists;
+- always include the validated spectator anchor;
+- include nearby ships, asteroids, bullets, and pickups inside the enter bounds;
+- retain already-relevant entities until they cross a larger leave bound;
+- use wrap-aware rectangular or radial distance;
+- apply a small look-ahead margin based on velocity only after static hysteresis is proven insufficient;
+- keep session player summaries and player lifecycle room-wide so scoreboards and spectator target availability continue to work;
+- initially leave presentation events unfiltered unless event semantics are explicitly classified.
+
+Build the filtered `WorldWireFullPacket` before `buildWorldLaneCandidates`. Existing per-session world comparison will then naturally produce:
+
+- lifecycle create when an entity enters relevance;
+- hot updates only after reliable creation;
+- lifecycle delete when it exits relevance;
+- a filtered full baseline during join or resync.
+
+No new server-to-client world packet families are required for this phase. The current client already supports lifecycle removal, later recreation, and buffering a hot update that arrives before its reliable create.
+
+Phase 4 — Avoid R-by-E relevance scans
+
+Filtering alone bounds bandwidth and client work, but a naïve filter that scans every entity for every receiver leaves server selection at R-by-E.
+
+Add an immutable room-projection cache keyed by presentation-frame generation:
+
+1. Expose the frame generation on `GameplayPresentationSnapshot`.
+2. Build sorted canonical records once per generation.
+3. Build a toroidal uniform-grid index for spatial families once per generation.
+4. Query only cells intersecting each receiver’s enter/leave bounds.
+5. Keep per-session filtered membership and baseline state separate from the shared cache.
+6. Make the cache concurrency-safe because session write loops may request the same generation concurrently.
+7. Bound cache lifetime to the current and, if necessary, immediately previous generation; do not build an unbounded generation map.
+
+A concrete owner such as `realtime.RoomProjectionCache` is preferable to adding cache responsibilities directly to `websocket_write.go`, `Game`, or `WorldSync`.
+
+Phase 5 — Add distance bands only after AOI correctness
+
+After binary relevant/not-relevant filtering is stable, add policy bands:
+
+- near: current maximum hot cadence;
+- middle: reduced cadence;
+- retained hysteresis band: lifecycle retained, sparse hot updates;
+- outside: reliable delete and no hot state.
+
+Use per-entity-family policy because bullets, ships, asteroids, and pickups have different perceptual and gameplay needs. Reuse the existing hot-lane cadence/chunk machinery rather than creating another competing scheduler. Do not cadence-reduce lifecycle creates/deletes or receiver overlay state.
+
+Phase 6 — Consider wire-format changes separately
+
+Only after relevance and shared projection measurements should binary encoding, dictionary compression, or shared cohort encoding be evaluated. At that point the metrics will distinguish:
+
+- bytes-per-relevant-entity problem;
+- projection CPU problem;
+- JSON encoding CPU problem;
+- transport backpressure problem;
+- client node/interpolation problem.
+
+Correctness and verification plan
+
+Server unit tests:
+
+- deterministic filtering and ordering for each entity family;
+- toroidal edge adjacency using wrapped distance;
+- enter/leave hysteresis without boundary churn;
+- self and spectator anchor always included;
+- invalid or stale spectator target rejected;
+- filtered full baseline contains only relevant spatial entities;
+- entering relevance produces reliable create before accepted hot update;
+- exiting relevance produces delete and clears hot-route membership;
+- resync rebuilds the current filtered baseline;
+- match/receiver changes clear relevance state;
+- shared cache builds once per generation under concurrent receivers.
+
+Server integration tests:
+
+- two distant receivers receive different world sets from one room frame;
+- a cross-seam entity remains relevant;
+- a moving entity enters and exits both clients correctly;
+- backpressure for one session does not commit that session’s unsent relevance transition;
+- session/score/lifecycle information remains room-wide;
+- spectator cycling changes the projection anchor without mutating gameplay targeting.
+
+Client tests:
+
+- lifecycle delete removes nodes and later create restores them;
+- hot update before reliable create remains buffered and bounded;
+- removal/re-entry does not trigger baseline recovery;
+- spectator target remains present through the anchor transition;
+- full resync replaces the prior filtered set atomically;
+- entity and scene-node counts track the filtered set, not total room population.
+
+Performance gates:
+
+- outbound bytes should scale approximately with R × K, where K is the bounded relevant set, instead of R × E;
+- projection query work should scale with intersected grid cells plus returned entities, not a full room scan per receiver;
+- near entities should retain current responsiveness;
+- lifecycle churn should remain low under stationary boundary tests;
+- no increase in baseline recovery, incomplete chunk, orphan-hot-update, or WebRTC backpressure rates;
+- compare CPU, allocations, RSS, per-lane bytes, chunk counts, client apply time, and scene-node counts at the old eight-player ceiling and the proposed larger-room target.
+
+Recommended first implementation slice
+
+Implement only Phase 0 plus the explicit `ProjectionContext` data model in shadow mode. Do not filter live packets yet and do not raise `MaxPlayers` in the same change. That slice establishes whether spatial relevance materially reduces the intended larger-room workload and fixes the spectator-anchor contract before any wire-visible behavior changes.
+
+If shadow evidence is favorable, the next isolated slice should make receiver-scoped filtering authoritative while continuing to scan the full immutable frame. The spatial index should follow as a separate optimization, because mixing protocol semantics, spectator subscription, and cache concurrency in one change would cross too many high-risk seams.
+
+BENCHMARK_EVIDENCE_JSON:{"evidence":[{"path":"services/game-server/internal/playerids/playerids.go","symbol":"MaxPlayers","lines":"5-8","claim":"The checked-out revision caps player IDs at eight."},{"path":"services/game-server/internal/rooms/constants.go","symbol":"MaxPlayersPerRoom","lines":"9-14","claim":"Room maximum capacity delegates directly to playerids.MaxPlayers."},{"path":"services/game-server/internal/game/presentation_snapshot.go","symbol":"publishPresentationFrameLocked","lines":"9-63","claim":"The immutable presentation frame copies complete room-wide player, session, lifecycle, projectile, asteroid, and pickup maps once per publication."},{"path":"services/game-server/internal/game/presentation_snapshot.go","symbol":"GameplayPresentationSnapshot","lines":"66-113","claim":"Receiver snapshots reuse complete frame maps and scope only self/lives and pending events to the requested player."},{"path":"services/game-server/internal/networking/websocket_write.go","symbol":"writeServerMessages","lines":"15-42","claim":"Each connection runs a ServerTickRate ticker and attempts gameplay lane construction on every tick."},{"path":"services/game-server/internal/networking/websocket_write.go","symbol":"writeGameplayLaneProtocolMessage","lines":"45-150","claim":"Each session independently builds, preflights, sends, and commits realtime candidates using its player identity and realtime state."},{"path":"services/game-server/internal/protocol/realtime/projection_world.go","symbol":"ProjectWorldLane","lines":"9-108","claim":"World projection sorts and emits every player, bullet, asteroid, and pickup without a receiver visibility filter."},{"path":"services/game-server/internal/protocol/realtime/delta.go","symbol":"CompareLaneRecordFields","lines":"76-134","claim":"Delta construction maps and sorts previous and current records and field-compares every matching entity."},{"path":"services/game-server/internal/protocol/realtime/baseline.go","symbol":"RealtimeSessionState","lines":"27-45","claim":"Baseline projections, lane metadata, hot cohorts, and cadence state are maintained per receiver and match."},{"path":"services/game-server/internal/protocol/realtime/lane_candidate_world.go","symbol":"buildWorldLaneCandidates","lines":"9-40","claim":"Each session builds a complete current world projection before selecting reliable and hot-lane deltas."},{"path":"services/game-server/internal/protocol/realtime/hot_lane_chunker.go","symbol":"hotLaneModeForChunkCount","lines":"106-123","claim":"Hot movement packets are chunked and reduce cadence from 60 Hz to 30, 20, or 15 Hz as chunk count rises."},{"path":"services/game-server/internal/protocol/realtime/scheduler.go","symbol":"appendPlannedRecord","lines":"41-58","claim":"Required records and real hot-lane chunks are included even when they exhaust the target byte budget."},{"path":"services/game-server/internal/networking/webrtc_transport.go","symbol":"webRTCChannelSpecs","lines":"20-41","claim":"Reliable ordered channels are separated from unordered zero-retransmit ship, asteroid, and bullet hot channels."},{"path":"client/scripts/protocol/realtime/world_lane_applier.gd","symbol":"WorldLaneApplier","lines":"43-101","claim":"The client already distinguishes reliable lifecycle creates/deletes from hot movement updates."},{"path":"client/scripts/world/world_sync.gd","symbol":"apply_world_lane_state","lines":"91-135","claim":"WorldSync reconciles and applies all entities retained in the received world-lane state."},{"path":"services/game-server/internal/game/visibility.go","symbol":"isInsideCameraView","lines":"90-109","claim":"Existing server visibility calculations use wrap-aware shortest deltas against camera dimensions."},{"path":"client/scripts/gameplay/spectate/gameplay_spectate_flow.gd","symbol":"GameplaySpectateFlow","lines":"33-54","claim":"Spectator target changes currently remain client-local and directly retarget WorldSync and camera focus."},{"path":"services/game-server/internal/tooling/telemetry.go","symbol":"TelemetrySnapshot","lines":"56-102","claim":"Existing telemetry reports room entity counts, process CPU/memory/GC data, and per-session packet totals."},{"path":"services/game-server/internal/networking/websocket_write.go","symbol":"realtimeSendGroupKey","lines":"162-184","claim":"Current source groups world and lifecycle reliability together while handling other realtime lanes as separate preflight groups."},{"path":"docs/limits/current-system-limits.md","symbol":"Architecture / Networking limitations","lines":"24-37","claim":"Documentation says one blocked lane skips all selected session packets, which is broader than the current group-level source behavior."}]}

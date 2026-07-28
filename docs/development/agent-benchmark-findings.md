@@ -19,11 +19,29 @@ The practical conclusion is to use Grimoire when it reduces an otherwise large o
 
 ## Version 2 benchmark infrastructure
 
-A replacement suite is prepared but has not been run. `evaluation/agent_benchmark_tasks.v2.json` replaces checklist-shaped prompts with natural problem reports and hidden rubrics covering architectural exploration, unclear ownership, cross-language change, impact analysis, and source-plus-rationale investigation.
+`evaluation/agent_benchmark_tasks.v2.json` replaces checklist-shaped prompts with natural problem reports and hidden rubrics covering architectural exploration, unclear ownership, cross-language change, impact analysis, and source-plus-rationale investigation.
 
-The canonical runner automatically invalidates completed answers when citations or structured evidence reference missing files, invalid paths, or out-of-range lines. Any Grimoire evidence that includes an inspected source-range handle must match its audited canonical path and lines; handle coverage is reported without forcing agents to replace cheaper direct source reads. The runner also reports non-gating coverage of the hidden rubric's expected path families. Preparation timing and discovery-output volume are recorded separately so future conclusions can distinguish provider startup cost, response size, process completion, and grounded answer quality.
+The canonical runner automatically invalidates completed answers when citations or structured evidence reference missing files, invalid paths, or out-of-range lines. Any Grimoire evidence that includes an inspected source-range handle must match its audited canonical path and lines; handle coverage is reported without forcing agents to replace cheaper direct source reads. The runner also reports non-gating coverage of the hidden rubric's expected path families. Preparation timing and discovery-output volume are recorded separately so conclusions can distinguish provider startup cost, response size, process completion, and grounded answer quality.
 
-No version 2 benchmark result is claimed in this document until those tasks are actually executed.
+Saved answers can be revalidated through `evaluation/revalidate_agent_benchmark.py` without rerunning agents. The validator accepts and individually checks noncontiguous structured ranges while rejecting a single canonical handle attached to multiple ranges.
+
+## Version 2 room-scale architecture result
+
+Report: [`evaluation/results/agent-benchmark-v2/space-rocks-room-scale-architecture/report.md`](../../evaluation/results/agent-benchmark-v2/space-rocks-room-scale-architecture/report.md)
+
+The first version 2 task asked the agents to investigate larger-room networking architecture without supplying a subsystem checklist. All three answers were grounded and implementation-grade after a validator format gap for noncontiguous ranges was corrected.
+
+| Condition | Preparation | Agent elapsed | Model calls | Total tokens | Grounding |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Grimoire | 95.8s | **6m 36s** | **16** | **1,053,805** | Pass |
+| CBM | **6.1s** | 11m 33s | 25 | 3,300,961 | Pass |
+| Plain | none | 12m 27s | 18 | 1,840,597 | Pass |
+
+All three converged on receiver-scoped interest management over immutable presentation facts while preserving per-session baseline, lifecycle, transport, and client semantics. CBM was marginally strongest on ownership precision, Grimoire was strongest on explicit spectator/shared-contract planning, and plain inspection remained broad and technically sound. The quality difference was small.
+
+Grimoire made one 50,915-byte search call, then shifted to direct inspection. Including its much slower cold preparation, it still completed about 207 seconds before CBM and 255 seconds before plain. This is a strong positive result for broad architectural exploration, not a universal product verdict.
+
+Cold preparation identifies Lexicon as the clear optimization target: 69.3 of 95.2 internal preparation seconds. The single 50.9 KB discovery response also confirms that broad response shaping remains unfinished.
 
 ## Network-interest architecture benchmark
 

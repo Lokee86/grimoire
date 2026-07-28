@@ -115,13 +115,15 @@ See [Agent benchmark findings](agent-benchmark-findings.md) for methodology, lim
 
 ## Benchmark hardening and preparation telemetry
 
-The next agent benchmark suite is defined in `evaluation/agent_benchmark_tasks.v2.json` but has not been executed. It replaces prompt-supplied subsystem checklists with natural problem reports and hidden rubrics across five intended task classes.
+The next agent benchmark suite is defined in `evaluation/agent_benchmark_tasks.v2.json`. Its first room-scale architecture task has now been executed; the remaining four tasks have not. It replaces prompt-supplied subsystem checklists with natural problem reports and hidden rubrics across five intended task classes.
 
 Benchmark grounding is now automatic. Every inline and structured path/range is checked against the pinned checkout, refusals and empty evidence are invalid, and Grimoire evidence handles are checked against exact inspected source ranges through an optional `grimoire.mcp.audit.v1` log, while handle coverage remains a metric rather than a mandatory tool-usage quota. Summaries distinguish process completion from grounded validity.
 
 Repository preparation status now separates initial inspection, lock wait, reinspection, Lexicon, Arcana, source indexing, documentation indexing, marker writes, final source verification, and total time. The refresh path reuses one post-lock source fingerprint through provider preparation instead of repeatedly walking the repository after each action, then performs one final fingerprint check before marking state current.
 
 Search and orient default to six results per lane, discovery excerpts are capped at 700 bytes, and duplicate exact/lexical source ranges preserve both independent lane entries while replacing the repeated lexical excerpt with a `duplicate_of` handle reference.
+
+The first version 2 architecture run produced grounded implementation-grade answers in all three conditions. Grimoire completed in 6m 36s with 16 calls and 1.05M total tokens, versus CBM at 11m 33s/25 calls/3.30M tokens and plain at 12m 27s/18 calls/1.84M tokens. Grimoire cold preparation took 95.2 seconds, dominated by 69.3 seconds of Lexicon work. The run also exposed and fixed validator support for noncontiguous structured ranges; saved outputs can now be revalidated without rerunning agents.
 
 ## Documentation and verification
 

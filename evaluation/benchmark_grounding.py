@@ -170,16 +170,25 @@ def validate_item(
         report.findings.append(Finding("missing_evidence_fields", f"{label} missing: {', '.join(missing)}"))
         return
     try:
-        start, end = parse_lines(item["lines"])
+        ranges = parse_line_ranges(item["lines"])
     except ValueError as error:
         report.findings.append(Finding("invalid_line_range", f"{label}: {error}", str(item.get("path", ""))))
         return
     path = str(item["path"])
-    validate_range(root, path, start, end, report, "structured_evidence")
+    for start, end in ranges:
+        validate_range(root, path, start, end, report, "structured_evidence")
 
     handle = item.get("handle")
     if handle:
         report.handle_items += 1
+        if len(ranges) != 1:
+            report.findings.append(Finding(
+                "handle_multiple_ranges",
+                f"{label} supplies one handle for {len(ranges)} noncontiguous ranges",
+                path,
+            ))
+            return
+        start, end = ranges[0]
         canonical = handle_ranges.get(str(handle))
         if canonical is None:
             report.findings.append(Finding("unknown_handle", f"{label} references an unrecorded handle", path, start, end))
@@ -194,22 +203,36 @@ def validate_item(
         else:
             report.canonical_handle_items += 1
     elif require_handle:
+        start, end = ranges[0]
         report.findings.append(Finding("missing_grimoire_handle", f"{label} must include an inspected source-range handle", path, start, end))
 
 
-def parse_lines(value: Any) -> tuple[int, int]:
+def parse_line_ranges(value: Any) -> list[tuple[int, int]]:
     if isinstance(value, int):
-        return value, value
+        return [(value, value)]
     if isinstance(value, str):
-        match = re.fullmatch(r"\s*(\d+)(?:\s*-\s*(\d+))?\s*", value)
-        if match:
-            return int(match.group(1)), int(match.group(2) or match.group(1))
-    if isinstance(value, list) and len(value) == 2 and all(isinstance(item, int) for item in value):
-        return value[0], value[1]
+        parts = [part.strip() for part in value.split(",")]
+        if parts and all(parts):
+            ranges: list[tuple[int, int]] = []
+            for part in parts:
+                match = re.fullmatch(r"(\d+)(?:\s*-\s*(\d+))?", part)
+                if not match:
+                    break
+                ranges.append((int(match.group(1)), int(match.group(2) or match.group(1))))
+            else:
+                return ranges
+    if isinstance(value, list):
+        if len(value) == 2 and all(isinstance(item, int) for item in value):
+            return [(value[0], value[1])]
+        ranges = []
+        for item in value:
+            ranges.extend(parse_line_ranges(item))
+        if ranges:
+            return ranges
     if isinstance(value, dict):
         start, end = value.get("start"), value.get("end")
         if isinstance(start, int) and isinstance(end, int):
-            return start, end
+            return [(start, end)]
     raise ValueError(f"unsupported lines value {value!r}")
 
 

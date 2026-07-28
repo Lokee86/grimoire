@@ -1,0 +1,291 @@
+{
+  "schema": "grimoire.agent-benchmark.v2",
+  "task_suite": "C:\\!bin\\workspace\\grimoire\\evaluation\\agent_benchmark_tasks.v2.json",
+  "model": "gpt-5.6-sol",
+  "provider": "openai-codex",
+  "conditions": [
+    "plain",
+    "cbm",
+    "grimoire"
+  ],
+  "parallel_within_task": true,
+  "sequential_tasks": true,
+  "started_at": "2026-07-28T18:41:36.588359+00:00",
+  "tasks": {
+    "space-rocks-room-scale-architecture": {
+      "category": "architectural-exploration",
+      "repository": "C:\\!bin\\workspace\\space-rocks",
+      "commit": "460da4af05c44d1835401fa853f5fc6b718262c8",
+      "rubric": {
+        "dimensions": [
+          {
+            "id": "ownership",
+            "weight": 2,
+            "description": "Finds the authoritative simulation, receiver-specific projection, transport lanes, and client application owners."
+          },
+          {
+            "id": "membership",
+            "weight": 2,
+            "description": "Accounts for entry, persistence, departure, baseline, delta, lifecycle, self, and spectated-target behavior."
+          },
+          {
+            "id": "budgeting",
+            "weight": 1,
+            "description": "Separates interest selection from prioritization and packet budgeting."
+          },
+          {
+            "id": "cross_stack",
+            "weight": 2,
+            "description": "Traces shared/generated contracts through Go and Godot without moving authority to the client."
+          },
+          {
+            "id": "verification",
+            "weight": 1,
+            "description": "Provides failure-oriented tests and rollout observability."
+          }
+        ],
+        "required_evidence": [
+          {
+            "path_prefix": "services/",
+            "reason": "authoritative simulation and receiver-specific network state"
+          },
+          {
+            "path_prefix": "shared/",
+            "reason": "wire or generated contract ownership"
+          },
+          {
+            "path_prefix": "client/",
+            "reason": "Godot routing and state application"
+          }
+        ],
+        "disallowed_assumptions": [
+          "client-authoritative interest",
+          "dropping departure/lifecycle state",
+          "equating interest selection with packet prioritization"
+        ]
+      },
+      "preparation": {
+        "cbm": {
+          "project": "C-bin-workspace-benchmark-checkouts-agent-benchmark-v2-space-rocks-room-scale-architecture-cbm",
+          "elapsed_seconds": 6.052
+        },
+        "grimoire": {
+          "elapsed_seconds": 95.835,
+          "timings": {
+            "initial_inspection_ms": 1506,
+            "lock_wait_ms": 1,
+            "reinspection_ms": 4645,
+            "lexicon_ms": 69342,
+            "arcana_ms": 2112,
+            "source_index_ms": 14046,
+            "documentation_ms": 3387,
+            "marker_write_ms": 4,
+            "final_verification_ms": 194,
+            "total_ms": 95246
+          },
+          "actions": [
+            {
+              "name": "refresh-lexicon",
+              "status": "completed",
+              "elapsed_ms": 69342
+            },
+            {
+              "name": "synchronize-arcana",
+              "status": "completed",
+              "elapsed_ms": 2112
+            },
+            {
+              "name": "prepare-grimoire",
+              "status": "completed",
+              "elapsed_ms": 14046
+            },
+            {
+              "name": "prepare-knowledge",
+              "status": "completed",
+              "elapsed_ms": 3387
+            }
+          ]
+        }
+      },
+      "profiles": {
+        "plain": "bench-v2-space-rocks-room-sca-plain",
+        "cbm": "bench-v2-space-rocks-room-sca-cbm",
+        "grimoire": "bench-v2-space-rocks-room-sca-grimoire"
+      },
+      "runs": {
+        "grimoire": {
+          "exit_code": 0,
+          "elapsed_seconds": 396.143,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 132672,
+            "output_tokens": 11309,
+            "cache_read_tokens": 909824,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 2601,
+            "total_tokens": 1053805,
+            "api_calls": 16,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_114337_41b1ad",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 26732,
+          "discovery_output": {
+            "calls": 1,
+            "response_bytes": 50915,
+            "modes": {
+              "search": 1
+            },
+            "new_nodes": 25,
+            "new_source_ranges": 22,
+            "new_documents": 8,
+            "new_relationships": 0,
+            "new_graph_paths": 8,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 47,
+            "structured_items": 20,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "services",
+              "client"
+            ],
+            "missing_required_prefixes": [
+              "shared"
+            ],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T18:50:05.392431+00:00"
+        },
+        "cbm": {
+          "exit_code": 0,
+          "elapsed_seconds": 693.31,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 201364,
+            "output_tokens": 12749,
+            "cache_read_tokens": 3086848,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 4876,
+            "total_tokens": 3300961,
+            "api_calls": 25,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_114337_26e680",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 21085,
+          "discovery_output": {
+            "calls": 0,
+            "response_bytes": 0,
+            "modes": {},
+            "new_nodes": 0,
+            "new_source_ranges": 0,
+            "new_documents": 0,
+            "new_relationships": 0,
+            "new_graph_paths": 0,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 45,
+            "structured_items": 12,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "services",
+              "client"
+            ],
+            "missing_required_prefixes": [
+              "shared"
+            ],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T18:55:02.546422+00:00"
+        },
+        "plain": {
+          "exit_code": 0,
+          "elapsed_seconds": 747.395,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 154920,
+            "output_tokens": 12973,
+            "cache_read_tokens": 1672704,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 3970,
+            "total_tokens": 1840597,
+            "api_calls": 18,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_114337_229af8",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 25984,
+          "discovery_output": {
+            "calls": 0,
+            "response_bytes": 0,
+            "modes": {},
+            "new_nodes": 0,
+            "new_source_ranges": 0,
+            "new_documents": 0,
+            "new_relationships": 0,
+            "new_graph_paths": 0,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 53,
+            "structured_items": 19,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "services",
+              "client"
+            ],
+            "missing_required_prefixes": [
+              "shared"
+            ],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T18:55:56.629089+00:00"
+        }
+      }
+    }
+  },
+  "completed_at": "2026-07-28T18:55:59.630290+00:00",
+  "revalidated_at": "2026-07-28T19:07:05.479254+00:00"
+}
