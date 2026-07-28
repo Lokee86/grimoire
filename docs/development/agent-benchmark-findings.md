@@ -13,7 +13,7 @@ The results also suggest a task-size inversion rather than a simple overhead rul
 
 This lost-in-the-middle explanation is a working hypothesis consistent with the observed answers, not a controlled causal result. The suite has one trial per condition and was not designed to isolate context-position effects.
 
-The strongest valid assisted result remains the Space Rocks network-interest benchmark, where Grimoire reduced the amount of context and repeated searching required for a broad cross-language architecture task. HikariCP favored plain inspection because the requested lifecycle was compact and concretely named. Detekt's Grimoire run failed semantically. The repaired Now in Android run completed, but extensive invalid citations show that additional discovery context did not improve grounding on that prompt-shaped, `rg`-friendly task.
+The strongest valid assisted result remains the Space Rocks network-interest benchmark, where Grimoire reduced the amount of context and repeated searching required for a broad cross-language architecture task. HikariCP favored plain inspection because the requested lifecycle was compact and concretely named. The earlier prompt-shaped Detekt Grimoire run failed semantically, while the replacement unclear-ownership Detekt task completed successfully in all conditions but favored plain inspection and CBM on efficiency. The repaired Now in Android run completed, but extensive invalid citations show that additional discovery context did not improve grounding on that prompt-shaped, `rg`-friendly task.
 
 The practical conclusion is to use Grimoire when it reduces an otherwise large or ambiguous working set, and stop using it when direct inspection has already narrowed the task sufficiently. The evidence supports **selective Grimoire-assisted normal inspection**, not mandatory discovery-tool use.
 
@@ -42,6 +42,24 @@ All three converged on receiver-scoped interest management over immutable presen
 Grimoire made one 50,915-byte search call, then shifted to direct inspection. Including its much slower cold preparation, it still completed about 207 seconds before CBM and 255 seconds before plain. This is a strong positive result for broad architectural exploration, not a universal product verdict.
 
 Cold preparation identifies Lexicon as the clear optimization target: 69.3 of 95.2 internal preparation seconds. The single 50.9 KB discovery response also confirms that broad response shaping remains unfinished.
+
+## Version 2 Detekt ownership result
+
+Report: [`evaluation/results/agent-benchmark-v2/detekt-cli-gradle-plugin-divergence/report.md`](../../evaluation/results/agent-benchmark-v2/detekt-cli-gradle-plugin-divergence/report.md)
+
+The second version 2 task asked where responsibility belongs when a third-party rule-set JAR works through the CLI but is missing or configured differently through the Gradle plugin. The prompt named the two entry points but did not supply the classloader, task, core, or fix checklist.
+
+| Condition | Preparation | Agent elapsed | Total elapsed | Model calls | Total tokens | Grounding |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Plain | none | 5m 04s | **5m 04s** | **14** | **767,334** | Pass |
+| CBM | **5.3s** | **5m 00s** | 5m 05s | 16 | 831,264 | Pass |
+| Grimoire | 31.8s | 5m 54s | 6m 26s | 16 | 1,457,421 | Pass |
+
+All three found the same real boundary defect: Gradle resolves `detektPlugins` into `pluginClasspath` but does not pass the CLI's explicit `--plugins` argument. Instead it co-loads plugin JARs with detekt's host classpath, including a path-keyed daemon classloader cache. All three proposed restoring the explicit plugin argument across analysis, baseline, and config generation while keeping the host classpath detekt-only.
+
+Plain inspection produced the strongest overall answer by a small margin; CBM was a close second; Grimoire remained technically correct but added no unique ownership finding. Grimoire used about 90% more total tokens than plain and completed about 82 seconds later including preparation.
+
+The Grimoire agent made one 44,867-byte search call that emitted 26 nodes, 21 source ranges, eight documents, and eight graph paths. The response began with low-value import nodes. This is a concrete negative result for broad default response shaping on a task whose working set becomes compact after locating the two named entry paths.
 
 ## Network-interest architecture benchmark
 

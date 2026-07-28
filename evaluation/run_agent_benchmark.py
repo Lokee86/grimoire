@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import shutil
 import time
 
 from benchmark_runner import BenchmarkEnvironment, collect_runs, prepare_worktree
@@ -45,6 +46,8 @@ def main() -> int:
     parser.add_argument("--provider", default=PROVIDER)
     parser.add_argument("--check", action="store_true", help="validate tasks and dependencies without running benchmarks")
     args = parser.parse_args()
+    args.output = args.output.resolve()
+    args.checkout_root = args.checkout_root.resolve()
 
     suite = load_task_suite(args.tasks.resolve(), ROOT)
     tasks = select_tasks(suite, args.task)

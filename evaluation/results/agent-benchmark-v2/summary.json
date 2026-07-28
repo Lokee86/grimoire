@@ -284,8 +284,278 @@
           "completed_at": "2026-07-28T18:55:56.629089+00:00"
         }
       }
+    },
+    "detekt-cli-gradle-plugin-divergence": {
+      "category": "unclear-ownership",
+      "repository": "C:\\!bin\\workspace\\corpus\\kotlin-detekt",
+      "commit": "f9e1d5cc239ab740ce499b1edb36b872012648e2",
+      "rubric": {
+        "dimensions": [
+          {
+            "id": "entry_paths",
+            "weight": 2,
+            "description": "Finds the CLI and Gradle plugin input paths without assuming they share setup."
+          },
+          {
+            "id": "classloading",
+            "weight": 2,
+            "description": "Locates classloader, ServiceLoader, worker/process, and provider lifetime boundaries."
+          },
+          {
+            "id": "convergence",
+            "weight": 2,
+            "description": "Identifies where both paths should converge and where configuration can diverge."
+          },
+          {
+            "id": "failure_modes",
+            "weight": 1,
+            "description": "Covers malformed services, duplicate providers, incompatible plugins, and propagated errors."
+          },
+          {
+            "id": "verification",
+            "weight": 1,
+            "description": "Tests the same fixture through both entry points."
+          }
+        ],
+        "required_evidence": [
+          {
+            "path_prefix": "detekt-cli/",
+            "reason": "command-line plugin ownership"
+          },
+          {
+            "path_prefix": "detekt-gradle-plugin/",
+            "reason": "Gradle task and worker ownership"
+          },
+          {
+            "path_prefix": "detekt-core/",
+            "reason": "shared provider discovery and execution"
+          }
+        ],
+        "disallowed_assumptions": [
+          "one global classloader",
+          "identical CLI and Gradle configuration",
+          "silent plugin failure"
+        ]
+      },
+      "preparation": {
+        "cbm": {
+          "project": "C-bin-workspace-benchmark-checkouts-agent-benchmark-v2-detekt-cli-gradle-plugin-divergence-cbm",
+          "elapsed_seconds": 5.254
+        },
+        "grimoire": {
+          "elapsed_seconds": 31.788,
+          "timings": {
+            "initial_inspection_ms": 284,
+            "lock_wait_ms": 0,
+            "reinspection_ms": 2188,
+            "lexicon_ms": 18886,
+            "arcana_ms": 542,
+            "source_index_ms": 1771,
+            "documentation_ms": 7346,
+            "marker_write_ms": 3,
+            "final_verification_ms": 183,
+            "total_ms": 31211
+          },
+          "actions": [
+            {
+              "name": "refresh-lexicon",
+              "status": "completed",
+              "elapsed_ms": 18886
+            },
+            {
+              "name": "synchronize-arcana",
+              "status": "completed",
+              "elapsed_ms": 542
+            },
+            {
+              "name": "prepare-grimoire",
+              "status": "completed",
+              "elapsed_ms": 1771
+            },
+            {
+              "name": "prepare-knowledge",
+              "status": "completed",
+              "elapsed_ms": 7346
+            }
+          ]
+        }
+      },
+      "profiles": {
+        "plain": "bench-v2-detekt-cli-gradle-pl-plain",
+        "cbm": "bench-v2-detekt-cli-gradle-pl-cbm",
+        "grimoire": "bench-v2-detekt-cli-gradle-pl-grimoire"
+      },
+      "runs": {
+        "cbm": {
+          "exit_code": 0,
+          "elapsed_seconds": 300.182,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 95585,
+            "output_tokens": 11199,
+            "cache_read_tokens": 724480,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 4281,
+            "total_tokens": 831264,
+            "api_calls": 16,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_122109_216f04",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 15022,
+          "discovery_output": {
+            "calls": 0,
+            "response_bytes": 0,
+            "modes": {},
+            "new_nodes": 0,
+            "new_source_ranges": 0,
+            "new_documents": 0,
+            "new_relationships": 0,
+            "new_graph_paths": 0,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 32,
+            "structured_items": 15,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "detekt-cli",
+              "detekt-gradle-plugin",
+              "detekt-core"
+            ],
+            "missing_required_prefixes": [],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T19:26:03.501162+00:00"
+        },
+        "plain": {
+          "exit_code": 0,
+          "elapsed_seconds": 304.218,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 103151,
+            "output_tokens": 10359,
+            "cache_read_tokens": 653824,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 2805,
+            "total_tokens": 767334,
+            "api_calls": 14,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_122109_d8df10",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 16747,
+          "discovery_output": {
+            "calls": 0,
+            "response_bytes": 0,
+            "modes": {},
+            "new_nodes": 0,
+            "new_source_ranges": 0,
+            "new_documents": 0,
+            "new_relationships": 0,
+            "new_graph_paths": 0,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 39,
+            "structured_items": 21,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "detekt-cli",
+              "detekt-gradle-plugin",
+              "detekt-core"
+            ],
+            "missing_required_prefixes": [],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T19:26:07.536816+00:00"
+        },
+        "grimoire": {
+          "exit_code": 0,
+          "elapsed_seconds": 354.259,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 150942,
+            "output_tokens": 11119,
+            "cache_read_tokens": 1295360,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 4649,
+            "total_tokens": 1457421,
+            "api_calls": 16,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_122109_d38822",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 16043,
+          "discovery_output": {
+            "calls": 1,
+            "response_bytes": 44867,
+            "modes": {
+              "search": 1
+            },
+            "new_nodes": 26,
+            "new_source_ranges": 21,
+            "new_documents": 8,
+            "new_relationships": 0,
+            "new_graph_paths": 8,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 47,
+            "structured_items": 12,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "detekt-cli",
+              "detekt-gradle-plugin",
+              "detekt-core"
+            ],
+            "missing_required_prefixes": [],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T19:26:57.588434+00:00"
+        }
+      }
     }
   },
-  "completed_at": "2026-07-28T18:55:59.630290+00:00",
-  "revalidated_at": "2026-07-28T19:07:05.479254+00:00"
+  "completed_at": "2026-07-28T19:36:03.951434+00:00",
+  "revalidated_at": "2026-07-28T19:43:27.714177+00:00"
 }
