@@ -11,7 +11,11 @@ use super::LexiconSnapshot;
 #[test]
 fn reads_multi_language_snapshot_and_deduplicates_shared_nodes() {
     let directory = TestDirectory::new();
-    let root = directory.path.join(".lexicon");
+    let root = directory
+        .path
+        .join(".warlock")
+        .join("tools")
+        .join("lexicon");
     fs::create_dir_all(root.join("objects")).unwrap();
     fs::create_dir_all(root.join("snapshots")).unwrap();
 

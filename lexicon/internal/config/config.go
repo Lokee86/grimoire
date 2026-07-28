@@ -138,12 +138,22 @@ func Load(repository string) (Config, error) {
 }
 
 func FindAdapterRoot(repository, explicit string) (string, error) {
+	executable, _ := os.Executable()
+	current, _ := os.Getwd()
+	return findAdapterRoot(repository, explicit, executable, current)
+}
+
+func findAdapterRoot(repository, explicit, executable, current string) (string, error) {
 	candidates := []string{explicit, os.Getenv("LEXICON_ADAPTERS")}
-	if executable, err := os.Executable(); err == nil {
-		candidates = append(candidates, filepath.Join(filepath.Dir(executable), "adapters"))
+	if executable != "" {
+		executableDir := filepath.Dir(executable)
+		candidates = append(candidates,
+			filepath.Join(executableDir, "adapters"),
+			filepath.Join(executableDir, "..", "adapters"),
+		)
 	}
 	candidates = append(candidates, filepath.Join(repository, "adapters"))
-	if current, err := os.Getwd(); err == nil {
+	if current != "" {
 		candidates = append(candidates, filepath.Join(current, "adapters"))
 	}
 	for _, candidate := range candidates {

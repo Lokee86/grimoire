@@ -214,7 +214,9 @@ fn normalize_path(field: &'static str, path: &str) -> Result<String, LexiconSnap
 }
 
 fn storage_root(root: &Path) -> PathBuf {
-    if root.file_name().is_some_and(|name| name == ".lexicon") {
+    if root.file_name().is_some_and(|name| name == ".lexicon")
+        || (root.join("CURRENT").is_file() && root.join("snapshots").is_dir())
+    {
         root.to_owned()
     } else {
         root.join(".lexicon")

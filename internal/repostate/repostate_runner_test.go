@@ -22,11 +22,12 @@ func fixtureRunner(t *testing.T, root string, mu *sync.Mutex, calls *[]string, u
 
 func fixtureRunnerWithLexicon(t *testing.T, root string, mu *sync.Mutex, calls *[]string, lexiconID string) CommandRunner {
 	t.Helper()
-	return func(_ context.Context, command string, arguments ...string) error {
+	return func(_ context.Context, command ProcessCommand) error {
+		executable, arguments := command.Executable, command.Arguments
 		mu.Lock()
-		*calls = append(*calls, command+":"+arguments[0])
+		*calls = append(*calls, executable+":"+arguments[0])
 		mu.Unlock()
-		switch command + ":" + arguments[0] {
+		switch executable + ":" + arguments[0] {
 		case "lexicon:init", "lexicon:scan", "lexicon:rebuild":
 			writeLexicon(t, root, lexiconID)
 		case "arcana:sync":

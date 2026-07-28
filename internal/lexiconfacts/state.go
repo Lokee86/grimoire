@@ -10,6 +10,13 @@ import (
 	"strings"
 )
 
+// ExportCommand is one Lexicon export process with its owned environment.
+type ExportCommand struct {
+	Executable  string
+	Arguments   []string
+	Environment []string
+}
+
 // ExportOptions resolves an immutable Lexicon snapshot into a cached standalone
 // JSONL export that Grimoire can inspect without reading Lexicon's private
 // mutable implementation state.
@@ -19,7 +26,7 @@ type ExportOptions struct {
 	ExplicitDirectory string
 	LexiconState      string
 	Command           string
-	Run               func(context.Context, string, ...string) error
+	Run               func(context.Context, ExportCommand) error
 }
 
 // ResolveExport returns an explicit facts directory or a cached export of the
@@ -82,10 +89,13 @@ func ResolveExport(ctx context.Context, options ExportOptions) (string, string, 
 	temporary := fmt.Sprintf("%s.tmp-%d", destination, os.Getpid())
 	_ = os.RemoveAll(temporary)
 	defer os.RemoveAll(temporary)
-	if err := run(
-		ctx, command,
-		"export", "--repo", root, "--output", temporary, "--snapshot", snapshotID,
-	); err != nil {
+	if err := run(ctx, ExportCommand{
+		Executable: command,
+		Arguments: []string{
+			"export", "--repo", root, "--output", temporary, "--snapshot", snapshotID,
+		},
+		Environment: commandEnvironment("LEXICON_STATE_DIR", lexiconState),
+	}); err != nil {
 		return "", "", fmt.Errorf("export Lexicon snapshot %s: %w", snapshotID, err)
 	}
 	if !hasJSONLLibraries(temporary) {
@@ -108,9 +118,12 @@ func ResolveExport(ctx context.Context, options ExportOptions) (string, string, 
 	return destination, snapshotID, nil
 }
 
-func runCommand(ctx context.Context, command string, arguments ...string) error {
+func runCommand(ctx context.Context, command ExportCommand) error {
 	var stdout, stderr bytes.Buffer
-	process := exec.CommandContext(ctx, command, arguments...)
+	process := exec.CommandContext(ctx, command.Executable, command.Arguments...)
+	if len(command.Environment) > 0 {
+		process.Env = command.Environment
+	}
 	process.Stdout = &stdout
 	process.Stderr = &stderr
 	if err := process.Run(); err != nil {
@@ -124,6 +137,19 @@ func runCommand(ctx context.Context, command string, arguments ...string) error 
 		return err
 	}
 	return nil
+}
+
+func commandEnvironment(key, value string) []string {
+	environment := os.Environ()
+	filtered := environment[:0]
+	for _, entry := range environment {
+		name, _, found := strings.Cut(entry, "=")
+		if found && strings.EqualFold(name, key) {
+			continue
+		}
+		filtered = append(filtered, entry)
+	}
+	return append(filtered, key+"="+value)
 }
 
 func readSnapshotID(path string) (string, error) {

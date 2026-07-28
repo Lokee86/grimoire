@@ -66,7 +66,11 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		if status.Lexicon.Status == "absent" || !fileExists(filepath.Join(location.lexicon, "config.json")) {
 			command = "init"
 		}
-		refreshErr := perform(ctx, &status, "refresh-lexicon", options.Run, commandFor(options.LexiconCommand, "lexicon"), command, "--repo", location.root)
+		refreshErr := perform(ctx, &status, "refresh-lexicon", options.Run, ProcessCommand{
+			Executable:  commandFor(options.LexiconCommand, "lexicon"),
+			Arguments:   []string{command, "--repo", location.root},
+			Environment: commandEnvironment("LEXICON_STATE_DIR", location.lexicon),
+		})
 		if refreshErr != nil {
 			status.Warnings = append(status.Warnings, "Lexicon refresh unavailable; continuing with source analysis: "+refreshErr.Error())
 		} else if markerErr := markLexiconPrepared(location); markerErr != nil {
@@ -85,7 +89,10 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		}
 	}
 	if status.Lexicon.Status == "current" && status.Lexicon.Snapshot != "" && (mode == ForceRefresh || status.Arcana.Status != "current" || lexiconChanged) {
-		syncErr := perform(ctx, &status, "synchronize-arcana", options.Run, commandFor(options.ArcanaCommand, "arcana"), "sync", "--lexicon", location.lexicon, "--state", location.arcana)
+		syncErr := perform(ctx, &status, "synchronize-arcana", options.Run, ProcessCommand{
+			Executable: commandFor(options.ArcanaCommand, "arcana"),
+			Arguments:  []string{"sync", "--lexicon", location.lexicon, "--state", location.arcana},
+		})
 		if syncErr != nil {
 			status.Warnings = append(status.Warnings, "Arcana synchronization unavailable; continuing without graph traversal: "+syncErr.Error())
 		} else {
@@ -106,7 +113,10 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		if status.Lexicon.Status == "current" && status.Lexicon.Snapshot != "" {
 			arguments = append(arguments, "--lexicon-state", location.lexicon, "--lexicon-command", commandFor(options.LexiconCommand, "lexicon"))
 		}
-		if err := perform(ctx, &status, "prepare-grimoire", options.Run, commandFor(options.GrimoireCommand, "grimoire"), arguments...); err != nil {
+		if err := perform(ctx, &status, "prepare-grimoire", options.Run, ProcessCommand{
+			Executable: commandFor(options.GrimoireCommand, "grimoire"),
+			Arguments:  arguments,
+		}); err != nil {
 			return failStatus(status, err)
 		}
 		fingerprint, fingerprintErr := sourceFingerprint(location.root)
@@ -124,7 +134,10 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 	status.Mode = mode
 	if mode == ForceRefresh || status.Knowledge.Status != "current" {
 		arguments := []string{"knowledge", "index", "--root", location.root, "--state", location.knowledge}
-		if err := perform(ctx, &status, "prepare-knowledge", options.Run, commandFor(options.GrimoireCommand, "grimoire"), arguments...); err != nil {
+		if err := perform(ctx, &status, "prepare-knowledge", options.Run, ProcessCommand{
+			Executable: commandFor(options.GrimoireCommand, "grimoire"),
+			Arguments:  arguments,
+		}); err != nil {
 			status.Warnings = append(status.Warnings, "knowledge indexing unavailable; continuing with code-only retrieval: "+err.Error())
 		}
 		status, err = reinspect(ctx, location, status, mode)
@@ -144,14 +157,14 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 	return status, nil
 }
 
-func perform(ctx context.Context, status *Status, name string, runner CommandRunner, command string, arguments ...string) error {
+func perform(ctx context.Context, status *Status, name string, runner CommandRunner, command ProcessCommand) error {
 	started := now()
 	action := Action{Name: name, Status: "running"}
 	status.Actions = append(status.Actions, action)
 	if runner == nil {
 		runner = runCommand
 	}
-	err := runner(ctx, command, arguments...)
+	err := runner(ctx, command)
 	last := &status.Actions[len(status.Actions)-1]
 	last.ElapsedMS = elapsedMS(started)
 	if err != nil {
@@ -245,9 +258,12 @@ func lockFor(path string) *sync.Mutex {
 	return value.(*sync.Mutex)
 }
 
-func runCommand(ctx context.Context, command string, arguments ...string) error {
+func runCommand(ctx context.Context, command ProcessCommand) error {
 	var stdout, stderr bytes.Buffer
-	process := exec.CommandContext(ctx, command, arguments...)
+	process := exec.CommandContext(ctx, command.Executable, command.Arguments...)
+	if len(command.Environment) > 0 {
+		process.Env = command.Environment
+	}
 	process.Stdout, process.Stderr = &stdout, &stderr
 	if err := process.Run(); err != nil {
 		message := strings.TrimSpace(stderr.String())
@@ -260,6 +276,19 @@ func runCommand(ctx context.Context, command string, arguments ...string) error 
 		return err
 	}
 	return nil
+}
+
+func commandEnvironment(key, value string) []string {
+	environment := os.Environ()
+	filtered := environment[:0]
+	for _, entry := range environment {
+		name, _, found := strings.Cut(entry, "=")
+		if found && strings.EqualFold(name, key) {
+			continue
+		}
+		filtered = append(filtered, entry)
+	}
+	return append(filtered, key+"="+value)
 }
 
 func commandFor(value, fallback string) string {

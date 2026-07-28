@@ -130,6 +130,56 @@ func TestEnsureRefreshesAbsentStateInOrder(t *testing.T) {
 	}
 }
 
+func TestEnsureRefreshesExplicitManagedProviderState(t *testing.T) {
+	root := t.TempDir()
+	writeSource(t, root, "package main\n")
+	id := testID('a')
+	lexiconState := filepath.Join(root, ".warlock", "tools", "lexicon")
+	arcanaState := filepath.Join(root, ".warlock", "tools", "arcana")
+	grimoireState := filepath.Join(root, ".warlock", "tools", "grimoire")
+
+	status, err := Ensure(context.Background(), Options{
+		Root: root, Mode: RefreshIfNeeded,
+		LexiconState: lexiconState, ArcanaState: arcanaState, GrimoireState: grimoireState,
+		Run: func(_ context.Context, command ProcessCommand) error {
+			switch command.Executable + ":" + command.Arguments[0] {
+			case "lexicon:init":
+				if actual := environmentValue(command.Environment, "LEXICON_STATE_DIR"); actual != lexiconState {
+					t.Fatalf("Lexicon state environment = %q, want %q", actual, lexiconState)
+				}
+				writeLexiconState(t, lexiconState, id)
+			case "arcana:sync":
+				if actual := argumentValue(command.Arguments, "--lexicon"); actual != lexiconState {
+					t.Fatalf("Arcana Lexicon state = %q, want %q", actual, lexiconState)
+				}
+				if actual := argumentValue(command.Arguments, "--state"); actual != arcanaState {
+					t.Fatalf("Arcana state = %q, want %q", actual, arcanaState)
+				}
+				writeArcanaState(t, arcanaState, id)
+			case "grimoire:index":
+				if actual := argumentValue(command.Arguments, "--state"); actual != grimoireState {
+					t.Fatalf("Grimoire state = %q, want %q", actual, grimoireState)
+				}
+				writeGrimoireState(t, root, grimoireState, id)
+			case "grimoire:knowledge":
+				return errors.New("knowledge fixture omitted")
+			default:
+				t.Fatalf("unexpected command: %+v", command)
+			}
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Lexicon.Status != "current" || status.Arcana.Status != "current" || status.Grimoire.Status != "current" || !status.DeterministicQueryReady {
+		t.Fatalf("managed state was not prepared: %+v", status)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".lexicon")); !os.IsNotExist(err) {
+		t.Fatalf("default Lexicon state was created: %v", err)
+	}
+}
+
 func TestEnsureRefreshesStaleLexiconAndAlignsArcana(t *testing.T) {
 	root := t.TempDir()
 	writeSource(t, root, "package main\n")
@@ -161,7 +211,7 @@ func TestEnsureReportsRequiredGrimoireFailureAfterOptionalProviderFailure(t *tes
 	writeSource(t, root, "package main\n")
 	status, err := Ensure(context.Background(), Options{
 		Root: root, Mode: RefreshIfNeeded,
-		Run: func(context.Context, string, ...string) error { return errors.New("runner failed") },
+		Run: func(context.Context, ProcessCommand) error { return errors.New("runner failed") },
 	})
 	if err == nil || status.Error == "" || len(status.Actions) != 2 || status.Actions[1].Status != "failed" {
 		t.Fatalf("required failure was not reported: status=%+v err=%v", status, err)
@@ -177,16 +227,17 @@ func TestEnsureFallsBackToSourceWhenLexiconIsUnavailable(t *testing.T) {
 	calls := make([]string, 0, 2)
 	status, err := Ensure(context.Background(), Options{
 		Root: root, Mode: RefreshIfNeeded,
-		Run: func(_ context.Context, command string, arguments ...string) error {
-			calls = append(calls, command+":"+arguments[0])
-			if command == "lexicon" {
+		Run: func(_ context.Context, command ProcessCommand) error {
+			executable, arguments := command.Executable, command.Arguments
+			calls = append(calls, executable+":"+arguments[0])
+			if executable == "lexicon" {
 				return errors.New("executable not found")
 			}
-			if command == "grimoire" && arguments[0] == "index" {
+			if executable == "grimoire" && arguments[0] == "index" {
 				writeGrimoire(t, root, "")
 				return nil
 			}
-			if command == "grimoire" && arguments[0] == "knowledge" {
+			if executable == "grimoire" && arguments[0] == "knowledge" {
 				writeKnowledge(t, root)
 				return nil
 			}
@@ -266,7 +317,11 @@ func testID(character byte) string { return "sha256:" + strings.Repeat(string(ch
 
 func writeLexicon(t *testing.T, root, id string) {
 	t.Helper()
-	state := filepath.Join(root, ".lexicon")
+	writeLexiconState(t, filepath.Join(root, ".lexicon"), id)
+}
+
+func writeLexiconState(t *testing.T, state, id string) {
+	t.Helper()
 	if err := os.MkdirAll(filepath.Join(state, "snapshots"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +338,11 @@ func writeLexicon(t *testing.T, root, id string) {
 
 func writeArcana(t *testing.T, root, id string) {
 	t.Helper()
-	state := filepath.Join(root, ".arcana")
+	writeArcanaState(t, filepath.Join(root, ".arcana"), id)
+}
+
+func writeArcanaState(t *testing.T, state, id string) {
+	t.Helper()
 	directory := filepath.Join(state, "snapshots", strings.TrimPrefix(id, "sha256:"))
 	if err := os.MkdirAll(directory, 0o755); err != nil {
 		t.Fatal(err)
@@ -349,7 +408,11 @@ func arcanaVectorDirectory(root, id string) string {
 
 func writeGrimoire(t *testing.T, root, lexiconID string) {
 	t.Helper()
-	state := filepath.Join(root, ".grimoire")
+	writeGrimoireState(t, root, filepath.Join(root, ".grimoire"), lexiconID)
+}
+
+func writeGrimoireState(t *testing.T, root, state, lexiconID string) {
+	t.Helper()
 	snapshot, _, err := index.Build(root, nil, index.BuildOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -357,12 +420,17 @@ func writeGrimoire(t *testing.T, root, lexiconID string) {
 	if err := index.Save(state, snapshot); err != nil {
 		t.Fatal(err)
 	}
-	writeMarker(t, state, lexiconID)
+	writeMarkerForRoot(t, root, state, lexiconID)
 }
 
 func writeMarker(t *testing.T, state, lexiconID string) {
 	t.Helper()
-	fingerprint, err := sourceFingerprint(filepath.Dir(state))
+	writeMarkerForRoot(t, filepath.Dir(state), state, lexiconID)
+}
+
+func writeMarkerForRoot(t *testing.T, root, state, lexiconID string) {
+	t.Helper()
+	fingerprint, err := sourceFingerprint(root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,6 +441,25 @@ func writeMarker(t *testing.T, state, lexiconID string) {
 	if err := os.WriteFile(filepath.Join(state, ".repostate.json"), data, 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func environmentValue(environment []string, name string) string {
+	for _, entry := range environment {
+		key, value, found := strings.Cut(entry, "=")
+		if found && strings.EqualFold(key, name) {
+			return value
+		}
+	}
+	return ""
+}
+
+func argumentValue(arguments []string, name string) string {
+	for index := 0; index+1 < len(arguments); index++ {
+		if arguments[index] == name {
+			return arguments[index+1]
+		}
+	}
+	return ""
 }
 
 func snapshotFiles(t *testing.T, root string) []string {

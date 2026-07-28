@@ -7,12 +7,30 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
 use super::cli::SyncCommand;
-use super::cli_sync::run_sync;
+use super::cli_sync::{run_sync, storage_root};
+
+#[test]
+fn explicit_lexicon_state_root_does_not_require_dot_directory_name() {
+    let directory = TestDirectory::new();
+    let managed = directory
+        .path
+        .join(".warlock")
+        .join("tools")
+        .join("lexicon");
+    fs::create_dir_all(managed.join("snapshots")).unwrap();
+    fs::write(managed.join("CURRENT"), "sha256:test\n").unwrap();
+
+    assert_eq!(storage_root(&managed, ".lexicon"), managed);
+}
 
 #[test]
 fn sync_builds_reuses_and_registers_a_lexicon_snapshot() {
     let directory = TestDirectory::new();
-    let lexicon = directory.path.join(".lexicon");
+    let lexicon = directory
+        .path
+        .join(".warlock")
+        .join("tools")
+        .join("lexicon");
     let state = directory.path.join(".arcana");
     fs::create_dir_all(lexicon.join("objects")).unwrap();
     fs::create_dir_all(lexicon.join("snapshots")).unwrap();

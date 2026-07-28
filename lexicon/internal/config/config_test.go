@@ -129,3 +129,25 @@ func TestLoadRejectsUnknownEnabledLanguage(t *testing.T) {
 		t.Fatal("expected invalid configuration to be rejected")
 	}
 }
+
+func TestFindAdapterRootUsesBundleSiblingAdapters(t *testing.T) {
+	t.Setenv("LEXICON_ADAPTERS", "")
+	bundle := t.TempDir()
+	adapterRoot := filepath.Join(bundle, "adapters")
+	if err := os.MkdirAll(filepath.Join(adapterRoot, "python"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	actual, err := findAdapterRoot(
+		t.TempDir(),
+		"",
+		filepath.Join(bundle, "bin", "lexicon.exe"),
+		t.TempDir(),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if actual != adapterRoot {
+		t.Fatalf("adapter root = %q, want %q", actual, adapterRoot)
+	}
+}

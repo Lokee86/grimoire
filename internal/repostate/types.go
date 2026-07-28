@@ -11,9 +11,16 @@ const (
 	ForceRefresh    Mode = "force-refresh"
 )
 
+// ProcessCommand is one external preparation command with its owned environment.
+type ProcessCommand struct {
+	Executable  string
+	Arguments   []string
+	Environment []string
+}
+
 // CommandRunner is injectable so callers and tests can control the existing
 // Lexicon, Arcana, and Grimoire command boundaries without owning analyzers.
-type CommandRunner func(context.Context, string, ...string) error
+type CommandRunner func(context.Context, ProcessCommand) error
 
 type Options struct {
 	Root string

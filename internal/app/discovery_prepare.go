@@ -14,8 +14,9 @@ import (
 
 func ensureDiscoveryRepository(ctx context.Context, options repostate.Options) (repostate.Status, error) {
 	grimoireCommand := filepath.Clean(strings.TrimSpace(options.GrimoireCommand))
-	options.Run = func(commandContext context.Context, command string, arguments ...string) error {
-		if sameDiscoveryCommand(command, grimoireCommand) && len(arguments) > 0 {
+	options.Run = func(commandContext context.Context, command repostate.ProcessCommand) error {
+		arguments := command.Arguments
+		if sameDiscoveryCommand(command.Executable, grimoireCommand) && len(arguments) > 0 {
 			switch arguments[0] {
 			case "index":
 				return runIndex(arguments[1:], io.Discard, io.Discard)
@@ -25,7 +26,7 @@ func ensureDiscoveryRepository(ctx context.Context, options repostate.Options) (
 				}
 			}
 		}
-		return runDiscoveryCommand(commandContext, command, arguments...)
+		return runDiscoveryCommand(commandContext, command)
 	}
 	return repostate.Ensure(ctx, options)
 }
@@ -38,9 +39,12 @@ func sameDiscoveryCommand(command, expected string) bool {
 	return strings.EqualFold(command, expected)
 }
 
-func runDiscoveryCommand(ctx context.Context, command string, arguments ...string) error {
+func runDiscoveryCommand(ctx context.Context, command repostate.ProcessCommand) error {
 	var stdout, stderr bytes.Buffer
-	process := exec.CommandContext(ctx, command, arguments...)
+	process := exec.CommandContext(ctx, command.Executable, command.Arguments...)
+	if len(command.Environment) > 0 {
+		process.Env = command.Environment
+	}
 	process.Stdout = &stdout
 	process.Stderr = &stderr
 	if err := process.Run(); err != nil {

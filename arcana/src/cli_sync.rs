@@ -180,10 +180,11 @@ fn snapshot_directory(state: &Path, id: &str) -> Result<PathBuf, SyncError> {
     Ok(state.join("snapshots").join(digest))
 }
 
-fn storage_root(path: &Path, directory: &str) -> PathBuf {
+pub(crate) fn storage_root(path: &Path, directory: &str) -> PathBuf {
     if path
         .file_name()
         .is_some_and(|name| name == OsStr::new(directory))
+        || (path.join("CURRENT").is_file() && path.join("snapshots").is_dir())
     {
         path.to_owned()
     } else {
