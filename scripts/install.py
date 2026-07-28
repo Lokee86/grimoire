@@ -66,6 +66,14 @@ def install(
         copy_file(library, bin_dir / library.name)
         for skills_dir in default_skill_roots() if skill_roots is None else skill_roots:
             copy_file(skill, Path(skills_dir) / "grimoire" / "SKILL.md")
+    if "lexicon" in selected:
+        adapters = source / "adapters"
+        if not adapters.is_dir():
+            raise FileNotFoundError(f"combined bundle is missing {adapters}")
+        destination = bin_dir / "adapters"
+        if destination.exists():
+            shutil.rmtree(destination)
+        shutil.copytree(adapters, destination)
     print(f"installed {', '.join(selected)} to {bin_dir}")
 
 

@@ -49,7 +49,15 @@ python scripts/workflow.py smoke
 python scripts/test_workflow.py
 ```
 
-It validates archive layout, fixed metadata, checksums, version validation, selected-component installation, skill installation, and concurrency defaults.
+It validates archive layout, fixed metadata, checksums, version validation, selected-component installation, bundled Lexicon adapter installation, skill installation, and concurrency defaults.
+
+After producing a real build layout, run the release-consumer MCP smoke:
+
+```bash
+python scripts/test_installed_mcp.py --source build --version installed-smoke
+```
+
+This packages a combined release ZIP, extracts it, runs the ZIP's embedded installer into a clean temporary directory, launches the installed `grimoire mcp`, prepares managed Lexicon/Arcana/Grimoire state, and verifies opaque search handles through `inspect` and `trace`. It does not rely on source-checkout provider paths.
 
 ## Build layout
 

@@ -56,7 +56,7 @@ The root workflow now builds and packages:
 
 Lexicon can discover packaged adapters beside the installed executable or in the combined bundle's sibling `adapters/` directory. Repository state supports explicit paths and environment/configuration overrides rather than requiring callers to invoke providers from their source checkouts. The Grimoire MCP schema now also exposes mode-specific argument requirements so invalid calls such as file-valued `inspect target` requests can be rejected before execution.
 
-The root workflow remains CPU-bounded by default across Go and Cargo. Release archives are deterministic and the GitHub release workflow publishes Windows x86_64 and Linux x86_64 combined bundles.
+The root workflow remains CPU-bounded by default across Go and Cargo. Release archives are deterministic and the GitHub release workflow publishes Windows x86_64 and Linux x86_64 combined bundles. The embedded bundle installer now copies Lexicon runtime adapters, and a release-consumer smoke packages a real combined ZIP, installs it into a clean temporary location, launches the installed MCP server, prepares managed provider state, and verifies opaque handles through inspect and trace.
 
 ## Lodestone extraction
 

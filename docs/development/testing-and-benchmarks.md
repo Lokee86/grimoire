@@ -26,6 +26,14 @@ The workflow smoke suite does not compile the full product:
 python scripts/test_workflow.py
 ```
 
+After a build, verify the actual combined-ZIP consumer path:
+
+```bash
+python scripts/test_installed_mcp.py --source build --version installed-smoke
+```
+
+This extracts the release bundle, runs its embedded installer, launches the installed MCP server from a clean temporary repository, refreshes managed provider state, and verifies a session handle through exact inspection and graph trace.
+
 ## Direct bounded Go verification
 
 For focused Grimoire work:
@@ -59,7 +67,8 @@ The active Grimoire contract is covered by:
 | Session deduplication for nodes, documents, relationships, and paths | `internal/agentruntime/*_test.go` and `internal/investigation/*_test.go` |
 | Direct CLI commands and retired context command | `internal/app/run_test.go`, `internal/app/exact_context_test.go` |
 | MCP schema and state preparation | `internal/app/*_test.go`, `internal/repostate/*_test.go` |
-| Release concurrency bounds | `scripts/test_workflow.py` |
+| Release concurrency bounds and bundled adapter installation | `scripts/test_workflow.py` |
+| Installed release MCP, managed provider state, opaque inspect/trace handles | `scripts/test_installed_mcp.py` |
 
 ## Documentation retrieval evaluation
 

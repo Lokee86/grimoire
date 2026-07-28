@@ -10,6 +10,7 @@ import zipfile
 from pathlib import Path
 from unittest import mock
 
+import install as bundle_installer
 import workflow
 
 
@@ -62,6 +63,21 @@ class WorkflowSmokeTests(unittest.TestCase):
                 self.assertEqual((archive.getinfo("bin/grimoire.exe").external_attr >> 16) & 0o777, 0o755)
                 self.assertEqual((archive.getinfo("adapters/go/lexicon-go.exe").external_attr >> 16) & 0o777, 0o755)
                 self.assertEqual((archive.getinfo("install.py").external_attr >> 16) & 0o777, 0o755)
+
+            extracted = root / "extracted-bundle"
+            with zipfile.ZipFile(combined) as archive:
+                archive.extractall(extracted)
+            bundled_bin = root / "bundled-bin"
+            bundled_skills = root / "bundled-skills"
+            bundle_installer.install(
+                extracted,
+                bundled_bin,
+                ["grimoire", "lexicon", "arcana"],
+                [bundled_skills],
+            )
+            self.assertTrue((bundled_bin / "adapters" / "python" / "adapter.py").is_file())
+            self.assertTrue((bundled_bin / "adapters" / "go" / "lexicon-go.exe").is_file())
+            self.assertTrue((bundled_skills / "grimoire" / "SKILL.md").is_file())
 
             installed = root / "selected-bin"
             shared_skills = root / ".agents" / "skills"
