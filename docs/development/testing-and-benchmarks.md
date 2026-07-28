@@ -117,6 +117,8 @@ python evaluation/run_agent_benchmark.py --check
 
 The evaluator accepts progressive JSONL and generic raw tool traces. External CBM adapters can be registered without coupling Grimoire to CBM.
 
+Preparation warnings and missing providers remain part of the measured product result. A degraded run may still complete through fallback discovery, but reports must distinguish it from a healthy full-stack condition and retain the exact preparation warning.
+
 A fair assisted-agent comparison must use:
 
 - the same repository revision, clean checkout state, and task wording;
@@ -152,4 +154,4 @@ Do not compare source-lane scores directly with document, symbol, or relationshi
 
 Historical context-package reports remain useful for measuring the retired pipeline but must be labeled historical.
 
-Current end-to-end results and task-shape interpretation are summarized in [Agent benchmark findings](agent-benchmark-findings.md). The checked-in raw reports include the final [Space Rocks network-interest benchmark](../../evaluation/results/network-interest-agent-benchmark-2026-07-27-v4/report.md) and the completed [HikariCP/Detekt/Now in Android unfamiliar-repository benchmark](../../evaluation/results/multi-repo-agent-benchmark-2026-07-27-v1/report.md). Raw reports remain authoritative for exact conditions.
+Current end-to-end results and task-shape interpretation are summarized in [Agent benchmark findings](agent-benchmark-findings.md). The checked-in raw reports include the version 2 architecture, ownership, cross-language, and impact-analysis tasks under `evaluation/results/agent-benchmark-v2/`, the final [Space Rocks network-interest benchmark](../../evaluation/results/network-interest-agent-benchmark-2026-07-27-v4/report.md), and the completed [HikariCP/Detekt/Now in Android unfamiliar-repository benchmark](../../evaluation/results/multi-repo-agent-benchmark-2026-07-27-v1/report.md). Raw reports remain authoritative for exact conditions.

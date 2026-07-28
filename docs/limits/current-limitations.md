@@ -36,6 +36,8 @@ Lexicon and Arcana retain independent executables, state formats, and publicatio
 
 Grimoire prepares and aligns available state but does not supervise provider daemons.
 
+A July 28, 2026 LevelDB benchmark exposed a current C/C++ compatibility defect: Lexicon completed, but Arcana rejected the produced snapshot as malformed with `unresolved reason`. Grimoire continued through source/lexical fallback. Until the adapter-to-graph integration is fixed and covered by a release fixture, C/C++ repositories may silently lose Arcana traversal while still appearing query-ready with warnings.
+
 ## Semantic source boundaries depend on Lexicon coverage
 
 Prepared source uses Lexicon declaration spans when current facts are available. Unsupported files, omitted constructs, stale state, ambiguous overlaps, and source outside declarations retain fallback line-window chunks.

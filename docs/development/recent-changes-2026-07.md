@@ -115,7 +115,7 @@ See [Agent benchmark findings](agent-benchmark-findings.md) for methodology, lim
 
 ## Benchmark hardening and preparation telemetry
 
-The next agent benchmark suite is defined in `evaluation/agent_benchmark_tasks.v2.json`. Its room-scale architecture, Detekt unclear-ownership, and Space Rocks cross-language locator tasks have now been executed; the remaining two tasks have not. It replaces prompt-supplied subsystem checklists with natural problem reports and hidden rubrics across five intended task classes.
+The next agent benchmark suite is defined in `evaluation/agent_benchmark_tasks.v2.json`. Its room-scale architecture, Detekt unclear-ownership, Space Rocks cross-language locator, and LevelDB impact-analysis tasks have now been executed; only the source-plus-rationale task remains. It replaces prompt-supplied subsystem checklists with natural problem reports and hidden rubrics across five intended task classes.
 
 Benchmark grounding is now automatic. Every inline and structured path/range is checked against the pinned checkout, refusals and empty evidence are invalid, and Grimoire evidence handles are checked against exact inspected source ranges through an optional `grimoire.mcp.audit.v1` log, while handle coverage remains a metric rather than a mandatory tool-usage quota. Summaries distinguish process completion from grounded validity.
 
@@ -132,6 +132,10 @@ The Detekt run also exposed two post-completion harness defects: relative output
 The third version 2 locator run favored plain inspection and CBM over Grimoire. Plain completed in 5m 27s with 21 calls and 2.18M total tokens; CBM completed in 6m 37s including preparation with 25 calls and 2.40M tokens; Grimoire completed in 9m 41s including preparation with 21 calls and 2.38M tokens. Plain and CBM chose a dedicated unreliable locator packet, while Grimoire reused the reliable overlay lane for changing coordinates and omitted stale expiry. All three missed durable per-player color metadata and complete spectating verification despite passing citation grounding.
 
 That run also exposed summary replacement when running one selected task into an existing canonical output. The runner now preserves compatible existing task entries, records the latest run start separately, and rejects incompatible suite/model/provider metadata. Summary-only recovery can merge a selected task back onto a committed base without rerunning agents.
+
+The fourth version 2 LevelDB run was won by CBM: 4m 52s including preparation, 10 calls, and 495k total tokens. Plain produced a strong valid answer in 6m 43s with 12 calls and 598k tokens. Grimoire took 6m 41s including preparation, 16 calls, and 1.57M tokens, then failed grounding because three model-authored ranges did not match their canonical handles.
+
+LevelDB also exposed a provider-compatibility failure. Lexicon completed in 6.9 seconds, but Arcana rejected the C/C++ snapshot as malformed with `unresolved reason`; Grimoire continued in degraded source/lexical mode. Four discovery calls returned 138 KB of structured context. This is now documented as both a C/C++ Lexicon-to-Arcana integration defect and a degraded-mode response-shaping problem.
 
 ## Documentation and verification
 

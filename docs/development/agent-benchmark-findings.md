@@ -13,9 +13,9 @@ The results also suggest a task-size inversion rather than a simple overhead rul
 
 This lost-in-the-middle explanation is a working hypothesis consistent with the observed answers, not a controlled causal result. The suite has one trial per condition and was not designed to isolate context-position effects.
 
-The strongest valid assisted result remains the Space Rocks network-interest benchmark, where Grimoire reduced the amount of context and repeated searching required for a broad cross-language architecture task. HikariCP favored plain inspection because the requested lifecycle was compact and concretely named. The earlier prompt-shaped Detekt Grimoire run failed semantically, while the replacement unclear-ownership Detekt task completed successfully in all conditions but favored plain inspection and CBM on efficiency. The repaired Now in Android run completed, but extensive invalid citations show that additional discovery context did not improve grounding on that prompt-shaped, `rg`-friendly task.
+The strongest valid assisted result remains the Space Rocks network-interest benchmark, where Grimoire reduced the amount of context and repeated searching required for a broad cross-language architecture task. HikariCP favored plain inspection because the requested lifecycle was compact and concretely named. The replacement Detekt ownership task favored plain inspection and CBM. The cross-language locator task favored plain and CBM on both architecture and efficiency. The LevelDB impact-analysis task was won by CBM; Grimoire ran without Arcana, expanded 138 KB of discovery output, and was automatically invalidated for canonical handle/range mismatches.
 
-The practical conclusion is to use Grimoire when it reduces an otherwise large or ambiguous working set, and stop using it when direct inspection has already narrowed the task sufficiently. The evidence supports **selective Grimoire-assisted normal inspection**, not mandatory discovery-tool use. The third version 2 task also shows that grounding success is not enough: all three answers cited real code, yet hidden architecture constraints still distinguished a sound unreliable locator seam from a reliable-overlay design and exposed a shared color-preservation omission.
+The practical conclusion is narrower than the original product hypothesis: use Grimoire only when it demonstrably reduces a genuinely broad and ambiguous working set, and stop using it when direct inspection has already narrowed the task. Across the first four version 2 tasks, Grimoire has one strong win, two clear semantic/efficiency losses, and one invalid degraded result. Grounding success remains separate from architecture quality, while provider health and canonical-handle compliance must also be scored separately.
 
 ## Version 2 benchmark infrastructure
 
@@ -80,6 +80,24 @@ Grimoire instead placed changing locator coordinates on the ordered/reliable ove
 All three answers missed one critical hidden requirement: filtered player removal also erases per-player hue state, but none transported or independently preserved durable color metadata. Their fallback-hue behavior would reproduce the known single-color distant-indicator failure. None fully verified spectating either. This result demonstrates why automatic grounding and hidden semantic rubrics must remain separate.
 
 Grimoire made one search and one handle-based inspect, returned 50,178 bytes of structured context, and successfully used the suite's first canonical source-range handle. The initial response still began with low-value fixture and helper symbols. Lexicon again dominated cold preparation at 66.3 of 94.7 internal seconds.
+
+## Version 2 LevelDB impact-analysis result
+
+Report: [`evaluation/results/agent-benchmark-v2/leveldb-background-compaction-pause/report.md`](../../evaluation/results/agent-benchmark-v2/leveldb-background-compaction-pause/report.md)
+
+The fourth version 2 task asked for a safe pause/resume boundary for automatic LevelDB compaction while preserving explicit manual compaction.
+
+| Condition | Preparation | Agent elapsed | Total elapsed | Model calls | Total tokens | Grounding |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| CBM | **1.2s** | **4m 51s** | **4m 52s** | **10** | **494,724** | Pass |
+| Plain | none | 6m 43s | 6m 43s | 12 | 597,777 | Pass |
+| Grimoire | 11.3s | 6m 30s | 6m 41s | 16 | 1,566,181 | **Invalid** |
+
+All three found `DBImpl` and `MaybeScheduleCompaction()` as the owning seam and correctly preserved immutable-memtable flushing, manual compaction, resume scheduling, and Level-0 write backpressure. CBM produced the strongest plan because it also closed the prequeued-callback race by applying one automatic-work predicate in both scheduling and callback execution. Plain was a strong second with better balanced-pause tests but allowed a queued automatic callback to run while pause waited.
+
+Grimoire used an idempotent boolean that lets overlapping callers resume one another, omitted the callback-execution gate, and attached three narrower claims to broader canonical handles. The harness therefore rejected the answer even though every path and line existed.
+
+Arcana synchronization failed before the run with `Lexicon snapshot is malformed: unresolved reason`. Grimoire continued in degraded source/lexical mode and emitted 137,982 bytes across four calls: 89 nodes, 92 source ranges, 10 documents, and 26 graph-path records. This is both a C/C++ prepared-state compatibility defect and a response-shaping failure under provider degradation.
 
 ## Network-interest architecture benchmark
 
@@ -204,6 +222,8 @@ The current evidence supports these operating rules:
 6. Let agents stop using Grimoire when direct inspection becomes cheaper.
 7. Judge changes by end-to-end agent outcomes, not internal retrieval metrics alone.
 8. Maintain benchmark coverage across lookup, focused trace, architecture, impact, and source-plus-document tasks.
+9. Treat provider preparation warnings as product failures, not healthy full-stack runs.
+10. Require model-authored evidence ranges to match canonical handles exactly when handles are supplied.
 
 ## Reproduction artifacts
 

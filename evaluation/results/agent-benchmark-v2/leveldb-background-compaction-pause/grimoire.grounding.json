@@ -1,0 +1,40 @@
+{
+  "valid": false,
+  "process_completed": true,
+  "refusal_detected": false,
+  "evidence_json_found": true,
+  "evidence_json_valid": true,
+  "inline_citations": 48,
+  "structured_items": 15,
+  "handle_items": 4,
+  "canonical_handle_items": 1,
+  "required_prefixes_found": [
+    "db/db_impl",
+    "include/leveldb",
+    "db"
+  ],
+  "missing_required_prefixes": [],
+  "findings": [
+    {
+      "code": "handle_range_mismatch",
+      "message": "evidence[4] claims db/db_impl.cc:662-676; handle resolves to db/db_impl.cc:657-682",
+      "path": "db/db_impl.cc",
+      "start_line": 662,
+      "end_line": 676
+    },
+    {
+      "code": "handle_range_mismatch",
+      "message": "evidence[5] claims db/db_impl.cc:683-700; handle resolves to db/db_impl.cc:678-705",
+      "path": "db/db_impl.cc",
+      "start_line": 683,
+      "end_line": 700
+    },
+    {
+      "code": "handle_range_mismatch",
+      "message": "evidence[6] claims db/db_impl.cc:702-781; handle resolves to db/db_impl.cc:697-786",
+      "path": "db/db_impl.cc",
+      "start_line": 702,
+      "end_line": 781
+    }
+  ]
+}

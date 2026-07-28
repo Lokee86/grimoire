@@ -21,12 +21,13 @@ This page contains work that is not yet complete. Implemented behavior is docume
 
 ## Near-term priorities
 
-1. Run and evaluate the prepared hidden-rubric version 2 agent suite across architecture, ownership, cross-language, impact, and source-plus-rationale tasks.
-2. Use the new provider and state-overhead timing buckets to target remaining first-use preparation cost without weakening alignment or determinism.
-3. Calibrate the new compact search defaults, excerpt cap, and duplicate-payload references against end-to-end agent outcomes.
-4. Expand judged corpora across repositories, languages, sizes, and task categories.
-5. Add stable machine-readable diagnostic codes and documented exit classes.
-6. Improve installation verification and host-specific MCP setup guidance as supported hosts stabilize.
+1. Run the remaining source-plus-rationale task in the hidden-rubric version 2 agent suite and consolidate the five-task conclusion.
+2. Fix C/C++ Lexicon snapshots that Arcana rejects as malformed with `unresolved reason`, and add a release-path integration fixture.
+3. Use the provider and state-overhead timing buckets to target remaining first-use preparation cost without weakening alignment or determinism.
+4. Calibrate compact search defaults, excerpt caps, duplicate-payload references, and degraded-provider response bounds against end-to-end agent outcomes.
+5. Expand judged corpora across repositories, languages, sizes, and task categories.
+6. Add stable machine-readable diagnostic codes and documented exit classes.
+7. Improve installation verification and host-specific MCP setup guidance as supported hosts stabilize.
 
 ## Agent discovery quality
 
@@ -36,6 +37,8 @@ This page contains work that is not yet complete. Implemented behavior is docume
 - Add judged cross-language and generated-contract tasks.
 - Add negative-claim cases that require warning, truncation, and provider-coverage handling.
 - Improve stopping guidance only when measured agent behavior shows unnecessary discovery calls.
+- Prevent source/lexical fallback from expanding unboundedly when Arcana is unavailable.
+- Improve canonical-handle transfer so final evidence ranges match inspected ranges exactly.
 - Preserve the rule that agents may stop using Grimoire when direct inspection becomes cheaper.
 
 ## Prepared-state maintenance
@@ -82,7 +85,7 @@ Establish measured release gates for:
 - preparation latency and memory;
 - deterministic source and document retrieval;
 - adapter correctness;
-- graph correctness and protocol compatibility;
+- graph correctness, Lexicon-to-Arcana compatibility, and protocol compatibility;
 - native ABI stress;
 - installation, skill discovery, and MCP startup.
 

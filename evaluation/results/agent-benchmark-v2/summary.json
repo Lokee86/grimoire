@@ -827,8 +827,303 @@
           "completed_at": "2026-07-28T20:07:18.170924+00:00"
         }
       }
+    },
+    "leveldb-background-compaction-pause": {
+      "category": "impact-analysis",
+      "repository": "C:\\!bin\\workspace\\corpus\\leveldb",
+      "commit": "99b3c03b3284f5886f9ef9a4ef703d57373e61be",
+      "rubric": {
+        "dimensions": [
+          {
+            "id": "scheduling",
+            "weight": 2,
+            "description": "Finds background scheduling predicates and wakeup/resume ownership."
+          },
+          {
+            "id": "manual_compaction",
+            "weight": 2,
+            "description": "Preserves manual compaction progress and completion semantics."
+          },
+          {
+            "id": "write_pressure",
+            "weight": 2,
+            "description": "Accounts for write stalls, immutable memtables, shutdown, and pending work."
+          },
+          {
+            "id": "concurrency",
+            "weight": 1,
+            "description": "Defines mutex/condition-variable and API lifetime semantics."
+          },
+          {
+            "id": "verification",
+            "weight": 1,
+            "description": "Covers pause, resume, close, manual work, and write-pressure failure cases."
+          }
+        ],
+        "required_evidence": [
+          {
+            "path_prefix": "db/db_impl",
+            "reason": "compaction scheduling and execution owner"
+          },
+          {
+            "path_prefix": "include/leveldb/",
+            "reason": "caller-visible API boundary"
+          },
+          {
+            "path_prefix": "db/",
+            "reason": "compaction and lifecycle tests"
+          }
+        ],
+        "disallowed_assumptions": [
+          "blocking every compaction path",
+          "pausing while holding the database mutex",
+          "resuming without scheduling pending work"
+        ]
+      },
+      "preparation": {
+        "cbm": {
+          "project": "C-bin-workspace-benchmark-checkouts-agent-benchmark-v2-leveldb-background-compaction-pause-cbm",
+          "elapsed_seconds": 1.171
+        },
+        "grimoire": {
+          "elapsed_seconds": 11.285,
+          "timings": {
+            "initial_inspection_ms": 301,
+            "lock_wait_ms": 1,
+            "reinspection_ms": 1241,
+            "lexicon_ms": 6887,
+            "arcana_ms": 232,
+            "source_index_ms": 2031,
+            "documentation_ms": 398,
+            "marker_write_ms": 6,
+            "final_verification_ms": 152,
+            "total_ms": 11258
+          },
+          "actions": [
+            {
+              "name": "refresh-lexicon",
+              "status": "completed",
+              "elapsed_ms": 6887
+            },
+            {
+              "name": "synchronize-arcana",
+              "status": "failed",
+              "elapsed_ms": 232,
+              "error": "exit status 1: arcana sync: Lexicon snapshot is malformed: unresolved reason"
+            },
+            {
+              "name": "prepare-grimoire",
+              "status": "completed",
+              "elapsed_ms": 2031
+            },
+            {
+              "name": "prepare-knowledge",
+              "status": "completed",
+              "elapsed_ms": 398
+            }
+          ]
+        }
+      },
+      "profiles": {
+        "plain": "bench-v2-leveldb-background-c-plain",
+        "cbm": "bench-v2-leveldb-background-c-cbm",
+        "grimoire": "bench-v2-leveldb-background-c-grimoire"
+      },
+      "runs": {
+        "cbm": {
+          "exit_code": 0,
+          "elapsed_seconds": 291.117,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 85294,
+            "output_tokens": 9558,
+            "cache_read_tokens": 399872,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 3558,
+            "total_tokens": 494724,
+            "api_calls": 10,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_133557_c17f19",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 18724,
+          "discovery_output": {
+            "calls": 0,
+            "response_bytes": 0,
+            "modes": {},
+            "new_nodes": 0,
+            "new_source_ranges": 0,
+            "new_documents": 0,
+            "new_relationships": 0,
+            "new_graph_paths": 0,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 60,
+            "structured_items": 18,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "db/db_impl",
+              "include/leveldb",
+              "db"
+            ],
+            "missing_required_prefixes": [],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T20:40:40.543169+00:00"
+        },
+        "grimoire": {
+          "exit_code": 0,
+          "elapsed_seconds": 390.199,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 148616,
+            "output_tokens": 12125,
+            "cache_read_tokens": 1405440,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 5377,
+            "total_tokens": 1566181,
+            "api_calls": 16,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_133557_3bb8da",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 15989,
+          "discovery_output": {
+            "calls": 4,
+            "response_bytes": 137982,
+            "modes": {
+              "search": 3,
+              "inspect": 1
+            },
+            "new_nodes": 89,
+            "new_source_ranges": 92,
+            "new_documents": 10,
+            "new_relationships": 0,
+            "new_graph_paths": 26,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": false,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 48,
+            "structured_items": 15,
+            "handle_items": 4,
+            "canonical_handle_items": 1,
+            "required_prefixes_found": [
+              "db/db_impl",
+              "include/leveldb",
+              "db"
+            ],
+            "missing_required_prefixes": [],
+            "findings": [
+              {
+                "code": "handle_range_mismatch",
+                "message": "evidence[4] claims db/db_impl.cc:662-676; handle resolves to db/db_impl.cc:657-682",
+                "path": "db/db_impl.cc",
+                "start_line": 662,
+                "end_line": 676
+              },
+              {
+                "code": "handle_range_mismatch",
+                "message": "evidence[5] claims db/db_impl.cc:683-700; handle resolves to db/db_impl.cc:678-705",
+                "path": "db/db_impl.cc",
+                "start_line": 683,
+                "end_line": 700
+              },
+              {
+                "code": "handle_range_mismatch",
+                "message": "evidence[6] claims db/db_impl.cc:702-781; handle resolves to db/db_impl.cc:697-786",
+                "path": "db/db_impl.cc",
+                "start_line": 702,
+                "end_line": 781
+              }
+            ]
+          },
+          "valid": false,
+          "completed_at": "2026-07-28T20:42:19.632962+00:00"
+        },
+        "plain": {
+          "exit_code": 0,
+          "elapsed_seconds": 403.271,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 83416,
+            "output_tokens": 11065,
+            "cache_read_tokens": 503296,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 4142,
+            "total_tokens": 597777,
+            "api_calls": 12,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_133557_96cbb0",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 19399,
+          "discovery_output": {
+            "calls": 0,
+            "response_bytes": 0,
+            "modes": {},
+            "new_nodes": 0,
+            "new_source_ranges": 0,
+            "new_documents": 0,
+            "new_relationships": 0,
+            "new_graph_paths": 0,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 62,
+            "structured_items": 23,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "db/db_impl",
+              "include/leveldb",
+              "db"
+            ],
+            "missing_required_prefixes": [],
+            "findings": []
+          },
+          "valid": true,
+          "completed_at": "2026-07-28T20:42:32.692749+00:00"
+        }
+      }
     }
   },
-  "completed_at": "2026-07-28T20:13:27.379871+00:00",
-  "revalidated_at": "2026-07-28T20:20:31.716842+00:00"
+  "completed_at": "2026-07-28T20:42:35.695256+00:00",
+  "revalidated_at": "2026-07-28T20:50:02.827972+00:00",
+  "last_run_started_at": "2026-07-28T20:35:35.954097+00:00"
 }

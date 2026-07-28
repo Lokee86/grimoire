@@ -1,0 +1,84 @@
+{
+  "version": 2,
+  "mode": "force-refresh",
+  "repository": {
+    "root": "C:\\!bin\\workspace\\benchmark-checkouts\\agent-benchmark-v2\\leveldb-background-compaction-pause\\grimoire",
+    "git_head": "99b3c03b3284f5886f9ef9a4ef703d57373e61be",
+    "git_dirty": false,
+    "source_fingerprint": "sha256:4c7bd04c5c1029ffeaa4bd3db8921bdb3905af03713fb2d3d26f0ac7d8bd919e",
+    "git_available": true
+  },
+  "lexicon": {
+    "status": "current",
+    "snapshot": "sha256:14679994d55284be706a5121c9fa173063196a77f94213da4d63f210e7c48885",
+    "prepared": true
+  },
+  "arcana": {
+    "status": "absent",
+    "expected_snapshot": "sha256:14679994d55284be706a5121c9fa173063196a77f94213da4d63f210e7c48885",
+    "stale_reasons": [
+      "CURRENT is missing"
+    ],
+    "prepared": false
+  },
+  "grimoire": {
+    "status": "current",
+    "snapshot": "36bb810ff9bd953bc67cd97da843287b1af0debb",
+    "prepared": true
+  },
+  "knowledge": {
+    "status": "current",
+    "snapshot": "8cd85265fcce4e6b9cfffc5df8ef30676d4eace87d2304cb00ad4dfa733499e3",
+    "expected_snapshot": "8cd85265fcce4e6b9cfffc5df8ef30676d4eace87d2304cb00ad4dfa733499e3",
+    "prepared": true
+  },
+  "arcana_vectors": {
+    "status": "missing",
+    "reason": "no current Arcana snapshot"
+  },
+  "knowledge_vectors": {
+    "status": "missing",
+    "expected_snapshot": "26c7116836cf2cc71ad4ce4e882d4c8018d489a5ebc9a330ec57d5cc134ec7ba",
+    "reason": "read knowledge vector manifest: open C:\\!bin\\workspace\\benchmark-checkouts\\agent-benchmark-v2\\leveldb-background-compaction-pause\\grimoire\\.grimoire\\knowledge\\vectors\\qwen3-embedding-0.6b-q8_0-512d\\snapshot.manifest.json: The system cannot find the path specified."
+  },
+  "actions": [
+    {
+      "name": "refresh-lexicon",
+      "status": "completed",
+      "elapsed_ms": 6887
+    },
+    {
+      "name": "synchronize-arcana",
+      "status": "failed",
+      "elapsed_ms": 232,
+      "error": "exit status 1: arcana sync: Lexicon snapshot is malformed: unresolved reason"
+    },
+    {
+      "name": "prepare-grimoire",
+      "status": "completed",
+      "elapsed_ms": 2031
+    },
+    {
+      "name": "prepare-knowledge",
+      "status": "completed",
+      "elapsed_ms": 398
+    }
+  ],
+  "timings": {
+    "initial_inspection_ms": 301,
+    "lock_wait_ms": 1,
+    "reinspection_ms": 1241,
+    "lexicon_ms": 6887,
+    "arcana_ms": 232,
+    "source_index_ms": 2031,
+    "documentation_ms": 398,
+    "marker_write_ms": 6,
+    "final_verification_ms": 152,
+    "total_ms": 11258
+  },
+  "warnings": [
+    "Arcana synchronization unavailable; continuing without graph traversal: synchronize-arcana: exit status 1: arcana sync: Lexicon snapshot is malformed: unresolved reason"
+  ],
+  "deterministic_query_ready": true,
+  "elapsed_ms": 11258
+}
