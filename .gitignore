@@ -8,6 +8,7 @@
 /grimoire.exe
 coverage.out
 /evaluation/validation/
+/evaluation/build-current/
 /.tmp/
 /.tmp-*/
 /bin/

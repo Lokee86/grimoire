@@ -28,4 +28,4 @@ Response processing validates indices and native dimensions, truncates to 512 di
 
 ## Boundary
 
-The package does not own source traversal, chunk boundaries, vector persistence, exact search, ranking, query-shape policy, evidence assembly, or context-package fitting. Chunking remains responsible for producing useful source regions; the embedding client independently enforces the active runtime's maximum input as the final safety boundary.
+The package does not own source traversal, chunk boundaries, vector persistence, exact search, retrieval ranking, discovery lane assembly, or agent policy. Chunking remains responsible for producing useful source regions; the embedding client independently enforces the active runtime's maximum input as the final safety boundary.

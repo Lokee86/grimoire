@@ -1,0 +1,80 @@
+{
+  "task": "network-interest architecture and implementation plan",
+  "commit": "460da4af05c44d1835401fa853f5fc6b718262c8",
+  "model": "gpt-5.6-sol",
+  "parallel": true,
+  "runs": {
+    "plain": {
+      "exit_code": 0,
+      "elapsed_seconds": 1015.317,
+      "usage": {
+        "estimated_cost_usd": 0.0,
+        "cost_status": "included",
+        "cost_source": "none",
+        "input_tokens": 442990,
+        "output_tokens": 28733,
+        "cache_read_tokens": 6932480,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 9625,
+        "total_tokens": 7404203,
+        "api_calls": 53,
+        "model": "gpt-5.6-sol",
+        "provider": "openai-codex",
+        "session_id": "20260727_165549_ac942d",
+        "completed": true,
+        "failed": false,
+        "service_tier": null
+      },
+      "stdout": "C:\\!bin\\workspace\\grimoire\\evaluation\\results\\network-interest-agent-benchmark-2026-07-27-v4\\plain.stdout.txt",
+      "stderr": "C:\\!bin\\workspace\\grimoire\\evaluation\\results\\network-interest-agent-benchmark-2026-07-27-v4\\plain.stderr.txt"
+    },
+    "cbm": {
+      "exit_code": 0,
+      "elapsed_seconds": 1052.438,
+      "usage": {
+        "estimated_cost_usd": 0.0,
+        "cost_status": "included",
+        "cost_source": "none",
+        "input_tokens": 514207,
+        "output_tokens": 29264,
+        "cache_read_tokens": 6466048,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 12268,
+        "total_tokens": 7009519,
+        "api_calls": 54,
+        "model": "gpt-5.6-sol",
+        "provider": "openai-codex",
+        "session_id": "20260727_165549_4d6364",
+        "completed": true,
+        "failed": false,
+        "service_tier": null
+      },
+      "stdout": "C:\\!bin\\workspace\\grimoire\\evaluation\\results\\network-interest-agent-benchmark-2026-07-27-v4\\cbm.stdout.txt",
+      "stderr": "C:\\!bin\\workspace\\grimoire\\evaluation\\results\\network-interest-agent-benchmark-2026-07-27-v4\\cbm.stderr.txt"
+    },
+    "grimoire": {
+      "exit_code": 0,
+      "elapsed_seconds": 1052.44,
+      "usage": {
+        "estimated_cost_usd": 0.0,
+        "cost_status": "included",
+        "cost_source": "none",
+        "input_tokens": 239718,
+        "output_tokens": 21913,
+        "cache_read_tokens": 2790912,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 7677,
+        "total_tokens": 3052543,
+        "api_calls": 22,
+        "model": "gpt-5.6-sol",
+        "provider": "openai-codex",
+        "session_id": "20260727_165549_d0ddd8",
+        "completed": true,
+        "failed": false,
+        "service_tier": null
+      },
+      "stdout": "C:\\!bin\\workspace\\grimoire\\evaluation\\results\\network-interest-agent-benchmark-2026-07-27-v4\\grimoire.stdout.txt",
+      "stderr": "C:\\!bin\\workspace\\grimoire\\evaluation\\results\\network-interest-agent-benchmark-2026-07-27-v4\\grimoire.stderr.txt"
+    }
+  }
+}

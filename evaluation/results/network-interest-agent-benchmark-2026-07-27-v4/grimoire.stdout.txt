@@ -1,0 +1,402 @@
+Read-only investigation completed against detached revision `460da4af05c44d1835401fa853f5fc6b718262c8`. The separate `codex/network-interest` worktree was identified but not entered or read. The inspected worktree remained clean.
+
+Legend:
+- Verified: behavior present at the checked-out revision.
+- Proposed: implementation design derived from that behavior.
+
+1. Current ownership and data-flow map
+
+Authoritative simulation
+
+- Verified: `Game` owns entities, player sessions, camera views, pending presentation events, and the immutable published presentation frame. Simulation remains independent of any receiver’s network projection (`services/game-server/internal/game/game.go:53-60`, `services/game-server/internal/game/presentation_snapshot.go:9-20`).
+- Verified: each simulation publication copies every live player, asteroid, bullet, pickup, player-session record, and lifecycle record into a shared immutable frame. There is currently no spatial filtering at publication (`services/game-server/internal/game/presentation_snapshot.go:22-63`).
+- Verified: server camera views are simulation state. During player stepping, each view follows its owning active ship; on fatal damage the last player position is retained in the camera view (`services/game-server/internal/game/simulation_players.go:22-27`, `services/game-server/internal/game/combat.go:182-193`).
+- Verified: viewport dimensions are client-reported but server-clamped to a fixed aspect and a 0.5–2.0 zoom range before they update session, camera, and ship configuration (`services/game-server/internal/game/runtime/camera.go:8-39`, `services/game-server/internal/game/input.go:18-36`).
+- Verified: the canonical wrapped rectangular visibility calculation is `space.Delta(view.Position(), position)` compared with half the logical viewport dimensions. The existing margin form already supports larger enter/exit rectangles (`services/game-server/internal/game/visibility.go:94-109`, `services/game-server/internal/game/space/space.go:29-38,67-80`).
+- Verified: those visibility helpers currently govern spawning and authoritative retention/cleanup across all camera views, not per-client packet projection (`services/game-server/internal/game/visibility.go:52-88`).
+
+Presentation snapshot and per-client projection
+
+- Verified: `GameplayPresentationSnapshot(playerID)` is receiver-scoped only for `SelfID`, lives, and pending events. Its entity maps point to the same complete immutable frame for every receiver (`services/game-server/internal/game/presentation_snapshot.go:66-79,81-113`).
+- Verified: every connected session invokes `BuildActiveRealtimeResultForGame` on the 60 Hz server ticker with its own `GamePlayerID` and `RealtimeSessionState` (`services/game-server/internal/networking/websocket_write.go:15-41,45-57`).
+- Verified: `BuildActiveRealtimeResultForGame` obtains the full gameplay snapshot, assembles candidates, expands chunks, schedules them, and encodes selected packets independently per receiver (`services/game-server/internal/protocol/realtime/active.go:35-77`).
+- Verified: `ProjectWorldLane` currently sorts and projects every ship, bullet, asteroid, and pickup in the snapshot (`services/game-server/internal/protocol/realtime/projection_world.go:9-16,17-107`).
+- Verified: world membership changes are found by comparing the receiver’s last committed projection with the current projection. Missing IDs become deletes; new IDs become creates (`services/game-server/internal/protocol/realtime/delta.go:76-134,250-274`).
+- Verified: reliable world changes are partitioned into ship, asteroid, and bullet lifecycle candidates, while movement updates are sent on independent hot lanes (`services/game-server/internal/protocol/realtime/lane_candidate_world.go:43-85,88-150`).
+- Verified: the reliable world and three lifecycle lanes are sent as one preflighted transaction. Their lane metadata and projections advance only after the whole group writes successfully (`services/game-server/internal/networking/websocket_write.go:84-150,177-184`).
+- Verified: a committed world projection seeds or synchronizes the per-hot-lane projections, so hot movement and reliable membership are already connected to the receiver’s world baseline (`services/game-server/internal/protocol/realtime/baseline.go:152-187`, `services/game-server/internal/protocol/realtime/hot_lane_projection.go:105-181`).
+
+Client application
+
+- Verified: the client expands compact wire packets, routes full/delta/hot/lifecycle families, and gates reliable lifecycle packets against the active world baseline (`client/scripts/protocol/realtime/realtime_router.gd:42-83,92-112,115-179`).
+- Verified: lifecycle creates/deletes mutate `WorldLaneState`; hot updates merge only into entities already represented there (`client/scripts/protocol/realtime/world_lane_applier.gd:43-100,153-212`).
+- Verified: `WorldSync.apply_world_lane_state` removes missing player nodes and explicitly removes dirty/deleted asteroid and bullet presentation objects (`client/scripts/world/world_sync.gd:91-135`).
+- Verified: offscreen indicators currently consume remote positions derived from rendered world-player nodes, so filtering distant ships would remove the information on which indicators currently depend (`client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:32-44`, `client/scripts/world/world_sync.gd:204-213`, `client/legacy/player_render/player_sync.gd:187-220`).
+- Verified: spectating is presently client-local. It changes `WorldSync`’s view target without notifying the server, and candidate targets are selected from world-lane ships plus session lifecycle (`client/scripts/gameplay/spectate/gameplay_spectate_flow.gd:33-54`, `client/scripts/gameplay/spectate/spectate_menu_state.gd:15-34,44-57`).
+
+2. Exact filtering boundary
+
+Proposed boundary
+
+Introduce receiver-specific filtering inside `services/game-server/internal/protocol/realtime`, between the complete immutable `GameplayPresentationSnapshot` and `BuildWorldFullPacket`/quantization:
+
+1. `GameplayPresentationSnapshot` remains the complete, immutable game-facing DTO.
+2. Networking supplies a receiver projection context containing the requested view target.
+3. Realtime projection resolves the authoritative view anchor and calculates an interested `WorldLaneProjection`.
+4. Only that filtered projection is quantized and passed through the existing full/delta/lifecycle/hot pipeline.
+
+Concretely, change `buildWorldLaneCandidates` so its current `BuildWorldFullPacket(snapshot, worldSequence)` step becomes something equivalent to:
+
+- resolve `InterestView` from receiver camera config, receiver fallback position, and valid view target;
+- obtain the previous committed `WorldWireFullPacket`;
+- call a new `ProjectInterestedWorldLane(snapshot, interestView, previousWorld)`;
+- build and quantize the world packet from that projection.
+
+The insertion point is the existing `buildWorldLaneCandidates` construction boundary (`services/game-server/internal/protocol/realtime/lane_candidate_world.go:9-35`), while the reusable record construction remains adjacent to `ProjectWorldLane` (`services/game-server/internal/protocol/realtime/projection_world.go:16-108`).
+
+Why this belongs in projection, not simulation
+
+- Filtering must be receiver-specific, while the published frame is intentionally shared and immutable across all receivers (`services/game-server/internal/game/presentation_snapshot.go:9-20,81-113`).
+- Simulation cameras currently affect authoritative spawn and cleanup policy. Repointing `game.cameraViews[playerID]` to a spectated target would let a presentation choice alter asteroid spawning and entity retention, violating the simulation/networking separation (`services/game-server/internal/game/visibility.go:52-88`, `services/game-server/internal/game/simulation_players.go:22-27`).
+- The protocol layer already owns receiver-specific baselines, candidate construction, prioritization, chunking, and successful-write projection commits (`services/game-server/internal/protocol/realtime/baseline.go:27-45,83-99,152-187`, `services/game-server/internal/protocol/realtime/planner.go:13-38`).
+- Therefore, keep simulation’s complete entity store and camera views unchanged. Copy only the receiver’s clamped camera dimensions and fallback camera position into the snapshot or a small game-facing `PresentationView` DTO. Do not expose mutable `runtime.CameraView` pointers to realtime projection.
+
+Visibility seam reuse
+
+Proposed: extract a generic wrapped rectangle primitive into `internal/game/space`, for example `InsideViewRect(center, position, halfWidth, halfHeight, margin)`. Make current simulation helpers and the new projection policy call it. This reuses the exact toroidal calculation instead of duplicating it; `space` already owns shortest wrapped deltas (`services/game-server/internal/game/space/space.go:29-38,67-80`) and the current visibility implementation is a direct wrapped rectangle comparison (`services/game-server/internal/game/visibility.go:94-109`).
+
+3. Entity policy, hysteresis, self/spectate, and leaving interest
+
+Interest rectangles
+
+Proposed generated server tunables:
+
+- `interest_enter_margin = 160`
+- `interest_exit_margin = 320`
+- `player_locator_interval_ticks = 6` at the current 60 Hz tick rate
+
+Use new network-interest names rather than reusing asteroid constants semantically. The initial values intentionally align with the existing 160-unit spawn clearance and 320-unit retention margin, which are established viewport-scale cushions (`shared/constants/server_entities.toml:15-21`, `shared/constants/server_constants.toml:1-5`).
+
+Membership rule:
+
+- If an entity was not in the receiver’s last committed world projection, admit it when inside viewport plus `interest_enter_margin`.
+- If it was in that committed projection, retain it until it is outside viewport plus `interest_exit_margin`.
+- Always use wrapped deltas.
+- Treat exact boundaries consistently with the existing inclusive viewport check; tests should lock down equality behavior (`services/game-server/internal/game/visibility.go:94-103`, `services/game-server/internal/game/visibility_test.go:26-39`).
+
+The previous committed projection should be the hysteresis memory. Do not add an independently advancing membership cache. The session already stores exactly the projection successfully delivered to that receiver (`services/game-server/internal/protocol/realtime/baseline.go:83-99,152-170`). This avoids divergence when a reliable world/lifecycle send is backpressured.
+
+Entity-class policy
+
+- Ships:
+  - Include spatially interested ships.
+  - Force the receiver’s own active ship.
+  - Force the resolved spectated/view-target ship.
+  - Keep global score, lives, loadout, and lifecycle in the session lane; do not duplicate those fields into locator or hot movement.
+  - Current world ship records contain both hot movement and reliable ship meaning, while session records already carry durable player/session data (`services/game-server/internal/protocol/realtime/records.go:5-17,65-77`, `services/game-server/internal/protocol/realtime/projection_session.go:20-63`).
+
+- Asteroids:
+  - Include only by enter/exit region.
+  - Preserve pending-despawn presentation only while still in the interest region; simulation still owns actual destruction and removal.
+  - Current asteroid lifecycle already separates create/delete from hot X/Y updates (`services/game-server/internal/protocol/realtime/lane_candidate_lifecycle.go:43-58`, `services/game-server/internal/protocol/realtime/hot_lane_projection.go:29-39`).
+
+- Bullets:
+  - Include only by enter/exit region.
+  - Use the same initial margins, but keep the policy per-class so measurement can justify a larger bullet prefetch margin later.
+  - Bullet lifecycle and movement are already independent, allowing the policy to filter membership without changing authoritative bullet simulation (`services/game-server/internal/protocol/realtime/lane_candidate_lifecycle.go:26-41`, `services/game-server/internal/protocol/realtime/hot_lane_projection.go:41-52`).
+
+- Pickups:
+  - Include by enter/exit region.
+  - Their current creates, updates, and deletes remain on the reliable world lane because no pickup hot lane exists (`services/game-server/internal/protocol/realtime/projection_world.go:81-107`, `services/game-server/internal/protocol/realtime/delta.go:270-273`).
+
+- Session, lifecycle status, receiver overlay, and match totals:
+  - Do not interest-filter them. They are low-volume player/match meaning and are needed for HUD, respawn, menus, and spectate eligibility (`services/game-server/internal/protocol/realtime/projection_session.go:20-63`, `client/scripts/gameplay/spectate/spectate_menu_state.gd:15-57`).
+
+Self and spectate rules
+
+Proposed client-to-server contract: `view_target_request` with canonical `target_kind` + `target_id`, using `target_kind = "player"`. Do not use legacy `target_player_id`; the generic fields already exist on `ClientPacket` (`shared/packets/gameplay.toml:101-123`).
+
+The target request is per connection, not game simulation state:
+
+- Store it under the `webSocketSession` mutex alongside connection context.
+- Add a narrow inbound session adapter method to set/clear it.
+- Clear it whenever room/player/match identity changes.
+- The write loop snapshots the requested target and passes it to realtime projection.
+- This follows the existing split where inbound routing adapts session operations and the write loop exclusively owns `realtimeState` (`services/game-server/internal/networking/inbound_adapter.go:19-46`, `services/game-server/internal/networking/websocket_session.go:23-46`).
+
+Resolution each tick:
+
+1. Accept the requested target only if it has an active lifecycle entry and a current ship.
+2. Otherwise fall back to the receiver’s active ship.
+3. If the receiver has no active ship, fall back to the receiver’s retained server camera position.
+4. Force self and the resolved target into ship membership even if outside the rectangle.
+
+The lifecycle check is necessary because the client’s current spectate rules define eligibility as active plus visually available (`client/scripts/gameplay/spectate/spectate_menu_state.gd:44-57`). The server should echo the resolved target in receiver overlay state, e.g. `view_target_id`, so the client can distinguish accepted, rejected, and automatically cleared requests. Overlay is the existing receiver-specific record (`services/game-server/internal/protocol/realtime/records.go:50-63`).
+
+Leaving-interest behavior
+
+No new despawn packet is needed:
+
+- Filtering an ID out of the current receiver projection causes `CompareLaneRecordFields` to produce a delete against that receiver’s previous committed projection (`services/game-server/internal/protocol/realtime/delta.go:76-134`).
+- Ship, asteroid, and bullet deletes are moved into their reliable lifecycle candidates (`services/game-server/internal/protocol/realtime/lane_candidate_world.go:43-79`).
+- Pickup deletes stay in the reliable world delta (`services/game-server/internal/protocol/realtime/lane_candidate_world.go:82-85`).
+- The world/lifecycle transaction is committed only after successful transmission, preserving baseline membership under backpressure (`services/game-server/internal/networking/websocket_write.go:84-150,177-184`).
+- The client already applies those deletes to caches and presentation nodes (`client/scripts/protocol/realtime/world_lane_applier.gd:67-100,202-212`, `client/scripts/world/world_sync.gd:91-135`).
+- Re-entry naturally produces a normal lifecycle create. It must contain the complete reliable record before subsequent hot updates are useful.
+
+4. Low-cadence offscreen-player locator design
+
+Proposed: use the existing reliable, baseline-backed session lane rather than adding another negotiated WebRTC channel.
+
+Why session is the correct path
+
+- It already carries every player session and authoritative lifecycle status, independent of world visibility (`services/game-server/internal/protocol/realtime/projection_session.go:20-63`).
+- The client already maintains session records as a full/delta cache (`client/scripts/protocol/realtime/session_lane_state.gd:4-26`).
+- A new negotiated channel would require both peers to create and wait for it; the current client and server enumerate an exact shared channel set and readiness requires all channels (`services/game-server/internal/networking/webrtc_transport.go:27-41`, `client/scripts/networking/webrtc/webrtc_transport.gd:4-16,149-163`).
+- Locator delivery is low-cadence player meaning, not render-frequency movement. Keeping it off `ship_delta` ensures distant ships do not receive 60 Hz movement.
+
+Contract shape
+
+Extend `SessionPlayerRecord`/`SessionPlayerWireRecord` with:
+
+- `locator_present`
+- `locator_x`
+- `locator_y`
+- `team_id`
+
+At a 6-tick/10 Hz cadence:
+
+- sample every active player’s authoritative ship position and team;
+- set `locator_present = false` for sessions without an active ship;
+- between sampling ticks, copy locator fields from the previous committed session projection so ordinary session candidate construction does not accidentally publish 60 Hz positions;
+- sample immediately for a full baseline, player lifecycle transition, view-target change, or missing prior locator.
+
+The existing session delta is field-sparse, so cadence samples produce only changed locator fields rather than resending full player records (`services/game-server/internal/protocol/realtime/delta.go:324-382`). Position fields should use the existing physical `position` quantization policy, as current session spawn and world coordinates do (`shared/packets/realtime_wire.toml:1183-1234`).
+
+Client application
+
+- Extend `SessionLaneState.player_sessions` decoding to retain locator fields.
+- Add an active, non-legacy locator presentation helper under `client/scripts/world/`; do not add policy under `client/legacy`.
+- Convert locator server positions into wrapped visual positions relative to `WorldSync`’s current view anchor using the existing server-to-visual seam (`client/scripts/world/world_sync.gd:244-255`).
+- Change `GameplayPresentationFlow`’s indicator position provider from rendered remote nodes to locator-derived positions. The indicator controller itself already accepts a generic target-position dictionary (`client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:12-24,32-44`, `client/scripts/gameplay/presentation/os_indicator_controller.gd:25-59`).
+- Derive indicator hue from locator `team_id`, falling back to the existing deterministic/fallback player hue policy (`client/scripts/gameplay/presentation/player_hue_presenter.gd:93-113`).
+- Change `SpectateMenuState` to enumerate active locator-present players rather than world ships, because distant ships will intentionally not exist in `WorldLaneState` (`client/scripts/gameplay/spectate/spectate_menu_state.gd:44-57`).
+- On spectate selection, send `view_target_request`; retain the old anchor until the echoed resolved target and its reliable ship create are both present. Only then call `focus_camera_on_player`. The current immediate local focus assumes the target node already exists and therefore is unsafe after interest filtering (`client/scripts/gameplay/spectate/gameplay_spectate_flow.gd:33-54`, `client/legacy/player_render/player_sync.gd:52-57`).
+
+5. Server lane, candidate, baseline, and budget changes
+
+Candidate assembly
+
+- Add a receiver projection context to `BuildActiveRealtimeResultForGame` and `assembleRealtimeLaneCandidates`, or store the resolved target as a prepared per-call input. Do not mutate `RealtimeSessionState` concurrently from inbound handling; it is write-loop-owned (`services/game-server/internal/networking/websocket_session.go:36-38`, `services/game-server/internal/protocol/realtime/active.go:35-43`).
+- Filter only the world projection. Overlay remains receiver-specific, session remains global player meaning, and events remain unchanged in the first entity-interest slice (`services/game-server/internal/protocol/realtime/planner.go:13-38`).
+- Build hysteresis against the committed `WorldWireFullPacket`, not the last computed but unsent projection (`services/game-server/internal/protocol/realtime/lane_candidate_world.go:21-35`, `services/game-server/internal/protocol/realtime/baseline.go:168-186`).
+
+Baseline and lifecycle correctness
+
+- A full world baseline must contain only the initial interested set plus forced self/target.
+- A world delta must compare the previous filtered projection with the newly filtered projection.
+- Hot projections must continue to be seeded from or membership-synchronized with the filtered world projection (`services/game-server/internal/protocol/realtime/hot_lane_projection.go:105-181`).
+- Do not commit an interest transition before the reliable world/lifecycle transaction succeeds. Existing commit grouping provides this invariant and should receive an explicit regression test (`services/game-server/internal/networking/websocket_write.go:139-150,177-184`).
+
+Budget and prioritization
+
+Verified current limitations:
+
+- The scheduler has a 500-byte target, but required candidates and all real hot chunks are included regardless of remaining budget (`services/game-server/internal/protocol/realtime/size_estimate.go:3-8`, `services/game-server/internal/protocol/realtime/scheduler.go:25-58`).
+- Candidate records currently estimate one generic record rather than their actual record count (`services/game-server/internal/protocol/realtime/candidate_policy.go:45-64`).
+- Hot chunking enforces a 1200-byte per-packet cap but does not cap aggregate same-tick output (`services/game-server/internal/protocol/realtime/hot_lane_chunker.go:106-123,142-164`, `services/game-server/internal/protocol/realtime/realtime_hardcap_chunker.go:38-98`).
+
+Proposed changes:
+
+1. Make candidate estimates record-aware, including actual create/update/delete counts and locator updates.
+2. Keep reliable lifecycle/world membership candidates required.
+3. Reserve hot priority in this order:
+   - forced self ship update;
+   - forced spectated-target ship update;
+   - other interested ships by wrapped distance;
+   - bullets by wrapped distance;
+   - asteroids by wrapped distance;
+   - locator sample/session delta;
+   - lower-urgency pickup/session changes as their existing delivery semantics permit.
+4. Preserve separate physical hot lanes, but sort each hot lane’s records by forced status and wrapped distance before chunking.
+5. Schedule all chunks of one hot sequence atomically. The client applies chunked hot sequences only after complete assembly, so selecting an incomplete subset wastes bandwidth and cannot advance the projection safely (`client/scripts/protocol/realtime/world_lane_applier.gd:58-65,73-95`).
+6. If an entire hot sequence does not fit the advisory aggregate budget, defer it and do not commit its hot projection. The next tick will supersede it from the last successfully sent projection.
+7. Never budget-drop reliable interest deletes. A missing delete leaves stale entities indefinitely; lifecycle candidates are correctly classified as required and critical today (`services/game-server/internal/protocol/realtime/candidate_policy.go:3-21,24-42`).
+8. Keep hard-cap chunking after record ordering/filtering. Interest filtering should reduce chunk counts, but it must not weaken the existing per-message cap (`services/game-server/internal/protocol/realtime/realtime_hardcap_chunker.go:38-98,134-180`).
+
+6. Shared/generated contracts and client routing/application
+
+Logical client request contract
+
+Modify source-of-truth files:
+
+- `shared/packets/gameplay.toml`
+  - add packet type `view_target_request`;
+  - add builder `view_target_request_packet(target_kind, target_id)`;
+  - reuse existing `ClientPacket.TargetKind` and `TargetID` fields (`shared/packets/gameplay.toml:101-123`);
+- `shared/packets/outputs.toml`
+  - include the packet type in `server_game_packets` and `client_packets`;
+  - include the builder in `client_packets` (`shared/packets/outputs.toml:18-25,48-54`).
+
+Regenerated logical outputs:
+
+- `services/game-server/internal/game/packets.go`
+- `client/scripts/generated/networking/packets/packets.gd`
+
+The outputs file establishes those generated destinations (`shared/packets/outputs.toml:18-25,48-54`).
+
+Physical realtime contract
+
+Modify `shared/packets/realtime_wire.toml`:
+
+- add compact/readable keys for `view_target_id`, `locator_present`, `locator_x`, `locator_y`, and locator `team_id`;
+- add the locator fields to `player_session` and `player_session_update`;
+- bind `locator_x` and `locator_y` to position quantization;
+- add `view_target_id` to the overlay receiver full/update records.
+
+The physical realtime source is distinct from logical packet TOML and generates both server and client descriptors (`tools/data_sync/!README.md:16-18,120-135`).
+
+Regenerated physical outputs include:
+
+- `services/game-server/internal/protocol/realtimewire/generated.go`
+- `client/scripts/generated/networking/realtime_wire_generated.gd`
+- `shared/packets/generated/realtime_wire.json`
+- `docs/protocol/generated/realtime-wire-reference.md`
+
+These source/output relationships and validation commands are canonical (`docs/data/source-of-truth-map.md:64-67,229-232`).
+
+Handwritten server record/projection changes
+
+- Extend `OverlayReceiverRecord` and `OverlayReceiverWireRecord` with resolved `ViewTargetID` (`services/game-server/internal/protocol/realtime/records.go:50-63`, `services/game-server/internal/protocol/realtime/quantized_records.go:3-16`).
+- Extend `SessionPlayerRecord` and `SessionPlayerWireRecord` with locator fields (`services/game-server/internal/protocol/realtime/records.go:65-77`, `services/game-server/internal/protocol/realtime/quantized_records.go:78-90`).
+- Extend session projection/cadence logic while preserving lifecycle and durable counters (`services/game-server/internal/protocol/realtime/projection_session.go:20-63`, `services/game-server/internal/protocol/realtime/lane_candidate_session.go:9-42`).
+- Add inbound routing for `view_target_request` through the session adapter, not `Game.HandlePacket`; current gameplay routing already separates session-owned resync handling from game-owned commands (`services/game-server/internal/networking/inbound/gameplay.go:15-50`).
+
+Client routing/application
+
+No new packet family is required for locators if they are session-player fields:
+
+- Generated compact decoding expands the new fields from descriptor bindings (`client/scripts/protocol/realtime/compact_wire_descriptor_decoder.gd:7-20`).
+- `SessionLaneState` already replaces, merges, and deletes player records generically, so it only needs field validation/typed access rather than a new baseline tracker (`client/scripts/protocol/realtime/session_lane_state.gd:13-26,32-73`).
+- `PresentationAdapter` should fan locator state to the new active world locator helper before HUD indicator processing (`client/scripts/protocol/realtime/presentation_adapter.gd:15-34`).
+- `RealtimePresentationState` already exposes session state beside world state (`client/scripts/networking/realtime/realtime_presentation_state.gd:4-22`).
+- Update spectate flow to send the generated target request and await resolved target plus world presence before changing the camera (`client/scripts/gameplay/spectate/gameplay_spectate_flow.gd:33-54`).
+- Keep world entity removal on existing lifecycle application; do not have the locator cache create full ship nodes (`client/scripts/protocol/realtime/world_lane_applier.gd:67-100`, `client/scripts/world/world_sync.gd:91-135`).
+
+7. Concrete tests and important failure modes
+
+Server tests
+
+1. Visibility primitive:
+   - wrapped inclusion across all world edges;
+   - exact enter/exit boundaries;
+   - invalid/zero dimensions use clamped defaults;
+   - simulation visibility remains behaviorally unchanged.
+   Existing visibility tests provide the correct home and boundary style (`services/game-server/internal/game/visibility_test.go:11-39`).
+
+2. Interest projection:
+   - two receivers at different anchors get different world projections from one immutable frame;
+   - no entity is removed from authoritative `Game.entities`;
+   - all four entity classes use wrapped distance;
+   - initial full baseline contains only enter-region entities.
+
+3. Hysteresis:
+   - new entity outside enter but inside exit remains absent;
+   - previously committed entity between enter and exit remains;
+   - entity outside exit produces one delete;
+   - jitter around the visible edge does not alternate create/delete;
+   - a blocked reliable write leaves the committed membership unchanged.
+
+4. Self/spectate:
+   - self remains present outside the selected target’s region;
+   - valid active target remains present;
+   - inactive, eliminated, missing, or malformed targets fall back;
+   - target change produces target create and old-region deletes in one reliable transaction;
+   - target death clears echoed target and falls back without mutating simulation camera views.
+
+5. Baseline/lifecycle:
+   - interest exit produces ship/asteroid/bullet lifecycle delete and pickup world delete;
+   - re-entry produces complete lifecycle create;
+   - hot projection membership is removed only after world commit;
+   - resync full reflects current interest rather than global state.
+   Existing baseline storage and lifecycle generation tests are the right neighboring suites (`services/game-server/internal/protocol/realtime/baseline_test.go:67-103,129-167`, `services/game-server/internal/protocol/realtime/lane_candidate_lifecycle.go:3-58`).
+
+6. Locator cadence:
+   - positions change only every six ticks;
+   - non-sample ticks preserve the previous locator projection while other session fields can change;
+   - full baseline and lifecycle/view-target transitions force a sample;
+   - inactive players set `locator_present = false`;
+   - locator changes produce sparse session updates.
+
+7. Budget:
+   - estimates reflect record counts;
+   - lifecycle deletes remain included over budget;
+   - forced self/target hot updates precede other hot records;
+   - incomplete hot chunk groups are never selected;
+   - deferred hot candidates do not advance their projection;
+   - per-packet encoded size remains at or below 1200 bytes.
+   Current scheduler and hard-cap tests provide direct extension points (`services/game-server/internal/protocol/realtime/scheduler.go:14-58`, `services/game-server/internal/protocol/realtime/hot_lane_chunker_test.go:123-162`).
+
+8. Networking:
+   - inbound target requests are stored per session;
+   - one session cannot change another session’s view;
+   - target state resets on room/player/match identity changes;
+   - blocked world/lifecycle group does not block session locator progress;
+   - failed writes do not commit interest membership.
+   The current write path already has independent-group tests and receiver-specific state (`services/game-server/internal/networking/websocket_write.go:84-150`, `services/game-server/internal/protocol/realtime/baseline_test.go:204-218`).
+
+Client tests
+
+1. Generated compact descriptor tests for every new full/update field.
+2. `SessionLaneState` full and sparse-delta locator merge tests.
+3. Indicator tests proving:
+   - distant locator without a world ship creates an indicator;
+   - in-view hot ship does not get a duplicate indicator;
+   - missing/inactive locator removes the indicator;
+   - wrapped conversion is relative to the current view anchor.
+4. Spectate menu tests should use active locator records instead of world ships; current tests explicitly encode the old world-ship dependency and must be updated (`client/tests/unit/gameplay/spectate/test_spectate_menu_state.gd:6-40`).
+5. Spectate flow tests for request, delayed focus, accepted target, invalid fallback, target death, and cycling to a distant locator. Current tests assume immediate focus and therefore expose the behavior that must change (`client/tests/unit/gameplay/spectate/test_gameplay_spectate_flow.gd:21-46`).
+6. World lifecycle tests confirming an interest delete removes cache and presentation and a later create allows hot updates again. Existing applier tests already verify full replacement and delta deletes (`client/tests/unit/protocol/realtime/test_world_lane_applier.gd:19-47,50-100`).
+7. Lifecycle/world-baseline race tests must remain passing (`client/tests/unit/protocol/realtime/test_lifecycle_lane_gate.gd:11-29,121-143`).
+
+Verification commands
+
+- `data-sync -validate -packets`
+- `data-sync -check -packets -go -gds`
+- `data-sync -validate -realtime-wire`
+- `data-sync -check -realtime-wire -go -gds -json -docs`
+- `go test ./internal/protocol/realtime ./internal/networking ./internal/game`
+- `go test ./...`
+- `godot --headless --path client -s res://addons/gut/gut_cmdln.gd -gdir=res://tests/unit -ginclude_subdirs -gexit`
+
+The repository documents the packet/realtime-wire checks and GUT command (`docs/data/source-of-truth-map.md:203-206,229-232`, `docs/developer.md:286-290`).
+
+Important failure modes
+
+- Using the spectated target to mutate `game.cameraViews` would change authoritative spawn/retention behavior; projection must use a copied view context instead (`services/game-server/internal/game/visibility.go:52-88`).
+- Using computed rather than committed membership for hysteresis can lose a required delete under backpressure; membership must derive from the stored world projection (`services/game-server/internal/protocol/realtime/baseline.go:83-99,152-187`).
+- Hot movement arriving before lifecycle create is already possible across channels. The existing lifecycle gate protects reliable baseline relationships, while hot updates buffer or ignore unknown entities; tests must preserve this behavior (`client/scripts/protocol/realtime/realtime_router.gd:92-112`, `client/scripts/protocol/realtime/world_lane_state.gd:166-180`).
+- Immediate client camera focus can fail for a distant target because no ship node exists until the target enters the filtered world. Target activation must wait for the reliable create (`client/legacy/player_render/player_sync.gd:52-57`).
+- Making locators 60 Hz would simply move the bandwidth problem to the reliable session lane. Cadence must be enforced while constructing the session projection, not only by scheduler priority.
+- Adding a new physical negotiated channel without compatibility/version handling can prevent transport readiness because both peers require the exact channel set (`services/game-server/internal/networking/webrtc_transport.go:27-41`, `client/scripts/networking/webrtc/webrtc_transport.gd:149-163`).
+- Offscreen indicators must not read stale world-node positions after the ship lifecycle delete; locator state must be their sole position source (`client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:32-44`).
+- Event batches are currently broadcast to every player and are outside this hot-entity slice (`services/game-server/internal/game/events.go:109-116`). If “interest” later includes presentation events, filtering must occur before event candidate/drain selection so skipped events cannot accumulate or be incorrectly drained (`services/game-server/internal/game/presentation_events.go:22-62`).
+- Locators must not become a new gameplay-targeting authority. The server remains authoritative for target validation; locator positions are presentation-only.
+- Session-lane locator growth can become material at large player counts. Sparse updates, quantization, encoded-byte metrics, and a measured maximum supported player count should gate rollout.
+
+8. Minimal ordered implementation sequence
+
+1. Extract and test the wrapped rectangle primitive in `internal/game/space`; delegate existing simulation visibility helpers to it without changing simulation behavior (`services/game-server/internal/game/visibility.go:94-109`).
+2. Add network-interest constants to the shared constants source and regenerate Go constants; start with 160 enter, 320 exit, and six-tick locator cadence (`shared/constants/server_entities.toml:15-21`).
+3. Add receiver presentation-view data to `GameplayPresentationSnapshot`: clamped dimensions and retained fallback camera position, copied under the game lock. Keep all entity maps complete (`services/game-server/internal/game/presentation_snapshot.go:81-113`).
+4. Add per-session `view_target_request` state, generated logical contracts, inbound routing, context reset, and resolved-target echo. Do not alter simulation camera ownership (`services/game-server/internal/networking/websocket_session.go:23-46`, `services/game-server/internal/networking/inbound/gameplay.go:15-50`).
+5. Implement `ProjectInterestedWorldLane` at the realtime projection seam. Use previous committed world membership for hysteresis and force self/resolved target (`services/game-server/internal/protocol/realtime/lane_candidate_world.go:9-40`).
+6. Run focused server tests for receiver differences, wrap, hysteresis, self/spectate, lifecycle leave/re-entry, backpressure, and resync before changing the client.
+7. Add locator and resolved-target fields to handwritten records and `shared/packets/realtime_wire.toml`; implement six-tick sampling in session projection while carrying previous committed locator values between samples (`services/game-server/internal/protocol/realtime/projection_session.go:20-84`, `services/game-server/internal/protocol/realtime/lane_candidate_session.go:9-42`).
+8. Regenerate and validate logical packets and physical realtime-wire outputs (`tools/data_sync/!README.md:107-135`).
+9. Update client compact-contract tests, session cache accessors, active locator presentation helper, indicator provider, and spectate target source. Keep full ship-node creation under world lifecycle only (`client/scripts/protocol/realtime/session_lane_state.gd:13-26`, `client/scripts/protocol/realtime/world_lane_applier.gd:67-100`).
+10. Add delayed spectate activation: send request, wait for resolved target plus world ship, then focus. Test death/fallback and rapid cycling (`client/scripts/gameplay/spectate/gameplay_spectate_flow.gd:33-54`).
+11. Make scheduler estimates record-aware and enforce atomic hot chunk-group selection; preserve required lifecycle delivery and hard-cap chunking (`services/game-server/internal/protocol/realtime/scheduler.go:41-58`, `services/game-server/internal/protocol/realtime/realtime_hardcap_chunker.go:38-98`).
+12. Run data-sync checks, focused Go/GUT suites, full Go tests, and packet-size/long-match measurements before enabling the policy by default.
+
+BENCHMARK_EVIDENCE_JSON:{"visibility_seam":[{"path":"services/game-server/internal/game/visibility.go","symbol":"isInsideCameraViewWithMargin","lines":"94-109","claim":"Verified wrapped viewport and margin math is the reusable spatial primitive for proposed interest rectangles."},{"path":"services/game-server/internal/game/space/space.go","symbol":"Delta","lines":"29-38,67-80","claim":"Verified toroidal shortest-delta ownership belongs to game/space."}],"projection_boundary":[{"path":"services/game-server/internal/game/presentation_snapshot.go","symbol":"GameplayPresentationSnapshot","lines":"81-113","claim":"Verified every receiver currently receives complete shared entity maps."},{"path":"services/game-server/internal/protocol/realtime/lane_candidate_world.go","symbol":"buildWorldLaneCandidates","lines":"9-35","claim":"Proposed filtering boundary is immediately before world packet quantization and baseline comparison."}],"baseline_membership":[{"path":"services/game-server/internal/protocol/realtime/delta.go","symbol":"CompareLaneRecordFields","lines":"76-134","claim":"Verified projection membership disappearance already becomes a reliable delete."},{"path":"services/game-server/internal/protocol/realtime/baseline.go","symbol":"CommitSuccessfulCandidate","lines":"152-187","claim":"Verified only successfully written final projections advance baseline and hot membership."}],"hysteresis":[{"path":"services/game-server/internal/protocol/realtime/baseline.go","symbol":"BaselineProjection","lines":"83-99","claim":"Proposed hysteresis memory is the receiver's last committed world projection."},{"path":"shared/constants/server_entities.toml","symbol":"constants.server.asteroids margins","lines":"15-21","claim":"Existing 160/320 viewport-scale margins support the proposed initial enter/exit values under new interest-specific names."}],"self_spectate":[{"path":"client/scripts/gameplay/spectate/gameplay_spectate_flow.gd","symbol":"begin_spectating/request_cycle_target","lines":"33-54","claim":"Verified spectate targeting is currently local and sends no server view-target state."},{"path":"services/game-server/internal/game/simulation_players.go","symbol":"stepPlayers","lines":"22-27","claim":"Verified simulation camera views follow owning ships and must not be repointed for network projection."}],"locator_lane":[{"path":"services/game-server/internal/protocol/realtime/projection_session.go","symbol":"ProjectSessionLane","lines":"20-63","claim":"Verified session lane already carries all player records and lifecycle, making it the proposed low-cadence locator path."},{"path":"client/scripts/gameplay/presentation/gameplay_presentation_flow.gd","symbol":"process","lines":"32-44","claim":"Verified offscreen indicators consume a replaceable generic position provider."}],"generated_contracts":[{"path":"shared/packets/outputs.toml","symbol":"server_game_packets/client_packets","lines":"18-25,48-54","claim":"Verified logical gameplay packet outputs that must include view_target_request."},{"path":"tools/data_sync/!README.md","symbol":"realtime_wire ownership","lines":"16-18,120-135","claim":"Verified realtime_wire.toml is the physical contract source for generated Go/GDScript descriptors."}],"client_application":[{"path":"client/scripts/protocol/realtime/realtime_router.gd","symbol":"route_lane_packet","lines":"42-83","claim":"Verified client routing separates world hot/lifecycle and session application."},{"path":"client/scripts/world/world_sync.gd","symbol":"apply_world_lane_state","lines":"91-135","claim":"Verified existing lifecycle-backed cache changes remove rendered entities correctly."}],"tests":[{"path":"services/game-server/internal/game/visibility_test.go","symbol":"visibility boundary tests","lines":"11-39","claim":"Existing tests establish margin-boundary style for wrapped interest tests."},{"path":"client/tests/unit/protocol/realtime/test_world_lane_applier.gd","symbol":"world full/delta ownership tests","lines":"19-100","claim":"Existing client tests verify replacement, create, update, and delete application."},{"path":"client/tests/unit/gameplay/spectate/test_spectate_menu_state.gd","symbol":"spectate target tests","lines":"6-40","claim":"Existing tests expose the world-ship dependency that locator-backed spectating must replace."}]}

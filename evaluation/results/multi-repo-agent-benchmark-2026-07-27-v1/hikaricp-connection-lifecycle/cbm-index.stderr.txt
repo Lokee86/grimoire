@@ -1,0 +1,2 @@
+level=info msg=mem.init budget_mb=4040 total_ram_mb=16163
+level=info msg=index.supervisor.reap outcome=clean exit_code=0 signal=0

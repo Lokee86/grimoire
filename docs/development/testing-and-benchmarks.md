@@ -96,15 +96,29 @@ Record Lexicon snapshot, Arcana snapshot, vector mode, model identity, and date.
 
 The evaluator accepts progressive JSONL and generic raw tool traces. External CBM adapters can be registered without coupling Grimoire to CBM.
 
-A fair Grimoire-versus-CBM comparison must use:
+A fair assisted-agent comparison must use:
 
-- the same repository revision and task wording;
-- equivalent warm or cold state;
-- the same agent model and completion criteria;
-- all tool calls, source opens, tokens, and elapsed time;
-- no free preassembled Grimoire context package.
+- the same repository revision, clean checkout state, and task wording;
+- equivalent warm or cold state, reported explicitly;
+- the same agent model, normal shell/Git/file tools, and completion criteria;
+- exactly one optional discovery system per assisted condition;
+- the product's installed skill rather than ad hoc prompt instructions;
+- all setup, refresh, discovery, direct-read, token, model-call, and elapsed costs;
+- citation and structured-deliverable validation;
+- no free preassembled context package or hidden prepared answer.
 
-Grimoire should be exercised through `search`, `inspect`, `trace`, and `impact`, beginning with the same information available to the CBM agent.
+### Task suitability
+
+A mechanically fair comparison can still be a poor discovery benchmark. Prompts that name the subsystem, enumerate every expected ownership area, and provide the likely identifiers are specifically favorable to a strong model using `rg`. They pre-solve much of the discovery problem and measure checklist execution more than uncertainty reduction.
+
+Benchmark task selection should distinguish two context regimes:
+
+- **Small/direct working set:** exact identifiers, compact call chains, or prompts that already provide the search plan. Additional discovery results can create a lost-in-the-middle problem by competing with a small amount of obvious evidence.
+- **Large/ambiguous working set:** unclear ownership, cross-language boundaries, transitive impact, generated contracts, conflicting source and documentation, or incomplete problem reports. Structured discovery can prevent lost-in-the-middle by reducing and organizing the context the model must retain.
+
+This task-size inversion should be treated as a hypothesis to test explicitly. A useful suite needs both regimes and should include tasks whose starting vocabulary does not reveal the complete investigation plan. Citation validity, irrelevant branches opened, context volume, and whether key evidence survives into the final answer should be measured separately.
+
+Grimoire should be exercised through `search`, `inspect`, `trace`, and `impact`, while allowing the agent to use direct source inspection whenever it is cheaper. Do not require a minimum number of Grimoire calls.
 
 ## Report interpretation
 
@@ -113,3 +127,5 @@ Checked-in reports are evidence for their exact corpus, repository revision, pro
 Do not compare source-lane scores directly with document, symbol, or relationship scores. Cross-provider scores are not globally calibrated. Compare end-to-end evidence coverage and agent outcomes instead.
 
 Historical context-package reports remain useful for measuring the retired pipeline but must be labeled historical.
+
+Current end-to-end results and task-shape interpretation are summarized in [Agent benchmark findings](agent-benchmark-findings.md). The checked-in raw reports include the final [Space Rocks network-interest benchmark](../../evaluation/results/network-interest-agent-benchmark-2026-07-27-v4/report.md) and the completed [HikariCP/Detekt/Now in Android unfamiliar-repository benchmark](../../evaluation/results/multi-repo-agent-benchmark-2026-07-27-v1/report.md). Raw reports remain authoritative for exact conditions.

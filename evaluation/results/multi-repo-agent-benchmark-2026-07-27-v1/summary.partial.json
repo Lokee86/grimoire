@@ -1,0 +1,366 @@
+{
+  "model": "gpt-5.6-sol",
+  "provider": "openai-codex",
+  "parallel_within_task": false,
+  "sequential_tasks": true,
+  "started_at": "2026-07-28T00:51:30.618241+00:00",
+  "tasks": {
+    "hikaricp-connection-lifecycle": {
+      "repository": "C:\\!bin\\workspace\\corpus\\java-hikaricp",
+      "commit": "a4d93f4f85517f90e632b795486d7102e933d7ff",
+      "cbm_project": "C-bin-workspace-benchmark-checkouts-multi-repo-agent-benchmark-2026-07-27-v1-hikaricp-connection-lifecycle-cbm",
+      "cbm_index_seconds": 0.931,
+      "grimoire_prewarm_seconds": 3.082,
+      "profiles": {
+        "plain": "bench-hikaricp-connectio-plain",
+        "cbm": "bench-hikaricp-connectio-cbm",
+        "grimoire": "bench-hikaricp-connectio-grimoire"
+      },
+      "runs": {
+        "plain": {
+          "exit_code": 0,
+          "elapsed_seconds": 392.163,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 110392,
+            "output_tokens": 14763,
+            "cache_read_tokens": 687616,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 1803,
+            "total_tokens": 812771,
+            "api_calls": 12,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260727_175142_4cb6cf",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "completed_at": "2026-07-28T00:58:07.450048+00:00",
+          "semantic_valid": true,
+          "quality_rank": 1,
+          "citation_audit": {
+            "prose_citations": 178,
+            "evidence_items": 35,
+            "empty_evidence_lanes": 0,
+            "missing_paths": 0,
+            "invalid_line_ranges": 0
+          }
+        },
+        "grimoire": {
+          "exit_code": 0,
+          "elapsed_seconds": 799.296,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 736194,
+            "output_tokens": 26829,
+            "cache_read_tokens": 2429952,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 2803,
+            "total_tokens": 3192975,
+            "api_calls": 26,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260727_175142_eda4fd",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "completed_at": "2026-07-28T01:04:54.598520+00:00",
+          "semantic_valid": true,
+          "quality_rank": 2,
+          "citation_audit": {
+            "prose_citations": 71,
+            "evidence_items": 33,
+            "empty_evidence_lanes": 0,
+            "missing_paths": 0,
+            "invalid_line_ranges": 0
+          }
+        },
+        "cbm": {
+          "exit_code": 0,
+          "elapsed_seconds": 978.378,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 579920,
+            "output_tokens": 24718,
+            "cache_read_tokens": 4902912,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 4557,
+            "total_tokens": 5507550,
+            "api_calls": 42,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260727_175142_d0f5d2",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "completed_at": "2026-07-28T01:07:53.674168+00:00",
+          "semantic_valid": true,
+          "quality_rank": 3,
+          "citation_audit": {
+            "prose_citations": 118,
+            "evidence_items": 30,
+            "empty_evidence_lanes": 0,
+            "missing_paths": 0,
+            "invalid_prose_line_ranges": 4,
+            "invalid_evidence_line_ranges": 3
+          }
+        }
+      }
+    },
+    "detekt-ruleset-plugin-flow": {
+      "repository": "C:\\!bin\\workspace\\corpus\\kotlin-detekt",
+      "commit": "f9e1d5cc239ab740ce499b1edb36b872012648e2",
+      "cbm_project": "C-bin-workspace-benchmark-checkouts-multi-repo-agent-benchmark-2026-07-27-v1-detekt-ruleset-plugin-flow-cbm",
+      "cbm_index_seconds": 6.604,
+      "grimoire_prewarm_seconds": 18.03,
+      "profiles": {
+        "plain": "bench-detekt-ruleset-plu-plain",
+        "cbm": "bench-detekt-ruleset-plu-cbm",
+        "grimoire": "bench-detekt-ruleset-plu-grimoire"
+      },
+      "runs": {
+        "grimoire": {
+          "exit_code": 0,
+          "elapsed_seconds": 333.154,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 176003,
+            "output_tokens": 4599,
+            "cache_read_tokens": 1908736,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 1842,
+            "total_tokens": 2089338,
+            "api_calls": 19,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260727_180833_3a6dc8",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "completed_at": "2026-07-28T01:14:00.088633+00:00",
+          "semantic_valid": false,
+          "quality_rank": 3,
+          "semantic_failure": "Agent refused after Grimoire discovery returned unrelated files and Lexicon/Arcana preparation was unavailable; no source citations or evidence items were delivered.",
+          "citation_audit": {
+            "prose_citations": 0,
+            "evidence_items": 0,
+            "empty_evidence_lanes": 9,
+            "missing_paths": 0,
+            "invalid_line_ranges": 0
+          }
+        },
+        "plain": {
+          "exit_code": 0,
+          "elapsed_seconds": 603.297,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 170965,
+            "output_tokens": 18523,
+            "cache_read_tokens": 1642496,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 3354,
+            "total_tokens": 1831984,
+            "api_calls": 20,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260727_180833_af323d",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "completed_at": "2026-07-28T01:18:30.208233+00:00",
+          "semantic_valid": true,
+          "quality_rank": 1,
+          "citation_audit": {
+            "prose_citations": 150,
+            "evidence_items": 37,
+            "empty_evidence_lanes": 0,
+            "missing_paths": 0,
+            "invalid_line_ranges": 0
+          }
+        },
+        "cbm": {
+          "exit_code": 0,
+          "elapsed_seconds": 1102.47,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 432184,
+            "output_tokens": 26328,
+            "cache_read_tokens": 6504960,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 3398,
+            "total_tokens": 6963472,
+            "api_calls": 57,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260727_180833_17536d",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "completed_at": "2026-07-28T01:26:49.383774+00:00",
+          "semantic_valid": true,
+          "quality_rank": 2,
+          "citation_audit": {
+            "prose_citations": 129,
+            "evidence_items": 41,
+            "empty_evidence_lanes": 0,
+            "missing_paths": 0,
+            "invalid_prose_line_ranges": 1,
+            "invalid_evidence_line_ranges": 1
+          }
+        }
+      }
+    },
+    "nowinandroid-topic-notification-muting": {
+      "repository": "C:\\!bin\\workspace\\corpus\\kotlin-nowinandroid",
+      "commit": "7d45eae4f8720a0c77f507712ba2437ff974b6ed",
+      "execution": "sequential conditions",
+      "profiles": {
+        "plain": "bench-nowinandroid-seq-plain",
+        "cbm": "bench-nowinandroid-seq-cbm",
+        "grimoire": "bench-nowinandroid-seq-grimoire"
+      },
+      "runs": {
+        "plain": {
+          "exit_code": 0,
+          "elapsed_seconds": 573.631,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 137640,
+            "output_tokens": 20739,
+            "cache_read_tokens": 745472,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 5793,
+            "total_tokens": 903851,
+            "api_calls": 14,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260727_184415_f99ac3",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "completed_at": "2026-07-28T01:53:39.725103+00:00",
+          "recovered_after_wrapper_disconnect": true,
+          "semantic_valid": true,
+          "citation_audit": {
+            "prose_citations": 104,
+            "evidence_items": 32,
+            "empty_evidence_lanes": 0,
+            "missing_paths": 0,
+            "invalid_line_ranges": 0
+          }
+        },
+        "cbm": {
+          "exit_code": 0,
+          "elapsed_seconds": 906.301,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 753798,
+            "output_tokens": 25708,
+            "cache_read_tokens": 2771968,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 5675,
+            "total_tokens": 3551474,
+            "api_calls": 27,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260727_185601_769884",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "completed_at": "2026-07-28T02:11:02.136604+00:00",
+          "semantic_valid": true,
+          "citation_audit": {
+            "prose_citations": 80,
+            "evidence_items": 42,
+            "empty_evidence_lanes": 0,
+            "missing_paths": 0,
+            "invalid_line_ranges": 2,
+            "invalid_range_note": "Two build-file citations extended one line beyond end of file."
+          }
+        },
+        "grimoire": {
+          "exit_code": 0,
+          "elapsed_seconds": 587.208,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 401419,
+            "output_tokens": 16645,
+            "cache_read_tokens": 3327488,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 4331,
+            "total_tokens": 3745552,
+            "api_calls": 22,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260727_222117_903074",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "completed_at": "2026-07-28T05:30:59.918352+00:00",
+          "semantic_valid": true,
+          "implementation_grade": false,
+          "quality_rank": 3,
+          "answer_quality": "C",
+          "grounding_failure": "The answer was comprehensive and populated every required evidence lane, but extensive nonexistent paths and out-of-range citations made it unreliable for implementation.",
+          "citation_audit": {
+            "prose_citations": 58,
+            "evidence_items": 28,
+            "empty_evidence_lanes": 0,
+            "invalid_prose_citations": 22,
+            "invalid_evidence_items": 11
+          }
+        }
+      },
+      "updated_at": "2026-07-28T05:30:59.927080+00:00",
+      "cbm_project": "C-bin-workspace-benchmark-checkouts-multi-repo-agent-benchmark-2026-07-27-v1-nowinandroid-topic-notification-muting-cbm",
+      "cbm_index_seconds": 1.518,
+      "grimoire_prewarm_seconds": 17.918,
+      "prior_grimoire_attempt": {
+        "elapsed_description": "2m 34s to refusal",
+        "input_tokens": 166977,
+        "output_tokens": 4191,
+        "api_calls": 14,
+        "session_id": "20260727_204037_6c1f9e",
+        "semantic_valid": false,
+        "failure": "The agent reported the Grimoire MCP server unreachable and returned empty evidence after ordinary tool validation errors triggered Hermes's server circuit breaker."
+      },
+      "benchmark_design_note": "The prompt enumerates nearly every relevant subsystem and supplies strong lexical anchors, making this task unusually favorable to GPT-5.6 Sol with rg and direct reads.",
+      "working_hypothesis": "On compact prompt-shaped tasks, additional discovery context can create a lost-in-the-middle grounding failure; on broad ambiguous tasks, structured discovery can prevent lost-in-the-middle by compressing the working set."
+    }
+  },
+  "nowinandroid_resumed_sequentially": true,
+  "earlier_answer_audit_completed": true,
+  "benchmark_design_limitations": {
+    "neutral_discovery_benchmark": false,
+    "reason": "The task prompts expose the subsystem vocabulary and investigation checklist, strongly favoring a capable model using rg rather than testing discovery under realistic uncertainty.",
+    "task_size_inversion_hypothesis": "Discovery may enlarge and blur a small direct working set while reducing and organizing a large ambiguous working set.",
+    "causal_status": "Interpretive hypothesis; one trial per condition and no controlled context-position experiment."
+  }
+}

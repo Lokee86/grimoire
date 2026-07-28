@@ -5,8 +5,8 @@ This directory documents Grimoire's unified discovery interface, component owner
 ## Sections
 
 - [Architecture](architecture/INDEX.md) — component boundaries, system flow, state ownership, and prepared-index design.
-- [Reference](reference/INDEX.md) — discovery commands, JSON/MCP contracts, source and document semantics, vectors, and state.
-- [Development](development/INDEX.md) — tests, judged corpora, benchmark procedure, and outcome interpretation.
+- [Reference](reference/INDEX.md) — installation, agent setup, discovery commands, JSON/MCP contracts, source and document semantics, vectors, and state.
+- [Development](development/INDEX.md) — tests, judged corpora, benchmark procedure, current agent findings, and outcome interpretation.
 - [Limits](limits/INDEX.md) — current constraints and failure modes.
 - [Planning](planning/INDEX.md) — unimplemented work.
 - [Investigation ledger](../internal/investigation/README.md) — persistent agent-facing discovery state.

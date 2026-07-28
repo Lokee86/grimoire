@@ -1,0 +1,348 @@
+Verified scope: the concrete user-preference model/datastore/repository chain, followed-topic feed path, topic and settings feature implementations, news synchronization and notifier boundary, shared test doubles, and flavor-specific network/sync entry points. “Current” below describes this revision; “Proposed” describes the implementation design.
+
+1. Current ownership and data-flow map
+
+User data and followed topics
+
+- `UserData` is the in-memory user-preference model. It currently carries `followedTopics` with theme, dynamic-color, and onboarding preferences; there is no mute state. `core/model/src/main/kotlin/com/google/samples/apps/nowinandroid/core/model/data/UserData.kt:22-31` (`UserData`).
+- The durable schema is the protobuf `UserPreferences`. Followed string IDs occupy field 5; fields through 9 are already assigned, while field 2 is reserved. `core/datastore-proto/src/main/proto/com/google/samples/apps/nowinandroid/data/user_preferences.proto:25-38` (`UserPreferences`).
+- `NiaPreferencesDataSource.userData` maps protobuf preferences into `UserData`, and its followed-topic mutators use DataStore `updateData`, providing local, transactional, offline-capable writes. `core/datastore/src/main/kotlin/com/google/samples/apps/nowinandroid/core/datastore/NiaPreferencesDataSource.kt:41-74` (`userData`, `setFollowedTopicIds`, `toggleFollowedTopicId`).
+- `UserDataRepository` is the domain-facing owner of the preference flow and mutation API. `OfflineFirstUserDataRepository` forwards these operations to `NiaPreferencesDataSource`; it does not invoke a user account or remote user-data service. This revision therefore has local user-data persistence, not remote user-data synchronization. `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/UserDataRepository.kt:24-46` (`UserDataRepository`); `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstUserDataRepository.kt:27-55` (`OfflineFirstUserDataRepository`).
+
+Feed
+
+- Followed topics are combined with locally stored news to produce user news resources. Mute must not enter this query or the resulting feed mapping. `core/domain/src/main/kotlin/com/google/samples/apps/nowinandroid/core/domain/GetUserNewsResourcesUseCase.kt:33-70` (`GetUserNewsResourcesUseCase`).
+- `NewsResourceQuery.filterTopicIds` is the existing topic-selection mechanism in the news repository. Keeping it based on `UserData.followedTopics` is what preserves muted topics in For You. `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/NewsRepository.kt:25-42` (`NewsResourceQuery`, `NewsRepository.getNewsResources`).
+
+Topic UI
+
+- `TopicViewModel.followTopicToggle` is the current topic-screen mutation entry point. `topicUiState` combines the topic and user data into `TopicUiState.Success`. `feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicViewModel.kt:55-102` (`TopicViewModel`, `followTopicToggle`, `topicUiState`).
+- `TopicUiState.Success` currently exposes a `FollowableTopic`, so it represents follow state but not an independent notification state. `feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicViewModel.kt:161-169` (`TopicUiState.Success`).
+
+Synchronization and notifications
+
+- `OfflineFirstNewsRepository.syncWith` owns ingestion of network news and topic cross-references into local storage. It supplies synchronized news resources to the notification abstraction rather than constructing Android notifications itself. `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstNewsRepository.kt:48-145` (`OfflineFirstNewsRepository.syncWith`).
+- `Notifier.postNewsNotifications` accepts domain `NewsResource` objects. This is the module boundary between synchronization and user-facing notification delivery. `core/notifications/src/main/kotlin/com/google/samples/apps/nowinandroid/core/notifications/Notifier.kt:24-25` (`Notifier.postNewsNotifications`).
+- The system-tray implementation owns notification eligibility, grouping, channels, and posting. That is the appropriate place to combine the synchronized candidates with the latest `UserData`, rather than adding notification-specific filtering to feed queries or network synchronization. `core/notifications/src/main/kotlin/com/google/samples/apps/nowinandroid/core/notifications/SystemTrayNotifier.kt:48-112` (`SystemTrayNotifier.postNewsNotifications`).
+- `TestNotifier` records the resources passed across this boundary and is the existing sync/notification test seam. `core/testing/src/main/kotlin/com/google/samples/apps/nowinandroid/core/testing/notifications/TestNotifier.kt:24-34` (`TestNotifier.postNewsNotifications`).
+
+Settings
+
+- The current settings state is driven from user preferences and primarily represents appearance-related choices. It has no topics repository input and no muted-topic collection. `feature/settings/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/settings/SettingsViewModel.kt:29-72` (`SettingsViewModel`, `SettingsUiState`).
+- `SettingsScreen` renders the existing settings sections and routes events back to the view model. It is the correct screen to add a muted-topics management section, but topic resolution should remain in state/domain code rather than in composables. `feature/settings/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/settings/SettingsScreen.kt:50-150` (`SettingsScreen`, `SettingsPanel`).
+
+2. Model, persistence, migration, and backup
+
+Proposed model
+
+- Add `val mutedTopicIds: Set<String>` to `UserData`, adjacent to `followedTopics`, with `emptySet()` supplied by every production/test fixture. The two sets must remain independent; neither is derived from the other. The insertion point is `core/model/src/main/kotlin/com/google/samples/apps/nowinandroid/core/model/data/UserData.kt:22-31` (`UserData`).
+- Add `repeated string muted_topic_ids = 10;` to `UserPreferences`. Ten is the next unused field after `should_hide_onboarding = 9`; do not reuse reserved field 2 or renumber existing fields. `core/datastore-proto/src/main/proto/com/google/samples/apps/nowinandroid/data/user_preferences.proto:25-38` (`UserPreferences`).
+
+Defaults and schema evolution
+
+- Protobuf’s absent repeated-field default is an empty list, which maps to `emptySet()`. Existing installs consequently begin with no muted topics.
+- This is not a Room schema change. Do not bump `NiaDatabase` or add a Room migration. The only serialized schema changing is the DataStore protobuf.
+- No custom DataStore `DataMigration` is needed for valid old protobuf files: parsing old bytes yields an empty `mutedTopicIdsList`. The existing legacy integer-to-string followed-topic migration remains untouched and should produce an empty muted set because legacy storage contains no mute concept. `core/datastore/src/main/kotlin/com/google/samples/apps/nowinandroid/core/datastore/IntToStringIdsMigration.kt:24-57` (`IntToStringIdsMigration`).
+
+Datastore changes
+
+- Extend `NiaPreferencesDataSource.userData` with `mutedTopicIds = mutedTopicIdsList.toSet()`.
+- Add:
+  - `suspend fun setMutedTopicIds(topicIds: Set<String>)`
+  - `suspend fun setTopicIdMuted(topicId: String, muted: Boolean)`
+- Implement both through one `updateData` transaction and protobuf `clearMutedTopicIds()/addAllMutedTopicIds(...)`, mirroring followed-topic persistence. `core/datastore/src/main/kotlin/com/google/samples/apps/nowinandroid/core/datastore/NiaPreferencesDataSource.kt:41-89` (`userData`, followed-topic mutators).
+- Do not alter mute state in `setTopicIdFollowed`. Unfollowing and refollowing therefore preserves mute state, which is the strongest interpretation of independent choices. Muting never unfollows a topic.
+
+Backup
+
+- The value remains inside the existing user-preferences DataStore file, so backup/restore naturally treats follow and mute as one atomic preference artifact. No new database or standalone file should be introduced.
+- Keep the existing app backup declarations and rules unchanged unless implementation verification discovers that the current DataStore directory is explicitly excluded. The app already delegates backup selection to its XML rules. `app/src/main/AndroidManifest.xml:29-38` (`application` backup attributes); `app/src/main/res/xml/backup_rules.xml:18-25` (`full-backup-content`); `app/src/main/res/xml/data_extraction_rules.xml:18-29` (`data-extraction-rules`).
+- Add a restore-style serialization test: write preferences containing followed and muted sets, recreate the DataStore, and assert both survive. Also parse a pre-field-10 fixture and assert mute defaults empty.
+
+3. Repository and domain API changes
+
+Proposed repository API
+
+Add to `UserDataRepository`:
+
+- `val userData: Flow<UserData>` remains the read API.
+- `suspend fun setTopicIdMuted(topicId: String, muted: Boolean)`.
+- Optionally `suspend fun setMutedTopicIds(topicIds: Set<String>)` if bulk replacement is needed by settings; individual unmute does not require it.
+
+`OfflineFirstUserDataRepository` should delegate directly to the datastore, just as it does for follow state. No network DTO, Retrofit endpoint, account service, sync worker, or change-list version should be invented. `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/UserDataRepository.kt:24-46` (`UserDataRepository`); `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstUserDataRepository.kt:27-55` (`OfflineFirstUserDataRepository`).
+
+Independence contract
+
+- `setTopicIdFollowed(id, false)` changes only `followedTopics`.
+- `setTopicIdMuted(id, true)` changes only `mutedTopicIds`.
+- Muting a followed topic leaves it followed.
+- A muted-but-unfollowed ID is permitted. It has no immediate notification effect, but refollowing remains muted.
+- For You continues to receive only `followedTopics`; never subtract `mutedTopicIds` in `GetUserNewsResourcesUseCase` or `NewsResourceQuery`. `core/domain/src/main/kotlin/com/google/samples/apps/nowinandroid/core/domain/GetUserNewsResourcesUseCase.kt:33-70` (`GetUserNewsResourcesUseCase`).
+
+Settings domain state
+
+Introduce a small `GetMutedTopicsUseCase` in `core/domain` that combines:
+
+- `UserDataRepository.userData`
+- `TopicsRepository.getTopics()`
+
+Return entries for every persisted muted ID:
+
+- `Available(topic: Topic)` when the topic still exists locally.
+- `Unavailable(topicId: String)` when it does not.
+
+This lets settings unmute removed/stale IDs instead of silently making them unmanageable. `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/TopicsRepository.kt:24-38` (`TopicsRepository`); `core/model/src/main/kotlin/com/google/samples/apps/nowinandroid/core/model/data/Topic.kt:22-29` (`Topic`).
+
+4. Notification-filtering boundary and edge behavior
+
+Exact proposed boundary
+
+Apply the policy in `SystemTrayNotifier.postNewsNotifications`, immediately after sampling `userDataRepository.userData.first()` and before notification grouping/building. Do not filter in:
+
+- `OfflineFirstNewsRepository`, because synchronization should persist all news regardless of notification preferences.
+- `Notifier`’s interface, because it should continue accepting synchronized candidate resources.
+- `NewsResourceQuery`, because that would risk changing For You.
+- `SyncWorker`, because it does not own topic/user eligibility.
+
+This preserves the established ownership split at `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstNewsRepository.kt:48-145` (`syncWith`), `core/notifications/src/main/kotlin/com/google/samples/apps/nowinandroid/core/notifications/Notifier.kt:24-25` (`postNewsNotifications`), and `core/notifications/src/main/kotlin/com/google/samples/apps/nowinandroid/core/notifications/SystemTrayNotifier.kt:48-112` (`postNewsNotifications`).
+
+Eligibility formula
+
+For each synchronized candidate:
+
+`eligibleTopicIds = news.topicIds ∩ (followedTopicIds - mutedTopicIds)`
+
+Post the news resource iff `eligibleTopicIds` is non-empty.
+
+Required cases:
+
+- Only muted topics: no notification.
+- One muted followed topic plus one unmuted followed topic: notify once.
+- Muted followed topic plus unmuted but unfollowed topic: no notification.
+- Multiple unmuted followed topics: still one news notification, not one per topic.
+- Empty topic set: no notification. This is a fail-closed policy and avoids topicless or incompletely joined data bypassing preferences.
+- Removed topic:
+  - Keep its muted ID in DataStore.
+  - If the synchronized news still exposes that topic ID, it remains muted.
+  - If the local relation has disappeared and the resource exposes no topics, the empty-set rule suppresses notification.
+  - If the topic later returns with the same ID, the retained mute immediately applies.
+- Repeat sync with no new change-list entries: no candidate is forwarded, so no repost.
+- If a later server revision marks the same news item changed, it is a new synchronized candidate under current change-list behavior and may be reconsidered. Muting does not provide per-news deduplication; introducing such deduplication would be a separate persistence feature.
+- Stale user state: sample the latest DataStore value as late as possible, in the notifier, after news persistence. A mute write that completed before this sample must be honored. A concurrently in-flight write can race; do not cache `UserData` in the notifier.
+- Stale topic relations: filter the locally reconstructed synchronized `NewsResource`, not the earlier network DTO, so notification content and eligibility use the same committed local representation. `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstNewsRepository.kt:90-145` (`syncWith`).
+
+First synchronization should retain the existing suppression behavior; mute filtering is applied only when the current pipeline elects to notify, not as a reason to change first-sync semantics. `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstNewsRepository.kt:90-145` (`syncWith`).
+
+5. Topic-screen state, events, UI, and accessibility
+
+State and events
+
+- Replace the success payload’s implicit follow-only representation with a state that includes both:
+  - `followableTopic: FollowableTopic`
+  - `isMuted: Boolean`
+- Extend `topicUiState`’s existing topic/user-data combine to compute `topic.id in userData.mutedTopicIds`. `feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicViewModel.kt:97-169` (`topicUiState`, `TopicUiState.Success`).
+- Add `muteTopicToggle(muted: Boolean)` in `TopicViewModel`, launching `userDataRepository.setTopicIdMuted(topicId, muted)`. It must not call `followTopicToggle` or change followed state. `feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicViewModel.kt:55-79` (`TopicViewModel.followTopicToggle`).
+
+UI
+
+- Add a separate notification row/control near the follow action:
+  - Label: “Mute notifications for this topic.”
+  - Supporting text when off: “You may receive notifications about new posts.”
+  - Supporting text when on: “This topic remains followed and stays in For You.”
+- Render it as a Material `Switch` or a toggle button with explicit switch semantics; do not overload the follow button’s selected state.
+- Keep the mute switch usable independently of follow. If the topic is unfollowed, its supporting text can explain that the preference will apply when followed again.
+- Disable both mutation controls only while the topic itself is unavailable/loading, not because the device is offline; the backing mutation is local DataStore.
+
+Accessibility
+
+- Give the whole mute row one merged click target of at least 48 dp.
+- Expose a switch role, checked state, and an unambiguous label containing the topic name.
+- Use state descriptions such as “Muted” and “Notifications allowed”; do not rely on bell/slashed-bell imagery or color.
+- Ensure follow and mute are separate focusable actions with distinct labels. Existing topic UI routes follow independently, providing the composition point for the second event. `feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicScreen.kt:55-132` (`TopicScreen`, `TopicBody`).
+
+6. Settings-screen review and unmute UI
+
+State
+
+Extend `SettingsUiState.Success` with `mutedTopics: List<MutedTopicUiModel>`, sorted by localized topic name, with unavailable entries last. Keep appearance settings unchanged. `feature/settings/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/settings/SettingsViewModel.kt:29-72` (`SettingsViewModel`, `SettingsUiState`).
+
+Events
+
+- Add `unmuteTopic(topicId: String)` to `SettingsViewModel`.
+- Route it only to `userDataRepository.setTopicIdMuted(topicId, false)`.
+- Optionally add “Unmute all” using `setMutedTopicIds(emptySet())`; this should not modify followed topics.
+
+UI
+
+Add a “Muted topics” section to `SettingsPanel`:
+
+- Empty state: “No muted topics.”
+- Available row: topic name, optional “Following”/“Not following” supporting status, and an “Unmute” button.
+- Unavailable row: “Unavailable topic,” explanatory text (“This topic is no longer in the catalog”), and an “Unmute” button. Key the row internally by the persisted ID but do not expose a raw opaque ID as the user-facing name.
+- “Unmute all” should require only the ordinary button press; it is reversible and does not warrant a destructive confirmation.
+- Updates should be optimistic through the reactive DataStore flow: after the write completes, the row disappears without a network request.
+
+The insertion point is the existing settings panel and event routing at `feature/settings/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/settings/SettingsScreen.kt:50-150` (`SettingsScreen`, `SettingsPanel`).
+
+Accessibility:
+
+- Every row’s action should announce “Unmute notifications for <topic>.”
+- Do not make both the complete row and nested button independently clickable.
+- Announce the empty state and section heading using heading semantics where the screen’s existing sections do so.
+
+7. Demo/prod, DI, analytics, and test doubles
+
+Demo/prod
+
+- The preference, repository, notifier, topic UI, and settings changes belong in shared main source sets. Both product flavors must use identical mute semantics.
+- Demo’s asset-backed topics and news still contain the same topic-ID relationships needed by the filter. `core/network/src/main/assets/topics.json:1-48` (demo topic records); `core/network/src/main/assets/news.json:241-336` (news topic associations).
+- Prod’s remote/change-list and push-triggered synchronization must continue to enqueue ordinary synchronization; no server-side mute upload or FCM topic subscription is needed. The mute decision is local at notification-post time.
+- Demo may rarely produce post-first-sync changes, but its notifier path and tests must still compile and obey the same policy. Do not place filtering only under a `prod` source set.
+
+DI/modules
+
+- No new platform service is necessary.
+- `OfflineFirstUserDataRepository` already owns datastore delegation; extend its interface/implementation and all bindings rather than introducing a second mute repository. `core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/di/DataModule.kt:35-57` (`DataModule` bindings).
+- If `GetMutedTopicsUseCase` is constructor-injected, Hilt can construct it from existing `TopicsRepository` and `UserDataRepository` bindings.
+- Add `core:domain` and any required model dependency to settings impl only if it does not already have them; keep settings API free of data-layer types. `feature/settings/impl/build.gradle.kts:20-45` (settings implementation dependencies).
+- `SystemTrayNotifier` already receives user-data access for follow filtering; extend its use of `UserData` rather than adding a duplicate datastore dependency. `core/notifications/src/main/kotlin/com/google/samples/apps/nowinandroid/core/notifications/SystemTrayNotifier.kt:48-65` (`SystemTrayNotifier`).
+
+Test doubles and fixtures
+
+- Extend `TestUserDataRepository`/`FakeUserDataRepository` with an independent mutable muted set and `setTopicIdMuted`; do not implement mute by editing followed IDs.
+- Add `mutedTopicIds = emptySet()` to every canonical `UserData` fixture so tests opt into muting explicitly.
+- Keep `TestNotifier` recording only resources it receives. Notification-policy tests belong primarily in `SystemTrayNotifierTest`; sync-boundary tests can continue asserting what the repository forwards. `core/testing/src/main/kotlin/com/google/samples/apps/nowinandroid/core/testing/repository/TestUserDataRepository.kt:28-78` (`TestUserDataRepository`); `core/testing/src/main/kotlin/com/google/samples/apps/nowinandroid/core/testing/notifications/TestNotifier.kt:24-34` (`TestNotifier`).
+
+Analytics
+
+- Add explicit mute/unmute events, separate from follow/unfollow:
+  - Topic screen: `topic_notification_mute_changed`, parameters `topic_id` and `muted`.
+  - Settings: `muted_topic_removed`, parameter `topic_id`; and optionally `all_muted_topics_removed`.
+- Do not log the topic title or infer a follow event from mute.
+- Route through the existing `AnalyticsHelper` abstraction and feature-local analytics functions. `core/analytics/src/main/kotlin/com/google/samples/apps/nowinandroid/core/analytics/AnalyticsHelper.kt:22-30` (`AnalyticsHelper.logEvent`); `feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicAnalytics.kt:24-38` (`logTopicFollowToggled`).
+
+8. Concrete tests
+
+Persistence and migration
+
+1. `NiaPreferencesDataSourceTest`
+   - Old/default proto emits `mutedTopicIds == emptySet()`.
+   - `setTopicIdMuted(true)` adds only mute.
+   - `setTopicIdMuted(false)` removes only mute.
+   - Muting preserves followed IDs; following/unfollowing preserves muted IDs.
+   - Recreated DataStore restores both sets.
+   - Concurrent updates do not lose unrelated preference fields.
+   `core/datastore/src/test/kotlin/com/google/samples/apps/nowinandroid/core/datastore/NiaPreferencesDataSourceTest.kt:35-150` (`NiaPreferencesDataSourceTest`).
+
+2. Protobuf compatibility fixture
+   - Parse bytes written with the pre-field-10 schema and assert empty mute.
+   - Serialize field 10, parse again, and assert exact IDs.
+   - Confirm legacy followed-ID migration leaves mute empty.
+   `core/datastore/src/test/kotlin/com/google/samples/apps/nowinandroid/core/datastore/IntToStringIdsMigrationTest.kt:30-110` (`IntToStringIdsMigrationTest`).
+
+Repository/domain
+
+3. `OfflineFirstUserDataRepositoryTest`
+   - Verify mute delegates locally and does not alter follow.
+   `core/data/src/test/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstUserDataRepositoryTest.kt:30-100` (`OfflineFirstUserDataRepositoryTest`).
+
+4. `GetUserNewsResourcesUseCaseTest`
+   - A followed-and-muted topic’s news remains in For You.
+   - Unfollowed behavior remains unchanged.
+   `core/domain/src/test/kotlin/com/google/samples/apps/nowinandroid/core/domain/GetUserNewsResourcesUseCaseTest.kt:40-140` (`GetUserNewsResourcesUseCaseTest`).
+
+5. New `GetMutedTopicsUseCaseTest`
+   - Resolves available topics.
+   - Retains unavailable IDs as manageable entries.
+   - Sorts available entries deterministically.
+   - Includes muted-but-unfollowed topics.
+
+Notification and sync
+
+6. `SystemTrayNotifierTest`, table-driven:
+   - only muted followed topic → none;
+   - unmuted followed topic → posted;
+   - muted + unmuted followed → posted once;
+   - muted followed + unmuted unfollowed → none;
+   - empty topics → none;
+   - removed/unresolvable topic → none;
+   - stale muted ID plus reappearing same topic ID → none;
+   - empty candidate list → no Android notification;
+   - notification grouping/count uses only eligible resources.
+   `core/notifications/src/test/kotlin/com/google/samples/apps/nowinandroid/core/notifications/SystemTrayNotifierTest.kt:45-180` (`SystemTrayNotifierTest`).
+
+7. `OfflineFirstNewsRepositoryTest`
+   - First sync remains notification-suppressed.
+   - A subsequent change forwards synchronized candidates once.
+   - Repeating sync with the same version forwards nothing.
+   - Updated cross-references are represented in the candidate supplied to `Notifier`.
+   `core/data/src/test/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstNewsRepositoryTest.kt:50-220` (`OfflineFirstNewsRepositoryTest`).
+
+8. End-to-end local integration test:
+   - Follow A and B; mute A; synchronize A-only, A+B, B-only, and topicless resources.
+   - Assert only A+B and B-only reach user-facing notification construction.
+   - Assert all followed A resources remain queryable by For You.
+   - Reopen preferences and rerun no-op sync to verify persistence and no repeat.
+
+View-model and UI
+
+9. `TopicViewModelTest`
+   - Success state reports follow and mute independently.
+   - Mute event changes only mute.
+   - Follow event changes only follow.
+   - Offline/local write updates state without network data.
+   `feature/topic/impl/src/test/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicViewModelTest.kt:40-180` (`TopicViewModelTest`).
+
+10. `TopicScreenTest`
+    - Both controls are visible and independently clickable.
+    - Muted supporting text says the topic remains followed/in For You.
+    - Switch semantics expose label, role, and checked state.
+    - Follow and mute have distinct accessibility nodes.
+    `feature/topic/impl/src/test/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicScreenTest.kt:40-180` (`TopicScreenTest`).
+
+11. `SettingsViewModelTest`
+    - Empty, available, unfollowed-muted, and unavailable-muted states.
+    - Unmuting one ID preserves all other IDs and follow state.
+    - Unmute-all preserves followed IDs.
+    `feature/settings/impl/src/test/kotlin/com/google/samples/apps/nowinandroid/feature/settings/SettingsViewModelTest.kt:35-160` (`SettingsViewModelTest`).
+
+12. `SettingsScreenTest`
+    - Empty state.
+    - Available and unavailable rows.
+    - Per-row and unmute-all events.
+    - Accessible action labels and no duplicate nested click targets.
+    `feature/settings/impl/src/test/kotlin/com/google/samples/apps/nowinandroid/feature/settings/SettingsScreenTest.kt:35-180` (`SettingsScreenTest`).
+
+Flavor/build coverage
+
+13. Compile/test both `demoDebug` and `prodDebug`; ensure the shared notifier implementation and settings/topic graphs resolve in both variants. Exercise the asset-backed demo source with multi-topic fixture data. `core/network/src/main/assets/topics.json:1-48` (demo topics); `core/network/src/main/assets/news.json:241-336` (demo news associations).
+
+9. Failure modes and ordered implementation sequence
+
+Important failure modes
+
+- Accidentally subtracting muted IDs from `NewsResourceQuery` removes muted content from For You. Keep mute out of feed selection.
+- Making muted IDs a subset of followed IDs couples the toggles and loses the user’s preference on unfollow/refollow.
+- Reusing a protobuf field number can corrupt compatibility. Use field 10 and retain existing/reserved numbers.
+- Adding a Room migration is unnecessary and risks unrelated database churn.
+- Filtering network DTOs before local persistence can disagree with the topic relations used to display the notification.
+- Treating “any muted topic” as suppressing a multi-topic item is too broad. Suppress only when there is no unmuted followed association.
+- Treating an empty/missing topic set as eligible leaks notifications through incomplete data; fail closed.
+- Removing stale muted IDs automatically makes a reintroduced topic noisy and prevents settings from managing the choice. Preserve the ID and expose an unavailable entry.
+- Caching `UserData` in the notifier can ignore a recently completed mute.
+- Implementing mute through prod FCM subscriptions would invent remote synchronization, diverge from demo, and fail offline.
+- Updating production interfaces without test repositories and `UserData` fixtures will cause widespread compile failures.
+
+Minimal ordered sequence
+
+1. Add protobuf field 10 and `UserData.mutedTopicIds`; update generated protobuf output through the normal build only during implementation.
+2. Extend datastore mapping/mutators and write compatibility, persistence, and backup-style tests.
+3. Extend `UserDataRepository`, `OfflineFirstUserDataRepository`, test repositories, and canonical fixtures; verify follow/mute independence.
+4. Implement and test `SystemTrayNotifier` eligibility using `followedTopics - mutedTopicIds`; add the complete edge-case matrix.
+5. Add the For You regression test proving muted followed content remains eligible.
+6. Extend topic view-model state/events, analytics, UI, strings, semantics, and tests.
+7. Add `GetMutedTopicsUseCase`, including unavailable IDs.
+8. Extend settings state/events/UI, analytics, accessibility, and tests.
+9. Verify shared DI and both demo/prod variants, then run datastore, data, domain, notifications, topic, settings, sync, and variant-level test suites.
+
+BENCHMARK_EVIDENCE_JSON:{"user_data_model":[{"path":"core/model/src/main/kotlin/com/google/samples/apps/nowinandroid/core/model/data/UserData.kt","symbol":"UserData","lines":"22-31","claim":"Current in-memory preferences include followedTopics but no independent muted-topic set."},{"path":"core/datastore-proto/src/main/proto/com/google/samples/apps/nowinandroid/data/user_preferences.proto","symbol":"UserPreferences","lines":"25-38","claim":"Current durable protobuf assigns followed_topic_ids to field 5 and fields through 9, making 10 the next compatible field."}],"persistence_migration":[{"path":"core/datastore/src/main/kotlin/com/google/samples/apps/nowinandroid/core/datastore/NiaPreferencesDataSource.kt","symbol":"NiaPreferencesDataSource.userData and followed-topic mutators","lines":"41-89","claim":"UserData mapping and offline transactional preference mutations are owned by the DataStore data source."},{"path":"core/datastore/src/main/kotlin/com/google/samples/apps/nowinandroid/core/datastore/IntToStringIdsMigration.kt","symbol":"IntToStringIdsMigration","lines":"24-57","claim":"Legacy migration concerns old followed-topic ID representation; it has no source mute state and should default mute empty."},{"path":"app/src/main/AndroidManifest.xml","symbol":"application backup attributes","lines":"29-38","claim":"The app uses XML-governed Android backup; keeping mute in the existing preferences DataStore requires no new backup artifact."}],"repository_domain":[{"path":"core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/UserDataRepository.kt","symbol":"UserDataRepository","lines":"24-46","claim":"This is the domain-facing user-data flow and mutation contract to extend with setTopicIdMuted."},{"path":"core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstUserDataRepository.kt","symbol":"OfflineFirstUserDataRepository","lines":"27-55","claim":"The implementation delegates user choices to local preferences and provides no remote user-data synchronization."},{"path":"core/domain/src/main/kotlin/com/google/samples/apps/nowinandroid/core/domain/GetUserNewsResourcesUseCase.kt","symbol":"GetUserNewsResourcesUseCase","lines":"33-70","claim":"For You eligibility derives from followed topics; muted IDs must not be subtracted here."}],"sync_behavior":[{"path":"core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstNewsRepository.kt","symbol":"OfflineFirstNewsRepository.syncWith","lines":"48-145","claim":"News synchronization persists network changes and hands synchronized local NewsResource candidates to the notifier boundary."},{"path":"core/testing/src/main/kotlin/com/google/samples/apps/nowinandroid/core/testing/notifications/TestNotifier.kt","symbol":"TestNotifier.postNewsNotifications","lines":"24-34","claim":"The test notifier is the existing seam for asserting synchronized notification candidates and repeat-sync behavior."}],"notification_filtering":[{"path":"core/notifications/src/main/kotlin/com/google/samples/apps/nowinandroid/core/notifications/Notifier.kt","symbol":"Notifier.postNewsNotifications","lines":"24-25","claim":"The notification abstraction accepts NewsResource candidates from synchronization."},{"path":"core/notifications/src/main/kotlin/com/google/samples/apps/nowinandroid/core/notifications/SystemTrayNotifier.kt","symbol":"SystemTrayNotifier.postNewsNotifications","lines":"48-112","claim":"The system-tray implementation is the exact boundary for sampling UserData and excluding candidates with no unmuted followed topic."}],"topic_ui":[{"path":"feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicViewModel.kt","symbol":"TopicViewModel.followTopicToggle and topicUiState","lines":"55-102","claim":"Current topic state and events support follow only; add independent mute state and muteTopicToggle beside them."},{"path":"feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicViewModel.kt","symbol":"TopicUiState.Success","lines":"161-169","claim":"The success payload currently exposes followable topic state and must be extended with isMuted."},{"path":"feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicScreen.kt","symbol":"TopicScreen and TopicBody","lines":"55-132","claim":"The topic screen's existing follow-control composition point should receive a separate accessible mute switch."}],"settings_ui":[{"path":"feature/settings/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/settings/SettingsViewModel.kt","symbol":"SettingsViewModel and SettingsUiState","lines":"29-72","claim":"Current settings state is preference-oriented and has no muted-topic collection; combine resolved topics and UserData here."},{"path":"feature/settings/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/settings/SettingsScreen.kt","symbol":"SettingsScreen and SettingsPanel","lines":"50-150","claim":"Add the muted-topics empty/list/unmute section to the existing settings panel and event routing."}],"dependency_wiring":[{"path":"core/data/src/main/kotlin/com/google/samples/apps/nowinandroid/core/data/di/DataModule.kt","symbol":"DataModule","lines":"35-57","claim":"Existing user-data and topic repository bindings should be reused; no separate mute repository or remote service is needed."},{"path":"feature/settings/impl/build.gradle.kts","symbol":"settings implementation dependencies","lines":"20-45","claim":"Settings implementation is the module that may need the domain dependency for GetMutedTopicsUseCase."},{"path":"core/network/src/main/assets/topics.json","symbol":"demo topic records","lines":"1-48","claim":"Demo supplies stable topic IDs locally, so shared mute filtering can use the same IDs as prod."}],"analytics_accessibility":[{"path":"core/analytics/src/main/kotlin/com/google/samples/apps/nowinandroid/core/analytics/AnalyticsHelper.kt","symbol":"AnalyticsHelper.logEvent","lines":"22-30","claim":"Mute and unmute actions should be logged through the existing analytics abstraction."},{"path":"feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicAnalytics.kt","symbol":"logTopicFollowToggled","lines":"24-38","claim":"Existing topic follow analytics provides the pattern for a distinct mute-changed event rather than conflating mute with follow."},{"path":"feature/topic/impl/src/main/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicScreen.kt","symbol":"TopicBody controls","lines":"80-132","claim":"Follow and mute must be separate semantic controls with labels, checked state, and independent focus targets."}],"tests":[{"path":"core/datastore/src/test/kotlin/com/google/samples/apps/nowinandroid/core/datastore/NiaPreferencesDataSourceTest.kt","symbol":"NiaPreferencesDataSourceTest","lines":"35-150","claim":"Extend datastore tests for empty defaults, independent writes, serialization recreation, and unrelated-field preservation."},{"path":"core/data/src/test/kotlin/com/google/samples/apps/nowinandroid/core/data/repository/OfflineFirstNewsRepositoryTest.kt","symbol":"OfflineFirstNewsRepositoryTest","lines":"50-220","claim":"Cover first sync, changed-resource forwarding, updated topic relations, and no candidates on repeat no-op sync."},{"path":"core/notifications/src/test/kotlin/com/google/samples/apps/nowinandroid/core/notifications/SystemTrayNotifierTest.kt","symbol":"SystemTrayNotifierTest","lines":"45-180","claim":"Add the full single-topic, multi-topic, empty, removed, stale, followed, and muted notification eligibility matrix."},{"path":"feature/topic/impl/src/test/kotlin/com/google/samples/apps/nowinandroid/feature/topic/impl/TopicViewModelTest.kt","symbol":"TopicViewModelTest","lines":"40-180","claim":"Verify independent follow/mute state and offline-local mutation."},{"path":"feature/settings/impl/src/test/kotlin/com/google/samples/apps/nowinandroid/feature/settings/SettingsViewModelTest.kt","symbol":"SettingsViewModelTest","lines":"35-160","claim":"Verify available, unavailable, unfollowed-muted, per-topic unmute, and unmute-all settings states."}]}

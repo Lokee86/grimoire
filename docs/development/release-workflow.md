@@ -1,6 +1,18 @@
 # Release workflow
 
-The root workflow coordinates the independent Grimoire Go, Lexicon Go, Arcana Rust, and Lodestone native build roots. It does not merge their build systems or generate source into component trees.
+The root workflow coordinates the independent Grimoire Go, Lexicon Go, Arcana Rust, Lodestone native, and Lexicon adapter build roots. It does not merge their implementation boundaries or generate source into component trees.
+
+## Requirements
+
+A complete source build expects:
+
+- Python 3.12 or newer;
+- Go 1.26.5;
+- Rust 1.90 or newer;
+- Node.js 22 for the TypeScript adapter;
+- Lodestone checked out at `../lodestone`, or `LODESTONE_ROOT` set to another checkout.
+
+Use `py -3` instead of `python` when that is the configured Windows launcher.
 
 ## CPU bounds
 
@@ -19,7 +31,7 @@ The bound applies to:
 - Cargo build jobs;
 - Rust test threads.
 
-This default prevents the workflow from spawning a large package-test swarm. Increase concurrency only deliberately:
+This prevents the workflow from spawning a large package-test swarm. Increase concurrency only deliberately:
 
 ```bash
 python scripts/workflow.py test --jobs 2
@@ -27,8 +39,6 @@ python scripts/workflow.py release --version 1.2.3 --jobs 2
 ```
 
 `--jobs` must be at least 1. A high value can still overload the machine.
-
-Use `py -3` instead of `python` when that is the configured Windows launcher.
 
 ## Smoke checks
 
@@ -39,7 +49,7 @@ python scripts/workflow.py smoke
 python scripts/test_workflow.py
 ```
 
-It validates archive layout, fixed metadata, checksums, version validation, selected-component installation, and concurrency defaults.
+It validates archive layout, fixed metadata, checksums, version validation, selected-component installation, skill installation, and concurrency defaults.
 
 ## Build layout
 
@@ -51,6 +61,11 @@ build/
     arcana(.exe)
   native/
     lodestone_ffi.dll | liblodestone_ffi.so | liblodestone_ffi.dylib
+  adapters/
+    <Lexicon runtime adapters>
+  skills/
+    grimoire/
+      SKILL.md
 ```
 
 The Go CLIs receive the version through linker flags. Arcana receives the same value through `GRIMOIRE_RELEASE_VERSION`; a standalone Cargo build still reports its manifest version.
@@ -63,9 +78,24 @@ python scripts/workflow.py install --source build --bin-dir PATH --component gri
 python scripts/workflow.py install --source build --bin-dir PATH --component lexicon --component arcana
 ```
 
-Omitting `--component` installs all three applications. Repeating it installs only the selected subset. When Grimoire is selected, the Lodestone native library is copied beside the executable so ordinary dynamic-library discovery works without extra configuration.
+Omitting `--component` installs all three applications. Repeating it installs only the selected subset.
 
-The installer does not modify `PATH` or user configuration.
+When Grimoire is selected, installation copies:
+
+- the Grimoire executable;
+- the Lodestone native library beside it;
+- the canonical skill to `~/.agents/skills/grimoire/SKILL.md` and `~/.hermes/skills/grimoire/SKILL.md` by default.
+
+When Lexicon is selected, its runtime adapters are copied into the installed adapter tree.
+
+Override skill roots or skip skill installation:
+
+```bash
+python scripts/workflow.py install --source build --bin-dir PATH --skills-dir /custom/skills
+python scripts/workflow.py install --source build --bin-dir PATH --skip-skills
+```
+
+The installer does not modify `PATH` or agent-host configuration.
 
 ## Release packaging
 
@@ -85,13 +115,34 @@ dist/1.2.3/
   SHA256SUMS.txt
 ```
 
-The Grimoire archive contains its required native library beside the executable. The combined bundle contains `bin/`, `native/`, `install.py`, and `VERSION`.
+The Grimoire component archive contains its executable, required native library, and canonical skill. The combined bundle contains:
 
-Archives use sorted entries and fixed timestamps for deterministic packaging. The command creates local files only; it does not publish, tag, or push a release.
+```text
+bin/
+native/
+adapters/
+skills/
+install.py
+VERSION
+```
+
+Archives use sorted entries and fixed timestamps for deterministic packaging. The local release command creates files only; it does not publish, tag, or push.
+
+## GitHub release workflow
+
+`.github/workflows/release.yml` builds Windows x86_64 and Linux x86_64 combined bundles on version tags or manual dispatch. It checks out Lodestone beside Grimoire, runs the same root release workflow, creates release-level checksums, and uploads the bundles to the GitHub release.
+
+The workflow currently publishes combined bundles rather than every local component archive.
+
+## Release verification
 
 Before external publication:
 
 1. Inspect `release-manifest.json`.
 2. Verify `SHA256SUMS.txt`.
-3. Exercise all component version commands.
-4. Run a bounded discovery smoke test against a representative repository.
+3. Exercise `grimoire version`, `grimoire lexicon check`, and `grimoire arcana check`.
+4. Confirm the installed skill is byte-identical to `skills/grimoire/SKILL.md`.
+5. Run a bounded discovery smoke test against a representative repository.
+6. Confirm a fresh agent session discovers the installed skill and MCP tool.
+
+See [Installation and agent setup](../reference/installation.md) for the consumer workflow.

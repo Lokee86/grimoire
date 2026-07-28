@@ -1,58 +1,242 @@
-# Grimoire MCP interface
+# Grimoire agent and MCP guide
 
-`grimoire mcp` serves the unified discovery contract over stdio.
+`grimoire mcp` serves the unified discovery contract over stdio:
 
 ```bash
-grimoire mcp --root .
+grimoire mcp --root /absolute/path/to/repository
 ```
 
-The server exposes one tool: `grimoire_discover`.
+The server exposes one tool:
+
+```text
+grimoire_discover
+```
+
+Use an absolute root when an agent host may start the process from another working directory.
+
+## Host configuration
+
+The exact configuration envelope is host-specific, but the process definition is equivalent to:
+
+```json
+{
+  "command": "grimoire",
+  "args": ["mcp", "--root", "/absolute/path/to/repository"]
+}
+```
+
+Verify the binaries before configuring the host:
+
+```bash
+grimoire version
+grimoire lexicon check
+grimoire arcana check
+```
+
+See [Installation and agent setup](installation.md) for release installation, source builds, PATH setup, and troubleshooting.
+
+## Installed agent skill
+
+Grimoire distributions include the canonical [`skills/grimoire/SKILL.md`](../../skills/grimoire/SKILL.md). The installer writes it by default to:
+
+```text
+~/.agents/skills/grimoire/SKILL.md
+~/.hermes/skills/grimoire/SKILL.md
+```
+
+Start a new agent session after installation or update so the host can discover the skill.
+
+The skill teaches agents to:
+
+- combine Grimoire with normal shell, Git, search, and direct file inspection;
+- begin a concrete task with narrow `search`, not broad `orient`;
+- reuse one investigation `session`;
+- request small per-lane limits;
+- disable documents for implementation-only work;
+- follow stable handles with `inspect`, `trace`, and `impact`;
+- avoid unnecessary state refreshes;
+- verify material conclusions against exact source;
+- stop querying Grimoire when direct inspection becomes cheaper.
+
+The skill is operating guidance, not a second product interface. The MCP server remains the executable discovery surface.
+
+## Intended tool access
+
+Do not restrict an agent to Grimoire alone. A normal Grimoire-assisted agent should retain:
+
+- shell commands and literal repository search;
+- Git inspection;
+- direct source reads;
+- the installed Grimoire skill;
+- the `grimoire_discover` MCP tool.
+
+This is important for both correctness and efficiency. Grimoire should reduce broad discovery work, while exact source reads remain the final proof of implementation claims.
 
 ## Normal workflow
 
-1. Call `search` with the repository question.
+1. Ask one concrete repository question with `search`.
 2. Review the independent exact, source, document, symbol, and relationship lanes.
-3. Use returned handles with `inspect`, `trace`, or `impact`.
-4. Reuse one `session` name for the investigation so previously returned evidence is represented by compact prior handles rather than replayed.
+3. Follow returned handles with `inspect`, `trace`, or `impact`.
+4. Reuse one short `session` name for the investigation.
+5. Switch to direct source reads and shell search whenever they are cheaper.
+6. Check `warnings`, `preparation`, and `truncated_lanes` before completeness or negative claims.
 
-`orient` is useful when the repository is unfamiliar, but agents should normally begin a concrete task with `search`.
+Use `orient` only when the repository is unfamiliar and the task has no useful search terms.
+
+## Efficient first request
+
+```json
+{
+  "schema": "grimoire.discovery.v1",
+  "mode": "search",
+  "root": "/absolute/path/to/repository",
+  "query": "camera visibility network interest realtime snapshot",
+  "limit": 6,
+  "code_only": true,
+  "state_mode": "refresh-if-needed",
+  "session": "network-interest"
+}
+```
+
+Use `limit: 4` to `8` for most first requests. `limit` applies independently to every lane.
+
+Set either:
+
+```json
+{"code_only": true}
+```
+
+or:
+
+```json
+{"include_documents": false}
+```
+
+when documentation is not materially relevant.
+
+## Handle-based follow-ups
+
+Inspect exact evidence:
+
+```json
+{
+  "schema": "grimoire.discovery.v1",
+  "mode": "inspect",
+  "root": "/absolute/path/to/repository",
+  "handles": ["<returned-handle>"],
+  "adjacent_context": 3,
+  "state_mode": "current-only",
+  "session": "network-interest"
+}
+```
+
+Trace a bounded structural path:
+
+```json
+{
+  "schema": "grimoire.discovery.v1",
+  "mode": "trace",
+  "root": "/absolute/path/to/repository",
+  "anchor": "<returned-handle>",
+  "depth": 3,
+  "limit": 6,
+  "state_mode": "current-only",
+  "session": "network-interest"
+}
+```
+
+Find bounded dependents:
+
+```json
+{
+  "schema": "grimoire.discovery.v1",
+  "mode": "impact",
+  "root": "/absolute/path/to/repository",
+  "anchor": "<returned-handle>",
+  "direction": "incoming",
+  "depth": 3,
+  "limit": 6,
+  "state_mode": "current-only",
+  "session": "network-interest"
+}
+```
+
+Do not repeat a broad natural-language search when a returned handle already identifies the source or symbol to expand.
+
+## State modes
+
+| Mode | Use |
+| --- | --- |
+| `current-only` | Prepared state is known to match the checkout; fail rather than refresh |
+| `refresh-if-needed` | Normal first request or repository state may have changed |
+| `force-refresh` | Explicit rebuild or demonstrated invalid state only |
+
+Initial preparation may dominate the first request. Reuse prepared state across related investigations and report preparation separately in benchmarks.
 
 ## Input
 
-The tool accepts the `grimoire.discovery.v1` fields documented in [Unified discovery contract](agent-query.md), plus automatic-state and session fields:
+The tool accepts the `grimoire.discovery.v1` fields documented in [Unified discovery contract](agent-query.md), including:
 
-- `state_mode`: `current-only`, `refresh-if-needed`, or `force-refresh`;
-- `session`: optional investigation-session name;
-- `include_documents`: whether the separate documentation lane is returned;
-- `use_document_vectors`: whether current documentation vectors augment document BM25 ranking.
+- `mode`, `root`, `state`, and `state_mode`;
+- `query`, `anchor`, `target`, and `handles`;
+- `limit`, `depth`, `direction`, and `relations`;
+- `adjacent_context` and `detail`;
+- `code_only`, `include_documents`, and `use_document_vectors`;
+- `session`;
+- controlled provider state or executable overrides.
 
-Provider override fields are accepted for controlled environments, but agents should not choose between Grimoire, Lexicon, and Arcana. Grimoire owns that routing.
+Agents do not choose between Lexicon and Arcana. Grimoire owns provider routing.
 
 ## Output
 
-The MCP response is the same flattened discovery response used by the CLI:
+The response uses the same flattened schema as the CLI:
 
-- `exact_matches`
-- `source_matches`
-- `document_matches`
-- `symbol_matches`
-- `relationship_matches`
-- mode-specific `paths`, `dependents`, or `inspections`
-- `snapshot`, `preparation`, `warnings`, and `truncated_lanes`
+- `exact_matches`;
+- `source_matches`;
+- `document_matches`;
+- `symbol_matches`;
+- `relationship_matches`;
+- mode-specific `paths`, `dependents`, or `inspections`;
+- `snapshot`, `preparation`, `warnings`, and `truncated_lanes`.
 
-When `session` is supplied, newly discovered evidence is returned through `delta`; repeated evidence is represented by prior handles.
+When `session` is supplied, newly discovered evidence is returned through `delta`; repeated evidence is represented by prior handles rather than replayed in full.
 
 ## Evidence semantics
 
-Source and documentation must be interpreted separately:
+Interpret lanes independently:
 
-- Source is the authority for current implementation behavior.
-- Documentation supplies intent, rationale, plans, or historical constraints.
+- source is authoritative for current implementation behavior;
+- documentation supplies intent, rationale, plans, or historical constraints and may be stale;
+- symbols identify declarations and definitions;
+- relationships identify bounded graph evidence and may degrade when structural providers are unavailable.
 
-Documentation is never inserted into source or symbol lanes and never consumes their result limits.
+Do not count the same underlying source occurrence multiple times merely because it appears in several lanes.
 
-## State preparation
+## Completeness and negative claims
 
-The MCP runtime aligns Grimoire, Lexicon, Arcana, and documentation state before querying when `state_mode` permits refresh. Missing or failed structural providers are reported as warnings. Source and document discovery continue when possible.
+Before claiming that a symbol has no callers, a feature has no implementation, or no other relevant files exist:
 
-Vector state is never required for source, symbol, or relationship discovery. Documentation vectors are optional and are validated for freshness before use.
+1. inspect `warnings` and provider degradation;
+2. inspect `truncated_lanes`;
+3. expand only materially relevant bounded lanes;
+4. verify the scope with normal repository search when needed;
+5. state unresolved coverage limits rather than presenting partial discovery as exhaustive.
+
+## State preparation and degradation
+
+The MCP runtime aligns Grimoire source, documentation, Lexicon, and Arcana state when `state_mode` permits refresh.
+
+- Missing or failed structural providers are reported as warnings.
+- Exact and BM25 source discovery may continue when structural lanes degrade.
+- Documentation vectors are optional and validated for freshness.
+- Vector state is never required for exact, source, symbol, relationship, trace, or impact operations.
+
+## Choosing Grimoire or direct inspection
+
+Start with direct shell inspection when the task is a literal path, exact identifier, or short call chain with obvious names.
+
+Start with Grimoire when the task requires architectural ownership, cross-language discovery, generated contracts, source-plus-document reasoning, impact analysis, or broad implementation planning.
+
+Do not force a minimum number of Grimoire calls. An agent that uses one or two high-value discovery requests and then verifies source directly is operating correctly.
+
+See [Agent benchmark findings](../development/agent-benchmark-findings.md) for measured examples.

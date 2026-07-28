@@ -2,8 +2,10 @@
 
 Development documentation defines how Grimoire is verified and how retrieval claims are measured.
 
-- [Testing and benchmarks](testing-and-benchmarks.md) — test suites, evaluation commands, and report artifacts.
-- [Release workflow](release-workflow.md) — root orchestration, local installation, version injection, and release artifacts.
+- [Testing and benchmarks](testing-and-benchmarks.md) — test suites, evaluation commands, benchmark controls, and report artifacts.
+- [Agent benchmark findings](agent-benchmark-findings.md) — current task-shape conclusions, Space Rocks comparisons, and the HikariCP/Detekt/Now in Android unfamiliar-repository suite.
+- [Recent changes — July 2026](recent-changes-2026-07.md) — progressive-discovery consolidation, lexical-first retrieval, packaging, skill, and benchmark summary.
+- [Release workflow](release-workflow.md) — root orchestration, local installation, skill packaging, version injection, and release artifacts.
 - [Retrieval quality](retrieval-quality.md) — corpus schema, pipeline-loss attribution, and metric interpretation.
 - [Ranking calibration corpus](ranking-calibration-corpus.md) — judged case design and expansion rules.
 

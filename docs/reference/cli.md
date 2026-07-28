@@ -6,7 +6,7 @@
 grimoire <command> [flags]
 ```
 
-Run `grimoire help` for the installed command summary.
+Run `grimoire help` for the installed command summary. See [Installation and agent setup](installation.md) before first use.
 
 ## Discovery commands
 

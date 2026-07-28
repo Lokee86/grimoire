@@ -56,9 +56,9 @@ The agent-discovery evaluator measures whether the investigation found the requi
 - median time to complete evidence;
 - irrelevant branch count.
 
-## Grimoire versus CBM
+## Assisted-agent comparisons
 
-Use identical tasks, revisions, agent models, and completion criteria. Do not give Grimoire a free context package or exclude CBM setup calls unless the equivalent Grimoire setup is also excluded.
+Use identical tasks, revisions, agent models, normal repository tools, skills, and completion criteria. Give each assisted condition exactly one optional discovery system. Do not provide a hidden prepared answer or exclude setup and refresh costs unless equivalent costs are excluded for every system.
 
 Compare at least:
 
@@ -85,7 +85,7 @@ Cases should be concrete and implementation-checkable. Each case needs:
 - completion criteria;
 - known relevant branches.
 
-Include exact literals, local symbol ownership, cross-file call paths, configuration readers, documentation rationale, and mixed source/document questions.
+Include exact literals, local symbol ownership, cross-file call paths, configuration readers, documentation rationale, mixed source/document questions, cross-language generated contracts, architecture plans, and impact analysis. Report results by task class rather than averaging lookup and architecture work into one undifferentiated score.
 
 ## Historical package evaluation
 

@@ -1,0 +1,246 @@
+Repository state remained read-only. I inspected the indexed lifecycle implementation and representative tests but did not execute tests, builds, generators, or proxy generation.
+
+Current behavior is described in sections 1–8. Section 9 separates existing tests from the proposed test plan.
+
+1. End-to-end normal lifecycle
+
+Primary call/data flow:
+
+`HikariDataSource.getConnection()`
+→ `HikariPool.getConnection(connectionTimeout)`
+→ `ConcurrentBag.borrow(remainingTimeout, MILLISECONDS)`
+→ eviction/liveness check
+→ borrow metrics and optional JDBC request boundary
+→ `ProxyLeakTaskFactory.schedule(poolEntry)`
+→ `PoolEntry.createProxyConnection(leakTask)`
+→ application uses generated proxy
+→ `ProxyConnection.close()`
+→ statement cleanup, leak cancellation, rollback/reset/warning cleanup
+→ `HikariPool.recycle(poolEntry)`
+→ `ConcurrentBag.requite(poolEntry)`.
+
+Concrete stages:
+
+1. `HikariDataSource.getConnection()` first rejects an already-closed data source. If `fastPathPool` is available, it delegates immediately. Otherwise, lazy initialization is synchronized: configuration is validated, copied into a pool, sealed, and published before delegation. Pool-initialization failure is translated to `SQLTransientConnectionException`. `src/main/java/com/zaxxer/hikari/HikariDataSource.java:90-128` (`HikariDataSource.getConnection`).
+
+2. `HikariPool.getConnection()` acquires the suspend/resume gate, starts checkout timing, and repeatedly borrows a `PoolEntry` from the bag. It rejects marked-evicted entries and stale entries that fail validation; a usable entry gets borrow metrics, an optional `Connection.beginRequest()`, a scheduled leak task, and a proxy. The suspend gate is released in `finally`. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:152-193` (`HikariPool.getConnection`).
+
+3. Physical connections are supplied independently by pool-creation work. `PoolEntryCreator` calls `createPoolEntry()`, which calls `PoolBase.newConnection()`, wraps the physical JDBC connection in a `PoolEntry`, and installs lifetime/keepalive tasks. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:480-517` (`HikariPool.createPoolEntry`); `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:745-776` (`HikariPool.PoolEntryCreator.call`).
+
+4. `PoolBase.newConnection()` obtains a physical connection using the configured `DataSource`, rejects a null result, initializes it, clears prior creation failure state, and returns it. If creation or setup fails, the partially created connection is physically closed and the failure is retained in `lastConnectionFailure`; connection-creation duration is recorded when metrics are enabled. `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:360-408` (`PoolBase.newConnection`).
+
+5. Initial physical state consists of validation/network-timeout setup, configured read-only and auto-commit values, driver capability checks, transaction isolation, catalog, schema, and `connectionInitSql`; the original network timeout is restored afterward. `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:416-456` (`PoolBase.setupConnection`).
+
+6. `PoolEntry.createProxyConnection()` optionally attaches a lease-tracking `WeakReference`, then passes the pool entry, physical connection, open-statement list, leak task, and configured state into `ProxyFactory.getProxyConnection()`. `src/main/java/com/zaxxer/hikari/pool/PoolEntry.java:101-110` (`PoolEntry.createProxyConnection`); `src/main/java/com/zaxxer/hikari/pool/ProxyFactory.java:46-49` (`ProxyFactory.getProxyConnection`).
+
+7. Application `Connection.close()` closes the logical proxy, not normally the physical JDBC connection. After cleanup, it replaces the proxy delegate with a closed sentinel and calls `PoolEntry.recycle()`, which leads to `HikariPool.recycle()`. `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:239-271` (`ProxyConnection.close`).
+
+8. On a healthy return, `HikariPool.recycle()` records usage, updates the entry’s last-access time, optionally invokes `Connection.endRequest()`, and requites it to the bag. If already marked evicted, it closes rather than requites the entry. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:433-449` (`HikariPool.recycle`); `src/main/java/com/zaxxer/hikari/pool/PoolEntry.java:74-80` (`PoolEntry.recycle`).
+
+9. `ConcurrentBag.requite()` changes the state back to `STATE_NOT_IN_USE`, preferentially offers it to waiting borrowers, and otherwise places it in the returning thread’s local cache. `src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java:172-191` (`ConcurrentBag.requite`).
+
+2. Acquisition-loop timing and timeout semantics
+
+- Checkout timing begins after the suspend/resume gate has been acquired. Consequently, time blocked because the pool is administratively suspended is outside the configured connection-timeout measurement. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:156-160` (`HikariPool.getConnection`).
+
+- The initial budget is the pool’s current `connectionTimeout`. After an evicted or dead candidate is closed, the loop computes `timeout = connectionTimeout - elapsedMillis(startTime)` and passes that remaining budget to the next bag borrow. A rejected candidate does not receive a fresh full timeout. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:158-171` (`HikariPool.getConnection`).
+
+- `ConcurrentBag.borrow()` converts its timeout to nanoseconds and polls while more than 10 microseconds remain. The outer pool loop retries while more than the pool’s 10-millisecond soft floor remains. `src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java:120-165` (`ConcurrentBag.borrow`); `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:166-184` (`HikariPool.getConnection`).
+
+- The timeout is therefore a borrow/retry budget, not a separately enforced hard deadline around every operation. In particular, once a candidate is borrowed, its validation can consume additional time; if that candidate validates successfully, the method returns it without another deadline check. If it is dead, elapsed validation time is deducted before another iteration. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:162-184` (`HikariPool.getConnection`).
+
+- Bag exhaustion breaks out and produces a `SQLTransientConnectionException`. The message contains elapsed time and total/active/idle/waiting counts; SQL state, vendor code, cause, and `nextException` preserve the most recent physical connection failure when it was a `SQLException`. Timeout metrics and a diagnostic pool-state log are emitted first. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:700-721` (`HikariPool.createTimeoutException`).
+
+- If the handoff poll is interrupted, `HikariPool.getConnection()` restores the thread interrupt flag and throws `SQLTransientConnectionException("... Interrupted during connection acquisition")`. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:185-190` (`HikariPool.getConnection`).
+
+- Suspension is different from bag interruption: `SuspendResumeLock.acquire()` waits uninterruptibly when suspended, unless system property `com.zaxxer.hikari.throwIfSuspended` is true, in which case it throws `SQLTransientException`. When suspension is disabled, the pool uses a no-op faux lock. `src/main/java/com/zaxxer/hikari/util/SuspendResumeLock.java:31-45` (`SuspendResumeLock.FAUX_LOCK`); `src/main/java/com/zaxxer/hikari/util/SuspendResumeLock.java:63-73` (`SuspendResumeLock.acquire`).
+
+- `setConnectionTimeout(0)` maps to `Integer.MAX_VALUE`; configured connection and validation timeouts below the 250-ms soft floor are rejected or normalized by configuration validation. `src/main/java/com/zaxxer/hikari/HikariConfig.java:188-200` (`HikariConfig.setConnectionTimeout`); `src/main/java/com/zaxxer/hikari/HikariConfig.java:350-358` (`HikariConfig.setValidationTimeout`); `src/main/java/com/zaxxer/hikari/HikariConfig.java:1127-1136` (`HikariConfig.validateNumerics`).
+
+3. `ConcurrentBag` coordination and pool growth
+
+Borrowing order and ownership:
+
+1. The caller first walks its thread-local list in reverse order, removing cached entries until one can atomically transition from `STATE_NOT_IN_USE` to `STATE_IN_USE`. `src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java:126-138` (`ConcurrentBag.borrow`).
+
+2. It then scans the shared list for the same state transition. If another waiter is already registered, a successful shared-list borrower asks the listener to compensate for that waiter. `src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java:140-149` (`ConcurrentBag.borrow`).
+
+3. If no entry is available, it increments the waiter count, calls `IBagStateListener.addBagItem(waiting)`, and polls the synchronous handoff queue. A handed-off entry is accepted only if the borrower wins its `STATE_NOT_IN_USE → STATE_IN_USE` transition. The waiter count is decremented in `finally`. `src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java:151-168` (`ConcurrentBag.borrow`).
+
+Producer behavior:
+
+- `requite()` changes an in-use entry to available and repeatedly attempts a direct handoff while waiters exist. If no waiter accepts it, the entry is cached locally for that producer thread. `src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java:172-191` (`ConcurrentBag.requite`).
+
+- `add()` puts a newly created entry in the shared list, then repeatedly offers it through the handoff queue while waiters remain. Adding after the bag is closed is rejected. `src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java:192-219` (`ConcurrentBag.add`).
+
+Growth interaction:
+
+- The bag listener is `HikariPool.addBagItem(waiting)`. It submits a `PoolEntryCreator` when waiting demand exceeds already queued creation work. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:457-463` (`HikariPool.addBagItem`).
+
+- Connection creation is normally serialized by a one-core/one-max executor backed by a bounded queue; its worker is allowed to time out. The queue capacity is configured from `maximumPoolSize`. `src/main/java/com/zaxxer/hikari/util/UtilityElf.java:164-191` (`UtilityElf.createThreadPoolExecutor`); `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:109-114` (`HikariPool.HikariPool`).
+
+- A creator continues only while the pool is normal, its worker is not interrupted, total connections remain below `maximumPoolSize`, and either idle count is below `minimumIdle` or waiter demand exceeds available idle entries. Creation failures retry with increasing backoff. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:745-787` (`HikariPool.PoolEntryCreator.call`, `shouldContinueCreating`).
+
+- `fillPool()` separately computes a minimum-idle deficit while respecting maximum size and queued creation work. Thus waiter-driven growth and maintenance-driven minimum-idle fill share the same creator/executor constraints rather than independently exceeding capacity. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:525-538` (`HikariPool.fillPool`).
+
+4. Validation, bypass, dead connections, and exception paths
+
+Checkout validation:
+
+- An entry marked evicted is always rejected. Otherwise, validation is bypassed if the entry was accessed within `aliveBypassWindowMs`, whose default is 500 ms and which can be changed by system property `com.zaxxer.hikari.aliveBypassWindowMs`. Older entries are passed to `isConnectionDead()`. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:61-64` (`HikariPool.aliveBypassWindowMs`); `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:162-171` (`HikariPool.getConnection`).
+
+- JDBC4 validation uses `Connection.isValid(validationSeconds)` when no test query is configured. Otherwise it executes the configured query, applying a statement timeout when network timeout is unsupported. The physical connection’s normal network timeout is restored afterward, and isolated internal queries are rolled back when auto-commit is disabled. `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:157-181` (`PoolBase.isConnectionDead`).
+
+- Any validation exception is recorded as the last connection failure, logged, and treated as a dead connection. `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:182-192` (`PoolBase.isConnectionDead`).
+
+- A dead or evicted checkout candidate is removed and physically closed with an explanatory reason, then the remaining checkout budget is recomputed. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:162-171` (`HikariPool.getConnection`).
+
+- Drivers lacking network-timeout support fall back to query-timeout granularity; HikariCP logs when sub-second or fractional-second validation timeout precision cannot be honored. `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:547-572` (`PoolBase.getAndSetNetworkTimeout`).
+
+Application SQL exceptions:
+
+- `ProxyConnection.checkException()` examines up to ten exceptions in the chain. Unless a configured `SQLExceptionOverride` says `DO_NOT_EVICT`, fatal SQL-state prefixes, explicit fatal SQL states, designated vendor codes, or override `MUST_EVICT` mark the entry evicted. The proxy logs the broken connection, cancels the leak task, evicts the pool entry, and replaces its delegate with the closed sentinel. `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:148-186` (`ProxyConnection.checkException`).
+
+- The user-configurable `SQLExceptionOverride` is installed through sealed configuration and directly affects whether application exceptions retire the physical connection. `src/main/java/com/zaxxer/hikari/HikariConfig.java:940-974` (`HikariConfig.setExceptionOverrideClassName`, `setExceptionOverride`).
+
+Creation and initialization failures:
+
+- Physical creation failure closes a partially created connection and stores the throwable for later timeout diagnostics. `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:383-408` (`PoolBase.newConnection`).
+
+- Initial fail-fast handling can reject pool construction, particularly for connection setup errors, based on `initializationFailTimeout`. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:567-599` (`HikariPool.checkFailFast`).
+
+5. Proxy close, recycle ownership, and state reset
+
+- The proxy owns a `PoolEntry`, leak task, physical delegate, and tracked statement list. Created statements are wrapped and registered so they can be closed even if the application forgets them. `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:51-64` (`ProxyConnection` fields); `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:205-210` (`ProxyConnection.trackStatement`); `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:282-364` (`ProxyConnection` statement factories).
+
+- On logical close, `closeStatements()` runs first. A statement-close failure cancels leak tracking, evicts the pool entry, and closes the proxy delegate rather than exposing the physical connection to another borrower. `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:212-236` (`ProxyConnection.closeStatements`).
+
+- If the proxy remains open after statement cleanup, close cancels leak detection, rolls back dirty transactional work when auto-commit is off, resets dirty connection properties, and clears warnings. `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:239-271` (`ProxyConnection.close`).
+
+- Commit-dirty state is set by operations while auto-commit is disabled and cleared by full `commit()` or `rollback()`. It is distinct from the property dirty-bit mask. `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:193-198` (`ProxyConnection.markCommitStateDirty`); `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:375-389` (`ProxyConnection.commit`, `rollback`).
+
+- Proxy setters mark only affected properties: read-only, auto-commit, transaction isolation, catalog, network timeout, and schema. `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:409-415` (`setAutoCommit`); `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:428-434` (`setReadOnly`); `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:447-510` (`setTransactionIsolation`, `setCatalog`, `setNetworkTimeout`, `setSchema`).
+
+- Return-time reset checks that dirty mask and restores only values that actually differ from pool defaults. `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:213-251` (`PoolBase.resetConnectionState`).
+
+- Cleanup occurs before the proxy delegate is replaced with `ClosedConnection.CLOSED_CONNECTION`; `PoolEntry.recycle()` is called from `finally`, so cleanup exceptions cannot silently strand the bag entry. A fatal exception makes the subsequent recycle path close the evicted entry; a nonfatal cleanup exception can still be propagated after recycling. `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:243-271` (`ProxyConnection.close`); `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:433-449` (`HikariPool.recycle`).
+
+- Optional JDBC request boundaries surround the checked-out lease: `beginRequest()` is attempted before proxy creation and `endRequest()` before healthy requite. Boundary failures are warnings and do not themselves fail checkout/recycle. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:172-181` (`HikariPool.getConnection`); `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:439-448` (`HikariPool.recycle`).
+
+6. Leak detection
+
+- At checkout, `ProxyLeakTaskFactory.schedule()` returns a no-op task when the threshold is zero; otherwise it creates a task containing the pool entry, borrowing thread name, and allocation stack, then schedules it on the housekeeping executor after the configured threshold. `src/main/java/com/zaxxer/hikari/pool/ProxyLeakTaskFactory.java:38-56` (`ProxyLeakTaskFactory.schedule`, `scheduleNewTask`); `src/main/java/com/zaxxer/hikari/pool/ProxyLeakTask.java:56-76` (`ProxyLeakTask.ProxyLeakTask`).
+
+- When the delay expires, `ProxyLeakTask.run()` marks the lease leaked, trims internal stack frames, and logs an apparent connection leak with its allocation stack. It does not evict, abort, reclaim, or physically close the connection. `src/main/java/com/zaxxer/hikari/pool/ProxyLeakTask.java:78-95` (`ProxyLeakTask.run`).
+
+- Logical proxy close cancels the scheduled leak task. If it had already fired, cancellation logs that the previously reported leaked connection was returned, i.e. “unleaked.” `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:245-248` (`ProxyConnection.close`); `src/main/java/com/zaxxer/hikari/pool/ProxyLeakTask.java:97-104` (`ProxyLeakTask.cancel`).
+
+- Configuration validation disables a production leak threshold below two seconds or above an enabled `maxLifetime`. `src/main/java/com/zaxxer/hikari/HikariConfig.java:1119-1125` (`HikariConfig.validateNumerics`).
+
+7. Recycle, eviction, retirement, and physical close
+
+Normal recycle:
+
+- Healthy proxy close updates last-access state and returns the entry to the bag. An entry marked evicted while borrowed is physically closed instead. `src/main/java/com/zaxxer/hikari/pool/PoolEntry.java:74-80` (`PoolEntry.recycle`); `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:433-449` (`HikariPool.recycle`).
+
+Soft eviction:
+
+- `softEvictConnection()` marks the entry evicted. It closes immediately only if the caller owns the entry or can reserve an idle entry; otherwise an in-use entry remains available to its current borrower and closes when recycled. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:615-626` (`HikariPool.softEvictConnection`).
+
+Maximum lifetime:
+
+- `createPoolEntry()` schedules maximum lifetime with random negative variance so entries do not retire simultaneously. It also schedules keepalive with randomized variance. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:480-512` (`HikariPool.createPoolEntry`).
+
+- `MaxLifetimeTask.run()` soft-evicts the entry and signals replacement demand. Thus idle entries can close immediately, while checked-out entries are marked and retired on return. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:861-874` (`HikariPool.MaxLifetimeTask.run`).
+
+Idle timeout:
+
+- The housekeeper snapshots idle entries, computes how many exceed `minimumIdle`, and reserves each candidate before checking/closing it. Reservation prevents checkout from winning the same entry. Idle retirement is disabled for fixed-size pools where minimum equals maximum. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:831-843` (`HikariPool.HouseKeeper.run`); `src/main/java/com/zaxxer/hikari/HikariConfig.java:1148-1150` (`HikariConfig.validateNumerics`).
+
+Keepalive:
+
+- `KeepaliveTask` reserves only an idle entry. A dead result is closed and replacement demand is signaled; a live result is unreserved and remains reusable. It never validates an entry currently owned by an application. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:883-902` (`HikariPool.KeepaliveTask.run`).
+
+Physical close:
+
+- `closeConnection()` first removes the entry from `ConcurrentBag`, detaches its physical connection through `PoolEntry.close()`, and submits asynchronous JDBC closure. After closure it requests replacement if the pool is still normal. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:465-478` (`HikariPool.closeConnection`).
+
+- `PoolEntry.close()` cancels max-lifetime and keepalive futures, nulls the entry’s connection reference, and returns the detached physical connection to the caller. `src/main/java/com/zaxxer/hikari/pool/PoolEntry.java:170-184` (`PoolEntry.close`).
+
+- `quietlyCloseConnection()` gives the physical connection a 15-second network timeout where supported and closes it via try-with-resources; close failures are logged and suppressed. `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:137-155` (`PoolBase.quietlyCloseConnection`).
+
+8. Housekeeping, shutdown, configuration, metrics/JMX, and observability
+
+Housekeeper/fill interaction:
+
+- The housekeeper refreshes runtime-adjustable connection timeout, validation timeout, leak threshold, idle timeout, minimum idle, maximum size, and catalog from the mutable configuration. It detects clock retrogression, soft-evicts on significant backward movement, warns about thread starvation or large forward clock leaps, performs idle cleanup, logs pool state, and finally calls `fillPool(true)`. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:799-850` (`HikariPool.HouseKeeper.run`).
+
+- Because checkout demand calls `addBagItem()` immediately while housekeeping calls `fillPool()` periodically, acquisition does not wait for the next housekeeper run to request growth. Both routes converge on the bounded connection-adder executor and `PoolEntryCreator.shouldContinueCreating()`. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:457-463` (`HikariPool.addBagItem`); `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:525-538` (`HikariPool.fillPool`); `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:784-787` (`PoolEntryCreator.shouldContinueCreating`).
+
+Shutdown:
+
+- `HikariDataSource.close()` is idempotent through `isShutdown.getAndSet(true)`. It delegates to `HikariPool.shutdown()` and restores the calling thread’s interrupt status if shutdown itself is interrupted. `src/main/java/com/zaxxer/hikari/HikariDataSource.java:339-358` (`HikariDataSource.close`).
+
+- Pool shutdown sets `POOL_SHUTDOWN`, cancels housekeeping, soft-evicts entries, stops the connection-adder, destroys housekeeping infrastructure, and closes the bag. It then repeatedly aborts active connections and evicts survivors for up to ten seconds, stops timeout/close executors, unregisters MBeans, and closes the metrics tracker. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:201-255` (`HikariPool.shutdown`).
+
+- Active shutdown entries are detached, passed to JDBC `Connection.abort(assassinExecutor)`, and always removed from the bag. If `abort()` fails, HikariCP falls back to quiet physical close. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:545-559` (`HikariPool.abortActiveConnections`).
+
+Configuration controls:
+
+- Lifecycle-relevant controls include `connectionTimeout`, `validationTimeout`, `idleTimeout`, `maxLifetime`, `keepaliveTime`, `leakDetectionThreshold`, `minimumIdle`, `maximumPoolSize`, pool suspension, exception override, test query, transaction defaults, and initialization failure timeout. Numeric validation enforces interactions such as keepalive below max lifetime, meaningful idle timeout, minimum idle not exceeding maximum, and production leak-threshold limits. `src/main/java/com/zaxxer/hikari/HikariConfig.java:1101-1152` (`HikariConfig.validateNumerics`).
+
+- Pool construction selects the real or faux suspension lock, performs fail-fast initialization, installs metrics and health checks, registers MBeans, creates add/close executors and leak-task factory, and starts housekeeping. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:88-132` (`HikariPool.HikariPool`).
+
+Metrics/JMX/logging:
+
+- Metrics can record physical creation duration, acquisition duration, lease usage duration, and timeout count. Pool-stat polling exposes waiting, idle, total, active, maximum, and minimum counts. `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:399-407` (`PoolBase.newConnection`); `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:741-786` (`PoolBase.MetricsTrackerDelegate`); `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:673-686` (`HikariPool.getPoolStats`).
+
+- JMX-facing counts are directly derived from bag states and waiter count. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:352-377` (`getActiveConnections`, `getIdleConnections`, `getThreadsAwaitingConnection`).
+
+- Debug pool-state logging reports total/max, idle/min, active, and waiting counts; it is used around housekeeping, creation, timeout, and shutdown paths. `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:419-426` (`HikariPool.logPoolState`).
+
+9. Relevant tests and focused failure-mode test plan
+
+Existing tests inspected, but not executed:
+
+- `TestConnections.testCreate` exercises initialization, acquisition, proxy closure, and resulting idle/total counts. `src/test/java/com/zaxxer/hikari/pool/TestConnections.java:63-106` (`TestConnections.testCreate`).
+
+- `TestConcurrentBag.testConcurrentBag` exercises concurrent borrow/requite state transitions and bag behavior. `src/test/java/com/zaxxer/hikari/pool/TestConcurrentBag.java:43-100` (`TestConcurrentBag.testConcurrentBag`).
+
+- `TestConnections.testPopulationSlowAcquisition` exercises slow physical creation and pool-population behavior. `src/test/java/com/zaxxer/hikari/pool/TestConnections.java:844-885` (`TestConnections.testPopulationSlowAcquisition`).
+
+- `MetricsTrackerTest.connectionTimeoutIsRecorded` verifies acquisition timeout metrics. `src/test/java/com/zaxxer/hikari/pool/MetricsTrackerTest.java:118-140` (`MetricsTrackerTest.connectionTimeoutIsRecorded`).
+
+- `ExceptionTest.testLastErrorTimeout` forces checkout beyond the alive-bypass window and delays validation timeout handling, covering last-error preservation. `src/test/java/com/zaxxer/hikari/pool/ExceptionTest.java:130-168` (`ExceptionTest.testLastErrorTimeout`).
+
+- `ConnectionStateTest` verifies reset of auto-commit, transaction isolation, read-only state, and catalog, and separately verifies commit-dirty tracking. `src/test/java/com/zaxxer/hikari/pool/ConnectionStateTest.java:39-81` (`testAutoCommit`, `testTransactionIsolation`); `src/test/java/com/zaxxer/hikari/pool/ConnectionStateTest.java:95-172` (`testReadOnly`, `testCatalog`, `testCommitTracking`).
+
+- `MiscTest.testLeakDetection` verifies leak reporting and return behavior. `src/test/java/com/zaxxer/hikari/pool/MiscTest.java:49-70` (`MiscTest.testLeakDetection`).
+
+- `TestConnections.testMaxLifetime`, `testKeepalive`, and `testKeepalive2` cover lifetime retirement and live/dead idle keepalive outcomes. `src/test/java/com/zaxxer/hikari/pool/TestConnections.java:108-164` (`testMaxLifetime`); `src/test/java/com/zaxxer/hikari/pool/TestConnections.java:220-288` (`testKeepalive`, `testKeepalive2`).
+
+- `BasicPoolTest.testIdleTimeout` covers housekeeper retirement while preserving minimum idle. `src/test/java/com/zaxxer/hikari/db/BasicPoolTest.java:67-107` (`BasicPoolTest.testIdleTimeout`).
+
+- `ShutdownTest.testShutdown1` covers pool shutdown with checked-out connections. `src/test/java/com/zaxxer/hikari/pool/ShutdownTest.java:45-77` (`ShutdownTest.testShutdown1`).
+
+- `TestMBean.testMBeanReporting` validates JMX active/idle/total observations through checkout, recycle, and idle cleanup. `src/test/java/com/zaxxer/hikari/pool/TestMBean.java:56-118` (`TestMBean.testMBeanReporting`).
+
+Proposed tests—these are recommendations, not verified current behavior:
+
+1. Add a deterministic total-budget test that returns several dead candidates before a usable candidate and asserts that each retry receives only the remaining budget. Also cover a validation call that crosses the nominal deadline, documenting the current successful-return semantics when that candidate is alive. Target `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:158-184` (`HikariPool.getConnection`).
+
+2. Interrupt a borrower blocked in `handoffQueue.poll()`, asserting `SQLTransientConnectionException` and restored interrupt status. Separately suspend the pool and verify that acquisition is uninterruptible and excluded from checkout timing, plus the `throwIfSuspended` variant. Target `src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java:151-168` (`ConcurrentBag.borrow`) and `src/main/java/com/zaxxer/hikari/util/SuspendResumeLock.java:63-73` (`SuspendResumeLock.acquire`).
+
+3. Coordinate multiple waiters with both a requited connection and a concurrently created connection. Assert direct handoff, no duplicate ownership, accurate waiter count, and no growth beyond maximum size. Target `src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java:140-219` (`borrow`, `requite`, `add`) and `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:457-463` (`addBagItem`).
+
+4. Inject failures independently into JDBC4 validation, test-query execution, timeout restoration, and isolated-query rollback. Assert dead-entry closure, retained root cause/SQL state, replacement creation, and total checkout-budget behavior. Target `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:157-192` (`PoolBase.isConnectionDead`) and `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:700-721` (`createTimeoutException`).
+
+5. Inject failures during statement close, dirty rollback, each property reset, and `clearWarnings()`. Assert that no bag entry is stranded, fatal SQL states cause physical retirement, and nonfatal failures do not expose a dirty entry to another borrower. Target `src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java:212-271` (`closeStatements`, `close`) and `src/main/java/com/zaxxer/hikari/pool/PoolBase.java:213-251` (`resetConnectionState`).
+
+6. Use a controllable scheduler for leak tasks: close just before expiry, just after expiry, and concurrently with expiry. Assert no false warning before threshold, one warning after threshold, one “unleaked” message on late return, and no physical reclamation by the leak task. Target `src/main/java/com/zaxxer/hikari/pool/ProxyLeakTask.java:78-104` (`run`, `cancel`).
+
+7. Race max-lifetime and idle-timeout tasks against checkout, proxy return, and keepalive reservation. Assert that only the reservation winner physically closes, in-use max-lifetime entries are deferred until return, and replacement demand remains bounded. Target `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:615-626` (`softEvictConnection`), `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:831-843` (`HouseKeeper.run`), and `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:861-902` (`MaxLifetimeTask.run`, `KeepaliveTask.run`).
+
+8. Start shutdown with simultaneous active borrowers, idle entries, queued creators, and waiting acquisitions. Exercise successful `Connection.abort()`, abort failure fallback, return-during-shutdown, and the ten-second retirement bound; assert bag emptiness, executor termination, MBean removal, and metrics closure. Target `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:201-255` (`shutdown`) and `src/main/java/com/zaxxer/hikari/pool/HikariPool.java:545-559` (`abortActiveConnections`).
+
+BENCHMARK_EVIDENCE_JSON:{"public_entry":[{"path":"src/main/java/com/zaxxer/hikari/HikariDataSource.java","symbol":"HikariDataSource.getConnection","lines":"90-128","claim":"Rejects closed data sources, performs synchronized lazy pool initialization when needed, and delegates checkout to HikariPool."},{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.getConnection","lines":"152-193","claim":"Acquires the suspension gate, borrows and validates PoolEntry instances, records metrics, schedules leak detection, and returns a proxy."}],"acquisition_loop":[{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.getConnection","lines":"158-190","claim":"Maintains one elapsed-time budget across evicted or dead candidates and translates interruption to SQLTransientConnectionException while restoring interrupt status."},{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.createTimeoutException","lines":"700-721","claim":"Records timeout metrics and creates a diagnostic SQLTransientConnectionException preserving the last SQL failure."},{"path":"src/main/java/com/zaxxer/hikari/util/SuspendResumeLock.java","symbol":"SuspendResumeLock.acquire","lines":"63-73","claim":"Pool suspension waits uninterruptibly outside checkout timing unless throwIfSuspended requests an exception."}],"bag_coordination":[{"path":"src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java","symbol":"ConcurrentBag.borrow","lines":"120-168","claim":"Checks thread-local then shared entries before registering as a waiter, requesting growth, and polling the handoff queue."},{"path":"src/main/java/com/zaxxer/hikari/util/ConcurrentBag.java","symbol":"ConcurrentBag.requite/add","lines":"172-219","claim":"Returned and newly added entries preferentially hand off to waiters; unclaimed returned entries enter the local cache."},{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.addBagItem/PoolEntryCreator.shouldContinueCreating","lines":"457-463,784-787","claim":"Waiters request asynchronous creation, constrained by pool state, capacity, idle deficit, and current demand."}],"validation":[{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.getConnection","lines":"162-171","claim":"Rejects evicted entries and validates entries older than the alive-bypass window, closing dead candidates before retrying."},{"path":"src/main/java/com/zaxxer/hikari/pool/PoolBase.java","symbol":"PoolBase.isConnectionDead","lines":"157-192","claim":"Uses JDBC4 isValid or a configured query under validation timeout and treats validation exceptions as dead connections."},{"path":"src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java","symbol":"ProxyConnection.checkException","lines":"148-186","claim":"Classifies fatal SQL exceptions, honors SQLExceptionOverride, and evicts broken physical connections."}],"proxy_lifecycle":[{"path":"src/main/java/com/zaxxer/hikari/pool/PoolEntry.java","symbol":"PoolEntry.createProxyConnection","lines":"101-110","claim":"Creates the application proxy around a physical connection and associates it with the pool entry and leak task."},{"path":"src/main/java/com/zaxxer/hikari/pool/ProxyConnection.java","symbol":"ProxyConnection.close","lines":"239-271","claim":"Closes tracked resources, cancels leak detection, rolls back dirty work, resets state, clears warnings, closes the logical proxy, and recycles the entry."},{"path":"src/main/java/com/zaxxer/hikari/pool/PoolBase.java","symbol":"PoolBase.resetConnectionState","lines":"213-251","claim":"Restores only dirty read-only, auto-commit, isolation, catalog, network-timeout, and schema properties."},{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.recycle","lines":"433-449","claim":"Records usage and either requites a healthy entry or closes an evicted one."}],"leak_detection":[{"path":"src/main/java/com/zaxxer/hikari/pool/ProxyLeakTaskFactory.java","symbol":"ProxyLeakTaskFactory.schedule","lines":"38-56","claim":"Schedules delayed leak diagnostics when the threshold is enabled and returns a no-op task otherwise."},{"path":"src/main/java/com/zaxxer/hikari/pool/ProxyLeakTask.java","symbol":"ProxyLeakTask.run/cancel","lines":"78-104","claim":"Logs apparent leaks with allocation context and logs late return after cancellation without reclaiming the connection."}],"recycle_eviction":[{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.softEvictConnection","lines":"615-626","claim":"Marks entries evicted, immediately closing owned or reservable idle entries and deferring active-entry closure."},{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.closeConnection","lines":"465-478","claim":"Removes the entry from the bag, detaches its physical connection, closes asynchronously, and requests replacement."},{"path":"src/main/java/com/zaxxer/hikari/pool/PoolBase.java","symbol":"PoolBase.quietlyCloseConnection","lines":"137-155","claim":"Performs the final JDBC close with a bounded network timeout and suppresses close failures."}],"maintenance_shutdown":[{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.HouseKeeper.run","lines":"799-850","claim":"Refreshes adjustable settings, detects clock anomalies, retires excess idle entries, logs state, and refills minimum idle."},{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.MaxLifetimeTask.run/KeepaliveTask.run","lines":"861-902","claim":"Maximum lifetime soft-evicts entries, while keepalive reserves and validates only idle entries."},{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.shutdown","lines":"201-255","claim":"Stops maintenance and creation, closes the bag, aborts active connections, drains closure work, unregisters MBeans, and closes metrics."},{"path":"src/main/java/com/zaxxer/hikari/pool/HikariPool.java","symbol":"HikariPool.abortActiveConnections","lines":"545-559","claim":"Attempts JDBC abort for active connections, falls back to physical close, and always removes entries from the bag."}],"tests":[{"path":"src/test/java/com/zaxxer/hikari/pool/TestConnections.java","symbol":"TestConnections.testCreate/testMaxLifetime/testKeepalive/testPopulationSlowAcquisition","lines":"63-164,220-288,844-885","claim":"Exercises normal checkout/recycle, maximum lifetime, keepalive, and slow pool-growth behavior."},{"path":"src/test/java/com/zaxxer/hikari/pool/TestConcurrentBag.java","symbol":"TestConcurrentBag.testConcurrentBag","lines":"43-100","claim":"Exercises concurrent bag borrowing and return behavior."},{"path":"src/test/java/com/zaxxer/hikari/pool/ConnectionStateTest.java","symbol":"ConnectionStateTest.testAutoCommit/testTransactionIsolation/testReadOnly/testCatalog/testCommitTracking","lines":"39-81,95-172","claim":"Verifies proxy state tracking and return-time restoration."},{"path":"src/test/java/com/zaxxer/hikari/pool/MetricsTrackerTest.java","symbol":"MetricsTrackerTest.connectionTimeoutIsRecorded","lines":"118-140","claim":"Verifies acquisition timeout observability."},{"path":"src/test/java/com/zaxxer/hikari/pool/MiscTest.java","symbol":"MiscTest.testLeakDetection","lines":"49-70","claim":"Exercises leak detection and late return."},{"path":"src/test/java/com/zaxxer/hikari/pool/ShutdownTest.java","symbol":"ShutdownTest.testShutdown1","lines":"45-77","claim":"Exercises shutdown while connections are checked out."}]}

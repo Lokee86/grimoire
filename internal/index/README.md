@@ -22,7 +22,7 @@
 ## Does not own
 
 - query interpretation or ranking;
-- context-package budget selection;
+- discovery ranking, per-lane limits, or response assembly;
 - language adapters or production of source spans;
 - semantic embeddings; or
 - daemon lifecycle and file watching.

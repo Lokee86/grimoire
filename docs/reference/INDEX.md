@@ -2,9 +2,10 @@
 
 Reference pages describe current public commands, schemas, defaults, and operating behavior.
 
+- [Installation and agent setup](installation.md) — release installation, source builds, PATH, skill locations, MCP configuration, first-run preparation, and troubleshooting.
 - [CLI](cli.md) — direct discovery commands, state preparation, vectors, and failure behavior.
 - [Unified discovery contract](agent-query.md) — independent exact, source, document, symbol, and relationship lanes plus progressive expansion.
-- [MCP runtime](agent-mcp.md) — the `grimoire_discover` tool, automatic preparation, and session deduplication.
+- [Agent and MCP guide](agent-mcp.md) — the `grimoire_discover` tool, installed skill, efficient agent workflow, automatic preparation, and session deduplication.
 - [Embedding model](embedding-model.md) — model identity, managed runtime, backend selection, and service verification.
 - [Indexing](indexing.md) — prepared source snapshots and independent documentation indexing.
 - [Document retrieval](knowledge.md) — documentation discovery, BM25, optional vectors, citations, freshness, and code links.

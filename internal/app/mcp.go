@@ -69,16 +69,34 @@ func agentToolInputSchema() map[string]any {
 		"type":                 "object",
 		"additionalProperties": false,
 		"properties": map[string]any{
-			"schema":               map[string]any{"type": "string", "const": "grimoire.discovery.v1"},
-			"mode":                 map[string]any{"type": "string", "enum": []string{"orient", "search", "trace", "impact", "inspect"}},
-			"root":                 map[string]any{"type": "string"},
-			"state":                map[string]any{"type": "string"},
-			"state_mode":           map[string]any{"type": "string", "enum": []string{"current-only", "refresh-if-needed", "force-refresh"}},
-			"session":              map[string]any{"type": "string"},
-			"query":                map[string]any{"type": "string"},
-			"anchor":               map[string]any{"type": "string"},
-			"target":               map[string]any{"type": "string"},
-			"handles":              map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+			"schema": map[string]any{
+				"type": "string", "const": "grimoire.discovery.v1",
+			},
+			"mode": map[string]any{
+				"type": "string", "enum": []string{"orient", "search", "trace", "impact", "inspect"},
+				"description": "Operation to perform. Search requires query; inspect requires anchor or handles; trace and impact require anchor or query.",
+			},
+			"root":       map[string]any{"type": "string"},
+			"state":      map[string]any{"type": "string"},
+			"state_mode": map[string]any{"type": "string", "enum": []string{"current-only", "refresh-if-needed", "force-refresh"}},
+			"session":    map[string]any{"type": "string"},
+			"query": map[string]any{
+				"type": "string", "minLength": 1,
+				"description": "Search text, or a textual starting point for trace or impact.",
+			},
+			"anchor": map[string]any{
+				"type": "string", "minLength": 1,
+				"description": "A returned Grimoire handle or resolvable symbol anchor. Use this or handles for inspect.",
+			},
+			"target": map[string]any{
+				"type": "string", "minLength": 1,
+				"description": "Optional destination for trace mode only. This is not a file-inspection argument.",
+			},
+			"handles": map[string]any{
+				"type": "array", "minItems": 1,
+				"items":       map[string]any{"type": "string", "minLength": 1},
+				"description": "Stable handles returned by Grimoire. Inspect exact evidence by passing one or more handles here.",
+			},
 			"limit":                map[string]any{"type": "integer", "minimum": 1, "maximum": 200},
 			"depth":                map[string]any{"type": "integer", "minimum": 1, "maximum": 16},
 			"direction":            map[string]any{"type": "string", "enum": []string{"incoming", "outgoing", "both"}},
@@ -95,5 +113,29 @@ func agentToolInputSchema() map[string]any {
 			"arcana_command":       map[string]any{"type": "string"},
 		},
 		"required": []string{"mode"},
+		"allOf": []any{
+			map[string]any{
+				"if":   map[string]any{"properties": map[string]any{"mode": map[string]any{"const": "search"}}},
+				"then": map[string]any{"required": []string{"query"}},
+			},
+			map[string]any{
+				"if": map[string]any{"properties": map[string]any{"mode": map[string]any{"const": "inspect"}}},
+				"then": map[string]any{"anyOf": []any{
+					map[string]any{"required": []string{"anchor"}},
+					map[string]any{"required": []string{"handles"}},
+				}},
+			},
+			map[string]any{
+				"if": map[string]any{"properties": map[string]any{"mode": map[string]any{"enum": []string{"trace", "impact"}}}},
+				"then": map[string]any{"anyOf": []any{
+					map[string]any{"required": []string{"anchor"}},
+					map[string]any{"required": []string{"query"}},
+				}},
+			},
+			map[string]any{
+				"if":   map[string]any{"properties": map[string]any{"mode": map[string]any{"enum": []string{"orient", "search", "impact", "inspect"}}}},
+				"then": map[string]any{"not": map[string]any{"required": []string{"target"}}},
+			},
+		},
 	}
 }

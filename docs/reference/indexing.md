@@ -100,7 +100,7 @@ Fallback boundaries are used for files with no valid Lexicon spans and for every
 
 Changed chunks are counted with the embedded `o200k_base` tokenizer and store the exact count in prepared state. The manifest records tokenizer identity so counts cannot be reused under a different tokenizer.
 
-Chunk counts cover chunk text only. Context compilation separately counts the complete serialized package, including paths, reasons, metadata, escaping, and formatting.
+Chunk counts cover chunk text only. Discovery responses apply independent lane limits and bounded excerpts; Grimoire does not token-fit a preassembled context package.
 
 ## Index statistics
 
@@ -131,7 +131,7 @@ grimoire vector build --root <repository>
 
 The knowledge index discovers documentation and rationale, extracts stable sections, and publishes BM25 terms plus exact citation handles under `.grimoire/knowledge/`. The optional vector builder deduplicates identical section text, reuses immutable content-addressed objects, embeds only missing sections, persists successful batches immediately, and publishes a packed snapshot bound to the exact knowledge-index identity.
 
-A documentation change can make the vector snapshot stale without affecting the prepared source index. When vectors are explicitly requested, `knowledge search` validates freshness before query embedding and retains BM25 results when vectors are missing, stale, or unavailable. `context` never consumes documentation vectors.
+A documentation change can make the vector snapshot stale without affecting the prepared source index. When vectors are explicitly requested, document discovery validates freshness before query embedding and retains BM25 results when vectors are missing, stale, or unavailable. Exact, source, symbol, relationship, trace, and impact operations never consume documentation vectors.
 
 Run `grimoire index` after relevant source or source-indexing changes. Run `grimoire knowledge index` after documentation changes and `grimoire vector build` when semantic documentation ranking is desired. Use `grimoire vector info` to inspect snapshot freshness.
 

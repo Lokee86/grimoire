@@ -117,4 +117,4 @@ The probe embeds one instructed query and one raw document, validates the dimens
 
 ## Operational boundaries
 
-The embedding package owns model identity, runtime setup and discovery, backend selection and verification, detached lifecycle supervision, runtime state, log rotation, context-limit enforcement, request shaping, truncation, normalization, and optional NVIDIA telemetry. It does not own chunking, vector persistence, ranking, context assembly, or package fitting.
+The embedding package owns model identity, runtime setup and discovery, backend selection and verification, detached lifecycle supervision, runtime state, log rotation, context-limit enforcement, request shaping, truncation, normalization, and optional NVIDIA telemetry. It does not own chunking, vector persistence, retrieval ranking, discovery lane assembly, or agent policy.

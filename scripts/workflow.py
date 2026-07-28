@@ -37,6 +37,13 @@ def native_library_name(platform_name: str | None = None) -> str:
     return "liblodestone_ffi.so"
 
 
+def default_skill_roots() -> tuple[Path, ...]:
+    return (
+        Path.home() / ".agents" / "skills",
+        Path.home() / ".hermes" / "skills",
+    )
+
+
 def lodestone_root() -> Path:
     configured = os.environ.get("LODESTONE_ROOT")
     return Path(configured).resolve() if configured else DEFAULT_LODESTONE_ROOT.resolve()
@@ -153,6 +160,7 @@ def build(version: str, output: Path, jobs: int = 1) -> Path:
     copy_file(lodestone_target / native_library_name(), native_dir / native_library_name())
 
     package_lexicon_adapters(output, cargo, jobs, build_env)
+    copy_file(ROOT / "skills" / "grimoire" / "SKILL.md", output / "skills" / "grimoire" / "SKILL.md")
     verify_versions(output, version)
     return output
 
@@ -235,8 +243,13 @@ def test(jobs: int = 1) -> None:
     ], ROOT, environment)
 
 
-def install(source: Path, bin_dir: Path, components: Sequence[str] = ("grimoire", "lexicon", "arcana")) -> None:
-    """Install selected components from one combined build layout."""
+def install(
+    source: Path,
+    bin_dir: Path,
+    components: Sequence[str] = ("grimoire", "lexicon", "arcana"),
+    skill_roots: Sequence[Path] | None = None,
+) -> None:
+    """Install selected components and Grimoire's shared agent skill."""
     source = source.resolve()
     bin_dir = bin_dir.resolve()
     source_bin = source / "bin"
@@ -250,8 +263,11 @@ def install(source: Path, bin_dir: Path, components: Sequence[str] = ("grimoire"
         if not (source_bin / name).is_file():
             raise FileNotFoundError(f"combined build is missing {source_bin / name}")
     library = source_native / native_library_name()
+    skill = source / "skills" / "grimoire" / "SKILL.md"
     if "grimoire" in selected and not library.is_file():
         raise FileNotFoundError(f"combined build is missing {library}")
+    if "grimoire" in selected and not skill.is_file():
+        raise FileNotFoundError(f"combined build is missing {skill}")
 
     bin_dir.mkdir(parents=True, exist_ok=True)
     for name in required:
@@ -260,6 +276,8 @@ def install(source: Path, bin_dir: Path, components: Sequence[str] = ("grimoire"
         # Keep the native library beside Grimoire so existing discovery works
         # without setting GRIMOIRE_VECTOR_ENGINE.
         copy_file(library, bin_dir / library.name)
+        for skills_dir in default_skill_roots() if skill_roots is None else skill_roots:
+            copy_file(skill, Path(skills_dir) / "grimoire" / "SKILL.md")
     if "lexicon" in selected:
         adapters = source / "adapters"
         if not adapters.is_dir():
@@ -319,7 +337,8 @@ def package_artifacts(build_root: Path, output: Path, version: str, platform_nam
         staging = Path(temporary)
         specs = {
             "grimoire": [(build_root / "bin" / exe("grimoire"), exe("grimoire")),
-                         (build_root / "native" / library, library)],
+                         (build_root / "native" / library, library),
+                         (build_root / "skills" / "grimoire" / "SKILL.md", "skills/grimoire/SKILL.md")],
             "lexicon": [(build_root / "bin" / exe("lexicon"), exe("lexicon"))],
             "arcana": [(build_root / "bin" / exe("arcana"), exe("arcana"))],
         }
@@ -334,7 +353,7 @@ def package_artifacts(build_root: Path, output: Path, version: str, platform_nam
 
         combined_stage = staging / "combined"
         _stage_files(combined_stage, [], version)
-        for relative in ("bin", "native", "adapters"):
+        for relative in ("bin", "native", "adapters", "skills"):
             shutil.copytree(build_root / relative, combined_stage / relative)
         copy_file(ROOT / "scripts" / "install.py", combined_stage / "install.py")
         combined_archive = release_root / f"grimoire-bundle-{version}-{target}.zip"
@@ -349,6 +368,7 @@ def package_artifacts(build_root: Path, output: Path, version: str, platform_nam
             "executables": "bin/",
             "lodestone_library": "native/",
             "lexicon_adapters": "adapters/",
+            "agent_skills": "skills/",
             "installer": "install.py",
         },
     }
@@ -387,6 +407,8 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     install_parser.add_argument("--source", type=Path, default=DEFAULT_BUILD)
     install_parser.add_argument("--bin-dir", type=Path, required=True)
     install_parser.add_argument("--component", action="append", choices=("grimoire", "lexicon", "arcana"), dest="components", help="component to install; repeatable; defaults to all")
+    install_parser.add_argument("--skills-dir", action="append", type=Path, dest="skills_dirs", help="agent skills root receiving grimoire/SKILL.md; repeatable; defaults to ~/.agents/skills and ~/.hermes/skills")
+    install_parser.add_argument("--skip-skills", action="store_true", help="install binaries without installing the Grimoire agent skill")
 
     release_parser = subparsers.add_parser("release", help="test, build, package, and checksum a release")
     release_parser.add_argument("--version", required=True)
@@ -405,7 +427,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "test":
             test(args.jobs)
         elif args.command == "install":
-            install(args.source, args.bin_dir, args.components or ("grimoire", "lexicon", "arcana"))
+            skill_roots = () if args.skip_skills else args.skills_dirs
+            install(
+                args.source,
+                args.bin_dir,
+                args.components or ("grimoire", "lexicon", "arcana"),
+                skill_roots,
+            )
         elif args.command == "release":
             test(args.jobs)
             release(args.version, args.output, args.jobs)

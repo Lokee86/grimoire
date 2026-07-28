@@ -9,4 +9,4 @@ It compares two explicit evaluation modes against the same immutable prepared so
 
 Payload bytes are the serialized ranked seed list plus the serialized final Arcana structural evidence observed by the evaluator. Provider calls count evaluator-visible provider invocations: Lexicon seed search, optional Arcana semantic query, and Arcana graph expansion. They do not claim to count internal embedding HTTP requests or Arcana JSONL batch lines.
 
-This package measures behavior only. It does not build vector state, alter production defaults, or participate in runtime context assembly.
+This package measures behavior only. It does not build vector state, alter production defaults, or participate in runtime discovery response assembly.

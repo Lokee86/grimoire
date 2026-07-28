@@ -31,6 +31,11 @@ class WorkflowSmokeTests(unittest.TestCase):
             (build / "adapters" / "python" / "adapter.py").write_text("pass\n", encoding="utf-8")
             (build / "adapters" / "go").mkdir()
             (build / "adapters" / "go" / "lexicon-go.exe").write_bytes(b"adapter")
+            (build / "skills" / "grimoire").mkdir(parents=True)
+            (build / "skills" / "grimoire" / "SKILL.md").write_text(
+                "---\nname: grimoire\n---\n",
+                encoding="utf-8",
+            )
             for name in ("grimoire.exe", "lexicon.exe", "arcana.exe"):
                 (build / "bin" / name).write_bytes(name.encode())
             (build / "native" / "lodestone_ffi.dll").write_bytes(b"dll")
@@ -51,6 +56,7 @@ class WorkflowSmokeTests(unittest.TestCase):
                 self.assertIn("bin/grimoire.exe", archive.namelist())
                 self.assertIn("native/lodestone_ffi.dll", archive.namelist())
                 self.assertIn("install.py", archive.namelist())
+                self.assertIn("skills/grimoire/SKILL.md", archive.namelist())
                 self.assertIn("adapters/python/adapter.py", archive.namelist())
                 self.assertIn("adapters/go/lexicon-go.exe", archive.namelist())
                 self.assertEqual((archive.getinfo("bin/grimoire.exe").external_attr >> 16) & 0o777, 0o755)
@@ -58,13 +64,17 @@ class WorkflowSmokeTests(unittest.TestCase):
                 self.assertEqual((archive.getinfo("install.py").external_attr >> 16) & 0o777, 0o755)
 
             installed = root / "selected-bin"
-            workflow.install(build, installed)
+            shared_skills = root / ".agents" / "skills"
+            hermes_skills = root / ".hermes" / "skills"
+            workflow.install(build, installed, skill_roots=(shared_skills, hermes_skills))
             self.assertEqual((installed / "grimoire.exe").read_bytes(), b"grimoire.exe")
             self.assertTrue((installed / "lodestone_ffi.dll").is_file())
             self.assertTrue((installed / "adapters" / "python" / "adapter.py").is_file())
+            self.assertTrue((shared_skills / "grimoire" / "SKILL.md").is_file())
+            self.assertTrue((hermes_skills / "grimoire" / "SKILL.md").is_file())
 
             subset = root / "lexicon-only"
-            workflow.install(build, subset, ("lexicon",))
+            workflow.install(build, subset, ("lexicon",), skill_roots=())
             self.assertTrue((subset / "lexicon.exe").is_file())
             self.assertTrue((subset / "adapters" / "python" / "adapter.py").is_file())
             self.assertFalse((subset / "grimoire.exe").exists())

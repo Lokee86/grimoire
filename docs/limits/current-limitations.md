@@ -6,6 +6,8 @@ These constraints describe the active unified discovery system.
 
 Current judged corpora cover only a fraction of possible languages, repository layouts, and development tasks. Passing Grimoire, Lexicon, Arcana, or agent-discovery cases does not establish equivalent recall elsewhere.
 
+Measured benefit is task-shaped. Broad architectural investigations can improve substantially, while exact lookups and short named call chains may remain faster with direct shell inspection. Grimoire is an optional discovery aid inside a normal repository workflow, not a requirement for every query.
+
 Exact source, BM25 source, document, symbol, and relationship lanes can fail independently. Evaluate them separately before attributing a missed investigation to the interface as a whole.
 
 ## Independent lanes are not a global answer ranking
@@ -81,6 +83,8 @@ Embedding requests may overlap, but native object ingestion is serialized. Incre
 ## State maintenance is request-driven
 
 Grimoire does not continuously watch repositories. Discovery defaults to refresh-if-needed preparation. Documentation vectors remain explicit build artifacts, and freshness checks prevent silently using mismatched snapshots.
+
+Initial preparation can dominate a first query because source, Lexicon, Arcana, and documentation state may all need alignment. Repeated `force-refresh` requests can erase the efficiency benefit of progressive discovery.
 
 ## Investigation sessions store evidence, not reasoning
 

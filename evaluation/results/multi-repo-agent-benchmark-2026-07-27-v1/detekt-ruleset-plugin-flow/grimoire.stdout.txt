@@ -1,0 +1,5 @@
+Investigation blocked: the only permitted repository-discovery tool could not expose the Kotlin implementation required for this trace. Its prepared source snapshot repeatedly returned unrelated configuration/document files for exact symbols such as `RuleSetProvider`, `ServiceLoader.load`, `detektPlugins`, and `CliArgs`; path-targeted searches were ignored. A refresh reported that Lexicon preparation failed because its adapter root was unavailable, while Arcana was absent. Consequently, no relevant source handles could be obtained for exact-source inspection.
+
+I cannot responsibly provide repository-relative citations, current-behavior conclusions, failure-mode claims, or a test plan without seeing the implementation. Doing so would fabricate evidence. No repository files were modified, and no generators were run.
+
+BENCHMARK_EVIDENCE_JSON:{"plugin_input":[],"classloader_discovery":[],"provider_rules":[],"configuration":[],"analysis_execution":[],"suppression_baseline":[],"findings_reporting":[],"gradle_wiring":[],"tests":[]}
