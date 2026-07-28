@@ -79,6 +79,11 @@ func sourceHandle(snapshot, path string, start, end int) Handle {
 	})
 }
 
+// NewSourceHandle creates an exact source-range handle for runtime adapters.
+func NewSourceHandle(snapshot, path string, start, end int) Handle {
+	return sourceHandle(snapshot, path, start, end)
+}
+
 func nodeHandle(provider, snapshot string, node structure.Node) Handle {
 	payload := handlePayload{
 		Provider: provider, Snapshot: snapshot,

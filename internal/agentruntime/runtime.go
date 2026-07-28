@@ -56,6 +56,9 @@ func Execute(ctx context.Context, request Request, options Options) (Response, e
 	}
 	request.Root = preparation.Repository.Root
 	request.State = statePath
+	if err := resolveSessionHandles(statePath, &request); err != nil {
+		return response, err
+	}
 
 	if request.Mode == "inspect" && strings.HasPrefix(strings.TrimSpace(request.Anchor), "knowledge://") {
 		request.Handles = append(request.Handles, strings.TrimSpace(request.Anchor))

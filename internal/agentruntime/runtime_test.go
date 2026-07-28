@@ -66,6 +66,85 @@ func TestDocumentMatchesRemainSeparateAndInspectable(t *testing.T) {
 	}
 }
 
+func TestExecuteResolvesSessionNodeHandlesBeforeQuery(t *testing.T) {
+	root := t.TempDir()
+	originalHandle := "grimoire:v1:stable-node-handle"
+	var requests []agentquery.Request
+	options := testOptions(root)
+	options.ExecuteQuery = func(_ context.Context, request agentquery.Request) (agentquery.Response, error) {
+		requests = append(requests, request)
+		response := agentquery.Response{
+			Schema:   agentquery.SchemaVersion,
+			Mode:     request.Mode,
+			Snapshot: agentquery.Snapshot{Source: "source-1"},
+		}
+		if len(requests) == 1 {
+			span := agentquery.Range{
+				Path: "internal/target.go", StartLine: 10, EndLine: 12,
+				Handle: agentquery.NewSourceHandle("source-1", "internal/target.go", 10, 12),
+			}
+			response.SourceMatches = []agentquery.Result{{
+				Rank: 1, Provider: "lexicon", Kind: "function",
+				Node: agentquery.Node{
+					Handle: agentquery.Handle{Value: originalHandle, Provider: "lexicon", Snapshot: "lexicon-1", NodeIdentity: "node-one"},
+					Kind:   "function", Name: "Target", Path: "internal/target.go", Span: &span,
+				},
+			}}
+		}
+		return response, nil
+	}
+
+	first, err := Execute(context.Background(), Request{
+		Request: agentquery.Request{Mode: "search", Root: root, Query: "target", Limit: 4},
+		Session: "stable-handles",
+	}, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Delta == nil || len(first.Delta.NewNodes) != 1 || len(first.Delta.NewSourceRanges) != 1 {
+		t.Fatalf("search delta = %#v", first.Delta)
+	}
+	opaque := first.Delta.NewNodes[0].Handle.String()
+	if !strings.HasPrefix(opaque, "g1_") {
+		t.Fatalf("session handle = %q", opaque)
+	}
+
+	_, err = Execute(context.Background(), Request{
+		Request: agentquery.Request{Mode: "inspect", Root: root, Handles: []string{opaque}, Limit: 4},
+		Session: "stable-handles",
+	}, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(requests) < 2 || len(requests[1].Handles) != 1 || requests[1].Handles[0] != originalHandle {
+		t.Fatalf("inspect request did not restore original handle: %#v", requests)
+	}
+
+	_, err = Execute(context.Background(), Request{
+		Request: agentquery.Request{Mode: "trace", Root: root, Anchor: opaque, Limit: 4},
+		Session: "stable-handles",
+	}, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(requests) < 3 || requests[2].Anchor != originalHandle {
+		t.Fatalf("trace request did not restore original handle: %#v", requests)
+	}
+
+	sourceOpaque := first.Delta.NewSourceRanges[0].Handle.String()
+	_, err = Execute(context.Background(), Request{
+		Request: agentquery.Request{Mode: "inspect", Root: root, Handles: []string{sourceOpaque}, Limit: 4},
+		Session: "stable-handles",
+	}, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedSource := agentquery.NewSourceHandle("source-1", "internal/target.go", 10, 12).Value
+	if len(requests) < 4 || len(requests[3].Handles) != 1 || requests[3].Handles[0] != expectedSource {
+		t.Fatalf("source-range handle did not restore exact source handle: %#v", requests)
+	}
+}
+
 func TestDiscoveryDefaultsUseIndependentLaneLimit(t *testing.T) {
 	search := normalizeRequest(Request{Request: agentquery.Request{Mode: "search"}}, Options{})
 	if search.Limit != 12 {

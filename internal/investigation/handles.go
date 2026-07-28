@@ -28,30 +28,50 @@ func makeHandle(kind, snapshot, digest string) (string, error) {
 	return "g1_" + base64.RawURLEncoding.EncodeToString(payload) + "_" + hex.EncodeToString(checksum[:8]), nil
 }
 
-func decodeHandle(token, expectedKind string) (handlePayload, error) {
+func decodeAnyHandle(token string) (handlePayload, error) {
 	if !strings.HasPrefix(token, "g1_") {
-		return handlePayload{}, fmt.Errorf("invalid %s handle", expectedKind)
+		return handlePayload{}, fmt.Errorf("invalid investigation handle")
 	}
 	parts := strings.Split(token[3:], "_")
 	if len(parts) != 2 {
-		return handlePayload{}, fmt.Errorf("invalid %s handle", expectedKind)
+		return handlePayload{}, fmt.Errorf("invalid investigation handle")
 	}
 	payload, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return handlePayload{}, fmt.Errorf("invalid %s handle: %w", expectedKind, err)
+		return handlePayload{}, fmt.Errorf("invalid investigation handle: %w", err)
 	}
 	checksum := sha256.Sum256(payload)
 	if parts[1] != hex.EncodeToString(checksum[:8]) {
-		return handlePayload{}, fmt.Errorf("invalid %s handle checksum", expectedKind)
+		return handlePayload{}, fmt.Errorf("invalid investigation handle checksum")
 	}
 	var decoded handlePayload
 	if err := json.Unmarshal(payload, &decoded); err != nil {
-		return handlePayload{}, fmt.Errorf("invalid %s handle payload: %w", expectedKind, err)
+		return handlePayload{}, fmt.Errorf("invalid investigation handle payload: %w", err)
 	}
-	if decoded.Version != ledgerVersion || decoded.Kind != expectedKind || decoded.Snapshot == "" || decoded.Digest == "" {
+	if decoded.Version != ledgerVersion || !validEvidenceKind(decoded.Kind) || decoded.Snapshot == "" || decoded.Digest == "" {
+		return handlePayload{}, fmt.Errorf("invalid investigation handle identity")
+	}
+	return decoded, nil
+}
+
+func decodeHandle(token, expectedKind string) (handlePayload, error) {
+	decoded, err := decodeAnyHandle(token)
+	if err != nil {
+		return handlePayload{}, fmt.Errorf("invalid %s handle: %w", expectedKind, err)
+	}
+	if decoded.Kind != expectedKind {
 		return handlePayload{}, fmt.Errorf("invalid %s handle identity", expectedKind)
 	}
 	return decoded, nil
+}
+
+// HandleKind returns the evidence kind encoded by an opaque investigation handle.
+func HandleKind(token string) (string, error) {
+	decoded, err := decodeAnyHandle(token)
+	if err != nil {
+		return "", err
+	}
+	return decoded.Kind, nil
 }
 
 func makeNodeHandle(snapshot, digest string) (NodeHandle, error) {

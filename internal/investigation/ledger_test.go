@@ -106,6 +106,50 @@ func TestRecordDeduplicatesAndReturnsDelta(t *testing.T) {
 	}
 }
 
+func TestResolveRecordedHandles(t *testing.T) {
+	root := t.TempDir()
+	snapshot := testSnapshot()
+	ledger, err := Create(root, "resolve", snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	delta, err := ledger.RecordResponse(testResponse(snapshot, "grimoire:v1:node-one"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := HandleKind(delta.NewNodes[0].Handle.String()); err != nil || got != "node" {
+		t.Fatalf("node handle kind = %q, %v", got, err)
+	}
+	node, err := ledger.ResolveNodeHandle(delta.NewNodes[0].Handle.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if node.ID != "grimoire:v1:node-one" || node.Path != "pkg/file.go" {
+		t.Fatalf("resolved node = %#v", node)
+	}
+	source, err := ledger.ResolveSourceRangeHandle(delta.NewSourceRanges[0].Handle.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if source.Path != "pkg/file.go" || source.StartLine != 2 || source.EndLine != 4 {
+		t.Fatalf("resolved source = %#v", source)
+	}
+	path, err := ledger.ResolveGraphPathHandle(delta.NewGraphPaths[0].Handle.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if path.ID != "path-grimoire:v1:node-one" || len(path.Nodes) != 2 {
+		t.Fatalf("resolved path = %#v", path)
+	}
+	document, err := ledger.ResolveDocumentHandle(delta.NewDocuments[0].Handle.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if document.ID != "doc-grimoire:v1:node-one" || document.URI != "pkg/file.go" {
+		t.Fatalf("resolved document = %#v", document)
+	}
+}
+
 func TestSnapshotMismatchAndClose(t *testing.T) {
 	root := t.TempDir()
 	snapshot := testSnapshot()
