@@ -198,7 +198,7 @@ func TestExecuteResolvesSessionNodeHandlesBeforeQuery(t *testing.T) {
 		t.Fatalf("search delta = %#v", first.Delta)
 	}
 	opaque := first.Delta.NewNodes[0].Handle.String()
-	if !strings.HasPrefix(opaque, "g1_") {
+	if !strings.HasPrefix(opaque, "g2_") {
 		t.Fatalf("session handle = %q", opaque)
 	}
 
@@ -250,6 +250,19 @@ func TestDiscoveryDefaultsUseIndependentLaneLimit(t *testing.T) {
 	enabled := true
 	if includeDocuments(Request{Request: agentquery.Request{CodeOnly: true}, IncludeDocuments: &enabled}) {
 		t.Fatal("code_only must suppress documents even when include_documents is true")
+	}
+}
+
+func TestTraceAndImpactDoNotSearchDocumentsFromOpaqueHandlesByDefault(t *testing.T) {
+	for _, mode := range []string{"trace", "impact", "inspect"} {
+		request := Request{Request: agentquery.Request{Mode: mode, Anchor: "g1_opaque-session-handle"}}
+		if includeDocuments(request) {
+			t.Fatalf("%s unexpectedly enabled document retrieval from an opaque handle", mode)
+		}
+	}
+	enabled := true
+	if !includeDocuments(Request{Request: agentquery.Request{Mode: "trace", Anchor: "g1_handle"}, IncludeDocuments: &enabled}) {
+		t.Fatal("explicit trace document opt-in was ignored")
 	}
 }
 
@@ -390,10 +403,10 @@ func TestKnowledgePreviewsKeepLowerRanksInspectable(t *testing.T) {
 		{Handle: "doc-4", Text: "fourth", CodeLinks: []knowledge.CodeLink{{Value: "four"}}},
 	}
 	previewed := applyKnowledgePreviews(documents, 0, "")
-	if len(previewed) != 4 || previewed[0].Text == "" || previewed[1].Text == "" {
-		t.Fatalf("top document previews were lost: %+v", previewed)
+	if len(previewed) != 4 || previewed[0].Text == "" {
+		t.Fatalf("top document preview was lost: %+v", previewed)
 	}
-	for _, document := range previewed[2:] {
+	for _, document := range previewed[1:] {
 		if document.Handle == "" || document.Text != "" || len(document.CodeLinks) != 0 {
 			t.Fatalf("lower-ranked document was dropped instead of becoming handle-only: %+v", document)
 		}
@@ -428,7 +441,7 @@ func TestRuntimeKeepsDocumentationIndependentFromCodeLanes(t *testing.T) {
 	}
 }
 
-func TestInvestigationBudgetLeavesNormalResponseUntouched(t *testing.T) {
+func TestInvestigationBudgetAppliesSemanticBoundsWithoutEmergencyTruncation(t *testing.T) {
 	snapshot := investigation.Snapshot{Repository: "repo:normal"}
 	ledger, err := investigation.Create(t.TempDir(), "normal", snapshot)
 	if err != nil {
@@ -451,10 +464,13 @@ func TestInvestigationBudgetLeavesNormalResponseUntouched(t *testing.T) {
 		t.Fatal(err)
 	}
 	if truncated {
-		t.Fatal("normal response was compacted by the emergency budget")
+		t.Fatal("semantic shaping was incorrectly reported as emergency truncation")
 	}
-	if bounded.SourceRanges[0].Text != text || bounded.RetrievalHits[0].Reasons[0] != reason {
-		t.Fatalf("normal response was altered: %#v", bounded)
+	if len(bounded.SourceRanges[0].Text) > maxInvestigationEvidenceTextBytes+len("…") || !utf8.ValidString(bounded.SourceRanges[0].Text) {
+		t.Fatalf("source evidence was not semantically bounded: %q", bounded.SourceRanges[0].Text)
+	}
+	if len(bounded.RetrievalHits[0].Reasons[0]) > maxInvestigationReasonTextBytes+len("…") {
+		t.Fatalf("retrieval reason was not semantically bounded: %q", bounded.RetrievalHits[0].Reasons[0])
 	}
 }
 
@@ -553,8 +569,8 @@ func TestInvestigationDeltaBudgetBoundsLimitEightPayload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !truncated {
-		t.Fatal("oversized investigation response was not marked truncated")
+	if truncated {
+		t.Fatal("semantic compaction should preserve the ranked response without emergency truncation")
 	}
 	if len(bounded.RetrievalHits) == 0 || bounded.RetrievalHits[0].Rank != 1 {
 		t.Fatalf("highest-ranked retrieval hit was not preserved: %#v", bounded.RetrievalHits)
@@ -610,7 +626,18 @@ func TestExecuteSessionReturnsOnlyNewEvidenceThenPriorHandles(t *testing.T) {
 		t.Fatalf("second delta replayed evidence: %#v", second.Delta)
 	}
 	if len(second.Delta.PriorNodeHandles) == 0 || len(second.Delta.PriorDocuments) == 0 {
-		t.Fatalf("second delta lacks prior handles: %#v", second.Delta)
+		t.Fatalf("second delta lacks internal prior handles: %#v", second.Delta)
+	}
+	payload, err := json.Marshal(second.Delta)
+	if err != nil {
+		t.Fatal(err)
+	}
+	serialized := string(payload)
+	if strings.Contains(serialized, "prior_node_handles") || strings.Contains(serialized, "prior_document_handles") {
+		t.Fatalf("serialized delta repeated prior handles: %s", serialized)
+	}
+	if !strings.Contains(serialized, "prior_evidence") {
+		t.Fatalf("serialized delta omitted compact prior summary: %s", serialized)
 	}
 }
 

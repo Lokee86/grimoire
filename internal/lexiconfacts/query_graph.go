@@ -1,7 +1,6 @@
 package lexiconfacts
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/Lokee86/grimoire/internal/structure"
@@ -17,7 +16,13 @@ func (corpus *Corpus) Trace(
 		return nil
 	}
 	targets := stringSet(toIDs)
-	adjacency := queryAdjacency(corpus.facts, direction, stringSet(relations))
+	relationSet := stringSet(relations)
+	branchLimit := min(max(limit, 8), 16)
+	queueLimit := min(max(limit*8, 64), 512)
+	if len(targets) > 0 {
+		branchLimit = 64
+		queueLimit = 4096
+	}
 	type queuedPath struct {
 		current string
 		nodes   []Node
@@ -26,11 +31,13 @@ func (corpus *Corpus) Trace(
 	}
 	var result []QueryPath
 	queue := make([]queuedPath, 0, len(fromIDs))
+	globallyVisited := make(map[string]bool, len(fromIDs)+limit*4)
 	for _, fromID := range fromIDs {
 		start, exists := corpus.facts.nodes[fromID]
-		if !exists {
+		if !exists || globallyVisited[fromID] {
 			continue
 		}
+		globallyVisited[fromID] = true
 		queue = append(queue, queuedPath{
 			current: fromID,
 			nodes:   []Node{start},
@@ -43,8 +50,9 @@ func (corpus *Corpus) Trace(
 		if len(current.edges) >= maxDepth {
 			continue
 		}
-		for _, next := range adjacency[current.current] {
-			if current.visited[next.relatedID] {
+		branches := 0
+		for _, next := range corpus.queryNeighbors(current.current, direction, relationSet) {
+			if current.visited[next.relatedID] || globallyVisited[next.relatedID] {
 				continue
 			}
 			node, exists := corpus.facts.nodes[next.relatedID]
@@ -69,12 +77,19 @@ func (corpus *Corpus) Trace(
 				nextVisited[id] = true
 			}
 			nextVisited[next.relatedID] = true
-			queue = append(queue, queuedPath{
-				current: next.relatedID,
-				nodes:   nextNodes,
-				edges:   nextEdges,
-				visited: nextVisited,
-			})
+			globallyVisited[next.relatedID] = true
+			if len(queue) < queueLimit {
+				queue = append(queue, queuedPath{
+					current: next.relatedID,
+					nodes:   nextNodes,
+					edges:   nextEdges,
+					visited: nextVisited,
+				})
+			}
+			branches++
+			if branches >= branchLimit {
+				break
+			}
 		}
 	}
 	return result
@@ -89,7 +104,7 @@ func (corpus *Corpus) Impact(
 	if corpus == nil || maxDepth <= 0 || limit <= 0 {
 		return nil
 	}
-	adjacency := queryAdjacency(corpus.facts, direction, stringSet(relations))
+	relationSet := stringSet(relations)
 	type queued struct {
 		id    string
 		depth int
@@ -109,7 +124,7 @@ func (corpus *Corpus) Impact(
 		if current.depth >= maxDepth {
 			continue
 		}
-		for _, next := range adjacency[current.id] {
+		for _, next := range corpus.queryNeighbors(current.id, direction, relationSet) {
 			if seen[next.relatedID] {
 				continue
 			}
@@ -130,32 +145,6 @@ func (corpus *Corpus) Impact(
 		}
 	}
 	return result
-}
-
-func queryAdjacency(facts library, direction string, relations map[string]bool) map[string][]adjacentRelationship {
-	all := relationshipAdjacency(facts.edges)
-	for id, values := range all {
-		filtered := values[:0]
-		for _, value := range values {
-			if direction != "" && direction != "both" && value.direction != direction {
-				continue
-			}
-			if len(relations) > 0 && !relations[value.edge.Relation] {
-				continue
-			}
-			filtered = append(filtered, value)
-		}
-		sort.Slice(filtered, func(i, j int) bool {
-			left := interstackRelationPriority(filtered[i].edge.Relation)
-			right := interstackRelationPriority(filtered[j].edge.Relation)
-			if left != right {
-				return left < right
-			}
-			return filtered[i].relatedID < filtered[j].relatedID
-		})
-		all[id] = filtered
-	}
-	return all
 }
 
 func queryEdgesHaveBehavior(edges []PathEdge) bool {

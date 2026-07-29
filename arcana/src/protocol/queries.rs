@@ -8,6 +8,7 @@ use crate::synthetic::NodeId;
 use super::request::QueryDirection;
 use super::response::{node_value, relationship_value, unresolved_value};
 use super::session::{ProtocolSnapshot, RequestFailure};
+use super::traversal::parse_relations;
 
 const DEFAULT_LIMIT: usize = 1_000;
 const MAX_LIMIT: usize = 10_000;
@@ -155,28 +156,49 @@ impl ProtocolSnapshot {
         node_id: u32,
         direction: QueryDirection,
         relation: Option<&str>,
+        relations: Option<&[String]>,
+        limit: Option<usize>,
     ) -> Result<Value, RequestFailure> {
         let node_id = NodeId(node_id);
         let source = self.entry(node_id).ok_or_else(|| {
             RequestFailure::new("unknown_node", format!("node {node_id:?} does not exist"))
         })?;
         let wanted = parse_relation(relation)?;
+        let wanted_many = parse_relations(relations)?;
         let neighbors = match direction {
             QueryDirection::Outgoing => self.graph.forward_neighbors_iter(node_id),
             QueryDirection::Incoming => self.graph.reverse_neighbors_iter(node_id),
         }
         .map_err(|error| RequestFailure::new("query_failed", error.to_string()))?;
 
+        let limit = bounded_limit(limit);
+        let scan_limit = limit.saturating_mul(16).clamp(1_024, 16_384);
+        let mut scanned = 0usize;
+        let mut matched = 0usize;
+        let mut truncated = false;
         let mut relationships = Vec::new();
         for neighbor in neighbors {
+            if scanned >= scan_limit {
+                truncated = true;
+                break;
+            }
+            scanned += 1;
             let relation = edge_kind_to_relation(neighbor.kind).ok_or_else(|| {
                 RequestFailure::new(
                     "corrupt_graph",
                     format!("unknown edge kind {}", neighbor.kind.0),
                 )
             })?;
-            if wanted.as_ref().is_some_and(|wanted| wanted != &relation) {
+            if wanted_many.is_some_and(|wanted| !wanted.contains(&relation)) {
                 continue;
+            }
+            if wanted_many.is_none() && wanted.as_ref().is_some_and(|wanted| wanted != &relation) {
+                continue;
+            }
+            matched += 1;
+            if relationships.len() >= limit {
+                truncated = true;
+                break;
             }
             let entry = self.entry(neighbor.node).ok_or_else(|| {
                 RequestFailure::new(
@@ -192,7 +214,10 @@ impl ProtocolSnapshot {
                 QueryDirection::Incoming => "incoming",
                 QueryDirection::Outgoing => "outgoing",
             },
-            "count": relationships.len(),
+            "count": matched,
+            "returned": relationships.len(),
+            "scanned": scanned,
+            "truncated": truncated,
             "relationships": relationships,
         }))
     }

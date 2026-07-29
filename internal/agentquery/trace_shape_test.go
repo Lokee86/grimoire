@@ -1,6 +1,7 @@
 package agentquery
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/Lokee86/grimoire/internal/arcanagraph"
@@ -76,6 +77,37 @@ func TestFinalizeTraceResponseFullDetailPreservesNodes(t *testing.T) {
 	}
 	if len(response.Paths[0].Steps[0].Evidence) != 3 {
 		t.Fatalf("full detail unexpectedly bounded evidence: %+v", response.Paths[0].Steps[0])
+	}
+}
+
+func TestFinalizeTraceDropsDirectRuntimeIntrinsicPaths(t *testing.T) {
+	response := Response{Paths: []Path{
+		{
+			Nodes: []Node{{Name: "project"}, {Name: "append", Path: "@builtin/go"}},
+			Steps: []PathStep{{Relation: "calls"}},
+		},
+		{
+			Nodes: []Node{{Name: "caller", Path: "pkg/caller.go"}, {Name: "project", Path: "pkg/project.go"}},
+			Steps: []PathStep{{Relation: "calls"}},
+		},
+	}}
+	finalizeTraceResponse(Request{Detail: "full"}, &response, 6)
+	if len(response.Paths) != 1 || response.Paths[0].Nodes[0].Name != "caller" {
+		t.Fatalf("runtime intrinsic path survived shaping: %+v", response.Paths)
+	}
+}
+
+func TestNormalizeTraceDefaultsToBehavioralTraversal(t *testing.T) {
+	request := normalizeRequest(Request{Mode: "trace", Anchor: "target"})
+	if request.Direction != "both" {
+		t.Fatalf("trace direction = %q, want both", request.Direction)
+	}
+	if !slices.Contains(request.Relations, "calls") || slices.Contains(request.Relations, "reads") || slices.Contains(request.Relations, "writes") {
+		t.Fatalf("trace relations = %v", request.Relations)
+	}
+	explicit := normalizeRequest(Request{Mode: "trace", Anchor: "target", Relations: []string{"reads"}})
+	if len(explicit.Relations) != 1 || explicit.Relations[0] != "reads" {
+		t.Fatalf("explicit trace relations were replaced: %v", explicit.Relations)
 	}
 }
 

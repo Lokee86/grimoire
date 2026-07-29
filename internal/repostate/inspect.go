@@ -25,7 +25,9 @@ type paths struct {
 
 type stateMarker struct {
 	SourceFingerprint string `json:"source_fingerprint"`
+	QuickFingerprint  string `json:"quick_fingerprint,omitempty"`
 	LexiconSnapshot   string `json:"lexicon_snapshot,omitempty"`
+	GitHead           string `json:"git_head,omitempty"`
 }
 
 var fingerprintRepository = sourceFingerprint
@@ -63,15 +65,25 @@ func inspect(ctx context.Context, location paths) (Status, error) {
 func inspectWithFingerprint(ctx context.Context, location paths, fingerprint string) (Status, error) {
 	started := now()
 	repository := RepositoryStatus{Root: location.root}
+	repository.GitHead, repository.GitDirty, repository.GitAvailable = gitRepositoryStatus(ctx, location.root)
+	quickFingerprint := ""
+	if !repository.GitAvailable {
+		quickFingerprint, _ = quickSourceFingerprint(location.root)
+	}
 	var err error
+	if fingerprint == "" {
+		fingerprint = reusablePreparedFingerprint(location, repository, quickFingerprint)
+	}
 	if fingerprint == "" {
 		fingerprint, err = fingerprintRepository(location.root)
 		if err != nil {
 			return Status{}, fmt.Errorf("fingerprint source: %w", err)
 		}
 	}
+	if !repository.GitAvailable {
+		repository.GitDirty = preparedSourceChanged(location, repository, quickFingerprint, fingerprint)
+	}
 	repository.SourceFingerprint = fingerprint
-	repository.GitHead, repository.GitDirty, repository.GitAvailable = gitIdentity(ctx, location.root)
 	status := Status{Version: 2, Repository: repository}
 	status.Lexicon = inspectLexicon(location, fingerprint, repository.GitDirty)
 	status.Arcana = inspectArcana(location, status.Lexicon.Snapshot)

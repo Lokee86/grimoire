@@ -37,16 +37,38 @@ type pathsResult struct {
 	Paths     []arcanaPath `json:"paths"`
 }
 
+const maxNeighborResults = 64
+
+type protocolBatchRun func([]protocolRequest) (map[string]protocolResponse, error)
+
+type neighborBatchQuery interface {
+	NeighborsBatch(context.Context, string, []uint32, string, []string) (map[uint32][]QueryNeighbor, error)
+}
+
 func (client Client) Resolve(
 	ctx context.Context,
 	snapshot, name, path string,
 	limit int,
 ) ([]structure.Node, error) {
-	if snapshot == "" || strings.TrimSpace(name) == "" || limit <= 0 {
+	return client.ResolveTyped(ctx, snapshot, name, "", path, limit)
+}
+
+func (client Client) ResolveTyped(
+	ctx context.Context,
+	snapshot, name, kind, path string,
+	limit int,
+) ([]structure.Node, error) {
+	return resolveWithRun(name, kind, path, limit, func(requests []protocolRequest) (map[string]protocolResponse, error) {
+		return client.run(ctx, snapshot, requests)
+	})
+}
+
+func resolveWithRun(name, kind, path string, limit int, run protocolBatchRun) ([]structure.Node, error) {
+	if strings.TrimSpace(name) == "" || limit <= 0 {
 		return nil, nil
 	}
-	response, err := client.run(ctx, snapshot, []protocolRequest{{
-		ID: "resolve", Op: "resolve_symbol", Name: name, Path: path, Limit: limit,
+	response, err := run([]protocolRequest{{
+		ID: "resolve", Op: "resolve_symbol", Name: name, Kind: kind, Path: path, Limit: limit,
 	}})
 	if err != nil {
 		return nil, err
@@ -64,7 +86,13 @@ func (client Client) Inspect(
 	snapshot string,
 	nodeID uint32,
 ) (structure.Node, error) {
-	response, err := client.run(ctx, snapshot, []protocolRequest{{
+	return inspectWithRun(nodeID, func(requests []protocolRequest) (map[string]protocolResponse, error) {
+		return client.run(ctx, snapshot, requests)
+	})
+}
+
+func inspectWithRun(nodeID uint32, run protocolBatchRun) (structure.Node, error) {
+	response, err := run([]protocolRequest{{
 		ID: "inspect", Op: "neighbors", NodeID: &nodeID, Direction: "outgoing",
 	}})
 	if err != nil {
@@ -84,41 +112,99 @@ func (client Client) Neighbors(
 	direction string,
 	relations []string,
 ) ([]QueryNeighbor, error) {
+	results, err := client.NeighborsBatch(ctx, snapshot, []uint32{nodeID}, direction, relations)
+	return results[nodeID], err
+}
+
+func (client Client) NeighborsBatch(
+	ctx context.Context,
+	snapshot string,
+	nodeIDs []uint32,
+	direction string,
+	relations []string,
+) (map[uint32][]QueryNeighbor, error) {
+	if snapshot == "" {
+		return map[uint32][]QueryNeighbor{}, nil
+	}
+	return neighborsBatchWithRun(nodeIDs, direction, relations, func(requests []protocolRequest) (map[string]protocolResponse, error) {
+		return client.run(ctx, snapshot, requests)
+	})
+}
+
+func neighborsBatchWithRun(
+	nodeIDs []uint32,
+	direction string,
+	relations []string,
+	run protocolBatchRun,
+) (map[uint32][]QueryNeighbor, error) {
+	result := make(map[uint32][]QueryNeighbor, len(nodeIDs))
+	if len(nodeIDs) == 0 {
+		return result, nil
+	}
 	directions := []string{direction}
 	if direction == "" || direction == "both" {
 		directions = []string{"incoming", "outgoing"}
 	}
 	relationValues := relations
+	protocolRelations := []string(nil)
+	allowedRelations := make(map[string]bool)
 	if len(relationValues) == 0 {
 		relationValues = []string{""}
-	}
-	requests := make([]protocolRequest, 0, len(directions)*len(relationValues))
-	for _, currentDirection := range directions {
+	} else if len(relationValues) > 1 {
+		protocolRelations = append([]string(nil), relationValues...)
 		for _, relation := range relationValues {
-			requests = append(requests, protocolRequest{
-				ID: fmt.Sprintf("neighbors-%d", len(requests)), Op: "neighbors",
-				NodeID: &nodeID, Direction: currentDirection, Relation: relation,
-			})
+			allowedRelations[relation] = true
+		}
+		relationValues = []string{""}
+	}
+	type requestOwner struct {
+		nodeID uint32
+	}
+	owners := make(map[string]requestOwner)
+	requests := make([]protocolRequest, 0, len(nodeIDs)*len(directions)*len(relationValues))
+	seenNodes := make(map[uint32]bool, len(nodeIDs))
+	for _, nodeID := range nodeIDs {
+		if seenNodes[nodeID] {
+			continue
+		}
+		seenNodes[nodeID] = true
+		for _, currentDirection := range directions {
+			for _, relation := range relationValues {
+				id := fmt.Sprintf("neighbors-%d", len(requests))
+				currentNodeID := nodeID
+				requests = append(requests, protocolRequest{
+					ID: id, Op: "neighbors", NodeID: &currentNodeID,
+					Direction: currentDirection, Relation: relation,
+					Relations: protocolRelations, Limit: maxNeighborResults,
+				})
+				owners[id] = requestOwner{nodeID: nodeID}
+			}
 		}
 	}
-	responses, err := client.run(ctx, snapshot, requests)
+	responses, err := run(requests)
 	if err != nil {
 		return nil, err
 	}
-	var result []QueryNeighbor
-	seen := make(map[string]bool)
+	seen := make(map[uint32]map[string]bool, len(nodeIDs))
 	for _, request := range requests {
+		owner := owners[request.ID]
 		value, ok := decodeResponse[neighborResult](responses[request.ID])
 		if !ok {
 			continue
 		}
+		if seen[owner.nodeID] == nil {
+			seen[owner.nodeID] = make(map[string]bool)
+		}
 		for _, related := range value.Relationships {
-			key := fmt.Sprintf("%s\x00%s\x00%d", value.Direction, related.Relation, related.Node.NodeID)
-			if seen[key] {
+			if len(allowedRelations) > 0 && !allowedRelations[related.Relation] {
 				continue
 			}
-			seen[key] = true
-			result = append(result, QueryNeighbor{
+			key := fmt.Sprintf("%s\x00%s\x00%d", value.Direction, related.Relation, related.Node.NodeID)
+			if seen[owner.nodeID][key] {
+				continue
+			}
+			seen[owner.nodeID][key] = true
+			result[owner.nodeID] = append(result[owner.nodeID], QueryNeighbor{
 				Direction: value.Direction, Relation: related.Relation,
 				Certainty: relationCertainty(related.Relation), Node: related.Node.toStructure(),
 			})
@@ -134,7 +220,18 @@ func (client Client) Paths(
 	relations []string,
 	maxDepth, limit int,
 ) ([]QueryPath, bool, error) {
-	response, err := client.run(ctx, snapshot, []protocolRequest{{
+	return pathsWithRun(fromNodeID, toNodeID, relations, maxDepth, limit, func(requests []protocolRequest) (map[string]protocolResponse, error) {
+		return client.run(ctx, snapshot, requests)
+	})
+}
+
+func pathsWithRun(
+	fromNodeID, toNodeID uint32,
+	relations []string,
+	maxDepth, limit int,
+	run protocolBatchRun,
+) ([]QueryPath, bool, error) {
+	response, err := run([]protocolRequest{{
 		ID: "paths", Op: "paths", FromNodeID: &fromNodeID, ToNodeID: &toNodeID,
 		Relations: relations, MaxDepth: maxDepth, Limit: limit,
 	}})
@@ -170,6 +267,18 @@ func (client Client) ImpactQuery(
 	relations []string,
 	maxDepth, limit int,
 ) ([]QueryImpact, bool, error) {
+	return impactWithQuery(ctx, snapshot, startNodeID, direction, relations, maxDepth, limit, client)
+}
+
+func impactWithQuery(
+	ctx context.Context,
+	snapshot string,
+	startNodeID uint32,
+	direction string,
+	relations []string,
+	maxDepth, limit int,
+	query neighborBatchQuery,
+) ([]QueryImpact, bool, error) {
 	type queued struct {
 		id    uint32
 		depth int
@@ -179,27 +288,41 @@ func (client Client) ImpactQuery(
 	var result []QueryImpact
 	truncated := false
 	for len(queue) > 0 && len(result) < limit {
-		current := queue[0]
-		queue = queue[1:]
-		if current.depth >= maxDepth {
+		depth := queue[0].depth
+		frontierEnd := 0
+		for frontierEnd < len(queue) && queue[frontierEnd].depth == depth {
+			frontierEnd++
+		}
+		frontier := append([]queued(nil), queue[:frontierEnd]...)
+		queue = queue[frontierEnd:]
+		if depth >= maxDepth {
 			continue
 		}
-		neighbors, err := client.Neighbors(ctx, snapshot, current.id, direction, relations)
+		nodeIDs := make([]uint32, 0, len(frontier))
+		for _, current := range frontier {
+			nodeIDs = append(nodeIDs, current.id)
+		}
+		neighborsByNode, err := query.NeighborsBatch(ctx, snapshot, nodeIDs, direction, relations)
 		if err != nil {
 			return nil, false, err
 		}
-		for _, neighbor := range neighbors {
-			if neighbor.Node.NodeID == nil || seen[*neighbor.Node.NodeID] {
-				continue
+		for _, current := range frontier {
+			for _, neighbor := range neighborsByNode[current.id] {
+				if neighbor.Node.NodeID == nil || seen[*neighbor.Node.NodeID] {
+					continue
+				}
+				id := *neighbor.Node.NodeID
+				seen[id] = true
+				result = append(result, QueryImpact{
+					Depth: current.depth + 1, QueryNeighbor: neighbor,
+				})
+				queue = append(queue, queued{id: id, depth: current.depth + 1})
+				if len(result) == limit {
+					truncated = len(queue) > 0 || len(frontier) > 1
+					break
+				}
 			}
-			id := *neighbor.Node.NodeID
-			seen[id] = true
-			result = append(result, QueryImpact{
-				Depth: current.depth + 1, QueryNeighbor: neighbor,
-			})
-			queue = append(queue, queued{id: id, depth: current.depth + 1})
 			if len(result) == limit {
-				truncated = len(queue) > 0
 				break
 			}
 		}
@@ -213,7 +336,17 @@ func (client Client) Unresolved(
 	nodeID uint32,
 	limit int,
 ) ([]structure.Unresolved, bool, error) {
-	response, err := client.run(ctx, snapshot, []protocolRequest{{
+	return unresolvedWithRun(nodeID, limit, func(requests []protocolRequest) (map[string]protocolResponse, error) {
+		return client.run(ctx, snapshot, requests)
+	})
+}
+
+func unresolvedWithRun(
+	nodeID uint32,
+	limit int,
+	run protocolBatchRun,
+) ([]structure.Unresolved, bool, error) {
+	response, err := run([]protocolRequest{{
 		ID: "unresolved", Op: "unresolved", NodeID: &nodeID, Limit: limit,
 	}})
 	if err != nil {

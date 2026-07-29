@@ -25,6 +25,8 @@ type Request struct {
 	LexiconCmd   string   `json:"lexicon_command,omitempty"`
 	ArcanaState  string   `json:"arcana_state,omitempty"`
 	ArcanaCmd    string   `json:"arcana_command,omitempty"`
+
+	PreparedSnapshot Snapshot `json:"-"`
 }
 
 type Response struct {

@@ -33,20 +33,25 @@ func resolveSessionHandles(statePath string, request *Request) error {
 }
 
 func hasSessionHandle(request Request) bool {
-	if strings.HasPrefix(strings.TrimSpace(request.Anchor), "g1_") || strings.HasPrefix(strings.TrimSpace(request.Target), "g1_") {
+	if isSessionHandle(request.Anchor) || isSessionHandle(request.Target) {
 		return true
 	}
 	for _, value := range request.Handles {
-		if strings.HasPrefix(strings.TrimSpace(value), "g1_") {
+		if isSessionHandle(value) {
 			return true
 		}
 	}
 	return false
 }
 
+func isSessionHandle(value string) bool {
+	value = strings.TrimSpace(value)
+	return strings.HasPrefix(value, "g1_") || strings.HasPrefix(value, "g2_")
+}
+
 func resolveSessionReference(ledger *investigation.Ledger, value string) (string, error) {
 	value = strings.TrimSpace(value)
-	if !strings.HasPrefix(value, "g1_") {
+	if !isSessionHandle(value) {
 		return value, nil
 	}
 	kind, err := investigation.HandleKind(value)

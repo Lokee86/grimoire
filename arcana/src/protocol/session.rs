@@ -102,7 +102,15 @@ impl ProtocolSnapshot {
                 node_id,
                 direction,
                 relation,
-            } => self.neighbors(node_id, direction, relation.as_deref()),
+                relations,
+                limit,
+            } => self.neighbors(
+                node_id,
+                direction,
+                relation.as_deref(),
+                relations.as_deref(),
+                limit,
+            ),
             RequestCommand::Paths {
                 from_node_id,
                 to_node_id,

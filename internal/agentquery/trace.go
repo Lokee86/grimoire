@@ -10,26 +10,40 @@ import (
 )
 
 func (engine *Engine) trace(ctx context.Context, request Request, response *Response) error {
+	traceDone := debugTiming("trace.total")
+	defer traceDone()
 	requestedLimit := request.Limit
 	traceRequest := request
 	traceRequest.Limit = traceCandidateLimit(request.Limit)
 
-	from, err := engine.resolveAnchors(ctx, request.Anchor, request.Query, traceRequest.Limit)
+	openArcanaDone := debugTiming("trace.open_arcana")
+	arcana, closeArcana := engine.openArcanaQuery(ctx, response)
+	openArcanaDone()
+	defer func() {
+		closeArcanaDone := debugTiming("trace.close_arcana")
+		closeArcana()
+		closeArcanaDone()
+	}()
+
+	resolveFromDone := debugTiming("trace.resolve_from")
+	from, err := engine.resolveAnchors(ctx, request.Anchor, request.Query, traceRequest.Limit, arcana)
+	resolveFromDone()
 	if err != nil {
 		return err
 	}
 	var to resolvedAnchors
 	if request.Target != "" {
-		to, err = engine.resolveAnchors(ctx, request.Target, "", traceRequest.Limit)
+		to, err = engine.resolveAnchors(ctx, request.Target, "", traceRequest.Limit, arcana)
 		if err != nil {
 			return err
 		}
 	}
 
+	lexiconDone := debugTiming("trace.lexicon")
 	if engine.lexicon != nil && len(from.lexicon) > 0 {
-		lexiconLimit := 200
+		lexiconLimit := traceRequest.Limit
 		if request.Target != "" {
-			lexiconLimit = min(200, max(64, traceRequest.Limit*4))
+			lexiconLimit = min(maxTraceCandidates, max(traceRequest.Limit, requestedLimit*2))
 		}
 		paths := engine.lexicon.Trace(
 			identities(from.lexicon), identities(to.lexicon),
@@ -40,38 +54,46 @@ func (engine *Engine) trace(ctx context.Context, request Request, response *Resp
 		}
 		response.Truncated = response.Truncated || len(paths) == lexiconLimit
 	}
+	lexiconDone()
 
-	needArcana := engine.arcanaSnapshot != "" &&
+	arcanaDone := debugTiming("trace.arcana")
+	needArcana := arcana != nil && engine.arcanaSnapshot != "" &&
 		(request.Target != "" || distinctBehaviorEntries(response.Paths) < requestedLimit)
 	if needArcana {
 		arcanaResponse := Response{}
 		if len(to.arcana) > 0 {
-			if err := engine.arcanaPaths(ctx, from.arcana, to.arcana, traceRequest, &arcanaResponse); err != nil {
+			if err := engine.arcanaPaths(ctx, from.arcana, to.arcana, traceRequest, &arcanaResponse, arcana); err != nil {
 				response.Warnings = append(response.Warnings, "Arcana trace unavailable: "+err.Error())
 			}
-		} else if err := engine.arcanaExpansion(ctx, from.arcana, traceRequest, &arcanaResponse); err != nil {
+		} else if err := engine.arcanaExpansion(ctx, from.arcana, traceRequest, &arcanaResponse, arcana); err != nil {
 			response.Warnings = append(response.Warnings, "Arcana trace unavailable: "+err.Error())
 		}
 		response.Paths = append(response.Paths, arcanaResponse.Paths...)
 		response.Truncated = response.Truncated || arcanaResponse.Truncated
 	}
-	finalizeTraceResponse(request, response, requestedLimit)
+	arcanaDone()
 
-	for _, node := range from.arcana {
-		if node.NodeID == nil || len(response.Unresolved) >= request.Limit {
-			continue
+	finalizeDone := debugTiming("trace.finalize")
+	finalizeTraceResponse(request, response, requestedLimit)
+	finalizeDone()
+
+	if len(response.Paths) == 0 || request.Detail == "full" {
+		for _, node := range from.arcana {
+			if node.NodeID == nil || len(response.Unresolved) >= request.Limit {
+				continue
+			}
+			items, truncated, unresolvedErr := arcana.Unresolved(
+				ctx, engine.arcanaSnapshot, *node.NodeID, request.Limit-len(response.Unresolved),
+			)
+			if unresolvedErr != nil {
+				response.Warnings = append(response.Warnings, "Arcana unresolved alternatives unavailable: "+unresolvedErr.Error())
+				break
+			}
+			for _, item := range items {
+				response.Unresolved = append(response.Unresolved, unresolvedFromStructure(item, engine.source.Identity()))
+			}
+			response.Truncated = response.Truncated || truncated
 		}
-		items, truncated, unresolvedErr := engine.arcana.Unresolved(
-			ctx, engine.arcanaSnapshot, *node.NodeID, request.Limit-len(response.Unresolved),
-		)
-		if unresolvedErr != nil {
-			response.Warnings = append(response.Warnings, "Arcana unresolved alternatives unavailable: "+unresolvedErr.Error())
-			break
-		}
-		for _, item := range items {
-			response.Unresolved = append(response.Unresolved, unresolvedFromStructure(item, engine.source.Identity()))
-		}
-		response.Truncated = response.Truncated || truncated
 	}
 	if len(response.Paths) == 0 {
 		response.Warnings = append(response.Warnings, "no structural path matched the supplied anchor and filters")
@@ -100,6 +122,7 @@ func (engine *Engine) arcanaPaths(
 	from, to []structure.Node,
 	request Request,
 	response *Response,
+	arcana arcanaQuery,
 ) error {
 	for _, start := range from {
 		if start.NodeID == nil {
@@ -122,7 +145,7 @@ func (engine *Engine) arcanaPaths(
 				})
 			}
 			for _, query := range queries {
-				paths, truncated, err := engine.arcana.Paths(
+				paths, truncated, err := arcana.Paths(
 					ctx, engine.arcanaSnapshot, query.from, query.to,
 					request.Relations, request.Depth, request.Limit-len(response.Paths),
 				)
@@ -150,12 +173,13 @@ func (engine *Engine) arcanaExpansion(
 	starts []structure.Node,
 	request Request,
 	response *Response,
+	arcana arcanaQuery,
 ) error {
 	remaining := request.Limit - len(response.Paths)
 	if remaining <= 0 {
 		return nil
 	}
-	candidateCap := min(remaining*4, 128)
+	candidateCap := min(max(remaining*2, remaining), 32)
 	queryContext := request.Query + " " + request.Anchor
 	type queuedPath struct {
 		nodes      []structure.Node
@@ -165,10 +189,12 @@ func (engine *Engine) arcanaExpansion(
 		entry      string
 	}
 	queue := make([]queuedPath, 0, len(starts))
+	globallyVisited := make(map[uint32]bool)
 	for _, start := range starts {
-		if start.NodeID == nil {
+		if start.NodeID == nil || globallyVisited[*start.NodeID] {
 			continue
 		}
+		globallyVisited[*start.NodeID] = true
 		queue = append(queue, queuedPath{
 			nodes:   []structure.Node{start},
 			visited: map[uint32]bool{*start.NodeID: true},
@@ -179,62 +205,88 @@ func (engine *Engine) arcanaExpansion(
 	var behavioral []arcanagraph.QueryPath
 	var structural []arcanagraph.QueryPath
 	for len(queue) > 0 && len(behavioral) < candidateCap {
-		current := queue[0]
-		queue = queue[1:]
-		if len(current.relations) >= request.Depth {
+		depth := len(queue[0].relations)
+		frontierEnd := 0
+		for frontierEnd < len(queue) && len(queue[frontierEnd].relations) == depth {
+			frontierEnd++
+		}
+		frontier := append([]queuedPath(nil), queue[:frontierEnd]...)
+		queue = queue[frontierEnd:]
+		if depth >= request.Depth {
 			continue
 		}
-		tail := current.nodes[len(current.nodes)-1]
-		if tail.NodeID == nil {
-			continue
+		if len(frontier) > 8 {
+			frontier = frontier[:8]
+			response.Truncated = true
 		}
-		neighbors, err := engine.arcana.Neighbors(
-			ctx, engine.arcanaSnapshot, *tail.NodeID, request.Direction, request.Relations,
+		nodeIDs := make([]uint32, 0, len(frontier))
+		for _, current := range frontier {
+			tail := current.nodes[len(current.nodes)-1]
+			if tail.NodeID != nil {
+				nodeIDs = append(nodeIDs, *tail.NodeID)
+			}
+		}
+		neighborsByNode, err := arcana.NeighborsBatch(
+			ctx, engine.arcanaSnapshot, nodeIDs, request.Direction, request.Relations,
 		)
 		if err != nil {
 			return err
 		}
-		neighbors = rankTraceNeighbors(neighbors, queryContext)
-		for _, neighbor := range neighbors {
-			if neighbor.Node.NodeID == nil || current.visited[*neighbor.Node.NodeID] {
+		nextQueue := make([]queuedPath, 0, min(candidateCap, 8))
+		for _, current := range frontier {
+			tail := current.nodes[len(current.nodes)-1]
+			if tail.NodeID == nil {
 				continue
 			}
-			nextNodes := append(append([]structure.Node(nil), current.nodes...), neighbor.Node)
-			nextRelations := append(append([]string(nil), current.relations...), neighbor.Relation)
-			nextDirections := append(append([]string(nil), current.directions...), neighbor.Direction)
-			entry := current.entry
-			if len(current.relations) == 0 && traceContextRelation(neighbor.Relation) {
-				entry = traceStructureNodeLabel(neighbor.Node)
-			}
-			path := arcanagraph.QueryPath{
-				Nodes: nextNodes, Relations: nextRelations, Directions: nextDirections,
-			}
-			behavioralPath := traceRelationsHaveBehavior(nextRelations)
-			if behavioralPath {
-				key := strings.ToLower(entry)
-				if entryCounts[key] < 4 {
-					behavioral = append(behavioral, path)
-					entryCounts[key]++
+			neighbors := rankTraceNeighbors(neighborsByNode[*tail.NodeID], queryContext)
+			branches := 0
+			for _, neighbor := range neighbors {
+				if neighbor.Node.NodeID == nil || current.visited[*neighbor.Node.NodeID] || globallyVisited[*neighbor.Node.NodeID] {
+					continue
 				}
-			} else if len(structural) < candidateCap {
-				structural = append(structural, path)
+				nextNodes := append(append([]structure.Node(nil), current.nodes...), neighbor.Node)
+				nextRelations := append(append([]string(nil), current.relations...), neighbor.Relation)
+				nextDirections := append(append([]string(nil), current.directions...), neighbor.Direction)
+				entry := current.entry
+				if len(current.relations) == 0 && traceContextRelation(neighbor.Relation) {
+					entry = traceStructureNodeLabel(neighbor.Node)
+				}
+				path := arcanagraph.QueryPath{
+					Nodes: nextNodes, Relations: nextRelations, Directions: nextDirections,
+				}
+				behavioralPath := traceRelationsHaveBehavior(nextRelations)
+				if behavioralPath {
+					key := strings.ToLower(entry)
+					if entryCounts[key] < 4 {
+						behavioral = append(behavioral, path)
+						entryCounts[key]++
+					}
+				} else if len(structural) < candidateCap {
+					structural = append(structural, path)
+				}
+				if len(nextRelations) >= request.Depth {
+					continue
+				}
+				nextVisited := make(map[uint32]bool, len(current.visited)+1)
+				for id := range current.visited {
+					nextVisited[id] = true
+				}
+				nextVisited[*neighbor.Node.NodeID] = true
+				globallyVisited[*neighbor.Node.NodeID] = true
+				nextQueue = append(nextQueue, queuedPath{
+					nodes: nextNodes, relations: nextRelations, directions: nextDirections,
+					visited: nextVisited, entry: entry,
+				})
+				branches++
+				if len(behavioral) >= candidateCap || branches >= 2 || len(nextQueue) >= 8 {
+					break
+				}
 			}
-			if len(nextRelations) >= request.Depth {
-				continue
-			}
-			nextVisited := make(map[uint32]bool, len(current.visited)+1)
-			for id := range current.visited {
-				nextVisited[id] = true
-			}
-			nextVisited[*neighbor.Node.NodeID] = true
-			queue = append(queue, queuedPath{
-				nodes: nextNodes, relations: nextRelations, directions: nextDirections,
-				visited: nextVisited, entry: entry,
-			})
-			if len(behavioral) >= candidateCap {
+			if len(behavioral) >= candidateCap || len(nextQueue) >= 8 {
 				break
 			}
 		}
+		queue = append(queue, nextQueue...)
 	}
 
 	paths := behavioral

@@ -1,6 +1,24 @@
 package lexiconfacts
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
+
+func TestTraceBoundsHighFanoutExpansion(t *testing.T) {
+	nodes := map[string]Node{"root": {ID: "root", Kind: "function", Name: "Root"}}
+	edges := make([]Edge, 0, 100)
+	for index := 0; index < 100; index++ {
+		id := fmt.Sprintf("child-%03d", index)
+		nodes[id] = Node{ID: id, Kind: "function", Name: id}
+		edges = append(edges, Edge{Source: "root", Target: id, Relation: "calls"})
+	}
+	corpus := &Corpus{facts: library{nodes: nodes, edges: edges}}
+	paths := corpus.Trace([]string{"root"}, nil, "outgoing", []string{"calls"}, 3, 50)
+	if len(paths) != 16 {
+		t.Fatalf("high-fanout trace returned %d paths, want bounded 16", len(paths))
+	}
+}
 
 func TestTraceUsesBreadthFirstCandidateFairness(t *testing.T) {
 	corpus := &Corpus{facts: library{

@@ -41,7 +41,7 @@ func (corpus *Corpus) Find(query string, limit int) []Match {
 	if corpus == nil || limit <= 0 {
 		return nil
 	}
-	ranked := rankNodes(corpus.facts, query, queryTerms(query))
+	ranked := rankNodesWithDegrees(corpus.facts, corpus.graphDegrees(), query, queryTerms(query))
 	if len(ranked) > limit {
 		ranked = ranked[:limit]
 	}
@@ -137,6 +137,19 @@ func (corpus *Corpus) Resolve(anchor string, limit int) []structure.Node {
 	return result
 }
 
+func sourceResolutionKindPriority(kind string) int {
+	switch strings.ToLower(strings.TrimSpace(kind)) {
+	case "function", "method", "constructor", "class", "type", "interface", "trait", "struct", "enum":
+		return 0
+	case "module", "package", "namespace", "file":
+		return 1
+	case "field", "property", "parameter", "local", "variable":
+		return 3
+	default:
+		return 2
+	}
+}
+
 // ResolveSource maps an exact prepared source range to overlapping declarations.
 func (corpus *Corpus) ResolveSource(path string, startLine, endLine, limit int) []structure.Node {
 	if corpus == nil || limit <= 0 {
@@ -144,6 +157,7 @@ func (corpus *Corpus) ResolveSource(path string, startLine, endLine, limit int) 
 	}
 	path = strings.ReplaceAll(strings.TrimSpace(path), "\\", "/")
 	var nodes []Node
+	var exact []Node
 	for _, node := range corpus.facts.nodes {
 		if node.Span == nil || strings.ReplaceAll(node.Span.Path, "\\", "/") != path {
 			continue
@@ -155,8 +169,19 @@ func (corpus *Corpus) ResolveSource(path string, startLine, endLine, limit int) 
 			continue
 		}
 		nodes = append(nodes, node)
+		if startLine > 0 && endLine > 0 && node.Span.StartLine == startLine && node.Span.EndLine == endLine {
+			exact = append(exact, node)
+		}
+	}
+	if len(exact) > 0 {
+		nodes = exact
 	}
 	sort.Slice(nodes, func(i, j int) bool {
+		leftPriority := sourceResolutionKindPriority(nodes[i].Kind)
+		rightPriority := sourceResolutionKindPriority(nodes[j].Kind)
+		if leftPriority != rightPriority {
+			return leftPriority < rightPriority
+		}
 		leftSize := nodes[i].Span.EndLine - nodes[i].Span.StartLine
 		rightSize := nodes[j].Span.EndLine - nodes[j].Span.StartLine
 		if leftSize != rightSize {

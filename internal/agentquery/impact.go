@@ -3,7 +3,10 @@ package agentquery
 import "context"
 
 func (engine *Engine) impact(ctx context.Context, request Request, response *Response) error {
-	starts, err := engine.resolveAnchors(ctx, request.Anchor, request.Query, request.Limit)
+	arcana, closeArcana := engine.openArcanaQuery(ctx, response)
+	defer closeArcana()
+
+	starts, err := engine.resolveAnchors(ctx, request.Anchor, request.Query, request.Limit, arcana)
 	if err != nil {
 		return err
 	}
@@ -25,12 +28,12 @@ func (engine *Engine) impact(ctx context.Context, request Request, response *Res
 			}
 		}
 	}
-	if engine.arcanaSnapshot != "" {
+	if arcana != nil && engine.arcanaSnapshot != "" {
 		for _, start := range starts.arcana {
 			if start.NodeID == nil {
 				continue
 			}
-			items, truncated, impactErr := engine.arcana.ImpactQuery(
+			items, truncated, impactErr := arcana.ImpactQuery(
 				ctx, engine.arcanaSnapshot, *start.NodeID, request.Direction,
 				request.Relations, request.Depth, request.Limit-len(response.Dependents),
 			)

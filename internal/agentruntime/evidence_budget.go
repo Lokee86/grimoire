@@ -7,7 +7,7 @@ import (
 	"github.com/Lokee86/grimoire/internal/knowledge"
 )
 
-const defaultDocumentPreviewCount = 2
+const defaultDocumentPreviewCount = 1
 
 func applyKnowledgePreviews(documents []knowledge.Result, explicitCount int, detail string) []knowledge.Result {
 	if strings.EqualFold(strings.TrimSpace(detail), "full") {

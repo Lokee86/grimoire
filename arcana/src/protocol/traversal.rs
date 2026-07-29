@@ -30,7 +30,7 @@ impl RelationMask {
         self.0 |= relation_bit(relation);
     }
 
-    fn contains(self, relation: &RelationKind) -> bool {
+    pub(crate) fn contains(self, relation: &RelationKind) -> bool {
         self.0 & relation_bit(relation) != 0
     }
 

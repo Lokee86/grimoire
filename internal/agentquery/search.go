@@ -40,52 +40,62 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 	symbolAvailable := 0
 	if engine.lexicon != nil {
 		matches := engine.lexicon.Find(request.Query, candidateLimit)
+		candidates := make([]Result, 0, len(matches))
+		seen := make(map[string]bool)
 		for _, match := range matches {
 			if isDocumentationPath(match.Node.Path) {
 				continue
 			}
-			symbolAvailable++
-			if len(response.SymbolMatches) >= request.Limit {
-				continue
-			}
-			response.SymbolMatches = append(response.SymbolMatches, Result{
+			candidate := Result{
 				Provider: "lexicon",
 				Kind:     match.Node.Kind,
 				Node:     engine.node("lexicon", engine.lexiconSnapshot, match.Node),
 				Excerpt:  engine.nodeExcerpt(match.Node),
 				Score:    match.Score,
 				Reasons:  append([]string(nil), match.Reasons...),
-			})
+			}
+			key := resultSemanticKey(candidate)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			symbolAvailable++
+			candidates = append(candidates, candidate)
 		}
-		for index := range response.SymbolMatches {
-			response.SymbolMatches[index].Rank = index + 1
-		}
+		response.SymbolMatches = selectDiverseResults(candidates, request.Limit)
 	}
 
 	if len(response.SymbolMatches) == 0 && engine.arcanaSnapshot != "" {
-		nodes, err := engine.arcana.Resolve(ctx, engine.arcanaSnapshot, request.Query, "", candidateLimit)
-		if err != nil {
-			response.Warnings = append(response.Warnings, "Arcana symbol discovery unavailable: "+err.Error())
-		} else {
-			symbolAvailable = 0
-			for _, value := range nodes {
-				if isDocumentationPath(value.Path) {
-					continue
+		arcana, closeArcana := engine.openArcanaQuery(ctx, response)
+		defer closeArcana()
+		if arcana != nil {
+			nodes, err := arcana.Resolve(ctx, engine.arcanaSnapshot, request.Query, "", candidateLimit)
+			if err != nil {
+				response.Warnings = append(response.Warnings, "Arcana symbol discovery unavailable: "+err.Error())
+			} else {
+				candidates := make([]Result, 0, len(nodes))
+				seen := make(map[string]bool)
+				symbolAvailable = 0
+				for _, value := range nodes {
+					if isDocumentationPath(value.Path) {
+						continue
+					}
+					candidate := Result{
+						Provider: "arcana",
+						Kind:     value.Kind,
+						Node:     engine.node("arcana", engine.arcanaSnapshotID, value),
+						Excerpt:  engine.nodeExcerpt(value),
+						Reasons:  []string{"Arcana graph symbol match"},
+					}
+					key := resultSemanticKey(candidate)
+					if seen[key] {
+						continue
+					}
+					seen[key] = true
+					symbolAvailable++
+					candidates = append(candidates, candidate)
 				}
-				symbolAvailable++
-				if len(response.SymbolMatches) >= request.Limit {
-					continue
-				}
-				response.SymbolMatches = append(response.SymbolMatches, Result{
-					Provider: "arcana",
-					Kind:     value.Kind,
-					Node:     engine.node("arcana", engine.arcanaSnapshotID, value),
-					Excerpt:  engine.nodeExcerpt(value),
-					Reasons:  []string{"Arcana graph symbol match"},
-				})
-			}
-			for index := range response.SymbolMatches {
-				response.SymbolMatches[index].Rank = index + 1
+				response.SymbolMatches = selectDiverseResults(candidates, request.Limit)
 			}
 		}
 	}
@@ -103,7 +113,7 @@ func (engine *Engine) sourceResults(
 	reason string,
 	exclude map[string]string,
 ) ([]Result, int, int) {
-	results := make([]Result, 0, min(limit, len(candidates)))
+	eligibleResults := make([]Result, 0, len(candidates))
 	seen := make(map[string]bool)
 	eligible := 0
 	suppressed := 0
@@ -122,11 +132,7 @@ func (engine *Engine) sourceResults(
 			continue
 		}
 		eligible++
-		if len(results) >= limit {
-			continue
-		}
-		results = append(results, Result{
-			Rank:     len(results) + 1,
+		eligibleResults = append(eligibleResults, Result{
 			Provider: provider,
 			Kind:     sourceKind(candidate.Chunk),
 			Node:     node,
@@ -135,7 +141,7 @@ func (engine *Engine) sourceResults(
 			Reasons:  append([]string{reason}, candidate.Reasons...),
 		})
 	}
-	return results, eligible, suppressed
+	return selectDiverseResults(eligibleResults, limit), eligible, suppressed
 }
 
 func searchExpansionCandidateCount(response *Response) int {

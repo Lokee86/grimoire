@@ -15,7 +15,7 @@ func traceCandidateLimit(limit int) int {
 	if limit <= 0 {
 		return 1
 	}
-	candidateLimit := limit * 4
+	candidateLimit := limit * 2
 	if candidateLimit < limit {
 		candidateLimit = limit
 	}
@@ -52,6 +52,10 @@ func finalizeTraceResponse(request Request, response *Response, limit int) {
 	entryCounts := make(map[string]int)
 	uniquePaths := make([]Path, 0, len(response.Paths))
 	for _, path := range response.Paths {
+		if directRuntimeIntrinsicPath(path) {
+			response.Truncated = true
+			continue
+		}
 		if hasBehavior && !tracePathHasBehavior(path) {
 			response.Truncated = true
 			continue
@@ -127,8 +131,8 @@ func rankTraceNeighbors(neighbors []arcanagraph.QueryNeighbor, query string) []a
 	ranked := append([]arcanagraph.QueryNeighbor(nil), neighbors...)
 	terms := traceTerms(query)
 	sort.SliceStable(ranked, func(left, right int) bool {
-		leftScore := traceRelationScore(ranked[left].Relation) + traceNodeScore(ranked[left].Node, terms)
-		rightScore := traceRelationScore(ranked[right].Relation) + traceNodeScore(ranked[right].Node, terms)
+		leftScore := traceRelationScore(ranked[left].Relation) + traceNodeScore(ranked[left].Node, terms) + traceNodeLocationScore(ranked[left].Node)
+		rightScore := traceRelationScore(ranked[right].Relation) + traceNodeScore(ranked[right].Node, terms) + traceNodeLocationScore(ranked[right].Node)
 		if leftScore != rightScore {
 			return leftScore > rightScore
 		}
@@ -246,12 +250,35 @@ func tracePathEndsInLowValueRead(path Path) bool {
 
 func traceAgentNodeScore(node Node, terms []string) float64 {
 	value := strings.ToLower(strings.Join([]string{node.Name, node.QualifiedName, node.Path, node.Kind}, " "))
-	return traceTextScore(value, terms)
+	return traceTextScore(value, terms) + tracePathLocationScore(node.Path)
+}
+
+func directRuntimeIntrinsicPath(path Path) bool {
+	if len(path.Steps) != 1 || len(path.Nodes) < 2 {
+		return false
+	}
+	return tracePathLocationScore(path.Nodes[len(path.Nodes)-1].Path) <= -100
+}
+
+func tracePathLocationScore(path string) float64 {
+	path = strings.ToLower(strings.TrimSpace(path))
+	switch {
+	case strings.HasPrefix(path, "@builtin/"), strings.HasPrefix(path, "@stdlib/"):
+		return -140
+	case strings.HasPrefix(path, "@external/"):
+		return -50
+	default:
+		return 0
+	}
 }
 
 func traceNodeScore(node structure.Node, terms []string) float64 {
 	value := strings.ToLower(strings.Join([]string{node.Name, node.QualifiedName, node.Path, node.Kind}, " "))
 	return traceTextScore(value, terms)
+}
+
+func traceNodeLocationScore(node structure.Node) float64 {
+	return tracePathLocationScore(node.Path)
 }
 
 func traceTextScore(value string, terms []string) float64 {

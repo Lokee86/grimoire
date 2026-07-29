@@ -67,6 +67,29 @@ fn serves_repository_queries_and_snapshot_diffs() {
         "callee"
     );
 
+    let neighbor_set = request(
+        &snapshot,
+        r#"{"op":"neighbors","node_id":1,"direction":"outgoing","relations":["calls","reads"]}"#,
+    );
+    assert_eq!(neighbor_set["result"]["count"], 1);
+    assert_eq!(
+        neighbor_set["result"]["relationships"][0]["relation"],
+        "calls"
+    );
+
+    let excluded_neighbors = request(
+        &snapshot,
+        r#"{"op":"neighbors","node_id":1,"direction":"outgoing","relations":["reads","writes"]}"#,
+    );
+    assert_eq!(excluded_neighbors["result"]["count"], 0);
+
+    let limited_neighbors = request(
+        &snapshot,
+        r#"{"op":"neighbors","node_id":1,"direction":"outgoing","limit":0}"#,
+    );
+    assert_eq!(limited_neighbors["result"]["returned"], 0);
+    assert_eq!(limited_neighbors["result"]["truncated"], true);
+
     let unresolved = request(
         &snapshot,
         r#"{"op":"unresolved","node_id":1,"reason":"unsupported-form"}"#,

@@ -16,6 +16,7 @@ func (engine *Engine) resolveAnchors(
 	ctx context.Context,
 	value, query string,
 	limit int,
+	arcana arcanaQuery,
 ) (resolvedAnchors, error) {
 	value = strings.TrimSpace(value)
 	if strings.HasPrefix(value, "grimoire:v1:") {
@@ -37,15 +38,15 @@ func (engine *Engine) resolveAnchors(
 		case "lexicon":
 			result.lexicon = engine.lexicon.Resolve(handle.NodeIdentity, limit)
 		case "arcana":
-			if handle.NodeID != nil {
-				node, inspectErr := engine.arcana.Inspect(ctx, engine.arcanaSnapshot, *handle.NodeID)
+			if arcana != nil && handle.NodeID != nil {
+				node, inspectErr := arcana.Inspect(ctx, engine.arcanaSnapshot, *handle.NodeID)
 				if inspectErr != nil {
 					return resolvedAnchors{}, inspectErr
 				}
 				result.arcana = []structure.Node{node}
 			}
 		}
-		return engine.addArcanaAnchors(ctx, result, limit), nil
+		return engine.addArcanaAnchors(ctx, result, limit, arcana), nil
 	}
 
 	anchor := value
@@ -61,22 +62,23 @@ func (engine *Engine) resolveAnchors(
 			}
 		}
 	}
-	if engine.arcanaSnapshot != "" && len(result.lexicon) == 0 {
-		nodes, err := engine.arcana.Resolve(ctx, engine.arcanaSnapshot, anchor, "", limit)
+	if arcana != nil && engine.arcanaSnapshot != "" && len(result.lexicon) == 0 {
+		nodes, err := arcana.Resolve(ctx, engine.arcanaSnapshot, anchor, "", limit)
 		if err != nil {
 			return resolvedAnchors{}, err
 		}
 		result.arcana = nodes
 	}
-	return engine.addArcanaAnchors(ctx, result, limit), nil
+	return engine.addArcanaAnchors(ctx, result, limit, arcana), nil
 }
 
 func (engine *Engine) addArcanaAnchors(
 	ctx context.Context,
 	result resolvedAnchors,
 	limit int,
+	arcana arcanaQuery,
 ) resolvedAnchors {
-	if engine.arcanaSnapshot == "" || len(result.arcana) >= limit {
+	if arcana == nil || engine.arcanaSnapshot == "" || len(result.arcana) >= limit {
 		return result
 	}
 	seen := make(map[uint32]bool)
@@ -86,8 +88,8 @@ func (engine *Engine) addArcanaAnchors(
 		}
 	}
 	for _, node := range result.lexicon {
-		nodes, err := engine.arcana.Resolve(
-			ctx, engine.arcanaSnapshot, node.Name, node.Path, limit-len(result.arcana),
+		nodes, err := arcana.ResolveTyped(
+			ctx, engine.arcanaSnapshot, node.Name, node.Kind, node.Path, limit-len(result.arcana),
 		)
 		if err != nil {
 			continue

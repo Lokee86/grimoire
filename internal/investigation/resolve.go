@@ -48,7 +48,7 @@ func (l *Ledger) resolveHandle(token, kind string, target any) error {
 	if err := l.checkOwner(current); err != nil {
 		return err
 	}
-	if decoded.Snapshot != current.Snapshot.Digest() {
+	if decoded.Snapshot != "" && decoded.Snapshot != current.Snapshot.Digest() {
 		return ErrSnapshotMismatch
 	}
 	meta, exists := current.Evidence[decoded.Digest]
@@ -63,7 +63,7 @@ func (l *Ledger) resolveHandle(token, kind string, target any) error {
 	if err := json.Unmarshal(data, &stored); err != nil {
 		return fmt.Errorf("%w: decode %s handle evidence: %v", ErrCorrupt, kind, err)
 	}
-	if stored.Kind != kind || stored.Key != decoded.Digest || stored.Snapshot != decoded.Snapshot {
+	if stored.Kind != kind || stored.Key != decoded.Digest || stored.Snapshot != current.Snapshot.Digest() {
 		return fmt.Errorf("%w: %s handle evidence identity does not match", ErrCorrupt, kind)
 	}
 	if err := json.Unmarshal(stored.Payload, target); err != nil {

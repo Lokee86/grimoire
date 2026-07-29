@@ -11,6 +11,8 @@ import (
 )
 
 func (engine *Engine) inspect(ctx context.Context, request Request, response *Response) error {
+	arcana, closeArcana := engine.openArcanaQuery(ctx, response)
+	defer closeArcana()
 	values := append([]string(nil), request.Handles...)
 	if request.Anchor != "" {
 		values = append(values, request.Anchor)
@@ -28,20 +30,20 @@ func (engine *Engine) inspect(ctx context.Context, request Request, response *Re
 			if err := engine.validateSnapshot(handle); err != nil {
 				return err
 			}
-			inspection, err := engine.inspectHandle(ctx, handle, request.Adjacent)
+			inspection, err := engine.inspectHandle(ctx, handle, request.Adjacent, arcana)
 			if err != nil {
 				return err
 			}
 			response.Inspections = append(response.Inspections, inspection)
 			continue
 		}
-		resolved, err := engine.resolveAnchors(ctx, value, "", request.Limit-len(response.Inspections))
+		resolved, err := engine.resolveAnchors(ctx, value, "", request.Limit-len(response.Inspections), arcana)
 		if err != nil {
 			return err
 		}
 		for _, node := range resolved.lexicon {
 			handle := nodeHandle("lexicon", engine.lexiconSnapshot, node)
-			inspection, inspectErr := engine.inspectHandle(ctx, handle, request.Adjacent)
+			inspection, inspectErr := engine.inspectHandle(ctx, handle, request.Adjacent, arcana)
 			if inspectErr != nil {
 				return inspectErr
 			}
@@ -50,7 +52,7 @@ func (engine *Engine) inspect(ctx context.Context, request Request, response *Re
 		if len(resolved.lexicon) == 0 {
 			for _, node := range resolved.arcana {
 				handle := nodeHandle("arcana", engine.arcanaSnapshotID, node)
-				inspection, inspectErr := engine.inspectHandle(ctx, handle, request.Adjacent)
+				inspection, inspectErr := engine.inspectHandle(ctx, handle, request.Adjacent, arcana)
 				if inspectErr != nil {
 					return inspectErr
 				}
@@ -68,6 +70,7 @@ func (engine *Engine) inspectHandle(
 	ctx context.Context,
 	handle Handle,
 	adjacent int,
+	arcana arcanaQuery,
 ) (Inspection, error) {
 	switch handle.Provider {
 	case "source":
@@ -90,7 +93,10 @@ func (engine *Engine) inspectHandle(
 		if handle.NodeID == nil {
 			return Inspection{}, fmt.Errorf("Arcana handle has no node ID")
 		}
-		node, err := engine.arcana.Inspect(ctx, engine.arcanaSnapshot, *handle.NodeID)
+		if arcana == nil {
+			return Inspection{}, fmt.Errorf("Arcana protocol is unavailable")
+		}
+		node, err := arcana.Inspect(ctx, engine.arcanaSnapshot, *handle.NodeID)
 		if err != nil {
 			return Inspection{}, err
 		}

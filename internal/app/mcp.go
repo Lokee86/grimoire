@@ -9,6 +9,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/Lokee86/grimoire/internal/agentquery"
 	"github.com/Lokee86/grimoire/internal/agentruntime"
 	"github.com/Lokee86/grimoire/internal/mcpserver"
 	"github.com/Lokee86/grimoire/internal/repostate"
@@ -39,6 +40,8 @@ func runMCP(args []string, input io.Reader, output, stderr io.Writer) error {
 	}
 
 	audit := newMCPAuditLogger(*auditLog)
+	queryRuntime := agentquery.NewRuntime()
+	defer queryRuntime.Close()
 	handler := mcpserver.HandlerFunc(func(ctx context.Context, arguments json.RawMessage) (any, error) {
 		var request agentruntime.Request
 		if err := json.Unmarshal(arguments, &request); err != nil {
@@ -49,6 +52,7 @@ func runMCP(args []string, input io.Reader, output, stderr io.Writer) error {
 			DefaultState:     *state,
 			DefaultMode:      mode,
 			EnsureRepository: ensureDiscoveryRepository,
+			ExecuteQuery:     queryRuntime.Execute,
 		})
 		return response, audit.Record(request, response, executeErr)
 	})

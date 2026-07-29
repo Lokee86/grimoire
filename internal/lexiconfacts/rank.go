@@ -10,8 +10,11 @@ import (
 )
 
 func rankNodes(facts library, query string, terms []string) []scoredNode {
+	return rankNodesWithDegrees(facts, graphDegrees(facts.edges), query, terms)
+}
+
+func rankNodesWithDegrees(facts library, degrees map[string]int, query string, terms []string) []scoredNode {
 	lowerQuery := strings.ToLower(query)
-	degrees := graphDegrees(facts.edges)
 	result := make([]scoredNode, 0)
 	for _, node := range facts.nodes {
 		if !localNode(node) {
@@ -147,8 +150,16 @@ type adjacentRelationship struct {
 }
 
 func expandRelationships(scored map[string]scoredNode, seeds []scoredNode, facts library) {
-	degrees := graphDegrees(facts.edges)
-	adjacency := relationshipAdjacency(facts.edges)
+	expandRelationshipsWithGraph(scored, seeds, facts, graphDegrees(facts.edges), relationshipAdjacency(facts.edges))
+}
+
+func expandRelationshipsWithGraph(
+	scored map[string]scoredNode,
+	seeds []scoredNode,
+	facts library,
+	degrees map[string]int,
+	adjacency map[string][]adjacentRelationship,
+) {
 	for _, seed := range seeds {
 		for _, direct := range adjacency[seed.node.ID] {
 			directNode, exists := facts.nodes[direct.relatedID]

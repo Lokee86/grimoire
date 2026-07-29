@@ -42,6 +42,23 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 	if mode == CurrentOnly {
 		return status, nil
 	}
+	if mode == RefreshIfNeeded && repositoryStateCurrent(status) {
+		quickFingerprint := ""
+		if !status.Repository.GitAvailable {
+			quickFingerprint, err = quickSourceFingerprint(location.root)
+			if err != nil {
+				status.Warnings = append(status.Warnings, "inspect repository freshness metadata: "+err.Error())
+			}
+		}
+		if !preparedMarkersTrackRepository(location, status.Repository, quickFingerprint) {
+			if markerErr := writeMarkersTimed(&status, location, status.Repository.SourceFingerprint, currentLexiconSnapshot(status), status.Repository.GitHead); markerErr != nil {
+				status.Warnings = append(status.Warnings, "update repository freshness metadata: "+markerErr.Error())
+			}
+		}
+		status.ElapsedMS = elapsedMS(started)
+		status.Timings.TotalMS = status.ElapsedMS
+		return status, nil
+	}
 
 	lockStarted := now()
 	guard := lockFor(location.grimoire)
@@ -81,7 +98,7 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		})
 		if refreshErr != nil {
 			status.Warnings = append(status.Warnings, "Lexicon refresh unavailable; continuing with source analysis: "+refreshErr.Error())
-		} else if markerErr := markLexiconPrepared(location, status.Repository.SourceFingerprint); markerErr != nil {
+		} else if markerErr := markLexiconPrepared(location, status.Repository.SourceFingerprint, status.Repository.GitHead); markerErr != nil {
 			status.Warnings = append(status.Warnings, "Lexicon preparation metadata unavailable; continuing with source analysis: "+markerErr.Error())
 		} else {
 			lexiconChanged = true
@@ -127,7 +144,7 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		}); err != nil {
 			return failStatus(status, started, err)
 		}
-		if err := writeMarkersTimed(&status, location, status.Repository.SourceFingerprint, currentLexiconSnapshot(status)); err != nil {
+		if err := writeMarkersTimed(&status, location, status.Repository.SourceFingerprint, currentLexiconSnapshot(status), status.Repository.GitHead); err != nil {
 			return failStatus(status, started, err)
 		}
 	}
@@ -160,7 +177,7 @@ func Ensure(ctx context.Context, options Options) (Status, error) {
 		return failStatus(status, started, errors.New("repository source changed during preparation; retry the request"))
 	}
 	if status.Grimoire.Status == "current" {
-		if err := writeMarkersTimed(&status, location, finalFingerprint, currentLexiconSnapshot(status)); err != nil {
+		if err := writeMarkersTimed(&status, location, finalFingerprint, currentLexiconSnapshot(status), status.Repository.GitHead); err != nil {
 			return failStatus(status, started, err)
 		}
 		// Marker writes are deliberately excluded from the source fingerprint.
@@ -200,15 +217,28 @@ func failStatus(status Status, started time.Time, err error) (Status, error) {
 	return status, err
 }
 
-func writeMarkersTimed(status *Status, location paths, fingerprint, lexiconID string) error {
+func writeMarkersTimed(status *Status, location paths, fingerprint, lexiconID, gitHead string) error {
 	started := now()
-	err := writeMarkers(location, fingerprint, lexiconID)
+	err := writeMarkers(location, fingerprint, lexiconID, gitHead)
 	status.Timings.MarkerWriteMS += elapsedMS(started)
 	return err
 }
 
-func writeMarkers(location paths, fingerprint, lexiconID string) error {
-	marker := stateMarker{SourceFingerprint: fingerprint, LexiconSnapshot: lexiconID}
+func writeMarkers(location paths, fingerprint, lexiconID, gitHead string) error {
+	quickFingerprint := ""
+	var err error
+	if gitHead == "" {
+		quickFingerprint, err = quickSourceFingerprint(location.root)
+		if err != nil {
+			return fmt.Errorf("fingerprint repository metadata: %w", err)
+		}
+	}
+	marker := stateMarker{
+		SourceFingerprint: fingerprint,
+		QuickFingerprint:  quickFingerprint,
+		LexiconSnapshot:   lexiconID,
+		GitHead:           gitHead,
+	}
 	data, err := marshalJSON(marker)
 	if err != nil {
 		return err
@@ -224,12 +254,24 @@ func writeMarkers(location paths, fingerprint, lexiconID string) error {
 	return nil
 }
 
-func markLexiconPrepared(location paths, fingerprint string) error {
+func markLexiconPrepared(location paths, fingerprint, gitHead string) error {
 	id, err := readCurrent(filepath.Join(location.lexicon, "CURRENT"))
 	if err != nil {
 		return fmt.Errorf("read Lexicon CURRENT after refresh: %w", err)
 	}
-	data, err := marshalJSON(stateMarker{SourceFingerprint: fingerprint, LexiconSnapshot: id})
+	quickFingerprint := ""
+	if gitHead == "" {
+		quickFingerprint, err = quickSourceFingerprint(location.root)
+		if err != nil {
+			return fmt.Errorf("fingerprint repository metadata: %w", err)
+		}
+	}
+	data, err := marshalJSON(stateMarker{
+		SourceFingerprint: fingerprint,
+		QuickFingerprint:  quickFingerprint,
+		LexiconSnapshot:   id,
+		GitHead:           gitHead,
+	})
 	if err != nil {
 		return err
 	}

@@ -36,7 +36,7 @@ func (corpus *Corpus) SearchDetailed(snapshot index.Snapshot, query string, limi
 	if len(terms) == 0 {
 		return Result{}
 	}
-	seeds := rankNodes(corpus.facts, query, terms)
+	seeds := rankNodesWithDegrees(corpus.facts, corpus.graphDegrees(), query, terms)
 	if len(seeds) == 0 {
 		return Result{}
 	}
@@ -48,7 +48,7 @@ func (corpus *Corpus) SearchDetailed(snapshot index.Snapshot, query string, limi
 	for _, seed := range seeds {
 		scored[seed.node.ID] = seed
 	}
-	expandRelationships(scored, seeds, corpus.facts)
+	expandRelationshipsWithGraph(scored, seeds, corpus.facts, corpus.graphDegrees(), corpus.graphAdjacency())
 	return Result{
 		Candidates: chunksForNodes(snapshot, scored, limit),
 		Evidence:   evidenceForSeeds(seeds, corpus.facts, min(limit, 8)),

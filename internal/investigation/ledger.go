@@ -376,7 +376,7 @@ func validateManifestFiles(dir string, current manifest) error {
 		}
 		if meta.Handle != "" {
 			decoded, err := decodeHandle(meta.Handle, meta.Kind)
-			if err != nil || decoded.Snapshot != stored.Snapshot || decoded.Digest != key {
+			if err != nil || (decoded.Snapshot != "" && decoded.Snapshot != stored.Snapshot) || decoded.Digest != key {
 				return fmt.Errorf("%w: invalid handle for evidence %q", ErrCorrupt, key)
 			}
 		}
@@ -439,7 +439,7 @@ func validateRecordedEvidenceHandle(current manifest, kind, handle string) error
 	if err != nil {
 		return err
 	}
-	if decoded.Snapshot != current.Snapshot.Digest() {
+	if decoded.Snapshot != "" && decoded.Snapshot != current.Snapshot.Digest() {
 		return errors.New("handle snapshot does not match response snapshot")
 	}
 	meta, exists := current.Evidence[decoded.Digest]

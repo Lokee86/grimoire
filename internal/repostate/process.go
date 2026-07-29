@@ -11,22 +11,39 @@ import (
 
 func runCommand(ctx context.Context, command ProcessCommand) error {
 	var stdout, stderr bytes.Buffer
-	process := exec.CommandContext(ctx, command.Executable, command.Arguments...)
+	process := exec.Command(command.Executable, command.Arguments...)
+	configureProcessTree(process)
 	if len(command.Environment) > 0 {
 		process.Env = command.Environment
 	}
 	process.Stdout, process.Stderr = &stdout, &stderr
-	if err := process.Run(); err != nil {
-		message := strings.TrimSpace(stderr.String())
-		if message == "" {
-			message = strings.TrimSpace(stdout.String())
-		}
-		if message != "" {
-			return fmt.Errorf("%w: %s", err, message)
-		}
-		return err
+	if err := process.Start(); err != nil {
+		return commandFailure(err, stdout.String(), stderr.String())
 	}
-	return nil
+	wait := make(chan error, 1)
+	go func() { wait <- process.Wait() }()
+	select {
+	case err := <-wait:
+		if err != nil {
+			return commandFailure(err, stdout.String(), stderr.String())
+		}
+		return nil
+	case <-ctx.Done():
+		terminateProcessTree(process)
+		<-wait
+		return commandFailure(ctx.Err(), stdout.String(), stderr.String())
+	}
+}
+
+func commandFailure(err error, stdout, stderr string) error {
+	message := strings.TrimSpace(stderr)
+	if message == "" {
+		message = strings.TrimSpace(stdout)
+	}
+	if message != "" {
+		return fmt.Errorf("%w: %s", err, message)
+	}
+	return err
 }
 
 func commandEnvironment(key, value string) []string {

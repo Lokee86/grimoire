@@ -1,6 +1,8 @@
 package lexiconfacts
 
 import (
+	"sync"
+
 	"github.com/Lokee86/grimoire/internal/evidence"
 	"github.com/Lokee86/grimoire/internal/retrieve"
 	"github.com/Lokee86/grimoire/internal/structure"
@@ -51,6 +53,10 @@ type scoredNode struct {
 
 type Corpus struct {
 	facts library
+
+	graphOnce sync.Once
+	adjacency map[string][]adjacentRelationship
+	degrees   map[string]int
 }
 
 // Result preserves both source candidates and the structural facts that caused

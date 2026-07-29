@@ -304,6 +304,7 @@ func recordEvidence(dir string, current manifest, response Response) (Delta, sto
 	}
 	delta.RetrievalHits = retrievalHits
 	event.RetrievalHits = retrievalHits
+	finalizeDelta(&delta)
 	return delta, event, nil
 }
 
@@ -429,7 +430,76 @@ func buildDelta(current manifest, response Response, responseID string) (Delta, 
 		return delta, err
 	}
 	delta.RetrievalHits = retrievalHits
+	finalizeDelta(&delta)
 	return delta, nil
+}
+
+func finalizeDelta(delta *Delta) {
+	if delta == nil {
+		return
+	}
+	for index := range delta.NewNodes {
+		delta.NewNodes[index].Evidence.ID = ""
+		delta.NewNodes[index].Evidence.Metadata = nil
+	}
+	for index := range delta.NewDocuments {
+		delta.NewDocuments[index].Evidence.ID = ""
+		delta.NewDocuments[index].Evidence.Metadata = nil
+	}
+	summary := PriorEvidenceSummary{
+		Nodes:        len(delta.PriorNodeHandles),
+		SourceRanges: len(delta.PriorSourceRanges),
+		GraphPaths:   len(delta.PriorGraphPaths),
+		Documents:    len(delta.PriorDocuments),
+	}
+	if summary.Nodes > 0 || summary.SourceRanges > 0 || summary.GraphPaths > 0 || summary.Documents > 0 {
+		delta.PriorEvidence = &summary
+	}
+	prior := make(map[string]bool, len(delta.PriorNodeHandles)+len(delta.PriorSourceRanges)+len(delta.PriorGraphPaths)+len(delta.PriorDocuments))
+	for _, handle := range delta.PriorNodeHandles {
+		prior[handle.String()] = true
+	}
+	for _, handle := range delta.PriorSourceRanges {
+		prior[handle.String()] = true
+	}
+	for _, handle := range delta.PriorGraphPaths {
+		prior[handle.String()] = true
+	}
+	for _, handle := range delta.PriorDocuments {
+		prior[handle.String()] = true
+	}
+	for index := range delta.RetrievalHits {
+		hit := &delta.RetrievalHits[index]
+		hit.Reasons = compactOccurrenceReasons(hit.Reasons)
+		if hit.Rank > 1 {
+			hit.Reasons = nil
+			hit.Support = nil
+		}
+		if prior[hit.EvidenceHandle] {
+			hit.Reasons = nil
+			hit.Support = nil
+		}
+		if hit.Seed != nil && prior[hit.Seed.EvidenceHandle] {
+			hit.Seed.Reasons = nil
+		}
+	}
+}
+
+func compactOccurrenceReasons(reasons []string) []string {
+	if len(reasons) <= 1 {
+		return reasons
+	}
+	result := make([]string, 0, len(reasons))
+	for _, reason := range reasons {
+		if reason == "prepared source BM25 match" {
+			continue
+		}
+		result = append(result, reason)
+	}
+	if len(result) == 0 {
+		return reasons[:1]
+	}
+	return result
 }
 
 func persistEvidence(dir string, current manifest, key, kind string, payload json.RawMessage, handleKind string) (evidenceMeta, error) {

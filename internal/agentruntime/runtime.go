@@ -66,6 +66,13 @@ func Execute(ctx context.Context, request Request, options Options) (Response, e
 	}
 	documentHandles, codeHandles := splitHandles(request.Handles)
 	queryRequest := request.Request
+	queryRequest.PreparedSnapshot = agentquery.Snapshot{
+		Source: preparation.Grimoire.Snapshot,
+		Providers: map[string]string{
+			"lexicon": preparation.Lexicon.Snapshot,
+			"arcana":  preparation.Arcana.Snapshot,
+		},
+	}
 	queryRequest.Handles = codeHandles
 	queryOnlyForSnapshot := request.Mode == "inspect" && len(codeHandles) == 0 && len(documentHandles) > 0
 	if queryOnlyForSnapshot {
@@ -215,11 +222,7 @@ func includeDocuments(request Request) bool {
 	if request.IncludeDocuments != nil {
 		return *request.IncludeDocuments
 	}
-	if request.Mode == "orient" || request.Mode == "search" || strings.TrimSpace(request.Query) != "" {
-		return true
-	}
-	anchor := strings.TrimSpace(request.Anchor)
-	return anchor != "" && !strings.Contains(anchor, "://")
+	return request.Mode == "orient" || request.Mode == "search"
 }
 
 func retrieveDocuments(ctx context.Context, request Request, statePath string, preparation repostate.Status, handles []string) ([]knowledge.Result, int, []string, error) {

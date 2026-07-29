@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/Lokee86/grimoire/internal/embedding"
 	"github.com/Lokee86/grimoire/internal/index"
@@ -37,6 +38,109 @@ func TestEnsureCurrentOnlyReportsPreparedStateWithoutMutation(t *testing.T) {
 	}
 	if after := snapshotFiles(t, root); strings.Join(before, "\n") != strings.Join(after, "\n") {
 		t.Fatalf("current-only mutated state: before=%v after=%v", before, after)
+	}
+}
+
+func TestEnsureRefreshIfNeededReturnsImmediatelyForCurrentState(t *testing.T) {
+	root := t.TempDir()
+	writeSource(t, root, "package main\n")
+	id := testID('a')
+	writeLexicon(t, root, id)
+	writeArcana(t, root, id)
+	writeGrimoire(t, root, id)
+	writeKnowledge(t, root)
+
+	original := fingerprintRepository
+	fingerprints := 0
+	fingerprintRepository = func(path string) (string, error) {
+		fingerprints++
+		return original(path)
+	}
+	defer func() { fingerprintRepository = original }()
+
+	status, err := Ensure(context.Background(), Options{
+		Root: root,
+		Mode: RefreshIfNeeded,
+		Run: func(context.Context, ProcessCommand) error {
+			t.Fatal("current state unexpectedly launched a refresh command")
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !status.DeterministicQueryReady || fingerprints != 0 {
+		t.Fatalf("current fast path: ready=%v fingerprints=%d status=%+v", status.DeterministicQueryReady, fingerprints, status)
+	}
+	if status.Timings.LockWaitMS != 0 || status.Timings.ReinspectionMS != 0 || status.Timings.FinalVerificationMS != 0 {
+		t.Fatalf("current fast path entered refresh pipeline: %+v", status.Timings)
+	}
+}
+
+func TestQuickFingerprintDetectsSourceAndUntrackedChanges(t *testing.T) {
+	root := t.TempDir()
+	writeSource(t, root, "package main\n")
+	first, err := quickSourceFingerprint(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeSource(t, root, "package changed\n")
+	second, err := quickSourceFingerprint(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first == second {
+		t.Fatal("source edit did not change quick fingerprint")
+	}
+	if err := os.WriteFile(filepath.Join(root, "new_file.go"), []byte("package changed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	third, err := quickSourceFingerprint(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second == third {
+		t.Fatal("new source file did not change quick fingerprint")
+	}
+}
+
+func TestQuickFingerprintIgnoresGeneratedState(t *testing.T) {
+	root := t.TempDir()
+	writeSource(t, root, "package main\n")
+	first, err := quickSourceFingerprint(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".grimoire"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".grimoire", "noise.json"), []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	second, err := quickSourceFingerprint(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first != second {
+		t.Fatal("generated state changed quick fingerprint")
+	}
+}
+
+func TestAcquireFileLockReclaimsDeadOwnerImmediately(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "repostate.lock")
+	if err := os.WriteFile(path, []byte("pid=2147483647\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	guard, err := acquireFileLock(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer guard.Close()
+	pid, ok := refreshLockPID(path)
+	if !ok || pid != os.Getpid() {
+		t.Fatalf("replacement lock owner = %d, %v", pid, ok)
 	}
 }
 
@@ -519,7 +623,15 @@ func writeMarkerForRoot(t *testing.T, root, state, lexiconID string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := marshalJSON(stateMarker{SourceFingerprint: fingerprint, LexiconSnapshot: lexiconID})
+	quickFingerprint, err := quickSourceFingerprint(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := marshalJSON(stateMarker{
+		SourceFingerprint: fingerprint,
+		QuickFingerprint:  quickFingerprint,
+		LexiconSnapshot:   lexiconID,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -51,7 +51,8 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 	direction := flags.String("direction", "", "graph direction: incoming, outgoing, or both")
 	adjacent := flags.Int("adjacent-context", 0, "source lines adjacent to an inspected declaration")
 	codeOnly := flags.Bool("code-only", false, "omit the documentation lane")
-	includeDocuments := flags.Bool("include-documents", true, "include separately ranked documentation matches")
+	includeDocumentsValue := true
+	flags.BoolVar(&includeDocumentsValue, "include-documents", true, "include separately ranked documentation matches")
 	documentVectors := flags.Bool("document-vectors", false, "use available documentation vectors in addition to BM25")
 	detail := flags.String("detail", "", "response detail: default previews or full inline evidence")
 	requestJSON := flags.String("request", "", "complete "+agentquery.SchemaVersion+" JSON request object")
@@ -74,6 +75,14 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 	if *timeout <= 0 {
 		return errors.New("positive --timeout is required")
 	}
+
+	var includeDocuments *bool
+	flags.Visit(func(value *flag.Flag) {
+		if value.Name == "include-documents" {
+			selected := includeDocumentsValue
+			includeDocuments = &selected
+		}
+	})
 
 	var request agentruntime.Request
 	if strings.TrimSpace(*requestJSON) != "" {

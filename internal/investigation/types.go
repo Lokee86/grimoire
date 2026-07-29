@@ -63,7 +63,7 @@ func (s Snapshot) Digest() string {
 }
 
 type Node struct {
-	ID       string            `json:"id"`
+	ID       string            `json:"id,omitempty"`
 	Kind     string            `json:"kind,omitempty"`
 	Label    string            `json:"label,omitempty"`
 	Path     string            `json:"path,omitempty"`
@@ -89,7 +89,7 @@ type GraphPath struct {
 }
 
 type Document struct {
-	ID       string            `json:"id"`
+	ID       string            `json:"id,omitempty"`
 	URI      string            `json:"uri,omitempty"`
 	Title    string            `json:"title,omitempty"`
 	Content  string            `json:"content,omitempty"`
@@ -244,18 +244,26 @@ type RetrievalHitRecord struct {
 	Seed            *RetrievalSeedRecord `json:"seed,omitempty"`
 }
 
+type PriorEvidenceSummary struct {
+	Nodes        int `json:"nodes,omitempty"`
+	SourceRanges int `json:"source_ranges,omitempty"`
+	GraphPaths   int `json:"graph_paths,omitempty"`
+	Documents    int `json:"documents,omitempty"`
+}
+
 type Delta struct {
 	ResponseID string `json:"response_id"`
 
-	NewNodes          []NodeRecord         `json:"new_nodes,omitempty"`
-	PriorNodeHandles  []NodeHandle         `json:"prior_node_handles,omitempty"`
-	NewSourceRanges   []SourceRangeRecord  `json:"new_source_ranges,omitempty"`
-	PriorSourceRanges []SourceRangeHandle  `json:"prior_source_range_handles,omitempty"`
-	NewGraphPaths     []GraphPathRecord    `json:"new_graph_paths,omitempty"`
-	PriorGraphPaths   []GraphPathHandle    `json:"prior_graph_path_handles,omitempty"`
-	NewDocuments      []DocumentRecord     `json:"new_documents,omitempty"`
-	PriorDocuments    []DocumentHandle     `json:"prior_document_handles,omitempty"`
-	RetrievalHits     []RetrievalHitRecord `json:"retrieval_hits,omitempty"`
+	NewNodes          []NodeRecord          `json:"new_nodes,omitempty"`
+	PriorNodeHandles  []NodeHandle          `json:"-"`
+	NewSourceRanges   []SourceRangeRecord   `json:"new_source_ranges,omitempty"`
+	PriorSourceRanges []SourceRangeHandle   `json:"-"`
+	NewGraphPaths     []GraphPathRecord     `json:"new_graph_paths,omitempty"`
+	PriorGraphPaths   []GraphPathHandle     `json:"-"`
+	NewDocuments      []DocumentRecord      `json:"new_documents,omitempty"`
+	PriorDocuments    []DocumentHandle      `json:"-"`
+	PriorEvidence     *PriorEvidenceSummary `json:"prior_evidence,omitempty"`
+	RetrievalHits     []RetrievalHitRecord  `json:"retrieval_hits,omitempty"`
 
 	NewQuestions        []UnresolvedQuestion `json:"new_unresolved_questions,omitempty"`
 	PriorQuestionIDs    []string             `json:"prior_unresolved_question_ids,omitempty"`

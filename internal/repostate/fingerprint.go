@@ -197,21 +197,59 @@ func fingerprintPath(relative string) bool {
 	}
 }
 
-func gitIdentity(ctx context.Context, root string) (head string, dirty, available bool) {
-	head = gitOutput(ctx, root, "rev-parse", "--verify", "HEAD")
-	if head == "" {
+func gitRepositoryStatus(ctx context.Context, root string) (head string, dirty, available bool) {
+	command := exec.CommandContext(ctx, "git", "-C", root, "status", "--porcelain=v2", "-z", "--branch", "--untracked-files=normal", "--ignore-submodules=all")
+	data, err := command.Output()
+	if err != nil {
 		return "", false, false
 	}
 	available = true
-	output := gitOutput(ctx, root, "status", "--porcelain=v1", "--untracked-files=all")
-	for _, line := range strings.Split(output, "\n") {
-		if strings.TrimSpace(line) == "" || excludedStatusLine(line) {
+	for _, raw := range strings.Split(string(data), "\x00") {
+		record := strings.TrimSpace(raw)
+		if record == "" {
+			continue
+		}
+		if value, ok := strings.CutPrefix(record, "# branch.oid "); ok {
+			value = strings.TrimSpace(value)
+			if value != "(initial)" {
+				head = value
+			}
+			continue
+		}
+		if strings.HasPrefix(record, "# ") || excludedPorcelainRecord(record) {
 			continue
 		}
 		dirty = true
-		break
 	}
 	return head, dirty, available
+}
+
+func excludedPorcelainRecord(record string) bool {
+	path := ""
+	switch {
+	case strings.HasPrefix(record, "? "), strings.HasPrefix(record, "! "):
+		path = strings.TrimSpace(record[2:])
+	case strings.HasPrefix(record, "1 "):
+		fields := strings.SplitN(record, " ", 9)
+		if len(fields) == 9 {
+			path = fields[8]
+		}
+	case strings.HasPrefix(record, "2 "):
+		fields := strings.SplitN(record, " ", 10)
+		if len(fields) == 10 {
+			path = fields[9]
+		}
+	}
+	if path == "" {
+		return false
+	}
+	path = filepath.ToSlash(strings.Trim(strings.TrimSpace(path), `"`))
+	for _, prefix := range []string{".git/", ".worktrees/", ".workingtrees/", ".lexicon/", ".arcana/", ".grimoire/", ".ddocs/", ".warlock/", ".obsidian/"} {
+		if strings.HasPrefix(path, prefix) || path == strings.TrimSuffix(prefix, "/") {
+			return true
+		}
+	}
+	return false
 }
 
 func gitOutput(ctx context.Context, root string, arguments ...string) string {

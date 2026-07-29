@@ -35,7 +35,7 @@ func (engine *Engine) arcanaRelationships(
 ) ([]RelationshipMatch, bool) {
 	buckets := make([][]RelationshipMatch, 0, len(seeds))
 	for _, seed := range seeds {
-		resolved, err := engine.arcana.Resolve(ctx, engine.arcanaSnapshot, seed.Node.Name, seed.Node.Path, 4)
+		resolved, err := engine.arcana.ResolveTyped(ctx, engine.arcanaSnapshot, seed.Node.Name, seed.Node.Kind, seed.Node.Path, 4)
 		if err != nil {
 			response.Warnings = append(response.Warnings, "Arcana relationship discovery unavailable for seed "+seed.Node.Name+": "+err.Error())
 			continue

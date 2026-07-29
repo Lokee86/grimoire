@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	maxInvestigationDeltaBytes        = 24 * 1024
-	maxInvestigationEvidenceTextBytes = 2000
-	maxInvestigationReasonTextBytes   = 300
-	maxInvestigationReasons           = 4
-	maxInvestigationSupport           = 6
+	maxInvestigationDeltaBytes        = 22 * 1024
+	maxInvestigationEvidenceTextBytes = 1200
+	maxInvestigationReasonTextBytes   = 220
+	maxInvestigationReasons           = 3
+	maxInvestigationSupport           = 3
 	investigationEvidencePerResult    = 3
 )
 
@@ -21,6 +21,7 @@ func boundInvestigationResponse(ledger *investigation.Ledger, response investiga
 		return investigation.Response{}, false, errors.New("investigation ledger is required")
 	}
 	candidate := pruneInvestigationResponse(response)
+	candidate, _ = compactInvestigationResponse(candidate)
 	maxEvidence := investigationEvidenceLimit(limit)
 	within, err := investigationResponseWithinBudget(ledger, candidate, maxEvidence)
 	if err != nil {
@@ -30,8 +31,7 @@ func boundInvestigationResponse(ledger *investigation.Ledger, response investiga
 		return candidate, false, nil
 	}
 
-	candidate, compacted := compactInvestigationResponse(candidate)
-	truncated := compacted
+	truncated := false
 	for {
 		within, err := investigationResponseWithinBudget(ledger, candidate, maxEvidence)
 		if err != nil {

@@ -20,6 +20,7 @@ type Engine struct {
 	arcanaSnapshot   string
 	arcanaSnapshotID string
 	arcana           arcanagraph.Client
+	residentArcana   *arcanagraph.Session
 	warnings         []string
 }
 
@@ -32,6 +33,10 @@ func Execute(ctx context.Context, request Request) (Response, error) {
 	if err != nil {
 		return Response{}, err
 	}
+	return executeWithEngine(ctx, request, engine)
+}
+
+func executeWithEngine(ctx context.Context, request Request, engine *Engine) (Response, error) {
 	response := Response{
 		Schema: SchemaVersion, Mode: request.Mode,
 		Snapshot: Snapshot{
@@ -49,6 +54,7 @@ func Execute(ctx context.Context, request Request) (Response, error) {
 	if len(response.Snapshot.Providers) == 0 {
 		response.Snapshot.Providers = nil
 	}
+	var err error
 	switch request.Mode {
 	case "orient":
 		err = engine.orient(request, &response)
@@ -106,6 +112,15 @@ func openEngine(ctx context.Context, request Request) (*Engine, error) {
 	return engine, nil
 }
 
+func defaultTraceRelations() []string {
+	return []string{
+		"calls", "possible-calls", "calls-endpoint", "handled-by",
+		"publishes", "consumes", "produces-message", "consumes-message",
+		"invokes-process", "reads-config", "implements", "extends",
+		"overrides", "uses-trait", "includes", "depends-on",
+	}
+}
+
 func normalizeRequest(request Request) Request {
 	if request.Schema == "" {
 		request.Schema = SchemaVersion
@@ -126,11 +141,17 @@ func normalizeRequest(request Request) Request {
 		request.Depth = 3
 	}
 	if request.Direction == "" {
-		if request.Mode == "impact" {
+		switch request.Mode {
+		case "impact":
 			request.Direction = "incoming"
-		} else {
+		case "trace":
+			request.Direction = "both"
+		default:
 			request.Direction = "outgoing"
 		}
+	}
+	if request.Mode == "trace" && len(request.Relations) == 0 {
+		request.Relations = defaultTraceRelations()
 	}
 	request.Direction = strings.ToLower(strings.TrimSpace(request.Direction))
 	if request.LexiconCmd == "" {

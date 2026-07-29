@@ -44,6 +44,8 @@ pub(crate) enum RequestCommand {
         node_id: u32,
         direction: QueryDirection,
         relation: Option<String>,
+        relations: Option<Vec<String>>,
+        limit: Option<usize>,
     },
     Paths {
         from_node_id: u32,
