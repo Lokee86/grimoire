@@ -272,6 +272,7 @@ fn node(key: NodeKey, name: &str, path: &str) -> NodeFact {
         kind: NodeKind::Function,
         path: path.to_owned(),
         name: name.to_owned(),
+        qualified_name: name.to_owned(),
         content_id: None,
         span: None,
     }
@@ -284,6 +285,7 @@ fn node_with_kind(key: NodeKey, kind: NodeKind, name: &str) -> NodeFact {
         kind,
         path: "src/main.rs".to_owned(),
         name: name.to_owned(),
+        qualified_name: name.to_owned(),
         content_id: None,
         span: None,
     }

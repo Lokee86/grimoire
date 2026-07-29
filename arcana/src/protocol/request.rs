@@ -14,6 +14,10 @@ pub(crate) struct RequestEnvelope {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub(crate) enum RequestCommand {
+    SearchNodes {
+        query: String,
+        limit: Option<usize>,
+    },
     ResolveSymbol {
         name: String,
         kind: Option<String>,
@@ -34,6 +38,7 @@ pub(crate) enum RequestCommand {
         path_prefix: Option<String>,
         offset: Option<usize>,
         limit: Option<usize>,
+        pinned_node_ids: Option<Vec<u32>>,
     },
     Neighbors {
         node_id: u32,

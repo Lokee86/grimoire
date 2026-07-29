@@ -294,6 +294,7 @@ pub struct NodeFact {
     pub kind: NodeKind,
     pub path: String,
     pub name: String,
+    pub qualified_name: String,
     pub content_id: Option<ContentId>,
     pub span: Option<SourceSpan>,
 }

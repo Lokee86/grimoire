@@ -13,6 +13,7 @@ fn fact_file_round_trips_and_escapes_fields() {
             kind: NodeKind::Function,
             path: "src/main.rs".to_owned(),
             name: "line\t\nname\\".to_owned(),
+            qualified_name: "demo::line\t\nname\\".to_owned(),
             content_id: Some(ContentId::from_bytes(b"body")),
             span: Some(SourceSpan::new("src\\main.rs", 2, 3, 4, 5).unwrap()),
         }],
@@ -34,7 +35,7 @@ fn fact_file_round_trips_and_escapes_fields() {
     };
 
     let encoded = encode_facts(&facts);
-    assert!(encoded.starts_with("version\t3\n"));
+    assert!(encoded.starts_with("version\t4\n"));
     assert!(encoded.contains("\\t") && encoded.contains("\\n") && encoded.contains("\\\\"));
     assert_eq!(parse_facts(&encoded).unwrap(), facts);
 }
@@ -48,6 +49,7 @@ fn encoding_sorts_records_deterministically() {
         kind: NodeKind::File,
         path: "b".to_owned(),
         name: String::new(),
+        qualified_name: String::new(),
         content_id: None,
         span: None,
     });
@@ -57,6 +59,7 @@ fn encoding_sorts_records_deterministically() {
         kind: NodeKind::File,
         path: "a".to_owned(),
         name: String::new(),
+        qualified_name: String::new(),
         content_id: None,
         span: None,
     });

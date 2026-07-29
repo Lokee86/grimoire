@@ -73,6 +73,7 @@ impl ProtocolSnapshot {
 
     fn execute(&self, command: RequestCommand) -> Result<Value, RequestFailure> {
         match command {
+            RequestCommand::SearchNodes { query, limit } => self.search_nodes(&query, limit),
             RequestCommand::ResolveSymbol {
                 name,
                 kind,
@@ -90,7 +91,13 @@ impl ProtocolSnapshot {
                 path_prefix,
                 offset,
                 limit,
-            } => self.export_graph(path_prefix.as_deref(), offset, limit),
+                pinned_node_ids,
+            } => self.export_graph(
+                path_prefix.as_deref(),
+                offset,
+                limit,
+                pinned_node_ids.as_deref().unwrap_or(&[]),
+            ),
             RequestCommand::Neighbors {
                 node_id,
                 direction,

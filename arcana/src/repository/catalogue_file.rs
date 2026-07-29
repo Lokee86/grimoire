@@ -13,9 +13,10 @@ use crate::repository::{
 
 const HEADER_V1: &str = "version\t1";
 const HEADER_V2: &str = "version\t2";
+const HEADER_V3: &str = "version\t3";
 
 pub(super) fn encode(catalogue: &RepositoryCatalogue) -> Result<String, CatalogueError> {
-    let mut output = String::from(HEADER_V2);
+    let mut output = String::from(HEADER_V3);
     output.push('\n');
     // RepositoryCatalogue can only be constructed through its validating
     // constructor or decoder, so rebuilding all of its indexes here only
@@ -33,6 +34,8 @@ pub(super) fn encode(catalogue: &RepositoryCatalogue) -> Result<String, Catalogu
         push_field(&mut output, &entry.fact.path);
         output.push('\t');
         push_field(&mut output, &entry.fact.name);
+        output.push('\t');
+        push_field(&mut output, &entry.fact.qualified_name);
         output.push('\t');
         let content_id = entry
             .fact
@@ -53,6 +56,7 @@ pub(super) fn decode(input: &str) -> Result<RepositoryCatalogue, CatalogueError>
     let version = match lines.next() {
         Some(HEADER_V1) => 1,
         Some(HEADER_V2) => 2,
+        Some(HEADER_V3) => 3,
         _ => return Err(CatalogueError::InvalidHeader),
     };
 
@@ -64,7 +68,11 @@ pub(super) fn decode(input: &str) -> Result<RepositoryCatalogue, CatalogueError>
             .split('\t')
             .map(|field| unescape(field, line_number))
             .collect::<Result<Vec<_>, _>>()?;
-        let expected_fields = if version >= 2 { 13 } else { 12 };
+        let expected_fields = match version {
+            3 => 14,
+            2 => 13,
+            _ => 12,
+        };
         if fields.len() != expected_fields || fields.first().map(String::as_str) != Some("N") {
             return Err(CatalogueError::MalformedLine { line: line_number });
         }
@@ -73,12 +81,21 @@ pub(super) fn decode(input: &str) -> Result<RepositoryCatalogue, CatalogueError>
             return Err(CatalogueError::InvalidOrder { line: line_number });
         }
         previous_id = Some(node_id);
-        let (identity_index, kind_index, path_index, name_index, content_index, span_start) =
-            if version >= 2 {
-                (Some(3), 4, 5, 6, 7, 8)
-            } else {
-                (None, 3, 4, 5, 6, 7)
-            };
+        let (
+            identity_index,
+            kind_index,
+            path_index,
+            name_index,
+            qualified_name_index,
+            content_index,
+            span_start,
+        ) = if version >= 3 {
+            (Some(3), 4, 5, 6, Some(7), 8, 9)
+        } else if version >= 2 {
+            (Some(3), 4, 5, 6, None, 7, 8)
+        } else {
+            (None, 3, 4, 5, None, 6, 7)
+        };
         let external_identity = identity_index
             .map(|index| parse_external_identity(&fields[index], line_number))
             .transpose()?
@@ -90,6 +107,9 @@ pub(super) fn decode(input: &str) -> Result<RepositoryCatalogue, CatalogueError>
                 .ok_or(CatalogueError::InvalidKind { line: line_number })?,
             path: parse_path(&fields[path_index], line_number)?,
             name: fields[name_index].clone(),
+            qualified_name: qualified_name_index
+                .map(|index| fields[index].clone())
+                .unwrap_or_else(|| fields[name_index].clone()),
             content_id: parse_optional_id(&fields[content_index], line_number)?
                 .map(ContentId::from_u64),
             span: parse_span(&fields[span_start..span_start + 5], line_number)?,

@@ -54,7 +54,8 @@ pub(super) fn parse_lexicon_facts(input: &str) -> Result<RepositoryFacts, FactFi
                 }
                 external_ids.insert(external_id.to_owned(), key);
                 let path = normalized_field(&record, "path", line_number)?;
-                let _qualified_name = string_field(&record, "qualified_name", line_number)?;
+                let qualified_name =
+                    string_field(&record, "qualified_name", line_number)?.to_owned();
                 validate_owner(&record, line_number)?;
                 let content_id = optional_string(&record, "content_id", line_number)?
                     .map(|id| {
@@ -69,6 +70,7 @@ pub(super) fn parse_lexicon_facts(input: &str) -> Result<RepositoryFacts, FactFi
                         .ok_or(FactFileError::InvalidKind { line: line_number })?,
                     path,
                     name: string_field(&record, "name", line_number)?.to_owned(),
+                    qualified_name,
                     content_id,
                     span: parse_span(record.get("span"), line_number)?,
                 });

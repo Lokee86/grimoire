@@ -151,6 +151,7 @@ fn exports_paged_graph_nodes_and_page_internal_edges() {
     assert_eq!(
         second_page["result"]["edges"],
         json!([{
+            "id": "1:calls:2",
             "source_node_id": 1,
             "target_node_id": 2,
             "relation": "calls",
@@ -163,6 +164,100 @@ fn exports_paged_graph_nodes_and_page_internal_edges() {
             r#"{"op":"export_graph","path_prefix":"src/lib.go","offset":1,"limit":2}"#,
         )["result"]
     );
+}
+
+#[test]
+fn searches_nodes_by_name_qualified_name_and_path() {
+    let directory = TestDirectory::new();
+    let snapshot_path = directory.path.join("node-search");
+    let mut facts = current_facts();
+    facts.nodes[1].qualified_name = "example.com/demo.Caller".to_owned();
+    facts.nodes[2].qualified_name = "example.com/demo.Callee".to_owned();
+    write_snapshot(&snapshot_path, facts);
+    let snapshot = ProtocolSnapshot::open(snapshot_path).unwrap();
+
+    let by_name = request(
+        &snapshot,
+        r#"{"op":"search_nodes","query":"CALLER","limit":10}"#,
+    );
+    assert_eq!(by_name["result"]["count"], 1);
+    assert_eq!(by_name["result"]["matches"][0]["rank"], 0);
+    assert_eq!(
+        by_name["result"]["matches"][0]["matched_fields"],
+        json!(["name", "qualified_name"])
+    );
+    assert_eq!(by_name["result"]["matches"][0]["node"]["node_id"], 1);
+
+    let by_qualified_name = request(
+        &snapshot,
+        r#"{"op":"search_nodes","query":"example.com/demo.callee"}"#,
+    );
+    assert_eq!(by_qualified_name["result"]["count"], 1);
+    assert_eq!(by_qualified_name["result"]["matches"][0]["rank"], 1);
+    assert_eq!(
+        by_qualified_name["result"]["matches"][0]["node"]["qualified_name"],
+        "example.com/demo.Callee"
+    );
+
+    let by_path = request(
+        &snapshot,
+        r#"{"op":"search_nodes","query":"SRC\\LIB.GO","limit":2}"#,
+    );
+    assert_eq!(by_path["result"]["count"], 3);
+    assert_eq!(by_path["result"]["returned"], 2);
+    assert_eq!(by_path["result"]["truncated"], true);
+    assert!(
+        by_path["result"]["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|matched| matched["matched_fields"] == json!(["path"]))
+    );
+
+    let empty = request(&snapshot, r#"{"op":"search_nodes","query":"   "}"#);
+    assert_eq!(empty["result"]["count"], 0);
+    assert_eq!(empty["result"]["matches"], json!([]));
+}
+
+#[test]
+fn graph_export_includes_pinned_nodes_without_advancing_the_page() {
+    let directory = TestDirectory::new();
+    let snapshot_path = directory.path.join("graph-export-pinned");
+    write_snapshot(&snapshot_path, current_facts());
+    let snapshot = ProtocolSnapshot::open(snapshot_path).unwrap();
+
+    let export = request(
+        &snapshot,
+        r#"{"op":"export_graph","offset":1,"limit":1,"pinned_node_ids":[2,2]}"#,
+    );
+    assert_eq!(export["result"]["count"], 3);
+    assert_eq!(export["result"]["returned"], 2);
+    assert_eq!(export["result"]["page_returned"], 1);
+    assert_eq!(export["result"]["pinned_returned"], 1);
+    assert_eq!(export["result"]["next_offset"], 2);
+    assert_eq!(export["result"]["truncated"], true);
+    assert_eq!(export["result"]["nodes"][0]["node_id"], 1);
+    assert_eq!(export["result"]["nodes"][1]["node_id"], 2);
+    assert_eq!(
+        export["result"]["edges"],
+        json!([{
+            "id": "1:calls:2",
+            "source_node_id": 1,
+            "target_node_id": 2,
+            "relation": "calls",
+        }])
+    );
+
+    let duplicate_page_node = request(
+        &snapshot,
+        r#"{"op":"export_graph","offset":1,"limit":1,"pinned_node_ids":[1]}"#,
+    );
+    assert_eq!(duplicate_page_node["result"]["returned"], 1);
+    assert_eq!(duplicate_page_node["result"]["pinned_returned"], 0);
+
+    let unknown = snapshot.handle_line(r#"{"op":"export_graph","limit":1,"pinned_node_ids":[99]}"#);
+    assert_eq!(unknown["ok"], false);
+    assert_eq!(unknown["error"]["code"], "unknown_node");
 }
 
 #[test]
@@ -768,6 +863,7 @@ fn node(key: u64, kind: NodeKind, path: &str, name: &str, content: Option<u64>) 
         kind,
         path: path.to_owned(),
         name: name.to_owned(),
+        qualified_name: name.to_owned(),
         content_id: content.map(ContentId::from_u64),
         span: None,
     }

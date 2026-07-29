@@ -8,8 +8,9 @@ mod lexicon_fact_file;
 
 const HEADER_V1: &str = "version\t1";
 const HEADER_V2: &str = "version\t2";
-pub const FACT_SCHEMA_VERSION: u64 = 3;
 const HEADER_V3: &str = "version\t3";
+pub const FACT_SCHEMA_VERSION: u64 = 4;
+const HEADER_V4: &str = "version\t4";
 
 /// Encodes repository facts as canonical tab-separated UTF-8 lines.
 pub fn encode_facts(facts: &RepositoryFacts) -> String {
@@ -22,7 +23,7 @@ pub fn encode_facts(facts: &RepositoryFacts) -> String {
     edges.sort_unstable();
     unresolved.sort_unstable();
 
-    let mut output = String::from(HEADER_V3);
+    let mut output = String::from(HEADER_V4);
     output.push('\n');
     for node in nodes {
         output.push_str("N\t");
@@ -35,6 +36,8 @@ pub fn encode_facts(facts: &RepositoryFacts) -> String {
         push_field(&mut output, &node.path);
         output.push('\t');
         push_field(&mut output, &node.name);
+        output.push('\t');
+        push_field(&mut output, &node.qualified_name);
         output.push('\t');
         let content_id = node
             .content_id
@@ -82,6 +85,7 @@ pub fn parse_facts(input: &str) -> Result<RepositoryFacts, FactFileError> {
         Some(HEADER_V1) => 1,
         Some(HEADER_V2) => 2,
         Some(HEADER_V3) => 3,
+        Some(HEADER_V4) => 4,
         _ => return Err(FactFileError::InvalidHeader),
     };
 
@@ -108,18 +112,30 @@ pub fn parse_facts(input: &str) -> Result<RepositoryFacts, FactFileError> {
 }
 
 fn parse_node(fields: &[String], line: usize, version: u64) -> Result<NodeFact, FactFileError> {
-    let (identity_index, kind_index, path_index, name_index, content_index, span_start) =
-        if version >= 3 {
-            if fields.len() != 12 {
-                return Err(FactFileError::MalformedLine { line });
-            }
-            (Some(2), 3, 4, 5, 6, 7)
-        } else {
-            if fields.len() != 11 {
-                return Err(FactFileError::MalformedLine { line });
-            }
-            (None, 2, 3, 4, 5, 6)
-        };
+    let (
+        identity_index,
+        kind_index,
+        path_index,
+        name_index,
+        qualified_name_index,
+        content_index,
+        span_start,
+    ) = if version >= 4 {
+        if fields.len() != 13 {
+            return Err(FactFileError::MalformedLine { line });
+        }
+        (Some(2), 3, 4, 5, Some(6), 7, 8)
+    } else if version >= 3 {
+        if fields.len() != 12 {
+            return Err(FactFileError::MalformedLine { line });
+        }
+        (Some(2), 3, 4, 5, None, 6, 7)
+    } else {
+        if fields.len() != 11 {
+            return Err(FactFileError::MalformedLine { line });
+        }
+        (None, 2, 3, 4, None, 5, 6)
+    };
     let path = normalize_repository_path(&fields[path_index])
         .map_err(|_| FactFileError::MalformedLine { line })?;
     let external_identity = identity_index
@@ -132,6 +148,9 @@ fn parse_node(fields: &[String], line: usize, version: u64) -> Result<NodeFact, 
         kind: NodeKind::parse(&fields[kind_index]).ok_or(FactFileError::InvalidKind { line })?,
         path,
         name: fields[name_index].clone(),
+        qualified_name: qualified_name_index
+            .map(|index| fields[index].clone())
+            .unwrap_or_else(|| fields[name_index].clone()),
         content_id: parse_optional_id(&fields[content_index], line)?.map(ContentId::from_u64),
         span: parse_span(&fields[span_start..span_start + 5], line)?,
     })

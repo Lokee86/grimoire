@@ -254,7 +254,7 @@ fn catalogue_file_is_immutable_and_validated() {
     assert_eq!(read_catalogue(&path).unwrap(), catalogue);
     assert!(write_catalogue(&path, &catalogue).is_err());
     let encoded = std::fs::read_to_string(&path).unwrap();
-    assert!(encoded.starts_with("version\t2\n"));
+    assert!(encoded.starts_with("version\t3\n"));
     assert!(RepositoryCatalogue::decode(encoded.trim_end_matches('\n')).is_err());
     std::fs::remove_file(path).unwrap();
 }
@@ -268,6 +268,7 @@ fn sample_catalogue() -> RepositoryCatalogue {
             kind: NodeKind::File,
             path: "src/main.rs".to_owned(),
             name: "main".to_owned(),
+            qualified_name: "demo::main".to_owned(),
             content_id: Some(ContentId::from_bytes(b"content")),
             span: Some(SourceSpan::new("src/main.rs", 1, 2, 3, 4).unwrap()),
         },
@@ -290,6 +291,7 @@ fn catalogue_entry(
             kind,
             path: path.to_owned(),
             name: name.to_owned(),
+            qualified_name: name.to_owned(),
             content_id: None,
             span: None,
         },
@@ -303,6 +305,7 @@ fn node(key: NodeKey, path: &str) -> NodeFact {
         kind: NodeKind::File,
         path: path.to_owned(),
         name: String::new(),
+        qualified_name: String::new(),
         content_id: None,
         span: None,
     }

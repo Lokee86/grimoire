@@ -36,6 +36,7 @@ pub(crate) fn node_value(entry: &CatalogueEntry) -> Value {
         "kind": entry.fact.kind.as_str(),
         "path": entry.fact.path,
         "name": entry.fact.name,
+        "qualified_name": entry.fact.qualified_name,
         "content_id": entry.fact.content_id.map(|id| format!("{:016x}", id.0)),
         "span": entry.fact.span.as_ref().map(span_value),
     })

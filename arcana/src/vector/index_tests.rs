@@ -82,7 +82,7 @@ fn builds_reuses_and_searches_current_graph_index() {
         manifest.eligibility_policy_version,
         SEMANTIC_ELIGIBILITY_POLICY_VERSION
     );
-    assert_eq!(manifest.identity, "fake-4d-arcana-semantic-v5");
+    assert_eq!(manifest.identity, "fake-4d-arcana-semantic-v6");
 
     let mut legacy: serde_json::Value =
         serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
@@ -405,6 +405,7 @@ fn node(key: NodeKey, name: &str, path: &str) -> NodeFact {
         kind: NodeKind::Function,
         path: path.to_owned(),
         name: name.to_owned(),
+        qualified_name: name.to_owned(),
         content_id: None,
         span: None,
     }
@@ -417,6 +418,7 @@ fn node_with_kind(key: NodeKey, kind: NodeKind, name: &str, path: &str) -> NodeF
         kind,
         path: path.to_owned(),
         name: name.to_owned(),
+        qualified_name: name.to_owned(),
         content_id: None,
         span: None,
     }

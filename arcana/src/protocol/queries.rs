@@ -13,6 +13,75 @@ const DEFAULT_LIMIT: usize = 1_000;
 const MAX_LIMIT: usize = 10_000;
 
 impl ProtocolSnapshot {
+    pub(crate) fn search_nodes(
+        &self,
+        query: &str,
+        limit: Option<usize>,
+    ) -> Result<Value, RequestFailure> {
+        let query = query.trim().to_ascii_lowercase();
+        if query.is_empty() {
+            return Ok(json!({
+                "count": 0,
+                "returned": 0,
+                "truncated": false,
+                "matches": [],
+            }));
+        }
+
+        let normalized_query = query.replace('\\', "/");
+        let mut matches = self
+            .catalogue
+            .entries()
+            .iter()
+            .filter_map(|entry| {
+                let name = entry.fact.name.to_ascii_lowercase();
+                let qualified_name = entry.fact.qualified_name.to_ascii_lowercase();
+                let path = entry.fact.path.to_ascii_lowercase().replace('\\', "/");
+                let mut matched_fields = Vec::new();
+                let mut rank = usize::MAX;
+                for (field, value, exact, prefix, contains) in [
+                    ("name", name.as_str(), 0, 3, 6),
+                    ("qualified_name", qualified_name.as_str(), 1, 4, 7),
+                    ("path", path.as_str(), 2, 5, 8),
+                ] {
+                    if let Some(field_rank) =
+                        text_match_rank(value, &normalized_query, exact, prefix, contains)
+                    {
+                        matched_fields.push(field);
+                        rank = rank.min(field_rank);
+                    }
+                }
+                (!matched_fields.is_empty()).then_some((rank, matched_fields, entry))
+            })
+            .collect::<Vec<_>>();
+        matches.sort_by(|left, right| {
+            left.0
+                .cmp(&right.0)
+                .then_with(|| left.2.fact.qualified_name.cmp(&right.2.fact.qualified_name))
+                .then_with(|| left.2.fact.path.cmp(&right.2.fact.path))
+                .then_with(|| left.2.node_id.cmp(&right.2.node_id))
+        });
+
+        let count = matches.len();
+        let matches = matches
+            .into_iter()
+            .take(bounded_limit(limit))
+            .map(|(rank, matched_fields, entry)| {
+                json!({
+                    "rank": rank,
+                    "matched_fields": matched_fields,
+                    "node": node_value(entry),
+                })
+            })
+            .collect::<Vec<_>>();
+        Ok(json!({
+            "count": count,
+            "returned": matches.len(),
+            "truncated": count > matches.len(),
+            "matches": matches,
+        }))
+    }
+
     pub(crate) fn resolve_symbol(
         &self,
         name: &str,
@@ -237,6 +306,24 @@ fn node_list_page(
         "next_offset": truncated.then_some(next_offset),
         "nodes": nodes,
     })
+}
+
+fn text_match_rank(
+    value: &str,
+    query: &str,
+    exact_rank: usize,
+    prefix_rank: usize,
+    contains_rank: usize,
+) -> Option<usize> {
+    if value == query {
+        Some(exact_rank)
+    } else if value.starts_with(query) {
+        Some(prefix_rank)
+    } else if value.contains(query) {
+        Some(contains_rank)
+    } else {
+        None
+    }
 }
 
 fn intersect_sorted_ids(left: &[NodeId], right: &[NodeId]) -> Vec<NodeId> {

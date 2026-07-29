@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 use serde_json::{Value, json};
 
 use crate::repository::{edge_kind_to_relation, normalize_repository_path};
+use crate::synthetic::NodeId;
 
 use super::response::node_value;
 use super::session::{ProtocolSnapshot, RequestFailure};
@@ -16,6 +17,7 @@ impl ProtocolSnapshot {
         path_prefix: Option<&str>,
         offset: Option<usize>,
         limit: Option<usize>,
+        pinned_node_ids: &[u32],
     ) -> Result<Value, RequestFailure> {
         let path_prefix = path_prefix
             .map(|path| {
@@ -37,12 +39,26 @@ impl ProtocolSnapshot {
         };
         let count = matches.len();
         let offset = offset.unwrap_or(0).min(count);
-        let page = matches
+        let mut page = matches
             .into_iter()
             .skip(offset)
             .take(bounded_export_limit(limit))
             .collect::<Vec<_>>();
-        let page_nodes = page.iter().copied().collect::<BTreeSet<_>>();
+        let page_returned = page.len();
+        let mut page_nodes = page.iter().copied().collect::<BTreeSet<_>>();
+        let mut pinned_returned = 0;
+        for node_id in pinned_node_ids.iter().copied().map(NodeId) {
+            if self.entry(node_id).is_none() {
+                return Err(RequestFailure::new(
+                    "unknown_node",
+                    format!("pinned node {} does not exist", node_id.0),
+                ));
+            }
+            if page_nodes.insert(node_id) {
+                page.push(node_id);
+                pinned_returned += 1;
+            }
+        }
         let mut page_edges = Vec::new();
         for source in &page {
             let neighbors = self
@@ -67,6 +83,7 @@ impl ProtocolSnapshot {
             .into_iter()
             .map(|(source_node_id, target_node_id, relation)| {
                 json!({
+                    "id": format!("{source_node_id}:{relation}:{target_node_id}"),
                     "source_node_id": source_node_id,
                     "target_node_id": target_node_id,
                     "relation": relation,
@@ -82,12 +99,14 @@ impl ProtocolSnapshot {
                 )
             })
             .collect::<Vec<_>>();
-        let next_offset = offset + nodes.len();
+        let next_offset = offset + page_returned;
         let truncated = next_offset < count;
         Ok(json!({
             "count": count,
             "offset": offset,
             "returned": nodes.len(),
+            "page_returned": page_returned,
+            "pinned_returned": pinned_returned,
             "truncated": truncated,
             "next_offset": truncated.then_some(next_offset),
             "nodes": nodes,

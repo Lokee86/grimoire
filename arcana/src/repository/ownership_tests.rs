@@ -38,6 +38,7 @@ fn node(key: NodeKey, kind: NodeKind, path: &str) -> NodeFact {
         kind,
         path: path.to_owned(),
         name: path.to_owned(),
+        qualified_name: path.to_owned(),
         content_id: None,
         span: None,
     }

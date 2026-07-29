@@ -77,6 +77,7 @@ fn node(key: NodeKey, kind: NodeKind, path: &str, name: &str) -> NodeFact {
         kind,
         path: path.to_owned(),
         name: name.to_owned(),
+        qualified_name: name.to_owned(),
         content_id: None,
         span: None,
     }

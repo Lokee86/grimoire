@@ -71,6 +71,7 @@ pub(super) fn build_repository_facts(
             kind,
             path,
             name: record.name,
+            qualified_name: record.qualified_name,
             content_id,
             span: convert_span(record.span)?,
         });
