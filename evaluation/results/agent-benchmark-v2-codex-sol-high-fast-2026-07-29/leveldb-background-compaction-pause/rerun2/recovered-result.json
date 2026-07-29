@@ -1,0 +1,67 @@
+{
+  "first": {
+    "estimated_cost_usd": 0.0,
+    "cost_status": "included",
+    "cost_source": "none",
+    "input_tokens": 100796,
+    "output_tokens": 17509,
+    "cache_read_tokens": 1084928,
+    "cache_write_tokens": 0,
+    "reasoning_tokens": 11204,
+    "total_tokens": 1203233,
+    "api_calls": 18,
+    "model": "gpt-5.6-sol",
+    "provider": "openai-codex",
+    "session_id": "20260729_130542_4d4a2f",
+    "completed": true,
+    "failed": false,
+    "service_tier": "priority"
+  },
+  "second": {
+    "estimated_cost_usd": 0.0,
+    "cost_status": "included",
+    "cost_source": "none",
+    "input_tokens": 151660,
+    "output_tokens": 15611,
+    "cache_read_tokens": 1536000,
+    "cache_write_tokens": 0,
+    "reasoning_tokens": 7775,
+    "total_tokens": 1703271,
+    "api_calls": 19,
+    "model": "gpt-5.6-sol",
+    "provider": "openai-codex",
+    "session_id": "20260729_143928_9c23ce",
+    "completed": true,
+    "failed": false,
+    "service_tier": "priority"
+  },
+  "changes": {
+    "api_calls": 1,
+    "input_tokens": 50864,
+    "cache_read_tokens": 451072,
+    "output_tokens": -1898,
+    "reasoning_tokens": -3429,
+    "total_tokens": 500038,
+    "total_percent": 41.6
+  },
+  "audit": {
+    "calls": 3,
+    "response_bytes": 53024,
+    "modes": {
+      "search": 2,
+      "inspect": 1
+    },
+    "new_nodes": 24,
+    "new_source_ranges": 24,
+    "new_documents": 0,
+    "new_relationships": 0,
+    "new_graph_paths": 0,
+    "tool_errors": 0,
+    "invalid_records": 0
+  },
+  "usage_modified": "2026-07-29T14:44:45.695962",
+  "audit_modified": "2026-07-29T14:42:50.425281",
+  "oneshot_sha256": "3c8b2233b803aa873538049e911d21bd12ca9a75c453744e54fff57a57e1244e",
+  "checkout_exists": false,
+  "profile_exists": false
+}

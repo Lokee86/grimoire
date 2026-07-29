@@ -1,0 +1,33 @@
+Reading additional input from stdin...
+2026-07-29T17:50:48.259016Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$cmd = Get-Command grimoire_discover -ErrorAction SilentlyContinue; if ($cmd) { $cmd | Format-List Name,Source,CommandType } else { '"'grimoire_discover command not found' }
+
+git rev-parse HEAD
+git status --short
+rg --files -g '"'!*node_modules*'"' -g '"'!*.lock'"' | Select-Object -First 200"` rejected: blocked by policy
+2026-07-29T17:50:51.055003Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T17:50:53.347445Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-ChildItem -Force | Select-Object Name,Mode,Length'` rejected: blocked by policy
+2026-07-29T17:50:58.039037Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T17:51:11.071786Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg --files services/game-server/internal/networking services/game-server/internal/game client/scripts/networking client/scripts/world shared/packets docs | Sort-Object'` rejected: blocked by policy
+2026-07-29T17:52:14.558733Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg -n "world_full|world_delta|ship_delta|ships_lifecycle|asteroid_delta|bullet_delta|asteroids_lifecycle|bullets_lifecycle|resync|delete|creates|updates|deletes" client/scripts/networking client/scripts/world client/tests tests/client 2>$null'` rejected: blocked by policy
+2026-07-29T17:52:19.652897Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg --files client/scripts/networking/realtime client/scripts/world | Sort-Object'` rejected: blocked by policy
+2026-07-29T17:56:31.194667Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+client/scripts/world/player_render/player_meaning_api.gd:28:func remove_missing(server_players: Dictionary, self_id: String) -> void:
+client/scripts/world/player_render/player_meaning_api.gd:72:func apply_with_anchor(self_id: String, anchor_player_id: String, server_players: Dictionary, anchor_visual_position: Vector2, anchor_server_position: Vector2) -> void:
+client/scripts/world\asteroid_sync.gd:273:func remove_missing(server_asteroids: Dictionary) -> void:
+client/scripts/world\pickup_sync.gd:214:func remove_missing(server_pickups: Dictionary) -> void:
+client/scripts/world\projectile_sync.gd:268:func remove_missing(server_bullets: Dictionary) -> void:
+client/scripts/world\player_render\player_meaning_api.gd:28:func remove_missing(server_players: Dictionary, self_id: String) -> void:
+client/scripts/world\player_render\player_meaning_api.gd:72:func apply_with_anchor(self_id: String, anchor_player_id: String, server_players: Dictionary, anchor_visual_position: Vector2, anchor_server_position: Vector2) -> void:
+client/scripts/world\player_render\player_render_api.gd:45:func remove_missing(server_players: Dictionary, self_id: String) -> void:
+rg: client/scripts/player_sync.gd: The system cannot find the file specified. (os error 2)
+
+2026-07-29T17:57:42.659689Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+rg: regex parse error:
+    (?:id = \)
+    ^
+error: unclosed group
+

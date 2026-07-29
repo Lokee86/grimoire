@@ -1,0 +1,103 @@
+Investigation was performed read-only at revision `460da4af05c44d1835401fa853f5fc6b718262c8`.
+
+## Recommendation
+
+The smallest reliable design is a low-rate, absolute `{id, x, y}` beacon for distant ships on the existing reliable `world_delta` lane. Keep nearby ship transforms on receiver-filtered `ship_delta`; do not create a new lane, packet type, client read model, or generated schema.
+
+### Verified current behavior
+
+- The checked-in presentation snapshot exposes the shared immutable map of every ship to each receiver; only receiver identity, lives, and pending events are receiver-specific. `ProjectWorldLane` then projects every snapshot player into a world ship record. There is currently no receiver-interest filter in that path (`services/game-server/internal/game/presentation_snapshot.go:66-113`, `services/game-server/internal/protocol/realtime/projection_world.go:16-39`).
+
+- Each ship hot projection contains `id`, `x`, `y`, `rotation`, and `thrusting`. Changed fields become `ship_delta` updates, and the current candidate builder considers the complete ship projection rather than a receiver-filtered subset (`services/game-server/internal/protocol/realtime/hot_lane_projection.go:15-26`, `services/game-server/internal/protocol/realtime/lane_candidate_world.go:88-107`).
+
+- The current split explicitly classifies `x`, `y`, `rotation`, and `thrusting` as hot fields. Reliable ship lifecycle updates retain the other fields, while ordinary world deltas retain no ship movement (`services/game-server/internal/protocol/realtime/hot_lane_allocator.go:106-140`, `services/game-server/internal/protocol/realtime/lane_candidate_world.go:43-85`). Existing tests enforce that separation (`services/game-server/internal/protocol/realtime/ship_lanes_test.go:38-89`).
+
+- On WebRTC, `world` is ordered/reliable, whereas `ships` is unordered with zero retransmissions. World deltas are also scheduler-required; ship hot deltas are supersedable (`services/game-server/internal/networking/webrtc_transport.go:27-40`, `services/game-server/internal/protocol/realtime/candidate_policy.go:3-19`).
+
+- Both `world_delta.ship_updates` and `ship_delta.ship_updates` already use the same compact `ship_update` record, whose schema supports sparse, position-quantized `x` and `y`. The server world serializer also already permits these fields (`shared/packets/realtime_wire.toml:773-797`, `shared/packets/realtime_wire.toml:1587-1601`, `services/game-server/internal/protocol/realtime/wire_packets.go:257-280`).
+
+- The client applies both world and hot ship updates into the same `WorldLaneState`. Ship updates patch existing records and cannot recreate deleted ships (`client/scripts/protocol/realtime/world_lane_applier.gd:43-70`, `client/scripts/protocol/realtime/world_lane_applier.gd:153-183`, `client/scripts/protocol/realtime/world_lane_state.gd:144-179`).
+
+- World synchronization turns each ship’s authoritative `x/y` into an anchor-relative visual target. Interpolation publishes the rendered remote position used by presentation (`client/legacy/player_render/player_sync.gd:134-169`, `client/legacy/player_render/player_sync.gd:227-241`, `client/legacy/player_render/player_sync_interpolation.gd:15-32`).
+
+- Gameplay composition supplies those remote rendered positions directly to the presentation flow, which passes them to `OSIndicatorController`. The controller hides onscreen targets, positions and rotates offscreen indicators, and removes indicators whose target disappears (`client/scripts/gameplay/gameplay_composition.gd:260-268`, `client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:32-44`, `client/scripts/gameplay/presentation/os_indicator_controller.gd:36-59`).
+
+Therefore, if future receiver filtering simply suppresses distant `ship_delta` transforms, the indicator remains present but follows the last received position. If filtering also removes distant ship membership, existing cleanup removes the player target and indicator entirely (`client/legacy/player_render/player_sync.gd:199-205`, `client/scripts/gameplay/presentation/os_indicator_controller.gd:53-59`).
+
+## Proposed design
+
+1. Preserve player membership globally.
+
+   World full state and reliable ship creates/deletes must continue to include all players. Interest management should filter only full-rate transform delivery. This is the precondition that lets the existing player node, hue, interpolation, and indicator pipeline remain unchanged.
+
+2. Have receiver interest return two ship sets.
+
+   In the future `protocol/realtime` interest owner, classify ships as:
+
+   - `full_rate`: receiver/self plus ships inside the interest region or hysteresis.
+   - `distant`: known active remote ships outside that region.
+
+   Normal `ship_delta` construction uses only `full_rate`. Entering full-rate interest should force one complete transform patch so a stationary ship immediately corrects from its last beacon.
+
+3. Add a low-rate beacon candidate in `lane_candidate_world.go`.
+
+   On a proposed initial cadence of 30 server ticks—2 Hz at the current 60 Hz server tick—enumerate the quantized current ship projection, not the ordinary baseline delta. For each `distant` ship, build a deterministic, ID-sorted update containing only:
+
+   ```text
+   id
+   x
+   y
+   ```
+
+   Reading from the current projection is important: unrelated reliable state can advance the server’s world baseline even when the client did not receive distant movement. Deriving the beacon only from the current tick’s delta could therefore omit a stationary-but-stale distant player.
+
+4. Attach beacons to `world_delta` after normal partitioning.
+
+   In `buildReliableWorldCandidates`, first partition hot fields and extract lifecycle creates/deletes/non-transform updates exactly as today. Then append the beacon records to the remaining world packet and include them when determining whether a world candidate is necessary.
+
+   This ordering prevents `partitionShipUpdates` from stripping the beacon back into the hot lane or moving it into `ships.lifecycle`.
+
+5. Latch a due beacon until successful write.
+
+   A pure `HotLaneTick % interval` test is insufficient because preflight backpressure can skip a reliable group while cadence still advances (`services/game-server/internal/networking/websocket_write.go:85-92`, `services/game-server/internal/networking/websocket_write.go:139-150`).
+
+   Add minimal per-receiver state to `RealtimeSessionState`:
+
+   ```text
+   next_distant_ship_beacon_tick
+   distant_ship_beacon_pending
+   ```
+
+   Add an internal, non-wire marker to `RealtimeLaneCandidate` identifying a world candidate containing a beacon. Once due, emit it every build until `CommitSuccessfulCandidate` clears the pending flag and schedules the next deadline. A successful `world_full` also schedules the next deadline because it already supplies an initial reliable position for every player.
+
+6. Leave the client and packet schema unchanged.
+
+   Existing compact world ship updates already encode/decode `x/y`, and the current client path already turns them into updated remote visual positions. The reliable beacon therefore refreshes the offscreen indicator and, incidentally, the offscreen remote render target without restoring full-rate distant updates.
+
+## Verification plan
+
+Server tests in `services/game-server/internal/protocol/realtime/ship_lanes_test.go` should cover:
+
+- Nearby ships remain in `ship_delta`; distant ships do not.
+- No distant beacon appears before its cadence deadline.
+- At the deadline, `world_delta` contains current absolute `id/x/y` for each distant remote ship and no `rotation` or `thrusting`.
+- Receiver/self and full-rate ships are excluded from the beacon.
+- A beacon is produced even if the distant ship has stopped or an unrelated reliable change previously advanced the world projection.
+- A skipped/uncommitted beacon remains pending; committing its world candidate clears it.
+- Creates provide the initial position, deletes suppress same-tick beacons, and interest entry forces a complete hot transform.
+
+Client regression coverage should extend `client/tests/unit/test_world_sync.gd` to apply a reliable world ship position patch, interpolate, and assert that `get_remote_player_visual_positions()` changes, including a toroidal-edge case. Existing world-lane tests already verify that reliable world ship updates patch `x/y` (`client/tests/unit/protocol/realtime/test_world_lane_applier.gd:50-100`).
+
+No tests or generators were run during this read-only investigation.
+
+## Documentation rationale
+
+These are rationale and ownership guidance, not proof of implementation:
+
+- The planning document assigns future receiver-interest policy to `protocol/realtime` over immutable presentation input and explicitly says current interest sets and filters are not implemented (`docs/planning/protocol/realtime-protocol-architecture.md:146-152`).
+- It documents `sr.world` and lifecycle channels as reliable/ordered and entity hot channels as unreliable/unordered (`docs/planning/protocol/realtime-protocol-architecture.md:139-144`).
+- Client presentation documentation defines the indicator as a consumer of remote target visual positions and requires it to point toward offscreen targets (`docs/services/client/presentation-flow/gameplay-presentation-flow.md:162-182`, `docs/services/client/presentation-flow/gameplay-presentation-flow.md:277-287`).
+
+The reliable world beacon follows those boundaries: interest policy stays server-side, the wire uses an existing reliable representation, and the client presentation owner continues consuming its existing visual-position read model.
+
+BENCHMARK_EVIDENCE_JSON:{"evidence":[{"path":"services/game-server/internal/game/presentation_snapshot.go","symbol":"GameplayPresentationSnapshot","lines":"66-113","claim":"Each receiver snapshot exposes the shared immutable players map while receiver identity, lives, and pending events are receiver-specific."},{"path":"services/game-server/internal/protocol/realtime/projection_world.go","symbol":"ProjectWorldLane","lines":"16-39","claim":"Current world projection emits a ship record for every player in the snapshot without receiver-interest filtering."},{"path":"services/game-server/internal/protocol/realtime/hot_lane_projection.go","symbol":"projectShipHotLane","lines":"15-26","claim":"The ship hot projection contains ID, X, Y, rotation, and thrusting for every projected ship."},{"path":"services/game-server/internal/protocol/realtime/lane_candidate_world.go","symbol":"buildIndependentHotLaneCandidates","lines":"88-107","claim":"Current ship hot candidates are built from the complete current ship projection and its per-session hot baseline."},{"path":"services/game-server/internal/protocol/realtime/hot_lane_allocator.go","symbol":"partitionShipUpdates","lines":"106-140","claim":"X, Y, rotation, and thrusting are classified as hot ship fields; other changed ship fields are classified reliable."},{"path":"services/game-server/internal/networking/webrtc_transport.go","symbol":"webRTCChannelSpecs","lines":"27-40","claim":"The world DataChannel is ordered/reliable, while the ships DataChannel is unordered with zero retransmissions."},{"path":"services/game-server/internal/protocol/realtime/candidate_policy.go","symbol":"deliveryClassForCandidate","lines":"3-19","claim":"World deltas are required candidates and ship hot deltas are hot-supersedable candidates."},{"path":"shared/packets/realtime_wire.toml","symbol":"ship_update record and packet bindings","lines":"773-797","claim":"The existing compact ship_update record supports sparse position-quantized X and Y fields."},{"path":"shared/packets/realtime_wire.toml","symbol":"world_delta and ship_delta ship_updates bindings","lines":"1587-1601","claim":"Both world_delta and ship_delta already use the same ship_update record."},{"path":"client/scripts/protocol/realtime/world_lane_applier.gd","symbol":"apply_world_delta/apply_ship_delta/_apply_entity_update","lines":"43-70","claim":"Reliable world ship updates and hot ship updates are routed into the same world-lane entity update path."},{"path":"client/legacy/player_render/player_sync.gd","symbol":"apply_with_anchor/_visual_position_for_player","lines":"134-169","claim":"Ship state coordinates are converted into remote visual targets and stored for interpolation."},{"path":"client/scripts/gameplay/presentation/os_indicator_controller.gd","symbol":"update_indicators","lines":"25-59","claim":"Indicators consume target positions, hide onscreen targets, point toward offscreen targets, and remove targets absent from the position map."},{"path":"docs/planning/protocol/realtime-protocol-architecture.md","symbol":"Future Interest Management Boundary","lines":"146-152","claim":"Documentation assigns future receiver-interest policy to protocol/realtime over immutable presentation input and states that it is not implemented at this revision."}]}

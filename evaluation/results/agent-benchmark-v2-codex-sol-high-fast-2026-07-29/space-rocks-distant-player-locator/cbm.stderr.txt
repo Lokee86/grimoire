@@ -1,0 +1,44 @@
+Reading additional input from stdin...
+2026-07-29T18:43:56.853055Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$queries = @('"'receiver','interest','relevan','offscreen','update_indicators','player_positions','PlayerMovement','player movement','MovementUpdate'); foreach ("'$q in $queries) { Write-Output "QUERY=$q"; rg -n -i --glob '"'"'!vendor/**'"' --glob '"'!third_party/**'"' --glob '"'!*.import'"' -- \""'$q" . | Select-Object -First 120 }'` rejected: blocked by policy
+2026-07-29T18:44:06.408215Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "rg -n -i --glob '*.md' -- 'receiver-filter|interest management|distant player|far player|offscreen indicator|indicator.*player|player.*indicator|full-rate|full rate|hot update' docs .github . 2>"'$null'` rejected: blocked by policy
+2026-07-29T18:44:13.302262Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg --files services/game-server/internal/protocol/realtime services/game-server/internal/networking | Sort-Object'` rejected: blocked by policy
+2026-07-29T18:45:22.059573Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+[31;1mGet-Content: [0m
+[31;1m[36;1mLine |[0m
+[31;1m[36;1m[36;1m   2 | [0m [36;1mGet-Content -Raw 'skills\packet-schema-change\SKILL.md'[0m
+[31;1m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[31;1m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mCannot find path 'C:\!bin\workspace\.codex-benchmark-checkouts\66185f47\cbm\skills\packet-schema-change\SKILL.md' because it does not exist.[0m
+
+2026-07-29T18:45:28.957362Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T18:45:33.533195Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T18:45:47.576883Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 2.5 seconds
+Output:
+rg: client/scripts/protocol/realtime/overlay_session_lane_applier.gd: IO error for operation on client/scripts/protocol/realtime/overlay_session_lane_applier.gd: The system cannot find the file specified. (os error 2)
+
+2026-07-29T18:46:42.879031Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$lines = Get-Content '"'services\\game-server\\internal\\protocol\\realtime\\wire_packets.go'; for ("'$i = 270; $i -le 305; $i++) { if ($i -le $lines.Count) { '"'{0}:{1}' -f "'$i, $lines[$i-1] } }'` rejected: blocked by policy
+2026-07-29T18:47:05.075751Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+rg: services/game-server/internal/protocol/realtime/*test.go: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+rg: client/tests/unit/protocol/realtime/*.gd: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+
+2026-07-29T18:47:24.949549Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.9 seconds
+Output:
+
+2026-07-29T18:48:39.127630Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+
+2026-07-29T18:48:41.409388Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.3 seconds
+Output:
+
+2026-07-29T18:49:42.935348Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "rg -n 'CommitSuccessfulCandidate|preparedState|SessionState' services/game-server/internal/networking/*.go services/game-server/internal/networking 2>"'$null'` rejected: blocked by policy
+2026-07-29T18:50:02.825174Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+

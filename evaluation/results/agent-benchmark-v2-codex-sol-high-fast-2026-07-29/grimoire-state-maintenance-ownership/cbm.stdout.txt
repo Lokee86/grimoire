@@ -1,0 +1,111 @@
+## Recommendation
+
+Split ownership at a strict boundary:
+
+- **Warlock owns continuous lifecycle mechanics:** repository registration, recursive filesystem watching, debounce/coalescing, overflow detection, periodic reconciliation, process health, retry, and shutdown.
+- **Grimoire owns the meaning of change events:** freshness validation, source/document classification, dependency ordering, provider invocation, locking, atomic publication, and readiness reporting.
+- **Lexicon and Arcana continue mutating only their own state.** Warlock should never write provider state directly.
+
+This preserves one shared watcher without turning Grimoire’s one-shot commands into daemon clients.
+
+## Verified current behavior
+
+Grimoire is request-driven. Its MCP process retains a query runtime, but every request first calls `agentruntime.Execute` with `ensureDiscoveryRepository`; repository preparation therefore remains part of the request path, with `refresh-if-needed` as the default mode (`internal/app/mcp.go:18-71`, `internal/agentruntime/runtime.go:20-56`).
+
+`repostate.Ensure` is already the authoritative maintenance transaction:
+
+1. inspect repository and component state;
+2. return immediately for `current-only`, or for current `refresh-if-needed` state;
+3. acquire both an in-process repository mutex and cross-process file lock;
+4. re-inspect after waiting;
+5. refresh Lexicon;
+6. synchronize Arcana to Lexicon;
+7. prepare Grimoire source state;
+8. prepare documentation state;
+9. verify the source did not change during preparation (`internal/repostate/ensure.go:20-82`, `internal/repostate/ensure.go:84-188`).
+
+Grimoire-owned source and documentation preparation run in-process, while Lexicon and Arcana remain executable boundaries invoked through `ProcessCommand`; this is the correct place to preserve provider ownership (`internal/app/discovery_prepare.go:15-31`, `internal/app/discovery_prepare.go:42-60`, `internal/repostate/types.go:14-36`).
+
+Lexicon currently contains the only implemented repository watcher. It recursively installs `fsnotify` watches, debounces events, sends path batches through `Scanner.ScanPaths`, performs full scans on ignore-policy changes or watcher errors, and reconciles periodically (`lexicon/internal/watch/daemon.go:24-141`). Both full and path scans use the same scanner transaction and invoke registered one-shot consumers only after a successful snapshot (`lexicon/internal/scan/scanner.go:35-52`). Thus the present watcher is provider-local: it can advance Lexicon and its consumers, but it does not own Grimoire’s source/document readiness.
+
+The resident MCP query engine is already snapshot-sensitive. Its cache key includes prepared Grimoire, Lexicon, and Arcana snapshot identities; a changed identity closes and reopens the engine on the next request (`internal/agentquery/runtime.go:23-58`, `internal/agentquery/runtime.go:88-106`). A maintenance event therefore does not need to mutate or explicitly invalidate the resident query engine.
+
+Standalone use is implemented directly: CLI discovery defaults to `refresh-if-needed`, applies a bounded timeout, executes preparation plus the query, emits JSON, and exits (`internal/app/query.go:33-64`, `internal/app/query.go:130-138`). The top-level dispatcher also exposes independent `index`, `status`, discovery, Lexicon, and Arcana commands (`internal/app/run.go:34-77`).
+
+One integration gap is important: `repostate.Options` already accepts separate Lexicon, Arcana, and Grimoire state roots, but `grimoire status` currently exposes only the repository root, mode, and provider command flags. Omitted state roots normalize to repository-local `.lexicon`, `.arcana`, and `.grimoire` paths (`internal/app/status.go:14-44`, `internal/repostate/inspect.go:35-58`). A Warlock-facing maintenance command must explicitly wire managed state locations.
+
+## Proposed design
+
+### Event seam
+
+Extend the existing bounded preparation entry point:
+
+```text
+grimoire status --refresh \
+  --root <repo> \
+  --state <grimoire-state> \
+  --lexicon-state <lexicon-state> \
+  --arcana-state <arcana-state> \
+  --change-batch -
+```
+
+`--change-batch -` should accept one versioned JSON object and exit after one maintenance attempt:
+
+```json
+{
+  "schema": "grimoire.change.v1",
+  "event_id": "opaque-warlock-id",
+  "reason": "paths",
+  "paths": [
+    {"path": "internal/app/run.go", "operation": "write"}
+  ]
+}
+```
+
+`reason` should support `startup`, `paths`, `overflow`, and `reconcile`. Paths must be repository-relative, normalized, root-contained, and treated only as invalidation hints—not as complete truth.
+
+Add an optional `ChangeBatch` to `repostate.Options`. When present, freshness inspection must bypass marker-only fingerprint reuse before deciding the repository is current. For the first implementation, all accepted batches may run the existing full freshness inspection and incremental builders; path-aware indexing can come later. Overflow and reconciliation must always take that conservative path.
+
+### Lifecycle
+
+1. On repository activation, Warlock invokes one startup preparation and records readiness from the existing `repostate.Status`.
+2. Warlock watches and coalesces raw events, then invokes one bounded Grimoire maintenance command per quiet batch.
+3. Grimoire validates current state under its existing lock and invokes owning provider commands in dependency order.
+4. Duplicate or out-of-order events are harmless because state identities and `Ensure` determine actual work.
+5. If source changes during preparation, Grimoire retains its existing retry failure; Warlock reschedules after the next quiet period.
+6. Periodic Warlock reconciliation and query-time `refresh-if-needed` repair dropped events.
+7. A Warlock-managed deployment does not also launch `lexicon demon`; the existing demon remains available for standalone Lexicon operation.
+
+This deliberately avoids adding watcher code to `internal/index` or making Grimoire a second supervisor.
+
+### State and failure rules
+
+- Warlock may allocate and pass state paths, but must not edit manifests, snapshots, markers, or provider repositories.
+- Grimoire remains responsible for whether an event affects Lexicon, Arcana, source retrieval, documentation, or several lanes.
+- Provider failure keeps the existing degraded-lane semantics; readiness is based on Grimoire’s returned status, not process exit alone.
+- The change batch is an optimization and latency signal. Immutable snapshots and content identities remain the durable handoff.
+- Without `--change-batch`, current `status --refresh`, CLI discovery, and MCP `refresh-if-needed` behavior remains intact.
+
+## Verification plan
+
+Add tests at these boundaries:
+
+- CLI parsing and explicit propagation of all managed state roots.
+- Change-schema version rejection, path containment, rename/delete handling, overflow, empty batches, and duplicate event IDs.
+- A change batch bypasses stale marker reuse before the current-state short circuit.
+- Stubbed `CommandRunner` verifies Lexicon → Arcana → source → documentation ordering and confirms Warlock never writes provider state.
+- Concurrent event preparation and query preparation serialize through `repostate.lock`.
+- A source mutation during preparation returns retry without publishing mismatched readiness.
+- A newly published snapshot causes the resident runtime to reopen on its next query.
+- Managed integration runs without `lexicon demon`; standalone `grimoire search`, `grimoire status --refresh`, and `lexicon demon` remain independently usable.
+- Lost-event simulation is repaired by reconciliation or the next query-time `refresh-if-needed`.
+
+## Documentation rationale, not current executable behavior
+
+The roadmap explicitly asks for “optional repository watching or Warlock-fed change events” without daemon-dependent one-shot commands, and separately calls for Warlock lifecycle integration while components remain independently usable (`docs/planning/roadmap.md:44-47`, `docs/planning/roadmap.md:70-77`). Current limitations identify request-driven maintenance and first-query preparation cost as the problem being addressed (`docs/limits/current-limitations.md:85-89`).
+
+The documented ownership model assigns each state directory to its component and forbids cross-component mutation (`docs/architecture/components.md:60-76`). Lexicon’s documentation also treats watch mode as optional and converts events into the same bounded transaction used by one-shot scans (`lexicon/docs/APPLICATION.md:5-9`). Finally, the Arcana contract states the crucial durability rule: an event reduces latency, while immutable snapshots remain the handoff and explicit synchronization can catch up later (`arcana/docs/LEXICON_CONTRACT.md:35-43`).
+
+No files were modified, and no generators or tests were run.
+
+BENCHMARK_EVIDENCE_JSON:{"evidence":[{"path":"internal/app/mcp.go","symbol":"runMCP","lines":"18-71","claim":"The MCP service defaults to refresh-if-needed and invokes agentruntime.Execute with repository preparation for every tool request."},{"path":"internal/agentruntime/runtime.go","symbol":"Execute","lines":"20-56","claim":"Every discovery execution ensures repository state before querying and rejects state that is not deterministically ready."},{"path":"internal/repostate/ensure.go","symbol":"Ensure","lines":"20-82","claim":"Repository maintenance inspects state, supports one-shot state modes, and serializes refreshes with in-process and cross-process locks."},{"path":"internal/repostate/ensure.go","symbol":"Ensure","lines":"84-188","claim":"Maintenance orders Lexicon refresh, Arcana synchronization, Grimoire source preparation, documentation preparation, and final source verification."},{"path":"internal/app/discovery_prepare.go","symbol":"ensureDiscoveryRepository","lines":"15-60","claim":"Grimoire source and knowledge preparation run in-process while other preparation commands remain executable process boundaries."},{"path":"internal/repostate/types.go","symbol":"Options","lines":"14-36","claim":"The orchestration API models provider work as commands and accepts separate state roots and executable overrides."},{"path":"lexicon/internal/watch/daemon.go","symbol":"Run","lines":"24-141","claim":"Lexicon implements the current recursive watcher, debounce, path scanning, watcher-error recovery, and periodic reconciliation loop."},{"path":"lexicon/internal/scan/scanner.go","symbol":"Scanner.Scan","lines":"35-52","claim":"Full and path-based Lexicon scans share one transaction boundary and notify one-shot consumers only after successful scanning."},{"path":"internal/agentquery/runtime.go","symbol":"Runtime.Execute","lines":"23-58","claim":"The resident query runtime reopens its engine when its snapshot-sensitive key changes."},{"path":"internal/agentquery/runtime.go","symbol":"runtimeKey","lines":"88-106","claim":"The runtime cache key includes Grimoire, Lexicon, and Arcana prepared snapshot identities."},{"path":"internal/app/query.go","symbol":"runQuery","lines":"33-64","claim":"Standalone discovery exposes state modes and defaults to refresh-if-needed with a bounded timeout."},{"path":"internal/app/query.go","symbol":"runQuery","lines":"130-138","claim":"Standalone discovery directly executes preparation and query work, writes JSON, and returns."},{"path":"internal/app/status.go","symbol":"runStatus","lines":"14-44","claim":"The current status command wires repository root, refresh mode, and provider commands but does not expose managed component state-root flags."},{"path":"internal/repostate/inspect.go","symbol":"normalize","lines":"35-58","claim":"Absent explicit state roots, repository state normalizes to local .lexicon, .arcana, and .grimoire directories."},{"path":"docs/planning/roadmap.md","symbol":"Prepared-state maintenance","lines":"44-47","claim":"Documentation proposes optional repository watching or Warlock-fed events while preserving daemon-independent one-shot commands."},{"path":"docs/planning/roadmap.md","symbol":"Distribution and compatibility","lines":"70-77","claim":"Documentation proposes Warlock lifecycle integration while keeping components independently usable."},{"path":"docs/architecture/components.md","symbol":"State ownership","lines":"60-76","claim":"Architecture documentation assigns state to individual components and forbids direct cross-component mutation."},{"path":"docs/limits/current-limitations.md","symbol":"State maintenance is request-driven","lines":"85-89","claim":"Limitations documentation identifies request-driven maintenance and first-query preparation cost."},{"path":"arcana/docs/LEXICON_CONTRACT.md","symbol":"Snapshot synchronization","lines":"35-43","claim":"The provider contract treats events as latency hints and immutable snapshots as the durable synchronization boundary."}]}

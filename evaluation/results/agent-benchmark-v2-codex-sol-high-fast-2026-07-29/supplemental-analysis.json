@@ -1,0 +1,122 @@
+{
+  "schema": "grimoire.agent-benchmark.supplemental-analysis.v1",
+  "created_at": "2026-07-29T14:53:00-07:00",
+  "primary_benchmark": {
+    "planned_runs": 15,
+    "completed_runs": 15,
+    "included_in_primary_totals": 15,
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "service_tier": "priority",
+    "manual_quality": {
+      "plain": {"score": 40, "maximum": 40, "grounded_runs": 5},
+      "cbm": {"score": 32, "maximum": 32, "grounded_runs": 4, "disqualified_runs": 1},
+      "grimoire": {"score": 39, "maximum": 40, "grounded_runs": 5}
+    }
+  },
+  "codex_four_task_token_analysis": {
+    "accounting": {
+      "processed_input": "aggregate input across calls including cached context",
+      "fresh_input": "processed input minus cached input",
+      "cached_input": "cached context reread across calls"
+    },
+    "tasks": {
+      "grimoire-state-maintenance-ownership": {
+        "plain": {"processed_input": 3514755, "fresh_input": 200323, "cached_input": 3314432, "output": 11584, "reasoning": 4671},
+        "cbm": {"processed_input": 4417439, "fresh_input": 184479, "cached_input": 4232960, "output": 15793, "reasoning": 8335},
+        "grimoire": {"processed_input": 2340752, "fresh_input": 160656, "cached_input": 2180096, "output": 12062, "reasoning": 6019}
+      },
+      "space-rocks-room-scale-architecture": {
+        "plain": {"processed_input": 10942309, "fresh_input": 255845, "cached_input": 10686464, "output": 19895, "reasoning": 10977},
+        "cbm": {"processed_input": 7821228, "fresh_input": 298668, "cached_input": 7522560, "output": 15714, "reasoning": 6014, "answer_disqualified": true},
+        "grimoire": {"processed_input": 6492845, "fresh_input": 276141, "cached_input": 6216704, "output": 18898, "reasoning": 8439}
+      },
+      "detekt-cli-gradle-plugin-divergence": {
+        "plain": {"processed_input": 2844203, "fresh_input": 171563, "cached_input": 2672640, "output": 14614, "reasoning": 8443},
+        "cbm": {"processed_input": 2396967, "fresh_input": 160551, "cached_input": 2236416, "output": 14843, "reasoning": 6538},
+        "grimoire": {"processed_input": 2205915, "fresh_input": 164827, "cached_input": 2041088, "output": 15334, "reasoning": 8546}
+      },
+      "space-rocks-distant-player-locator": {
+        "plain": {"processed_input": 8801965, "fresh_input": 262317, "cached_input": 8539648, "output": 18128, "reasoning": 8522},
+        "cbm": {"processed_input": 7763069, "fresh_input": 245885, "cached_input": 7517184, "output": 24891, "reasoning": 14934},
+        "grimoire": {"processed_input": 6612396, "fresh_input": 241068, "cached_input": 6371328, "output": 19693, "reasoning": 10895}
+      }
+    },
+    "totals": {
+      "plain": {"processed_input": 26103232, "fresh_input": 890048, "cached_input": 25213184, "output": 64221, "reasoning": 32613},
+      "cbm": {"processed_input": 22398703, "fresh_input": 889583, "cached_input": 21509120, "output": 71241, "reasoning": 35821},
+      "grimoire": {"processed_input": 17651908, "fresh_input": 842692, "cached_input": 16809216, "output": 65987, "reasoning": 33899}
+    },
+    "grimoire_reductions": {
+      "processed_input_vs_plain_percent": 32.4,
+      "processed_input_vs_cbm_percent": 21.2,
+      "fresh_input_vs_plain_percent": 5.3
+    }
+  },
+  "leveldb_primary": {
+    "task_characterization": "comparatively narrow small-repository impact analysis with ownership concentrated in DBImpl",
+    "quality": {"plain": "8/8", "cbm": "8/8", "grimoire": "8/8"},
+    "plain": {"elapsed_seconds": 399.127, "input_tokens": 113789, "cache_read_tokens": 657408, "output_tokens": 17584, "reasoning_tokens": 10692, "total_tokens": 788781, "api_calls": 13},
+    "cbm": {"elapsed_seconds": 387.554, "input_tokens": 112327, "cache_read_tokens": 570880, "output_tokens": 16377, "reasoning_tokens": 9819, "total_tokens": 699584, "api_calls": 12},
+    "grimoire": {
+      "elapsed_seconds": 422.042,
+      "input_tokens": 100796,
+      "cache_read_tokens": 1084928,
+      "output_tokens": 17509,
+      "reasoning_tokens": 11204,
+      "total_tokens": 1203233,
+      "api_calls": 18,
+      "retrieval_calls": 2,
+      "retrieval_response_bytes": 28917,
+      "tool_errors": 0
+    }
+  },
+  "leveldb_counterfactual": {
+    "comparison_average_calls": 12.5,
+    "simple_linear_total_tokens": 835578,
+    "accumulating_history_estimate": {
+      "calls_12_total_tokens": 546878,
+      "calls_13_total_tokens": 638543,
+      "method": "scale fresh input and output linearly and scale cache reads by an approximately triangular accumulated-history factor"
+    },
+    "defensible_total_token_range": {"minimum": 547000, "maximum": 836000},
+    "caveat": "per-call token records were unavailable, so this is a counterfactual estimate rather than a reconstructed measurement"
+  },
+  "leveldb_supplemental_grimoire_rerun": {
+    "included_in_primary_totals": false,
+    "revision": "99b3c03b3284f5886f9ef9a4ef703d57373e61be",
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "service_tier": "priority",
+    "usage": {
+      "input_tokens": 151660,
+      "cache_read_tokens": 1536000,
+      "output_tokens": 15611,
+      "reasoning_tokens": 7775,
+      "total_tokens": 1703271,
+      "api_calls": 19,
+      "completed": true,
+      "failed": false
+    },
+    "retrieval": {"calls": 3, "search_calls": 2, "inspect_calls": 1, "response_bytes": 53024, "tool_errors": 0},
+    "change_from_primary_grimoire": {"total_tokens": 500038, "total_percent": 41.6, "api_calls": 1, "retrieval_calls": 1},
+    "quality_scored": false,
+    "quality_limitation": "the model run completed, but a Windows CP1252 decode error prevented the wrapper from preserving the final answer text",
+    "cleanup": {
+      "profile_removed": true,
+      "checkout_removed": true,
+      "hermes_oneshot_restored_sha256": "3c8b2233b803aa873538049e911d21bd12ca9a75c453744e54fff57a57e1244e"
+    }
+  },
+  "conclusions": [
+    "Grimoire demonstrated its clearest benefit on broad, distributed, and cross-layer investigations.",
+    "Grimoire used the least processed input on all four directly comparable Codex tasks without reducing answer depth.",
+    "Most Grimoire token savings came from less repeated cached context, not dramatically less fresh source evidence.",
+    "Grimoire is not necessarily beneficial for narrow tasks where ownership and relevant control flow are cheap to find directly.",
+    "The first LevelDB result was affected by model trajectory, but the second 19-call run shows the excessive investigation pattern was not merely a one-off outlier.",
+    "Retrieval quality and agent stopping behavior must be measured separately.",
+    "The primary LevelDB Grimoire run found correct evidence early and used the least fresh input; the end-to-end inefficiency came from repeated post-retrieval processing.",
+    "Plain remained fastest overall and perfect in quality; Grimoire provided the best broad-task context efficiency and matched Plain grounding reliability; CBM prepared cheaply but produced the only invalid grounded answer.",
+    "Future evaluation should stratify narrow and broad tasks and use repeated seeds before attributing results solely to model variance."
+  ]
+}

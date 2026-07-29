@@ -1,0 +1,316 @@
+Reading additional input from stdin...
+2026-07-29T18:28:48.389705Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$paths = @('"'detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/Detekt.kt','detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/plugin/DetektPlugin.kt','detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/plugin/DetektBasePlugin.kt','detekt-cli/src/main/kotlin/dev/detekt/cli/Spec.kt','detekt-core/src/main/kotlin/dev/detekt/core/settings/ClassloaderAware.kt','detekt-core/src/main/kotlin/dev/detekt/core/rules/RuleSets.kt','detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt','detekt-core/src/main/kotlin/dev/detekt/core/config/validation/MissingRulesConfigValidator.kt'); foreach ("'$p in $paths) { Write-Output ('"'FILE ' + "'$p); $i=0; Get-Content -LiteralPath $p | ForEach-Object { $i++; '"'{0,4}: {1}' -f "'$i, $_ } }'` rejected: blocked by policy
+2026-07-29T18:29:13.672826Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git status --short; git rev-parse HEAD; git log --oneline --decorate -30 -- detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/Detekt.kt detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/invoke/DetektInvoker.kt detekt-core/src/main/kotlin/dev/detekt/core/settings/ClassloaderAware.kt; git log --all --oneline --grep="plugin" -40'` rejected: blocked by policy
+2026-07-29T18:29:22.702964Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T18:29:31.887880Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T18:30:13.570911Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-2-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-3-import dev.detekt.tooling.api.spec.ExtensionsSpec
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-4-import java.nio.file.Path
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-5-import kotlin.io.path.exists
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-6-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt:7:internal data class PluginsHolder(override val paths: Collection<Path>?, override val loader: ClassLoader?) :
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-8-    ExtensionsSpec.Plugins {
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-9-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-10-    init {
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-11-        require(paths == null || loader == null) { "Either paths or loader must be specified, not both." }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-12-        paths?.forEach { require(it.exists()) { "Plugin jar '$it' does not exist." } }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-13-    }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt-14-}
+--
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-20-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-21-    fun disableExtension(id: ExtensionId) {
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-22-        disabledExtensions.add(id)
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-23-    }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-24-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt:25:    fun fromPaths(paths: () -> Collection<Path>) {
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-26-        require(plugins == null) { "Plugin source already specified." }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-27-        plugins = PluginsHolder(paths(), null)
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-28-    }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-29-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt:30:    fun fromClassloader(classLoader: () -> ClassLoader) {
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-31-        require(plugins == null) { "Plugin source already specified." }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-32-        plugins = PluginsHolder(null, classLoader())
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-33-    }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-34-}
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-35-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-36-private data class ExtensionsModel(
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-37-    override val plugins: ExtensionsSpec.Plugins?,
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-38-    override val disabledExtensions: Set<ExtensionId>,
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt-39-) : ExtensionsSpec
+--
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-14-    /**
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-15-     * Identifiers for [dev.detekt.api.Extension] which should not be loaded during the analysis.
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-16-     */
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-17-    val disabledExtensions: Set<ExtensionId>
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-18-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt:19:    interface Plugins {
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-20-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-21-        /**
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-22-         * Paths to jar files which declared extensions.
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-23-         */
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-24-        val paths: Collection<Path>?
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-25-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-26-        /**
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-27-         * Classloader to look for extensions.
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-28-         */
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-29-        val loader: ClassLoader?
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-30-    }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-31-}
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-32-
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt-33-typealias ExtensionId = String
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-12-    private val baseline: Config,
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-13-) : ConfigValidator {
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-14-
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-15-    override val id: String = "DefaultPropertiesConfigValidator"
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-16-
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt:17:    override fun validate(config: Config): Collection<Notification> {
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-18-        fun patterns(): Set<Regex> {
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-19-            val pluginExcludes = settings.createRuleProviders()
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-20-                .filter { it !is DefaultRuleSetProvider }
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-21-                .map { "${it.ruleSetId}.*".toRegex() }
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-22-            val configExcludes = config.subConfig("config")
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-23-                .valueOrDefault("excludes", emptyList<String>())
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-24-                .map { it.toRegex() }
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-25-            return buildSet {
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-26-                addAll(pluginExcludes)
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-27-                addAll(DEFAULT_PROPERTY_EXCLUDES)
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-28-                addAll(configExcludes)
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-29-            }
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-30-        }
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt:31:        return validateConfig(config, baseline, patterns())
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-32-    }
+detekt-core/src/main/kotlin/dev/detekt/core/config/validation/DefaultPropertiesConfigValidator.kt-33-}
+--
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-1-package dev.detekt.core.tooling
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-2-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-3-import dev.detekt.api.Config
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-4-import dev.detekt.core.config.YamlConfig
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-5-import dev.detekt.core.settings.ExtensionFacade
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt:6:import dev.detekt.tooling.api.DefaultConfigurationProvider
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-7-import dev.detekt.tooling.api.spec.ExtensionsSpec
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-8-import dev.detekt.tooling.api.spec.ProcessingSpec
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-9-import dev.detekt.utils.getSafeResourceAsStream
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-10-import dev.detekt.utils.openSafeStream
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-11-import java.io.ByteArrayInputStream
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-12-import java.io.ByteArrayOutputStream
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-13-import java.io.InputStream
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-14-import java.nio.file.Files
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-15-import java.nio.file.Path
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-16-import java.nio.file.StandardCopyOption
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-17-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt:18:class DefaultConfigProvider : DefaultConfigurationProvider {
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-19-    private lateinit var extensionsSpec: ExtensionsSpec
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-20-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-21-    override fun init(extensionsSpec: ExtensionsSpec) {
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-22-        this.extensionsSpec = extensionsSpec
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-23-    }
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-24-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-25-    override fun get(): Config = extensionsSpec.getDefaultConfiguration()
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-26-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-27-    override fun copy(targetLocation: Path) {
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-28-        Files.copy(configInputStream(extensionsSpec), targetLocation, StandardCopyOption.REPLACE_EXISTING)
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-29-    }
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-30-}
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-31-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-32-private fun configInputStream(extensionsSpec: ExtensionsSpec): InputStream {
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-33-    val outputStream = ByteArrayOutputStream()
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-34-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-35-    requireNotNull(DefaultConfigProvider::class.java.getSafeResourceAsStream("/default-detekt-config.yml"))
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-36-        .use { it.copyTo(outputStream) }
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-37-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-38-    ExtensionFacade(extensionsSpec.plugins).pluginLoader
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-39-        .getSafeResourcesAsStreams("config/config.yml")
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-40-        .forEach { inputStream ->
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-41-            outputStream.write('\n'.code)
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-42-            inputStream.use { it.copyTo(outputStream) }
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-43-        }
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-44-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-45-    return ByteArrayInputStream(outputStream.toByteArray())
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-46-}
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-47-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-48-private fun ClassLoader.getSafeResourcesAsStreams(name: String): Sequence<InputStream> =
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-49-    getResources(name)
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-50-        .asSequence()
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-51-        .map { it.openSafeStream() }
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-52-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-53-private fun ExtensionsSpec.getDefaultConfiguration(): Config = YamlConfig.load(configInputStream(this).reader())
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-54-
+detekt-core/src/main/kotlin/dev/detekt/core/tooling/DefaultConfigProvider.kt-55-fun ProcessingSpec.getDefaultConfiguration(): Config = extensionsSpec.getDefaultConfiguration()
+rg: unrecognized flag --plugins\|var plugins
+rg: detekt-core/src/main/kotlin/dev/detekt/core/config/validation/ValidateConfig.kt: The system cannot find the file specified. (os error 2)
+
+2026-07-29T18:30:22.455976Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+1:package dev.detekt.gradle.invoke
+2:
+3:import dev.detekt.gradle.internal.ClassLoaderCache
+4:import dev.detekt.gradle.internal.GlobalClassLoaderCache
+5:import dev.detekt.gradle.plugin.internal.verificationExceptionCompat
+6:import org.gradle.api.GradleException
+7:import org.gradle.api.file.ConfigurableFileCollection
+8:import org.gradle.api.provider.ListProperty
+9:import org.gradle.api.provider.Property
+10:import org.gradle.workers.WorkAction
+11:import org.gradle.workers.WorkParameters
+12:import java.io.File
+13:import java.io.PrintStream
+14:import java.lang.reflect.InvocationTargetException
+15:
+16:internal interface DetektInvoker {
+17:
+18:    fun invokeCli(arguments: List<String>, classpath: Set<File>, taskName: String, ignoreFailures: Boolean = false)
+19:
+20:    companion object {
+21:
+22:        fun create(isDryRun: Boolean = false): DetektInvoker =
+23:            if (isDryRun) {
+24:                DryRunInvoker()
+25:            } else {
+26:                DefaultCliInvoker()
+27:            }
+28:    }
+29:}
+30:
+31:internal interface DetektWorkParameters : WorkParameters {
+32:    val arguments: ListProperty<String>
+33:    val ignoreFailures: Property<Boolean>
+34:    val dryRun: Property<Boolean>
+35:    val taskName: Property<String>
+36:    val classpath: ConfigurableFileCollection
+37:}
+38:
+39:internal abstract class DetektWorkAction : WorkAction<DetektWorkParameters> {
+40:    @Suppress("SwallowedException", "TooGenericExceptionCaught")
+41:    override fun execute() {
+42:        if (parameters.dryRun.getOrElse(false)) {
+43:            DryRunInvoker().invokeCli(
+44:                parameters.arguments.get(),
+45:                parameters.classpath.files,
+46:                parameters.taskName.get(),
+47:                parameters.ignoreFailures.get()
+48:            )
+49:            return
+50:        }
+51:
+52:        DefaultCliInvoker().invokeCli(
+53:            parameters.arguments.get(),
+54:            parameters.classpath.files,
+55:            parameters.taskName.get(),
+56:            parameters.ignoreFailures.get()
+57:        )
+58:    }
+59:}
+60:
+61:internal class DefaultCliInvoker(private val classLoaderCache: ClassLoaderCache = GlobalClassLoaderCache) :
+62:    DetektInvoker {
+63:
+64:    override fun invokeCli(arguments: List<String>, classpath: Set<File>, taskName: String, ignoreFailures: Boolean) {
+65:        try {
+66:            val loader = classLoaderCache.getOrCreate(classpath)
+67:            val clazz = loader.loadClass("dev.detekt.cli.Main")
+68:            val runner = clazz.getMethod(
+69:                "buildRunner",
+70:                Array<String>::class.java,
+71:                PrintStream::class.java,
+72:                PrintStream::class.java
+73:            ).invoke(null, arguments.toTypedArray(), System.out, System.err)
+74:            runner::class.java.getMethod("execute").invoke(runner)
+75:        } catch (reflectionWrapper: InvocationTargetException) {
+76:            processResult(reflectionWrapper.targetException.message, reflectionWrapper, ignoreFailures)
+77:        }
+78:    }
+79:}
+80:
+81:private fun isAnalysisFailure(msg: String) = "Analysis failed with" in msg && "issues" in msg
+82:
+83:@Suppress("ThrowsCount")
+84:private fun processResult(message: String?, reflectionWrapper: Exception, ignoreFailures: Boolean) {
+85:    if (message != null && isAnalysisFailure(message)) {
+86:        if (!ignoreFailures) throw verificationExceptionCompat(message, reflectionWrapper)
+87:    } else {
+88:        throw GradleException(message ?: "There was a problem running detekt.", reflectionWrapper)
+89:    }
+90:}
+91:
+92:private class DryRunInvoker : DetektInvoker {
+93:
+94:    override fun invokeCli(arguments: List<String>, classpath: Set<File>, taskName: String, ignoreFailures: Boolean) {
+95:        println("Invoking detekt with dry-run.")
+96:        println("Task: $taskName")
+97:        println("Arguments: ${arguments.joinToString(" ")}")
+98:        println("Classpath: $classpath")
+99:        println("Ignore failures: $ignoreFailures")
+100:    }
+101:}
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:12:class ClassLoaderCacheSpec {
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:16:        val cache = DefaultClassLoaderCache()
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:17:        val initialClassLoader = cache.getOrCreate(setOf(File("a/b/c")))
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:18:        val secondClassLoader = cache.getOrCreate(setOf(File("a/b/c")))
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:25:        val cache = DefaultClassLoaderCache()
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:26:        val firstClassLoader = cache.getOrCreate(setOf(File("a/b/c")))
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:27:        val secondClassLoader = cache.getOrCreate(setOf(File("c/b/a")))
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:34:        val cache = DefaultClassLoaderCache()
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:35:        val firstClassLoader = cache.getOrCreate(setOf(File("a/b/c"), File("d/e/f")))
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:36:        val secondClassLoader = cache.getOrCreate(setOf(File("d/e/f"), File("a/b/c")))
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:51:        val cache = DefaultClassLoaderCache()
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:58:                cache.getOrCreate(collection1)
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\internal\ClassLoaderCacheSpec.kt:64:            val classpath2 = cache.getOrCreate(collection2)
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\invoke\DefaultCliInvokerSpec.kt:3:import dev.detekt.gradle.internal.ClassLoaderCache
+detekt-gradle-plugin\src\test\kotlin\dev\detekt\gradle\invoke\DefaultCliInvokerSpec.kt:13:        val stubbedCache = ClassLoaderCache { URLClassLoader(emptyArray()) }
+detekt-gradle-plugin\src\main\kotlin\dev\detekt\gradle\internal\ClassLoaderCache.kt:7:internal fun interface ClassLoaderCache {
+detekt-gradle-plugin\src\main\kotlin\dev\detekt\gradle\internal\ClassLoaderCache.kt:9:    fun getOrCreate(classpath: Set<File>): URLClassLoader
+detekt-gradle-plugin\src\main\kotlin\dev\detekt\gradle\internal\ClassLoaderCache.kt:12:internal class DefaultClassLoaderCache : ClassLoaderCache {
+detekt-gradle-plugin\src\main\kotlin\dev\detekt\gradle\internal\ClassLoaderCache.kt:16:    override fun getOrCreate(classpath: Set<File>): URLClassLoader {
+detekt-gradle-plugin\src\main\kotlin\dev\detekt\gradle\internal\ClassLoaderCache.kt:27:internal object GlobalClassLoaderCache : ClassLoaderCache by DefaultClassLoaderCache()
+detekt-gradle-plugin\src\main\kotlin\dev\detekt\gradle\invoke\DetektInvoker.kt:3:import dev.detekt.gradle.internal.ClassLoaderCache
+detekt-gradle-plugin\src\main\kotlin\dev\detekt\gradle\invoke\DetektInvoker.kt:4:import dev.detekt.gradle.internal.GlobalClassLoaderCache
+detekt-gradle-plugin\src\main\kotlin\dev\detekt\gradle\invoke\DetektInvoker.kt:61:internal class DefaultCliInvoker(private val classLoaderCache: ClassLoaderCache = GlobalClassLoaderCache) :
+detekt-gradle-plugin\src\main\kotlin\dev\detekt\gradle\invoke\DetektInvoker.kt:66:            val loader = classLoaderCache.getOrCreate(classpath)
+rg: unrecognized flag --plugins\
+
+2026-07-29T18:30:53.499498Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-ChildItem -Force detekt-gradle-plugin | Select-Object -First 20 Name,Mode; git ls-files detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/internal/ClassLoaderCache.kt; git ls-files | Select-String "ClassLoaderCache.kt"'` rejected: blocked by policy
+2026-07-29T18:30:55.553431Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-ChildItem -Force detekt-gradle-plugin | Select-Object -First 20 Name,Mode'` rejected: blocked by policy
+2026-07-29T18:31:01.824697Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git ls-files detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/internal/ClassLoaderCache.kt'` rejected: blocked by policy
+2026-07-29T18:31:10.714641Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+website/docs\intro.mdx:45:slim down the configuration file to only the changes from the default configuration, by applying the
+website/docs\introduction\configurations.mdx:117:collisions with one of those you can open an issue because, probably, we will update the default configuration so
+website/docs\gettingstarted\_cli-generator-options.mdx:7:      (e.g. 'custom-rule/src/main/resources/config/config.yml').
+rg: detekt-*: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+
+2026-07-29T18:31:20.007394Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg -n -A 45 -B 12 "class `adds a plugin`|detektPlugins'"\\(\\\"dev.detekt:ktlint-wrapper|adds the ktlint-wrapper\" detekt-gradle-plugin/src/functionalTest/kotlin/dev/detekt/gradle/DetektTaskDslSpec.kt; rg -n --hidden -g '"'!**/build/**'"' \"DefaultClassLoaderCache\\(|same classloader is returned|detektPlugins\\(\" detekt-gradle-plugin/src/test detekt-gradle-plugin/src/functionalTest | Select-Object -First 200"` rejected: blocked by policy
+2026-07-29T18:31:55.418028Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+63-        } catch (e: IllegalArgumentException) {
+64-            throw ParameterException(e.message, e)
+65-        }
+66-}
+67-
+68:class PathSplitter : IParameterSplitter {
+69-    override fun split(value: String): List<String> = value.split(File.pathSeparatorChar)
+70-}
+71-
+72-class PathValidator : IValueValidator<List<Path>> {
+73-    override fun validate(name: String, value: List<Path>) {
+74-        value.forEach {
+75-            if (!it.exists()) throw ParameterException("Path '$it' passed to $name does not exist.")
+76-        }
+77-    }
+78-}
+79-
+80-class DirectoryValidator : IValueValidator<Path> {
+81-    override fun validate(name: String, value: Path) {
+82-        if (!value.isDirectory()) throw ParameterException("Value passed to $name must be a directory.")
+83-    }
+84-}
+85-
+86-class FilterSplitter : IParameterSplitter {
+87-    override fun split(value: String): List<String> = value.split(',', ';')
+88-}
+

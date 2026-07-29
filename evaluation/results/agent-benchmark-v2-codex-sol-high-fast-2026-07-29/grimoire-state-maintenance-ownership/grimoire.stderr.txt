@@ -1,0 +1,351 @@
+Reading additional input from stdin...
+2026-07-29T17:44:00.046106Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "git rev-parse HEAD; git status --short; rg -n --glob '"'!evaluation/**'"' -i \"warlock|watch(er|ing)?|change event|prepared-state|refresh-if-needed|state_mode|state mode|supervisor|one-shot|daemon\" ."` rejected: blocked by policy
+2026-07-29T17:44:08.351499Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T17:44:17.573468Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg --files internal/agentruntime internal/repostate internal/app internal/index docs/planning docs/limits docs/architecture lexicon/internal/watch lexicon/internal/cli lexicon/docs arcana/docs | Sort-Object'` rejected: blocked by policy
+2026-07-29T17:45:23.967806Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+internal/index/build.go-21-type BuildOptions struct {
+internal/index/build.go-22-	MaxFileBytes     int64
+internal/index/build.go-23-	IgnoreFile       string
+internal/index/build.go-24-	ExcludePaths     []string
+internal/index/build.go-25-	IncludeGenerated bool
+internal/index/build.go-26-	SourceSpans      []SourceSpan
+internal/index/build.go-27-}
+internal/index/build.go-28-
+internal/index/build.go-29-type BuildStats struct {
+internal/index/build.go-30-	Scanned          int `json:"scanned"`
+internal/index/build.go-31-	Reused           int `json:"reused"`
+internal/index/build.go-32-	Updated          int `json:"updated"`
+internal/index/build.go:33:	Removed          int `json:"removed"`
+internal/index/build.go-34-	GeneratedSkipped int `json:"generated_skipped"`
+internal/index/build.go:35:	SemanticFiles    int `json:"semantic_files"`
+internal/index/build.go-36-	SemanticChunks   int `json:"semantic_chunks"`
+internal/index/build.go-37-}
+internal/index/build.go-38-
+internal/index/build.go:39:func Build(root string, previous *Snapshot, options BuildOptions) (Snapshot, BuildStats, error) {
+internal/index/build.go-40-	absoluteRoot, err := filepath.Abs(root)
+internal/index/build.go-41-	if err != nil {
+internal/index/build.go-42-		return Snapshot{}, BuildStats{}, fmt.Errorf("resolve root: %w", err)
+internal/index/build.go-43-	}
+internal/index/build.go-44-
+internal/index/build.go-45-	maxBytes := options.MaxFileBytes
+internal/index/build.go-46-	if maxBytes <= 0 {
+internal/index/build.go-47-		maxBytes = defaultMaxFileBytes
+internal/index/build.go-48-	}
+internal/index/build.go-49-	ignorePolicy, err := ignorepolicy.Load(absoluteRoot, options.IgnoreFile)
+internal/index/build.go-50-	if err != nil {
+internal/index/build.go-51-		return Snapshot{}, BuildStats{}, err
+internal/index/build.go-52-	}
+internal/index/build.go-53-	excludedPaths, err := normalizeExcludedPaths(absoluteRoot, options.ExcludePaths)
+internal/index/build.go-54-	if err != nil {
+internal/index/build.go-55-		return Snapshot{}, BuildStats{}, err
+internal/index/build.go-56-	}
+internal/index/build.go-57-
+internal/index/build.go:58:	oldFiles := make(map[string]FileRecord)
+internal/index/build.go-59-	baseRoot := ""
+internal/index/build.go-60-	baseShards := make(map[string]string)
+internal/index/build.go:61:	if previous != nil {
+internal/index/build.go:62:		baseRoot = previous.baseRoot
+internal/index/build.go:63:		for name, hash := range previous.baseShards {
+internal/index/build.go-64-			baseShards[name] = hash
+internal/index/build.go-65-		}
+internal/index/build.go:66:		for _, file := range previous.Files {
+internal/index/build.go:67:			oldFiles[file.Path] = file
+internal/index/build.go-68-		}
+internal/index/build.go-69-	}
+internal/index/build.go-70-	dirtyShards := make(map[string]bool)
+internal/index/build.go-71-	spansByPath := sourceSpansByPath(options.SourceSpans)
+internal/index/build.go-72-
+internal/index/build.go-73-	seen := make(map[string]struct{})
+internal/index/build.go:74:	files := make([]FileRecord, 0, len(oldFiles))
+internal/index/build.go-75-	stats := BuildStats{}
+internal/index/build.go-76-
+internal/index/build.go:77:	err = filepath.WalkDir(absoluteRoot, func(path string, entry fs.DirEntry, walkErr error) error {
+internal/index/build.go-78-		if walkErr != nil {
+internal/index/build.go-79-			return walkErr
+internal/index/build.go-80-		}
+internal/index/build.go-81-		if path != absoluteRoot && (permanentlyIgnoredDirectory(entry) || pathExcluded(path, excludedPaths)) {
+internal/index/build.go-82-			if entry.IsDir() {
+internal/index/build.go-83-				return filepath.SkipDir
+internal/index/build.go-84-			}
+internal/index/build.go-85-			return nil
+internal/index/build.go-86-		}
+internal/index/build.go-87-		if path != absoluteRoot && !options.IncludeGenerated && generatedDirectory(entry) {
+internal/index/build.go-88-			stats.GeneratedSkipped++
+internal/index/build.go-89-			return filepath.SkipDir
+--
+internal/index/build.go-133-
+internal/index/build.go-134-		relative, err := filepath.Rel(absoluteRoot, path)
+internal/index/build.go-135-		if err != nil {
+internal/index/build.go-136-			return err
+internal/index/build.go-137-		}
+internal/index/build.go-138-		relative = filepath.ToSlash(relative)
+internal/index/build.go-139-		seen[relative] = struct{}{}
+internal/index/build.go-140-		stats.Scanned++
+internal/index/build.go-141-
+internal/index/build.go-142-		hash := contentHash(content)
+internal/index/build.go-143-		fileSpans := spansByPath[relative]
+internal/index/build.go-144-		preparationHash := chunkPreparationHash(relative, fileSpans)
+internal/index/build.go:145:		if old, ok := oldFiles[relative]; ok && old.Hash == hash && old.Size == info.Size() &&
+internal/index/build.go-146-			old.PreparationHash == preparationHash {
+internal/index/build.go-147-			files = append(files, old)
+internal/index/build.go-148-			stats.Reused++
+internal/index/build.go-149-			if semantic := semanticChunkCount(old.Chunks); semantic > 0 {
+internal/index/build.go:150:				stats.SemanticFiles++
+internal/index/build.go-151-				stats.SemanticChunks += semantic
+internal/index/build.go-152-			}
+internal/index/build.go-153-			return nil
+internal/index/build.go-154-		}
+internal/index/build.go-155-
+internal/index/build.go-156-		chunks, err := chunkFileWithSourceSpans(relative, string(content), fileSpans)
+internal/index/build.go-157-		if err != nil {
+internal/index/build.go-158-			return fmt.Errorf("tokenize %s: %w", relative, err)
+internal/index/build.go-159-		}
+internal/index/build.go-160-		files = append(files, FileRecord{
+internal/index/build.go-161-			Path:            relative,
+internal/index/build.go-162-			Hash:            hash,
+internal/index/build.go-163-			PreparationHash: preparationHash,
+internal/index/build.go-164-			Size:            info.Size(),
+internal/index/build.go-165-			Chunks:          chunks,
+internal/index/build.go-166-		})
+internal/index/build.go-167-		if semantic := semanticChunkCount(chunks); semantic > 0 {
+internal/index/build.go:168:			stats.SemanticFiles++
+internal/index/build.go-169-			stats.SemanticChunks += semantic
+internal/index/build.go-170-		}
+internal/index/build.go-171-		dirtyShards[shardName(relative)] = true
+internal/index/build.go-172-		stats.Updated++
+internal/index/build.go-173-		return nil
+internal/index/build.go-174-	})
+internal/index/build.go-175-	if err != nil {
+internal/index/build.go-176-		return Snapshot{}, BuildStats{}, fmt.Errorf("walk repository: %w", err)
+internal/index/build.go-177-	}
+internal/index/build.go-178-
+internal/index/build.go:179:	for path := range oldFiles {
+internal/index/build.go-180-		if _, ok := seen[path]; !ok {
+internal/index/build.go-181-			dirtyShards[shardName(path)] = true
+internal/index/build.go-182-			stats.Removed++
+internal/index/build.go-183-		}
+internal/index/build.go-184-	}
+internal/index/build.go-185-	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
+internal/index/build.go-186-
+internal/index/build.go-187-	snapshot := Snapshot{
+internal/index/build.go:188:		Version: FormatVersion, Tokenizer: tokenizer.Name, Files: files,
+internal/index/build.go-189-		baseRoot: baseRoot, baseShards: baseShards, dirtyShards: dirtyShards,
+internal/index/build.go-190-	}
+internal/index/build.go:191:	var previousLexical *lexical.Index
+internal/index/build.go:192:	if previous != nil {
+internal/index/build.go:193:		previousLexical = previous.lexicalIndex
+internal/index/build.go-194-	}
+internal/index/build.go:195:	snapshot.lexicalIndex = buildLexicalIndex(files, previousLexical)
+internal/index/build.go-196-	return snapshot, stats, nil
+internal/index/build.go-197-}
+internal/index/build.go-198-
+internal/index/build.go-199-func indexableFile(name string) bool {
+internal/index/build.go-200-	extension := strings.ToLower(filepath.Ext(name))
+internal/index/build.go-201-	switch extension {
+internal/index/build.go-202-	case ".go", ".rs", ".py", ".rb", ".js", ".jsx", ".ts", ".tsx",
+internal/index/build.go-203-		".java", ".c", ".h", ".cc", ".cpp", ".hpp", ".cs", ".gd",
+internal/index/build.go-204-		".md", ".txt", ".toml", ".yaml", ".yml", ".json", ".xml",
+internal/index/build.go-205-		".html", ".css", ".scss", ".sql", ".sh", ".ps1":
+internal/index/build.go-206-		return true
+internal/index/build.go-207-	}
+rg: internal/knowledge/index.go: The system cannot find the file specified. (os error 2)
+rg: internal/knowledge/*.go: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+
+2026-07-29T17:46:01.689621Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+internal/repostate/inspect.go-15-
+internal/repostate/inspect.go-16-	"github.com/Lokee86/grimoire/internal/embedding"
+internal/repostate/inspect.go-17-	"github.com/Lokee86/grimoire/internal/index"
+internal/repostate/inspect.go-18-	"github.com/Lokee86/grimoire/internal/knowledge"
+internal/repostate/inspect.go-19-	"github.com/Lokee86/grimoire/internal/knowledgevector"
+internal/repostate/inspect.go-20-)
+internal/repostate/inspect.go-21-
+internal/repostate/inspect.go-22-type paths struct {
+internal/repostate/inspect.go-23-	root, lexicon, arcana, grimoire, knowledge string
+internal/repostate/inspect.go-24-}
+internal/repostate/inspect.go-25-
+internal/repostate/inspect.go-26-type stateMarker struct {
+internal/repostate/inspect.go-27-	SourceFingerprint string `json:"source_fingerprint"`
+internal/repostate/inspect.go-28-	QuickFingerprint  string `json:"quick_fingerprint,omitempty"`
+internal/repostate/inspect.go:29:	LexiconSnapshot   string `json:"lexicon_snapshot,omitempty"`
+internal/repostate/inspect.go-30-	GitHead           string `json:"git_head,omitempty"`
+internal/repostate/inspect.go-31-}
+internal/repostate/inspect.go-32-
+internal/repostate/inspect.go-33-var fingerprintRepository = sourceFingerprint
+internal/repostate/inspect.go-34-
+internal/repostate/inspect.go-35-func normalize(options Options) (paths, error) {
+internal/repostate/inspect.go-36-	root := options.Root
+internal/repostate/inspect.go-37-	if root == "" {
+internal/repostate/inspect.go-38-		root = "."
+internal/repostate/inspect.go-39-	}
+internal/repostate/inspect.go-40-	absolute, err := filepath.Abs(root)
+internal/repostate/inspect.go-41-	if err != nil {
+internal/repostate/inspect.go-42-		return paths{}, fmt.Errorf("resolve repository root: %w", err)
+internal/repostate/inspect.go-43-	}
+--
+internal/repostate/inspect.go-126-	status := ComponentStatus{Status: "current", Snapshot: id, Prepared: true}
+internal/repostate/inspect.go-127-	var marker stateMarker
+internal/repostate/inspect.go-128-	if err := readJSON(filepath.Join(location.lexicon, ".repostate.json"), &marker); err == nil {
+internal/repostate/inspect.go-129-		if marker.SourceFingerprint != "" && marker.SourceFingerprint != fingerprint {
+internal/repostate/inspect.go-130-			status.Status = "stale"
+internal/repostate/inspect.go-131-			status.StaleReasons = append(status.StaleReasons, "source fingerprint changed since Lexicon preparation")
+internal/repostate/inspect.go-132-		}
+internal/repostate/inspect.go-133-	} else if dirty {
+internal/repostate/inspect.go-134-		status.Status = "stale"
+internal/repostate/inspect.go-135-		status.StaleReasons = append(status.StaleReasons, "Git working tree has source changes")
+internal/repostate/inspect.go-136-	}
+internal/repostate/inspect.go-137-	return status
+internal/repostate/inspect.go-138-}
+internal/repostate/inspect.go-139-
+internal/repostate/inspect.go:140:func inspectArcana(location paths, expected string) ComponentStatus {
+internal/repostate/inspect.go-141-	id, err := readCurrent(filepath.Join(location.arcana, "CURRENT"))
+internal/repostate/inspect.go-142-	if errors.Is(err, os.ErrNotExist) {
+internal/repostate/inspect.go:143:		return ComponentStatus{Status: "absent", Expected: expected, StaleReasons: []string{"CURRENT is missing"}}
+internal/repostate/inspect.go-144-	}
+internal/repostate/inspect.go-145-	if err != nil {
+internal/repostate/inspect.go:146:		return ComponentStatus{Status: "failed", Expected: expected, StaleReasons: []string{err.Error()}}
+internal/repostate/inspect.go-147-	}
+internal/repostate/inspect.go:148:	status := ComponentStatus{Status: "current", Snapshot: id, Expected: expected}
+internal/repostate/inspect.go-149-	if !validSnapshotID(id) {
+internal/repostate/inspect.go-150-		status.Status = "failed"
+internal/repostate/inspect.go-151-		status.StaleReasons = append(status.StaleReasons, "CURRENT has an invalid snapshot ID")
+internal/repostate/inspect.go-152-		return status
+internal/repostate/inspect.go-153-	}
+internal/repostate/inspect.go-154-	if expected == "" {
+internal/repostate/inspect.go-155-		status.Status = "stale"
+internal/repostate/inspect.go-156-		status.StaleReasons = append(status.StaleReasons, "Lexicon snapshot is unavailable for alignment")
+internal/repostate/inspect.go-157-	} else if id != expected {
+internal/repostate/inspect.go-158-		status.Status = "stale"
+internal/repostate/inspect.go-159-		status.StaleReasons = append(status.StaleReasons, "Arcana snapshot does not match Lexicon CURRENT")
+internal/repostate/inspect.go-160-	}
+internal/repostate/inspect.go-161-	directory := filepath.Join(location.arcana, "snapshots", strings.TrimPrefix(id, "sha256:"))
+internal/repostate/inspect.go-162-	if warningBytes, warningErr := os.ReadFile(filepath.Join(directory, "compatibility.warnings")); warningErr == nil {
+--
+internal/repostate/inspect.go-168-	} else if !errors.Is(warningErr, os.ErrNotExist) {
+internal/repostate/inspect.go-169-		status.Warnings = append(status.Warnings, "read Arcana compatibility warnings: "+warningErr.Error())
+internal/repostate/inspect.go-170-	}
+internal/repostate/inspect.go-171-	if !fileExists(filepath.Join(directory, "repository.manifest")) || !fileExists(filepath.Join(directory, "lexicon.snapshot")) {
+internal/repostate/inspect.go-172-		status.Status = "stale"
+internal/repostate/inspect.go-173-		status.StaleReasons = append(status.StaleReasons, "Arcana snapshot is incomplete")
+internal/repostate/inspect.go-174-	} else if value, readErr := readCurrent(filepath.Join(directory, "lexicon.snapshot")); readErr != nil || value != id {
+internal/repostate/inspect.go-175-		status.Status = "stale"
+internal/repostate/inspect.go-176-		status.StaleReasons = append(status.StaleReasons, "Arcana lexicon.snapshot does not match CURRENT")
+internal/repostate/inspect.go-177-	}
+internal/repostate/inspect.go-178-	status.Prepared = status.Status == "current"
+internal/repostate/inspect.go-179-	return status
+internal/repostate/inspect.go-180-}
+internal/repostate/inspect.go-181-
+internal/repostate/inspect.go:182:func inspectGrimoire(location paths, fingerprint, lexiconID string) ComponentStatus {
+internal/repostate/inspect.go-183-	status := ComponentStatus{Status: "absent"}
+internal/repostate/inspect.go-184-	snapshot, err := index.Load(location.grimoire)
+internal/repostate/inspect.go-185-	if err != nil {
+internal/repostate/inspect.go-186-		if !errors.Is(err, os.ErrNotExist) {
+internal/repostate/inspect.go-187-			status.Status = "failed"
+internal/repostate/inspect.go-188-			status.StaleReasons = []string{err.Error()}
+internal/repostate/inspect.go-189-			return status
+internal/repostate/inspect.go-190-		}
+internal/repostate/inspect.go-191-		status.StaleReasons = []string{"prepared index is missing"}
+internal/repostate/inspect.go-192-		return status
+internal/repostate/inspect.go-193-	}
+internal/repostate/inspect.go-194-	status.Status = "current"
+internal/repostate/inspect.go-195-	status.Snapshot = snapshot.Identity()
+internal/repostate/inspect.go-196-	status.Prepared = true
+internal/repostate/inspect.go-197-	var marker stateMarker
+internal/repostate/inspect.go-198-	if err := readJSON(filepath.Join(location.grimoire, ".repostate.json"), &marker); err != nil {
+internal/repostate/inspect.go-199-		status.Status = "stale"
+internal/repostate/inspect.go-200-		status.Prepared = false
+internal/repostate/inspect.go-201-		status.StaleReasons = append(status.StaleReasons, "preparation metadata is missing")
+internal/repostate/inspect.go-202-		return status
+internal/repostate/inspect.go-203-	}
+internal/repostate/inspect.go-204-	if marker.SourceFingerprint != fingerprint {
+internal/repostate/inspect.go-205-		status.Status = "stale"
+internal/repostate/inspect.go-206-		status.Prepared = false
+internal/repostate/inspect.go-207-		status.StaleReasons = append(status.StaleReasons, "source fingerprint changed since Grimoire preparation")
+internal/repostate/inspect.go-208-	}
+internal/repostate/inspect.go:209:	if marker.LexiconSnapshot != lexiconID {
+internal/repostate/inspect.go-210-		status.Status = "stale"
+internal/repostate/inspect.go-211-		status.Prepared = false
+internal/repostate/inspect.go-212-		status.StaleReasons = append(status.StaleReasons, "prepared index Lexicon snapshot is not current")
+internal/repostate/inspect.go-213-	}
+internal/repostate/inspect.go-214-	return status
+internal/repostate/inspect.go-215-}
+internal/repostate/inspect.go-216-
+internal/repostate/inspect.go-217-func inspectKnowledge(location paths, repositoryFingerprint string) (ComponentStatus, knowledge.Index, bool) {
+internal/repostate/inspect.go-218-	stored, err := knowledge.Load(location.knowledge)
+internal/repostate/inspect.go-219-	if errors.Is(err, os.ErrNotExist) {
+internal/repostate/inspect.go-220-		return ComponentStatus{Status: "absent", StaleReasons: []string{"knowledge index is missing"}}, knowledge.Index{}, false
+internal/repostate/inspect.go-221-	}
+internal/repostate/inspect.go-222-	if err != nil {
+internal/repostate/inspect.go-223-		return ComponentStatus{Status: "failed", StaleReasons: []string{err.Error()}}, knowledge.Index{}, false
+internal/repostate/inspect.go-224-	}
+internal/repostate/inspect.go-225-	actual := knowledge.Identity(stored)
+internal/repostate/inspect.go:226:	status := ComponentStatus{Status: "current", Snapshot: actual, Expected: actual, Prepared: true}
+internal/repostate/inspect.go-227-	if stored.SourceFingerprint == "" {
+internal/repostate/inspect.go-228-		status.Status = "stale"
+internal/repostate/inspect.go-229-		status.Prepared = false
+internal/repostate/inspect.go-230-		status.StaleReasons = append(status.StaleReasons, "knowledge freshness metadata is missing")
+internal/repostate/inspect.go-231-	} else if stored.SourceFingerprint != repositoryFingerprint {
+internal/repostate/inspect.go-232-		status.Status = "stale"
+internal/repostate/inspect.go-233-		status.Prepared = false
+internal/repostate/inspect.go-234-		status.StaleReasons = append(status.StaleReasons, "repository content changed since knowledge indexing")
+internal/repostate/inspect.go-235-	}
+internal/repostate/inspect.go-236-	return status, stored, true
+internal/repostate/inspect.go-237-}
+internal/repostate/inspect.go-238-
+internal/repostate/inspect.go-239-func inspectKnowledgeVectors(location paths, current knowledge.Index, knowledgeAvailable bool) VectorStatus {
+internal/repostate/inspect.go-240-	if !knowledgeAvailable || len(current.Documents) == 0 {
+internal/repostate/inspect.go-241-		return VectorStatus{Status: "missing", Reason: "no knowledge index is available"}
+internal/repostate/inspect.go-242-	}
+internal/repostate/inspect.go-243-	info := knowledgevector.Inspect(location.knowledge, current, "")
+internal/repostate/inspect.go-244-	status := VectorStatus{
+internal/repostate/inspect.go:245:		Snapshot: info.SnapshotIdentity, Expected: info.ExpectedIdentity,
+internal/repostate/inspect.go-246-		Model: info.Model, Count: info.Count, Bytes: info.SnapshotBytes,
+internal/repostate/inspect.go-247-	}
+internal/repostate/inspect.go-248-	if !info.Available {
+internal/repostate/inspect.go-249-		status.Status = "missing"
+internal/repostate/inspect.go-250-		status.Reason = info.Error
+internal/repostate/inspect.go-251-		if status.Reason == "" {
+internal/repostate/inspect.go-252-			status.Reason = "documentation vector snapshot is not prepared"
+internal/repostate/inspect.go-253-		}
+internal/repostate/inspect.go-254-		return status
+internal/repostate/inspect.go-255-	}
+internal/repostate/inspect.go-256-	if info.Current {
+internal/repostate/inspect.go-257-		status.Status = "current"
+internal/repostate/inspect.go-258-		return status
+internal/repostate/inspect.go-259-	}
+internal/repostate/inspect.go-260-	status.Status = "stale"
+internal/repostate/inspect.go-261-	status.Reason = info.Error
+internal/repostate/inspect.go-262-	if status.Reason == "" {
+internal/repostate/inspect.go-263-		status.Reason = "documentation vector snapshot is not current"
+internal/repostate/inspect.go-264-	}
+internal/repostate/inspect.go-265-	return status
+internal/repostate/inspect.go-266-}
+internal/repostate/inspect.go-267-
+internal/repostate/inspect.go:268:func inspectArcanaVectors(location paths, arcanaID string) VectorStatus {
+internal/repostate/inspect.go-269-	if arcanaID == "" || !validSnapshotID(arcanaID) {
+internal/repostate/inspect.go-270-		return VectorStatus{Status: "missing", Reason: "no current Arcana snapshot"}
+internal/repostate/inspect.go-271-	}
+internal/repostate/inspect.go-272-	digest := strings.TrimPrefix(arcanaID, "sha256:")
+internal/repostate/inspect.go-273-	base := filepath.Join(location.arcana, "vectors", digest, embedding.Identity())
+internal/repostate/inspect.go-274-	manifestPath := filepath.Join(base, "manifest.json")
+internal/repostate/inspect.go:275:	status := VectorStatus{Snapshot: arcanaID, Expected: arcanaID}
+internal/repostate/inspect.go-276-	if !fileExists(manifestPath) {
+internal/repostate/inspect.go-277-		status.Status = "missing"
+internal/repostate/inspect.go-278-		status.Reason = "matching vector index is not prepared"
+internal/repostate/inspect.go-279-		return status
+internal/repostate/inspect.go-280-	}
+internal/repostate/inspect.go-281-
+internal/repostate/inspect.go-282-	repository, err := readArcanaRepositoryIdentity(filepath.Join(location.arcana, "snapshots", digest, "repository.manifest"))
+internal/repostate/inspect.go-283-	if err != nil {
+internal/repostate/inspect.go-284-		status.Status = "stale"
+internal/repostate/inspect.go-285-		status.Reason = "cannot validate current Arcana graph identity: " + err.Error()
+internal/repostate/inspect.go-286-		return status
+internal/repostate/inspect.go-287-	}
+internal/repostate/inspect.go-288-	var manifest arcanaVectorManifest
+internal/repostate/inspect.go-289-	if err := readJSON(manifestPath, &manifest); err != nil {
+rg: internal/arcanagraph/*.go: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+
+2026-07-29T17:46:15.480027Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-Item -Force .git | Format-List FullName,Attributes,LinkType,Target'` rejected: blocked by policy

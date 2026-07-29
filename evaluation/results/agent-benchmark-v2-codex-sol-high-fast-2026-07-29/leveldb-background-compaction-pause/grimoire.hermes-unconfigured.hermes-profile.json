@@ -1,0 +1,10 @@
+{
+  "profile": "bench-lvl-hsf-grimoire",
+  "model": {
+    "provider": "openai-codex",
+    "default": "gpt-5.6-sol",
+    "base_url": "https://chatgpt.com/backend-api/codex"
+  },
+  "reasoning_effort": "high",
+  "service_tier": "fast"
+}

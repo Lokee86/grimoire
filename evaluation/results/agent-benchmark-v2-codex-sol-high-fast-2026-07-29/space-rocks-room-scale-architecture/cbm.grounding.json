@@ -1,0 +1,62 @@
+{
+  "valid": false,
+  "process_completed": true,
+  "refusal_detected": false,
+  "evidence_json_found": true,
+  "evidence_json_valid": true,
+  "inline_citations": 42,
+  "structured_items": 12,
+  "handle_items": 0,
+  "canonical_handle_items": 0,
+  "required_prefixes_found": [
+    "services",
+    "client"
+  ],
+  "missing_required_prefixes": [
+    "shared"
+  ],
+  "findings": [
+    {
+      "code": "inline_citation_missing_path",
+      "message": "file does not exist: services/game-server/internal/runtime/camera.go",
+      "path": "services/game-server/internal/runtime/camera.go",
+      "start_line": 8,
+      "end_line": 38
+    },
+    {
+      "code": "inline_citation_missing_path",
+      "message": "file does not exist: client/scripts/gameplay/presentation/player_render/os_indicator_controller.gd",
+      "path": "client/scripts/gameplay/presentation/player_render/os_indicator_controller.gd",
+      "start_line": 25,
+      "end_line": 59
+    },
+    {
+      "code": "inline_citation_missing_path",
+      "message": "file does not exist: client/scripts/gameplay/presentation/player_render/target_position_source.gd",
+      "path": "client/scripts/gameplay/presentation/player_render/target_position_source.gd",
+      "start_line": 21,
+      "end_line": 40
+    },
+    {
+      "code": "inline_citation_missing_path",
+      "message": "file does not exist: client/scripts/gameplay/presentation/spectate/spectate_menu_state.gd",
+      "path": "client/scripts/gameplay/presentation/spectate/spectate_menu_state.gd",
+      "start_line": 15,
+      "end_line": 57
+    },
+    {
+      "code": "inline_citation_missing_path",
+      "message": "file does not exist: client/scripts/gameplay/presentation/player_render/player_render_api.gd",
+      "path": "client/scripts/gameplay/presentation/player_render/player_render_api.gd",
+      "start_line": 116,
+      "end_line": 121
+    },
+    {
+      "code": "structured_evidence_missing_path",
+      "message": "file does not exist: client/scripts/gameplay/presentation/spectate/spectate_menu_state.gd",
+      "path": "client/scripts/gameplay/presentation/spectate/spectate_menu_state.gd",
+      "start_line": 15,
+      "end_line": 57
+    }
+  ]
+}

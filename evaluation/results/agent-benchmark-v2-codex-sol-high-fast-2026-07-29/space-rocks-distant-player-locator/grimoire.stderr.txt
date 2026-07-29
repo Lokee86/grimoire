@@ -1,0 +1,785 @@
+Reading additional input from stdin...
+2026-07-29T18:52:28.039420Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "git rev-parse HEAD; git status --short; rg -n --hidden -S \"update_indicators|target_positions|os_indicator|offscreen|receiver|interest|filter.*ship|ship.*filter|Ship.*Updates|ship_delta|sr\\.ships\" client services docs | Select-Object -First 500"` rejected: blocked by policy
+2026-07-29T18:52:30.882959Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T18:52:49.029850Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Total output lines: 576
+Output:
+client/scripts/gameplay/targeting/target_position_source.gd:1:extends RefCounted
+client/scripts/gameplay/targeting/target_position_source.gd:2:
+client/scripts/gameplay/targeting/target_position_source.gd:3:var player_render_api
+client/scripts/gameplay/targeting/target_position_source.gd:4:var asteroid_sync
+client/scripts/gameplay/targeting/target_position_source.gd:5:var projectile_sync
+client/scripts/gameplay/targeting/target_position_source.gd:6:var pickup_sync
+client/scripts/gameplay/targeting/target_position_source.gd:7:var current_self_id := ""
+client/scripts/gameplay/targeting/target_position_source.gd:8:
+client/scripts/gameplay/targeting/target_position_source.gd:9:
+client/scripts/gameplay/targeting/target_position_source.gd:10:func configure(player_render_api_ref, asteroid_sync_ref, projectile_sync_ref, pickup_sync_ref) -> void:
+client/scripts/gameplay/targeting/target_position_source.gd:11:	player_render_api = player_render_api_ref
+client/scripts/gameplay/targeting/target_position_source.gd:12:	asteroid_sync = asteroid_sync_ref
+client/scripts/gameplay/targeting/target_position_source.gd:13:	projectile_sync = projectile_sync_ref
+client/scripts/gameplay/targeting/target_position_source.gd:14:	pickup_sync = pickup_sync_ref
+client/scripts/gameplay/targeting/target_position_source.gd:15:
+client/scripts/gameplay/targeting/target_position_source.gd:16:
+client/scripts/gameplay/targeting/target_position_source.gd:17:func set_current_self_id(self_id: String) -> void:
+client/scripts/gameplay/targeting/target_position_source.gd:18:	current_self_id = self_id
+client/scripts/gameplay/targeting/target_position_source.gd:19:
+client/scripts/gameplay/targeting/target_position_source.gd:20:
+client/scripts/gameplay/targeting/target_position_source.gd:21:func player_positions() -> Dictionary:
+client/scripts/gameplay/targeting/target_position_source.gd:22:	var positions := {}
+client/scripts/gameplay/targeting/target_position_source.gd:23:	if player_render_api == null:
+client/scripts/gameplay/targeting/target_position_source.gd:24:		return positions
+client/scripts/gameplay/targeting/target_position_source.gd:25:
+client/scripts/gameplay/targeting/target_position_source.gd:26:	if current_self_id != "":
+client/scripts/gameplay/targeting/target_position_source.gd:27:		positions[current_self_id] = {
+client/scripts/gameplay/targeting/target_position_source.gd:28:			"visual_position": player_render_api.visual_position(),
+client/scripts/gameplay/targeting/target_position_source.gd:29:			"server_position": player_render_api.server_position()
+client/scripts/gameplay/targeting/target_position_source.gd:30:		}
+client/scripts/gameplay/targeting/target_position_source.gd:31:
+client/scripts/gameplay/targeting/target_position_source.gd:32:	var remote_positions: Dictionary = player_render_api.get_remote_player_visual_positions(current_self_id)
+client/scripts/gameplay/targeting/target_position_source.gd:33:	for player_id in remote_positions.keys():
+client/scripts/gameplay/targeting/target_position_source.gd:34:		var visual_position = remote_positions[player_id]
+client/scripts/gameplay/targeting/target_position_source.gd:35:		positions[player_id] = {
+client/scripts/gameplay/targeting/target_position_source.gd:36:			"visual_position": visual_position,
+client/scripts/gameplay/targeting/target_position_source.gd:37:			"server_position": visual_position
+client/scripts/gameplay/targeting/target_position_source.gd:38:		}
+client/scripts/gameplay/targeting/target_position_source.gd:39:
+client/scripts/gameplay/targeting/target_position_source.gd:40:	return positions
+client/scripts/gameplay/targeting/target_position_source.gd:41:
+client/scripts/gameplay/targeting/target_position_source.gd:42:
+client/scripts/gameplay/targeting/target_position_source.gd:43:func asteroid_positions() -> Dictionary:
+client/scripts/gameplay/targeting/target_position_source.gd:44:	if asteroid_sync == null:
+client/scripts/gameplay/targeting/target_position_source.gd:45:		return {}
+client/scripts/gameplay/targeting/target_position_source.gd:46:	return asteroid_sync.asteroid_target_positions()
+client/scripts/gameplay/targeting/target_position_source.gd:47:
+client/scripts/gameplay/targeting/target_position_source.gd:48:
+client/scripts/gameplay/targeting/target_position_source.gd:49:func projectile_positions() -> Dictionary:
+client/scripts/gameplay/targeting/target_position_source.gd:50:	if projectile_sync == null:
+client/scripts/gameplay/targeting/target_position_source.gd:51:		return {}
+client/scripts/gameplay/targeting/target_position_source.gd:52:	return projectile_sync.projectile_target_positions()
+client/scripts/gameplay/targeting/target_position_source.gd:53:
+client/scripts/gameplay/targeting/target_position_source.gd:54:
+client/scripts/gameplay/targeting/target_position_source.gd:55:func pickup_positions() -> Dictionary:
+client/scripts/gameplay/targeting/target_position_source.gd:56:	if pickup_sync == null:
+client/scripts/gameplay/targeting/target_position_source.gd:57:		return {}
+client/scripts/gameplay/targeting/target_position_source.gd:58:	return pickup_sync.pickup_position_entries()
+client/scripts/gameplay/targeting/target_position_source.gd:59:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:1:extends RefCounted
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:2:class_name GameplayPresentationFlow
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:3:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:4:var hud: Control
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:5:var camera_provider: Callable
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:6:var remote_positions_provider: Callable
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:7:var remote_hues_provider: Callable
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:8:var os_indicator_controller := OSIndicatorController.new()
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:9:var local_player_presentation_controller := LocalPlayerPresentationController.new()
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:10:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:11:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:12:func configure(
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:13:	hud_ref: Control,
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:14:	player_ref,
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:15:	camera_provider_ref: Callable,
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:16:	remote_positions_provider_ref: Callable,
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:17:	remote_hues_provider_ref: Callable
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:18:) -> void:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:19:	hud = hud_ref
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:20:	camera_provider = camera_provider_ref
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:21:	remote_positions_provider = remote_positions_provider_ref
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:22:	remote_hues_provider = remote_hues_provider_ref
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:23:	os_indicator_controller.configure(hud)
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:24:	local_player_presentation_controller.configure(player_ref)
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:25:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:26:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:27:func reset() -> void:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:28:	os_indicator_controller.reset()
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:29:	local_player_presentation_controller.reset()
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:30:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:31:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:32:func process(_delta: float, required_lane_baselines_synced: bool) -> void:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:33:	local_player_presentation_controller.process(required_lane_baselines_synced)
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:34:	if (
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:35:		camera_provider.is_null()
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:36:		|| remote_positions_provider.is_null()
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:37:		|| remote_hues_provider.is_null()
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:38:	):
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:39:		return
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:40:
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:41:	var camera = camera_provider.call()
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:42:	var positions = remote_positions_provider.call()
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:43:	var remote_hues = remote_hues_provider.call()
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:44:	os_indicator_controller.update_indicators(camera, positions, remote_hues)
+client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:45:
+client/scripts/protocol/realtime/world_lane_applier.gd:1:extends RefCounted
+client/scripts/protocol/realtime/world_lane_applier.gd:2:
+client/scripts/protocol/realtime/world_lane_applier.gd:3:const RealtimeQuantize = preload("res://scripts/protocol/realtime/realtime_quantize.gd")
+client/scripts/protocol/realtime/world_lane_applier.gd:4:const HotDeltaChunkAssembler = preload("res://scripts/protocol/realtime/hot_delta_chunk_assembler.gd")
+client/scripts/protocol/realtime/world_lane_applier.gd:5:
+client/scripts/protocol/realtime/world_lane_applier.gd:6:const BaselineTracker = preload("res://scripts/protocol/realtime/baseline_tracker.gd")
+client/scripts/protocol/realtime/world_lane_applier.gd:7:
+client/scripts/protocol/realtime/world_lane_applier.gd:8:
+client/scripts/protocol/realtime/world_lane_applier.gd:9:var _full_assembler := WorldFullChunkAssembler.new()
+client/scripts/protocol/realtime/world_lane_applier.gd:10:var _ship_delta_assembler := HotDeltaChunkAssembler.new()
+client/scripts/protocol/realtime/world_lane_applier.gd:11:var _asteroid_delta_assembler := HotDeltaChunkAssembler.new()
+client/scripts/protocol/realtime/world_lane_applier.gd:12:var _bullet_delta_assembler := HotDeltaChunkAssembler.new()
+client/scripts/protocol/realtime/world_lane_applier.gd:13:
+client/scripts/protocol/realtime/world_lane_applier.gd:14:func apply_world_full(world_lane_state: WorldLaneState, baseline_tracker: BaselineTracker, lane: String, world_packet: Dictionary) -> bool:
+client/scripts/protocol/realtime/world_lane_applier.gd:15:	var baseline_id = world_packet.get("baseline_id")
+client/scripts/protocol/realtime/world_lane_applier.gd:16:	var sequence = world_packet.get("sequence")
+client/scripts/protocol/realtime/world_lane_applier.gd:17:	var snapshot_id = world_packet.get("snapshot_id")
+client/scripts/protocol/realtime/world_lane_applier.gd:18:	var chunk_index = world_packet.get("chunk_index", 0)
+client/scripts/protocol/realtime/world_lane_applier.gd:19:	var chunk_count = world_packet.get("chunk_count", 1)
+client/scripts/protocol/realtime/world_lane_applier.gd:20:	var is_final_chunk = world_packet.get("is_final_chunk", true)
+client/scripts/protocol/realtime/world_lane_applier.gd:21:
+client/scripts/protocol/realtime/world_lane_applier.gd:22:	var assembly := _full_assembler.accept(world_packet)
+client/scripts/protocol/realtime/world_lane_applier.gd:23:	if assembly.status == WorldFullChunkAssembler.ERROR:
+client/scripts/protocol/realtime/world_lane_applier.gd:24:		baseline_tracker.request_resync_for_lane(lane, assembly.reason)
+client/scripts/protocol/realtime/world_lane_applier.gd:25:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:26:	var accepted := baseline_tracker.record_full_chunk(lane, baseline_id, sequence, snapshot_id, chunk_index, chunk_count, is_final_chunk)
+client/scripts/protocol/realtime/world_lane_applier.gd:27:	if not accepted:
+client/scripts/protocol/realtime/world_lane_applier.gd:28:		_full_assembler.reset()
+client/scripts/protocol/realtime/world_lane_applier.gd:29:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:30:	if assembly.status != WorldFullChunkAssembler.COMPLETE:
+client/scripts/protocol/realtime/world_lane_applier.gd:31:		return true
+client/scripts/protocol/realtime/world_lane_applier.gd:32:	var assembled: Dictionary = assembly.packet
+client/scripts/protocol/realtime/world_lane_applier.gd:33:	world_lane_state.clear_pending_bullet_updates()
+client/scripts/protocol/realtime/world_lane_applier.gd:34:	world_lane_state.apply_full_lane(_decode_world_full_packet(assembled))
+client/scripts/protocol/realtime/world_lane_applier.gd:35:	return true
+client/scripts/protocol/realtime/world_lane_applier.gd:36:
+client/scripts/protocol/realtime/world_lane_applier.gd:37:func reset() -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:38:	_full_assembler.reset()
+client/scripts/protocol/realtime/world_lane_applier.gd:39:	_ship_delta_assembler.reset()
+client/scripts/protocol/realtime/world_lane_applier.gd:40:	_asteroid_delta_assembler.reset()
+client/scripts/protocol/realtime/world_lane_applier.gd:41:	_bullet_delta_assembler.reset()
+client/scripts/protocol/realtime/world_lane_applier.gd:42:
+client/scripts/protocol/realtime/world_lane_applier.gd:43:func apply_world_delta(world_lane_state: WorldLaneState, baseline_tracker: BaselineTracker, lane: String, world_packet: Dictionary) -> bool:
+client/scripts/protocol/realtime/world_lane_applier.gd:44:	var baseline_id = world_packet.get("baseline_id")
+client/scripts/protocol/realtime/world_lane_applier.gd:45:	var sequence = world_packet.get("sequence")
+client/scripts/protocol/realtime/world_lane_applier.gd:46:	var snapshot_id = world_packet.get("snapshot_id")
+client/scripts/protocol/realtime/world_lane_applier.gd:47:
+client/scripts/protocol/realtime/world_lane_applier.gd:48:	if not baseline_tracker.record_delta(lane, baseline_id, sequence, snapshot_id):
+client/scripts/protocol/realtime/world_lane_applier.gd:49:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:50:
+client/scripts/protocol/realtime/world_lane_applier.gd:51:	_apply_entity_deltas(world_lane_state, _array_field(world_packet, "ship_creates"), _array_field(world_packet, "ship_updates"), _array_field(world_packet, "ship_deletes"), "ship")
+client/scripts/protocol/realtime/world_lane_applier.gd:52:	_apply_entity_deltas(world_lane_state, _array_field(world_packet, "bullet_creates"), _array_field(world_packet, "bullet_updates"), _array_field(world_packet, "bullet_deletes"), "bullet")
+client/scripts/protocol/realtime/world_lane_applier.gd:53:	_apply_entity_deltas(world_lane_state, _array_field(world_packet, "asteroid_creates"), _array_field(world_packet, "asteroid_updates"), _array_field(world_packet, "asteroid_deletes"), "asteroid")
+client/scripts/protocol/realtime/world_lane_applier.gd:54:	_apply_entity_deltas(world_lane_state, _array_field(world_packet, "pickup_creates"), _array_field(world_packet, "pickup_updates"), _array_field(world_packet, "pickup_deletes"), "pickup")
+client/scripts/protocol/realtime/world_lane_applier.gd:55:	return true
+client/scripts/protocol/realtime/world_lane_applier.gd:56:
+client/scripts/protocol/realtime/world_lane_applier.gd:57:
+client/scripts/protocol/realtime/world_lane_applier.gd:58:func apply_ship_delta(world_lane_state: WorldLaneState, _lane: String, ship_packet: Dictionary) -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:59:	var assembly := _ship_delta_assembler.accept(ship_packet, "ship_updates")
+client/scripts/protocol/realtime/world_lane_applier.gd:60:	if assembly.status != HotDeltaChunkAssembler.COMPLETE:
+client/scripts/protocol/realtime/world_lane_applier.gd:61:		return
+client/scripts/protocol/realtime/world_lane_applier.gd:62:	var assembled: Dictionary = assembly.packet
+client/scripts/protocol/realtime/world_lane_applier.gd:63:	if not world_lane_state.accept_ship_delta_sequence(assembled.get("sequence")):
+client/scripts/protocol/realtime/world_lane_applier.gd:64:		return
+client/scripts/protocol/realtime/world_lane_applier.gd:65:	_apply_entity_deltas(world_lane_state, [], _array_field(assembled, "ship_updates"), [], "ship")
+client/scripts/protocol/realtime/world_lane_applier.gd:66:
+client/scripts/protocol/realtime/world_lane_applier.gd:67:func apply_ships_lifecycle(world_lane_state: WorldLaneState, packet: Dictionary) -> bool:
+client/scripts/protocol/realtime/world_lane_applier.gd:68:	if not _valid_lifecycle_payload(packet, "ship_creates", "ship_deletes", "ship_updates"):
+client/scripts/protocol/realtime/world_lane_applier.gd:69:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:70:	_apply_entity_deltas(world_lane_state, _array_field(packet, "ship_creates"), _array_field(packet, "ship_updates"), _array_field(packet, "ship_deletes"), "ship")
+client/scripts/protocol/realtime/world_lane_applier.gd:71:	return true
+client/scripts/protocol/realtime/world_lane_applier.gd:72:
+client/scripts/protocol/realtime/world_lane_applier.gd:73:func apply_asteroid_delta(world_lane_state: WorldLaneState, _lane: String, asteroid_packet: Dictionary) -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:74:	var assembly := _asteroid_delta_assembler.accept(asteroid_packet, "asteroid_updates")
+client/scripts/protocol/realtime/world_lane_applier.gd:75:	if assembly.status != HotDeltaChunkAssembler.COMPLETE:
+client/scripts/protocol/realtime/world_lane_applier.gd:76:		return
+client/scripts/protocol/realtime/world_lane_applier.gd:77:	var assembled: Dictionary = assembly.packet
+client/scripts/protocol/realtime/world_lane_applier.gd:78:	if not world_lane_state.accept_asteroid_delta_sequence(assembled.get("sequence")):
+client/scripts/protocol/realtime/world_lane_applier.gd:79:		return
+client/scripts/protocol/realtime/world_lane_applier.gd:80:	_apply_entity_deltas(world_lane_state, [], _array_field(assembled, "asteroid_updates"), [], "asteroid")
+client/scripts/protocol/realtime/world_lane_applier.gd:81:
+client/scripts/protocol/realtime/world_lane_applier.gd:82:func apply_asteroids_lifecycle(world_lane_state: WorldLaneState, packet: Dictionary) -> bool:
+client/scripts/protocol/realtime/world_lane_applier.gd:83:	if not _valid_lifecycle_payload(packet, "asteroid_creates", "asteroid_deletes"):
+client/scripts/protocol/realtime/world_lane_applier.gd:84:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:85:	_apply_entity_deltas(world_lane_state, _array_field(packet, "asteroid_creates"), [], _array_field(packet, "asteroid_deletes"), "asteroid")
+client/scripts/protocol/realtime/world_lane_applier.gd:86:	return true
+client/scripts/protocol/realtime/world_lane_applier.gd:87:
+client/scripts/protocol/realtime/world_lane_applier.gd:88:func apply_bullet_delta(world_lane_state: WorldLaneState, _lane: String, bullet_packet: Dictionary) -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:89:	var assembly := _bullet_delta_assembler.accept(bullet_packet, "bullet_updates")
+client/scripts/protocol/realtime/world_lane_applier.gd:90:	if assembly.status != HotDeltaChunkAssembler.COMPLETE:
+client/scripts/protocol/realtime/world_lane_a…2828 tokens truncated…ld_lane_applier.gd:206:		"bullet":
+client/scripts/protocol/realtime/world_lane_applier.gd:207:			world_lane_state.delete_bullet(id)
+client/scripts/protocol/realtime/world_lane_applier.gd:208:			world_lane_state.clear_pending_bullet_update(id)
+client/scripts/protocol/realtime/world_lane_applier.gd:209:		"asteroid":
+client/scripts/protocol/realtime/world_lane_applier.gd:210:			world_lane_state.delete_asteroid(id)
+client/scripts/protocol/realtime/world_lane_applier.gd:211:		"pickup":
+client/scripts/protocol/realtime/world_lane_applier.gd:212:			world_lane_state.delete_pickup(id)
+client/scripts/world/world_sync.gd:1:extends RefCounted
+client/scripts/world/world_sync.gd:2:class_name WorldSync
+client/scripts/world/world_sync.gd:3:
+client/scripts/world/world_sync.gd:4:const Constants = preload("res://scripts/generated/constants/constants.gd")
+client/scripts/world/world_sync.gd:5:const AsteroidSyncScript = preload("res://scripts/world/asteroid_sync.gd")
+client/scripts/world/world_sync.gd:6:const ProjectileSyncScript = preload("res://scripts/world/projectile_sync.gd")
+client/scripts/world/world_sync.gd:7:const PickupSyncScript = preload("res://scripts/world/pickup_sync.gd")
+client/scripts/world/world_sync.gd:8:const PlayerRenderApiScript = preload("res://scripts/world/player_render/player_render_api.gd")
+client/scripts/world/world_sync.gd:9:const TargetPositionSource = preload("res://scripts/gameplay/targeting/target_position_source.gd")
+client/scripts/world/world_sync.gd:10:
+client/scripts/world/world_sync.gd:11:var asteroid_sync
+client/scripts/world/world_sync.gd:12:var projectile_sync
+client/scripts/world/world_sync.gd:13:var pickup_sync
+client/scripts/world/world_sync.gd:14:var player_render_api
+client/scripts/world/world_sync.gd:15:var target_position_source
+client/scripts/world/world_sync.gd:16:var world_lane_state
+client/scripts/world/world_sync.gd:17:var view_anchor: Node2D
+client/scripts/world/world_sync.gd:18:var local_player: Player
+client/scripts/world/world_sync.gd:19:var current_self_id := ""
+client/scripts/world/world_sync.gd:20:var _measurement_observer: Callable
+client/scripts/world/world_sync.gd:21:
+client/scripts/world/world_sync.gd:22:
+client/scripts/world/world_sync.gd:23:func configure(
+client/scripts/world/world_sync.gd:24:	game_owner: Node2D,
+client/scripts/world/world_sync.gd:25:	player: Player,
+client/scripts/world/world_sync.gd:26:	view_anchor_ref: Node2D,
+client/scripts/world/world_sync.gd:27:	bullets: Node2D,
+client/scripts/world/world_sync.gd:28:	asteroids: Node2D,
+client/scripts/world/world_sync.gd:29:	pickups: Node2D,
+client/scripts/world/world_sync.gd:30:	pause_state_tracker = null
+client/scripts/world/world_sync.gd:31:) -> void:
+client/scripts/world/world_sync.gd:32:	asteroid_sync = AsteroidSyncScript.new()
+client/scripts/world/world_sync.gd:33:	asteroid_sync.configure(asteroids)
+client/scripts/world/world_sync.gd:34:	projectile_sync = ProjectileSyncScript.new()
+client/scripts/world/world_sync.gd:35:	projectile_sync.configure(bullets)
+client/scripts/world/world_sync.gd:36:	pickup_sync = PickupSyncScript.new()
+client/scripts/world/world_sync.gd:37:	pickup_sync.configure(pickups)
+client/scripts/world/world_sync.gd:38:	local_player = player
+client/scripts/world/world_sync.gd:39:	player_render_api = PlayerRenderApiScript.new()
+client/scripts/world/world_sync.gd:40:	view_anchor = view_anchor_ref
+client/scripts/world/world_sync.gd:41:	player_render_api.configure(game_owner, player, view_anchor_ref, pause_state_tracker)
+client/scripts/world/world_sync.gd:42:	target_position_source = TargetPositionSource.new()
+client/scripts/world/world_sync.gd:43:	target_position_source.configure(player_render_api, asteroid_sync, projectile_sync, pickup_sync)
+client/scripts/world/world_sync.gd:44:
+client/scripts/world/world_sync.gd:45:	asteroids.z_index = Constants.ASTEROID_Z_INDEX
+client/scripts/world/world_sync.gd:46:	pickups.z_index = Constants.PICKUP_Z_INDEX
+client/scripts/world/world_sync.gd:47:	bullets.z_index = Constants.BULLET_Z_INDEX
+client/scripts/world/world_sync.gd:48:
+client/scripts/world/world_sync.gd:49:
+client/scripts/world/world_sync.gd:50:func configure_measurement_observer(observer: Callable) -> void:
+client/scripts/world/world_sync.gd:51:	_measurement_observer = observer
+client/scripts/world/world_sync.gd:52:	if player_render_api != null and player_render_api.has_method("set_measurement_observer"):
+client/scripts/world/world_sync.gd:53:		player_render_api.set_measurement_observer(observer)
+client/scripts/world/world_sync.gd:54:	if asteroid_sync != null and asteroid_sync.has_method("set_measurement_observer"):
+client/scripts/world/world_sync.gd:55:		asteroid_sync.set_measurement_observer(observer)
+client/scripts/world/world_sync.gd:56:	if projectile_sync != null and projectile_sync.has_method("set_measurement_observer"):
+client/scripts/world/world_sync.gd:57:		projectile_sync.set_measurement_observer(observer)
+client/scripts/world/world_sync.gd:58:	if pickup_sync != null and pickup_sync.has_method("set_measurement_observer"):
+client/scripts/world/world_sync.gd:59:		pickup_sync.set_measurement_observer(observer)
+client/scripts/world/world_sync.gd:60:
+client/scripts/world/world_sync.gd:61:
+client/scripts/world/world_sync.gd:62:func entity_counts() -> Dictionary:
+client/scripts/world/world_sync.gd:63:	return {
+client/scripts/world/world_sync.gd:64:		"players": player_nodes().size(),
+client/scripts/world/world_sync.gd:65:		"bullets": _dictionary_size(projectile_sync, "projectile_nodes"),
+client/scripts/world/world_sync.gd:66:		"asteroids": _dictionary_size(asteroid_sync, "asteroid_nodes"),
+client/scripts/world/world_sync.gd:67:		"pickups": _dictionary_size(pickup_sync, "pickup_nodes"),
+client/scripts/world/world_sync.gd:68:	}
+client/scripts/world/world_sync.gd:69:
+client/scripts/world/world_sync.gd:70:
+client/scripts/world/world_sync.gd:71:func scene_node_count() -> int:
+client/scripts/world/world_sync.gd:72:	if view_anchor == null or not view_anchor.has_method("get_tree"):
+client/scripts/world/world_sync.gd:73:		return -1
+client/scripts/world/world_sync.gd:74:	var tree := view_anchor.get_tree()
+client/scripts/world/world_sync.gd:75:	return tree.get_node_count() if tree != null else -1
+client/scripts/world/world_sync.gd:76:
+client/scripts/world/world_sync.gd:77:
+client/scripts/world/world_sync.gd:78:func _dictionary_size(owner, property_name: String) -> int:
+client/scripts/world/world_sync.gd:79:	if owner == null:
+client/scripts/world/world_sync.gd:80:		return 0
+client/scripts/world/world_sync.gd:81:	var value = owner.get(property_name)
+client/scripts/world/world_sync.gd:82:	return value.size() if value is Dictionary else 0
+client/scripts/world/world_sync.gd:83:
+client/scripts/world/world_sync.gd:84:
+client/scripts/world/world_sync.gd:85:func set_current_self_id(self_id: String) -> void:
+client/scripts/world/world_sync.gd:86:	current_self_id = self_id
+client/scripts/world/world_sync.gd:87:	if target_position_source != null:
+client/scripts/world/world_sync.gd:88:		target_position_source.set_current_self_id(self_id)
+client/scripts/world/world_sync.gd:89:
+client/scripts/world/world_sync.gd:90:
+client/scripts/world/world_sync.gd:91:func apply_world_lane_state(world_lane_state_ref) -> void:
+client/scripts/world/world_sync.gd:92:	if world_lane_state_ref == null:
+client/scripts/world/world_sync.gd:93:		return
+client/scripts/world/world_sync.gd:94:
+client/scripts/world/world_sync.gd:95:	world_lane_state = world_lane_state_ref
+client/scripts/world/world_sync.gd:96:	if player_render_api != null:
+client/scripts/world/world_sync.gd:97:		player_render_api.remove_missing(world_lane_state.ships, current_self_id)
+client/scripts/world/world_sync.gd:98:		player_render_api.apply_state(current_self_id, world_lane_state.ships)
+client/scripts/world/world_sync.gd:99:	_rebase_world_entities_to_view_anchor()
+client/scripts/world/world_sync.gd:100:	var local_visual_position: Vector2 = player_render_api.visual_position()
+client/scripts/world/world_sync.gd:101:	var local_server_position: Vector2 = player_render_api.server_position()
+client/scripts/world/world_sync.gd:102:	if projectile_sync != null:
+client/scripts/world/world_sync.gd:103:		if world_lane_state.bullet_full_sync_required:
+client/scripts/world/world_sync.gd:104:			projectile_sync.remove_missing(world_lane_state.bullets)
+client/scripts/world/world_sync.gd:105:			projectile_sync.apply(world_lane_state.bullets, local_visual_position, local_server_position)
+client/scripts/world/world_sync.gd:106:			world_lane_state.clear_bullet_change_sets()
+client/scripts/world/world_sync.gd:107:		else:
+client/scripts/world/world_sync.gd:108:			for bullet_id in world_lane_state.removed_bullet_ids.keys():
+client/scripts/world/world_sync.gd:109:				projectile_sync.remove_projectile(str(bullet_id))
+client/scripts/world/world_sync.gd:110:			for bullet_id in world_lane_state.dirty_bullet_ids.keys():
+client/scripts/world/world_sync.gd:111:				if world_lane_state.bullets.has(bullet_id):
+client/scripts/world/world_sync.gd:112:					projectile_sync.apply_projectile(str(bullet_id), world_lane_state.bullets[bullet_id], local_visual_position, local_server_position)
+client/scripts/world/world_sync.gd:113:			world_lane_state.clear_bullet_change_sets()
+client/scripts/world/world_sync.gd:114:	if asteroid_sync != null:
+client/scripts/world/world_sync.gd:115:		if world_lane_state.asteroid_full_sync_required:
+client/scripts/world/world_sync.gd:116:			asteroid_sync.remove_missing(world_lane_state.asteroids)
+client/scripts/world/world_sync.gd:117:			asteroid_sync.apply(world_lane_state.asteroids, player_render_api.visual_position(), player_render_api.server_position())
+client/scripts/world/world_sync.gd:118:			world_lane_state.clear_asteroid_change_sets()
+client/scripts/world/world_sync.gd:119:		else:
+client/scripts/world/world_sync.gd:120:			for asteroid_id in world_lane_state.removed_asteroid_ids.keys():
+client/scripts/world/world_sync.gd:121:				asteroid_sync.remove_asteroid(str(asteroid_id))
+client/scripts/world/world_sync.gd:122:			for asteroid_id in world_lane_state.dirty_asteroid_ids.keys():
+client/scripts/world/world_sync.gd:123:				if world_lane_state.asteroids.has(asteroid_id):
+client/scripts/world/world_sync.gd:124:					var source: String = str(world_lane_state.asteroid_dirty_sources.get(asteroid_id, "unknown"))
+client/scripts/world/world_sync.gd:125:					asteroid_sync.apply_asteroid(
+client/scripts/world/world_sync.gd:126:						str(asteroid_id),
+client/scripts/world/world_sync.gd:127:						world_lane_state.asteroids[asteroid_id],
+client/scripts/world/world_sync.gd:128:						player_render_api.visual_position(),
+client/scripts/world/world_sync.gd:129:						player_render_api.server_position(),
+client/scripts/world/world_sync.gd:130:						source != "hot_update"
+client/scripts/world/world_sync.gd:131:					)
+client/scripts/world/world_sync.gd:132:			world_lane_state.clear_asteroid_change_sets()
+client/scripts/world/world_sync.gd:133:	if pickup_sync != null:
+client/scripts/world/world_sync.gd:134:		pickup_sync.remove_missing(world_lane_state.pickups)
+client/scripts/world/world_sync.gd:135:		pickup_sync.apply(world_lane_state.pickups, player_render_api.visual_position(), player_render_api.server_position())
+client/scripts/world/world_sync.gd:136:
+client/scripts/world/world_sync.gd:137:
+client/scripts/world/world_sync.gd:138:func reset() -> void:
+client/scripts/world/world_sync.gd:139:	set_current_self_id("")
+client/scripts/world/world_sync.gd:140:	if player_render_api != null:
+client/scripts/world/world_sync.gd:141:		player_render_api.reset()
+client/scripts/world/world_sync.gd:142:	if projectile_sync != null:
+client/scripts/world/world_sync.gd:143:		projectile_sync.reset()
+client/scripts/world/world_sync.gd:144:	if asteroid_sync != null:
+client/scripts/world/world_sync.gd:145:		asteroid_sync.reset()
+client/scripts/world/world_sync.gd:146:	if pickup_sync != null:
+client/scripts/world/world_sync.gd:147:		pickup_sync.reset()
+client/scripts/world/world_sync.gd:148:	world_lane_state = null
+client/scripts/world/world_sync.gd:149:	clear_view_target_player()
+client/scripts/world/world_sync.gd:150:
+client/scripts/world/world_sync.gd:151:
+client/scripts/world/world_sync.gd:152:func apply_state(
+client/scripts/world/world_sync.gd:153:	self_id: String,
+client/scripts/world/world_sync.gd:154:	server_players: Dictionary,
+client/scripts/world/world_sync.gd:155:	server_bullets: Dictionary,
+client/scripts/world/world_sync.gd:156:	server_asteroids: Dictionary,
+client/scripts/world/world_sync.gd:157:	server_pickups: Dictionary = {}
+client/scripts/world/world_sync.gd:158:) -> void:
+client/scripts/world/world_sync.gd:159:	current_self_id = self_id
+client/scripts/world/world_sync.gd:160:
+client/scripts/world/world_sync.gd:161:	if target_position_source != null:
+client/scripts/world/world_sync.gd:162:		target_position_source.set_current_self_id(self_id)
+client/scripts/world/world_sync.gd:163:	player_render_api.remove_missing(server_players, self_id)
+client/scripts/world/world_sync.gd:164:	projectile_sync.remove_missing(server_bullets)
+client/scripts/world/world_sync.gd:165:	asteroid_sync.remove_missing(server_asteroids)
+client/scripts/world/world_sync.gd:166:	pickup_sync.remove_missing(server_pickups)
+client/scripts/world/world_sync.gd:167:	player_render_api.apply_state(self_id, server_players)
+client/scripts/world/world_sync.gd:168:	_rebase_world_entities_to_view_anchor()
+client/scripts/world/world_sync.gd:169:	projectile_sync.apply(
+client/scripts/world/world_sync.gd:170:		server_bullets,
+client/scripts/world/world_sync.gd:171:		player_render_api.visual_position(),
+client/scripts/world/world_sync.gd:172:		player_render_api.server_position()
+client/scripts/world/world_sync.gd:173:	)
+client/scripts/world/world_sync.gd:174:	asteroid_sync.apply(
+client/scripts/world/world_sync.gd:175:		server_asteroids,
+client/scripts/world/world_sync.gd:176:		player_render_api.visual_position(),
+client/scripts/world/world_sync.gd:177:		player_render_api.server_position()
+client/scripts/world/world_sync.gd:178:	)
+client/scripts/world/world_sync.gd:179:	pickup_sync.apply(
+client/scripts/world/world_sync.gd:180:		server_pickups,
+client/scripts/world/world_sync.gd:181:		player_render_api.visual_position(),
+client/scripts/world/world_sync.gd:182:		player_render_api.server_position()
+client/scripts/world/world_sync.gd:183:	)
+client/scripts/world/world_sync.gd:184:
+client/scripts/world/world_sync.gd:185:
+client/scripts/world/world_sync.gd:186:func _rebase_world_entities_to_view_anchor() -> void:
+client/scripts/world/world_sync.gd:187:	if player_render_api == null:
+client/scripts/world/world_sync.gd:188:		return
+client/scripts/world/world_sync.gd:189:	var anchor_visual_position: Vector2 = player_render_api.visual_position()
+client/scripts/world/world_sync.gd:190:	var anchor_server_position: Vector2 = player_render_api.server_position()
+client/scripts/world/world_sync.gd:191:	for entity_sync in [projectile_sync, asteroid_sync, pickup_sync]:
+client/scripts/world/world_sync.gd:192:		if entity_sync != null && entity_sync.has_method("rebase_to_view_anchor"):
+client/scripts/world/world_sync.gd:193:			entity_sync.rebase_to_view_anchor(anchor_visual_position, anchor_server_position)
+client/scripts/world/world_sync.gd:194:
+client/scripts/world/world_sync.gd:195:
+client/scripts/world/world_sync.gd:196:func interpolate(delta: float) -> void:
+client/scripts/world/world_sync.gd:197:	var weight := 1.0 - exp(-Constants.PLAYER_INTERPOLATION_SPEED * delta)
+client/scripts/world/world_sync.gd:198:	player_render_api.interpolate(weight, current_self_id)
+client/scripts/world/world_sync.gd:199:	projectile_sync.interpolate(weight)
+client/scripts/world/world_sync.gd:200:	asteroid_sync.interpolate(weight)
+client/scripts/world/world_sync.gd:201:	pickup_sync.interpolate(weight)
+client/scripts/world/world_sync.gd:202:
+client/scripts/world/world_sync.gd:203:
+client/scripts/world/world_sync.gd:204:func get_remote_player_visual_positions() -> Dictionary:
+client/scripts/world/world_sync.gd:205:	if player_render_api == null:
+client/scripts/world/world_sync.gd:206:		return {}
+client/scripts/world/world_sync.gd:207:	return player_render_api.get_remote_player_visual_positions(current_self_id)
+client/scripts/world/world_sync.gd:208:
+client/scripts/world/world_sync.gd:209:
+client/scripts/world/world_sync.gd:210:func get_remote_player_hues() -> Dictionary:
+client/scripts/world/world_sync.gd:211:	if player_render_api == null:
+client/scripts/world/world_sync.gd:212:		return {}
+client/scripts/world/world_sync.gd:213:	return player_render_api.get_remote_player_hues(current_self_id)
+client/scripts/world/world_sync.gd:214:
+client/scripts/world/world_sync.gd:215:
+client/scripts/world/world_sync.gd:216:func remote_player_nodes() -> Dictionary:
+client/scripts/world/world_sync.gd:217:	if player_render_api == null:
+client/scripts/world/world_sync.gd:218:		return {}
+client/scripts/world/world_sync.gd:219:	return player_render_api.remote_player_nodes(current_self_id)
+client/scripts/world/world_sync.gd:220:
+client/scripts/world/world_sync.gd:221:
+client/scripts/world/world_sync.gd:222:func player_nodes() -> Dictionary:
+client/scripts/world/world_sync.gd:223:	if player_render_api == null:
+client/scripts/world/world_sync.gd:224:		return {}
+client/scripts/world/world_sync.gd:225:	return player_render_api.player_nodes()
+client/scripts/world/world_sync.gd:226:
+client/scripts/world/world_sync.gd:227:
+client/scripts/world/world_sync.gd:228:func focus_camera_on_player(player_id: String) -> bool:
+client/scripts/world/world_sync.gd:229:	if player_render_api == null:
+client/scripts/world/world_sync.gd:230:		return false
+client/scripts/world/world_sync.gd:231:	return player_render_api.focus_camera_on_player(player_id)
+client/scripts/world/world_sync.gd:232:
+client/scripts/world/world_sync.gd:233:
+client/scripts/world/world_sync.gd:234:func set_view_target_player(player_id: String) -> void:
+client/scripts/world/world_sync.gd:235:	if player_render_api != null:
+client/scripts/world/world_sync.gd:236:		player_render_api.set_view_target_player(player_id)
+client/scripts/world/world_sync.gd:237:
+client/scripts/world/world_sync.gd:238:
+client/scripts/world/world_sync.gd:239:func clear_view_target_player() -> void:
+client/scripts/world/world_sync.gd:240:	if player_render_api != null:
+client/scripts/world/world_sync.gd:241:		player_render_api.clear_view_target_player()
+client/scripts/world/world_sync.gd:242:
+client/scripts/world/world_sync.gd:243:
+client/scripts/world/world_sync.gd:244:func get_view_target_player_id() -> String:
+client/scripts/world/world_sync.gd:245:	if player_render_api == null:
+client/scripts/world/world_sync.gd:246:		return ""
+client/scripts/world/world_sync.gd:247:	return player_render_api.get_view_target_player_id()
+client/scripts/world/world_sync.gd:248:
+client/scripts/world/world_sync.gd:249:
+client/scripts/world/world_sync.gd:250:func visual_position_for_server_position(server_position: Vector2) -> Vector2:
+client/scripts/world/world_sync.gd:251:	return player_render_api.visual_position_for_server_position(server_position)
+client/scripts/world/world_sync.gd:252:
+client/scripts/world/world_sync.gd:253:
+client/scripts/world/world_sync.gd:254:func server_position_for_visual_position(visual_position: Vector2) -> Vector2:
+client/scripts/world/world_sync.gd:255:	return player_render_api.server_position_for_visual_position(visual_position)
+client/scripts/world/world_sync.gd:256:
+client/scripts/world/world_sync.gd:257:
+client/scripts/world/world_sync.gd:258:func target_source():
+client/scripts/world/world_sync.gd:259:	return target_position_source
+rg: client/scripts/world/player_sync.gd: The system cannot find the file specified. (os error 2)
+
+2026-07-29T18:53:27.231874Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg --files services/game-server/internal/protocol/realtime | Sort-Object; rg -n -S "func .*Packet|Build.*Packet|Projection|Cadence|cadence|WorldWire|OverlayWire|ShipWire|GameplayPresentationSnapshot|Snapshot" services/game-server/internal/protocol/realtime | Select-Object -First 700'` rejected: blocked by policy
+2026-07-29T18:53:33.351233Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg --files services/game-server/internal/protocol/realtime | Sort-Object'` rejected: blocked by policy
+2026-07-29T18:54:01.395979Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+services\game-server\tests\protocol\packetcodec_test.go:58:			name: "overlay_full",
+services\game-server\tests\protocol\packetcodec_test.go:66:			name: "overlay_delta",
+services\game-server\tests\networking\rooms_test.go:1637:		{name: "readable overlay full", packet: map[string]any{"type": "overlay_full"}, want: "overlay_full"},
+services\game-server\tests\networking\rooms_test.go:1640:		{name: "compact overlay full", packet: map[string]any{"t": "of"}, want: "overlay_full"},
+services\game-server\tests\networking\rooms_test.go:1662:		case "world_full", "overlay_full", "session_full":
+services\game-server\internal\tooling\controller_test.go:202:	controller.ObservePacketWrite(context, "overlay", "overlay_full", 11)
+client\tests\unit\protocol\test_compact_wire_descriptor_records.gd:16:	var record := DescriptorIndex.record_by_id("ship_update")
+tools\data_sync\tests\test_realtime_wire.py:244:    next(record for record in raw["records"] if record["id"] == "ship_update")["identity_field"] = None
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:73:	assert_eq(expanded["ship_updates"][0]["id"], "ship-1")
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:74:	assert_eq(expanded["ship_updates"][0]["rotation"], 3142)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:75:	assert_false(expanded["ship_updates"][0]["thrusting"])
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:354:func test_expand_packet_converts_compact_world_delta_ship_update_tuple_xy_rotation_thrusting() -> void:
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:360:	assert_eq(expanded["ship_updates"][0]["id"], "player-1")
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:361:	assert_eq(expanded["ship_updates"][0]["x"], 10)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:362:	assert_eq(expanded["ship_updates"][0]["y"], 20)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:363:	assert_eq(expanded["ship_updates"][0]["rotation"], 30)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:364:	assert_eq(expanded["ship_updates"][0]["thrusting"], true)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:367:func test_expand_packet_converts_compact_world_delta_ship_update_tuple_x_only() -> void:
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:373:	assert_eq(expanded["ship_updates"][0]["id"], "player-1")
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:374:	assert_eq(expanded["ship_updates"][0]["x"], 10)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:375:	assert_false(expanded["ship_updates"][0].has("y"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:376:	assert_false(expanded["ship_updates"][0].has("rotation"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:377:	assert_false(expanded["ship_updates"][0].has("thrusting"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:380:func test_expand_packet_converts_compact_world_delta_ship_update_tuple_y_only() -> void:
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:386:	assert_eq(expanded["ship_updates"][0]["id"], "player-1")
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:387:	assert_false(expanded["ship_updates"][0].has("x"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:388:	assert_eq(expanded["ship_updates"][0]["y"], 20)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:389:	assert_false(expanded["ship_updates"][0].has("rotation"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:390:	assert_false(expanded["ship_updates"][0].has("thrusting"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:393:func test_expand_packet_converts_compact_world_delta_ship_update_tuple_rotation_only() -> void:
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:399:	assert_eq(expanded["ship_updates"][0]["id"], "player-1")
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:400:	assert_false(expanded["ship_updates"][0].has("x"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:401:	assert_false(expanded["ship_updates"][0].has("y"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:402:	assert_eq(expanded["ship_updates"][0]["rotation"], 30)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:403:	assert_false(expanded["ship_updates"][0].has("thrusting"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:406:func test_expand_packet_converts_compact_world_delta_ship_update_tuple_thrusting_only_false() -> void:
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:412:	assert_eq(expanded["ship_updates"][0]["id"], "player-1")
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:413:	assert_false(expanded["ship_updates"][0].has("x"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:414:	assert_false(expanded["ship_updates"][0].has("y"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:415:	assert_false(expanded["ship_updates"][0].has("rotation"))
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:416:	assert_eq(expanded["ship_updates"][0]["thrusting"], false)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:419:func test_expand_packet_converts_compact_world_delta_ship_update_tuple_zero_values() -> void:
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:425:	assert_eq(expanded["ship_updates"][0]["id"], "player-1")
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:426:	assert_eq(expanded["ship_updates"][0]["x"], 0)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:427:	assert_eq(expanded["ship_updates"][0]["y"], 0)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:428:	assert_eq(expanded["ship_updates"][0]["rotation"], 0)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:429:	assert_eq(expanded["ship_updates"][0]["thrusting"], false)
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:743:func test_expand_packet_converts_compact_world_delta_ship_update_tuple_sparse_interior_nulls_preserve_later_values() -> void:
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:749:	assert_eq(expanded["ship_updates"][0], {"id": "player-1", "y": 20})
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:751:func test_expand_packet_converts_compact_world_delta_ship_update_tuple_rotation_only_with_sparse_nulls() -> void:
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:757:	assert_eq(expanded["ship_updates"][0], {"id": "player-1", "rotation": 30})
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:759:func test_expand_packet_converts_compact_world_delta_ship_update_tuple_thrusting_only_with_sparse_nulls() -> void:
+client\tests\unit\protocol\realtime\test_compact_lane_packet.gd:765:	assert_eq(expanded["ship_updates"][0], {"id": "player-1", "thrusting": true})
+client\tests\unit\protocol\realtime\test_chunk_assembly.gd:135:			packet["ship_updates"] = updates
+tools\data_sync\tests\test_packet_toml_loader.py:61:        "overlay_full",
+tools\data_sync\tests\test_packet_toml_loader.py:62:        "overlay_delta",
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:77:			"ship_updates": [_ship_packet("ship-1", 11, 21)],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:170:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:214:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:258:			"ship_updates": null,
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:306:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:368:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:418:			"ship_updates": [_ship_packet("ship-1", 11, 21)],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:451:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:496:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:798:func test_world_lane_state_merges_ship_updates_without_dropping_omitted_fields() -> void:
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:815:	world_lane_state.merge_ship_update({"id": "ship-1", "x": 99})
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:827:func test_world_lane_state_merges_ship_updates_with_provided_fields() -> void:
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:844:	world_lane_state.merge_ship_update({"id": "ship-1", "x": 99, "y": 101, "rotation": 0.0, "thrusting": false})
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:854:	world_lane_state.merge_ship_update({"id": "ship-unknown", "x": 99})
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:859:func test_world_lane_state_ignores_ship_updates_without_id() -> void:
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:876:	world_lane_state.merge_ship_update({"x": 99})
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:1569:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:1626:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:1679:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:1766:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:1788:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:1838:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_world_lane_applier.gd:1860:			"ship_updates": [],
+client\tests\unit\protocol\realtime\test_ship_hot_lanes.gd:16:		"ship_updates": [{"id": "player-1", "x": 420, "y": 840, "rotation": 250, "thrusting": true}],
+client\tests\unit\protocol\realtime\test_ship_hot_lanes.gd:25:		"ship_updates": [{"id": "player-1", "x": 10, "y": 20}],
+client\tests\unit\protocol\realtime\test_ship_hot_lanes.gd:38:		"ship_updates": [{"id": "player-2", "x": 350, "y": 450, "rotation": 100, "thrusting": true}],
+client\tests\unit\protocol\realtime\test_ship_hot_lanes.gd:41:	assert_true(router.world_lane_state.pending_ship_updates.has("player-2"))
+client\tests\unit\protocol\realtime\test_ship_hot_lanes.gd:48:	assert_false(router.world_lane_state.pending_ship_updates.has("player-2"))
+client\tests\unit\protocol\realtime\test_ship_hot_lanes.gd:61:		"ship_updates": [{
+client\tests\unit\protocol\realtime\test_ship_hot_lanes.gd:98:		"ship_updates": [{"id": "player-3", "x": 999, "y": 999}],
+client\tests\unit\protocol\realtime\test_ship_hot_lanes.gd:101:	assert_false(router.world_lane_state.pending_ship_updates.has("player-3"))
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:14:func test_overlay_full_updates_readout_cache() -> void:
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:19:	applier.apply_overlay_full(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:57:func test_overlay_delta_updates_only_provided_fields() -> void:
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:61:	applier.apply_overlay_full(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:83:	var applied := applier.apply_overlay_delta(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:107:func test_overlay_delta_treats_missing_sparse_sections_as_empty_noop() -> void:
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:111:	applier.apply_overlay_full(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:134:	var applied := applier.apply_overlay_delta(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:159:func test_overlay_delta_applies_nested_receiver_updates() -> void:
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:163:	applier.apply_overlay_full(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:185:	var applied := applier.apply_overlay_delta(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:192:			"receiver_updates": [
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:209:func test_overlay_delta_preserves_omitted_fields_and_applies_zero_values() -> void:
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:213:	applier.apply_overlay_full(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:235:	var applied := applier.apply_overlay_delta(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:242:			"receiver_updates": [
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:265:func test_overlay_delta_applies_zero_primary_cooldown_remaining() -> void:
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:269:	applier.apply_overlay_full(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:291:	var applied := applier.apply_overlay_delta(
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:298:			"receiver_updates": [
+client\tests\unit\protocol\realtime\test_overlay_session_lane_applier.gd:676:	OverlayLaneApplier.new().apply_overlay_full(
+client\tests\unit\protocol\realtime\test_lane_protocol_routing.gd:15:	router.route_lane_packet({"type": "overlay_full", "baseline_id": "b2", "sequence": 1, "snapshot_id": "o1", "is_final_chunk": true})
+client\tests\unit\protocol\realtime\test_lane_protocol_routing.gd:18:	router.route_lane_packet({"type": "overlay_delta", "baseline_id": "b2", "sequence": 2})
+client\tests\unit\protocol\realtime\test_lane_protocol_routing.gd:38:	router.route_lane_packet({"type": "overlay_full", "baseline_id": "overlay-baseline", "sequence": 1, "snapshot_id": "overlay-snapshot", "is_final_chunk": true})
+client\tests\unit\protocol\realtime\test_lane_protocol_routing.gd:52:	var overlay_packet = _decode_fixture("{\"type\":\"overlay_full\",\"lane\":\"overlay\",\"sequence\":2,\"baseline_id\":\"overlay-baseline-1\",\"snapshot_id\":\"overlay-snapshot-1\",\"chunk_index\":0,\"chunk_count\":1,\"is_final_chunk\":true,\"self_id\":\"player-1\",\"lives\":3,\"score\":120,\"respawn_cooldown\":2,\"primary_weapon_id\":\"laser\",\"primary_ammo_policy\":\"finite\",\"primary_cooldown_remaining\":1.5,\"primary_ammo_remaining\":9,\"secondary_weapon_id\":\"burst\",\"secondary_ammo_policy\":\"infinite\",\"secondary_cooldown_remaining\":0.5,\"secondary_ammo_remaining\":99}")
+client\tests\unit\protocol\realtime\test_lane_protocol_routing.gd:53:	assert_eq(overlay_packet["type"], "overlay_full")
+client\tests\unit\protocol\realtime\test_lane_protocol_routing.gd:377:	router.route_lane_packet({"type": "overlay_full", "lane": LaneMetadata.LANE_OVERLAY, "sequence": 1, "baseline_id": "overlay-baseline-1", "snapshot_id": "overlay-snapshot-1", "is_final_chunk": true})
+client\tests\unit\networking\test_webrtc_transport.gd:355:		"type": "overlay_delta",
+client\tests\unit\networking\test_webrtc_transport.gd:427:	assert_eq(received_packets[0]["type"], "overlay_delta")
+client\tests\unit\networking\test_webrtc_transport.gd:684:			channels[lane].packets.append(JSON.stringify({"type": "overlay_delta", "lane": "overlay", "source": lane}).to_utf8_buffer())
+client\tests\unit\networking\test_webrtc_transport.gd:709:		channels[lane].packets.append(JSON.stringify({"type": "overlay_delta", "lane": "overlay", "source": lane}).to_utf8_buffer())
+client\tests\unit\networking\realtime\test_realtime_packet_pipeline.gd:129:		"type": "overlay_full",
+client\tests\unit\networking\inbound\test_client_inbound_coordinator.gd:40:	func apply_overlay_full(packet: Dictionary) -> void: _record("apply_overlay_full", packet)
+client\tests\unit\networking\inbound\test_client_inbound_coordinator.gd:41:	func apply_overlay_delta(packet: Dictionary) -> void: _record("apply_overlay_delta", packet)
+services\game-server\internal\protocol\realtimewire\generated.go:75:	{Domain: "wire", Readable: "receiver_updates", Compact: "ru"},
+services\game-server\internal\protocol\realtimewire\generated.go:94:	{Domain: "wire", Readable: "ship_updates", Compact: "su"},
+services\game-server\internal\protocol\realtimewire\generated.go:166:	"wire.receiver_updates": "ru",
+services\game-server\internal\protocol\realtimewire\generated.go:185:	"wire.ship_updates": "su",
+services\game-server\internal\protocol\realtimewire\generated.go:257:	"wire.ru": "receiver_updates",
+services\game-server\internal\protocol\realtimewire\generated.go:276:	"wire.su": "ship_updates",
+services\game-server\internal\protocol\realtimewire\generated.go:299:	"packet_type": {{Domain: "packet_type", Readable: "asteroid_delta", Compact: "ad"}, {Domain: "packet_type", Readable: "asteroids_lifecycle", Compact: "al"}, {Domain: "packet_type", Readable: "bullet_delta", Compact: "bd"}, {Domain: "packet_type", Readable: "bullets_lifecycle", Compact: "bl"}, {Domain: "packet_type", Readable: "event_batch", Compact: "eb"}, {Domain: "packet_type", Readable: "overlay_delta", Compact: "od"}, {Domain: "packet_type", Readable: "overlay_full", Compact: "of"}, {Domain: "packet_type", Readable: "resync_request", Compact: "resync_request"}, {Domain: "packet_type", Readable: "resync_required", Compact: "resync_required"}, {Domain: "packet_type", Readable: "session_delta", Compact: "sd"}, {Domain: "packet_type", Readable: "session_full", Compact: "sf"}, {Domain: "packet_type", Readable: "ship_delta", Compact: "spd"}, {Domain: "packet_type", Readable: "ships_lifecycle", Compact: "spl"}, {Domain: "packet_type", Readable: "world_delta", Compact: "wd"}, {Domain: "packet_type", Readable: "world_full", Compact: "wf"}},
+services\game-server\internal\protocol\realtimewire\generated.go:334:		"overlay_delta": "od",
+services\game-server\internal\protocol\realtimewire\generated.go:335:		"overlay_full": "of",
+services\game-server\internal\protocol\realtimewire\generated.go:382:		"od": "overlay_delta",
+services\game-server\internal\protocol\realtimewire\generated.go:383:		"of": "overlay_full",
+services\game-server\internal\protocol\realtimewire\generated.go:460:	{ID: "overlay_delta", Compact: "od", Lane: "overlay", SnapshotKind: "delta", Runtime: true, InferLane: true, InferSnapshotKind: true, InferSnapshotID: true, InferBaselineID: false, UseBaselineSequence: true, OmitSingleChunkMetadata: true},
+services\game-server\internal\protocol\realtimewire\generated.go:461:	{ID: "overlay_full", Compact: "of", Lane: "overlay", SnapshotKind: "full", Runtime: true, InferLane: true, InferSnapshotKind: true, InferSnapshotID: true, InferBaselineID: true, UseBaselineSequence: false, OmitSingleChunkMetadata: true},
+services\game-server\internal\protocol\realtimewire\generated.go:477:	"od": "overlay_delta",
+services\game-server\internal\protocol\realtimewire\generated.go:478:	"of": "overlay_full",
+services\game-server\internal\protocol\realtimewire\generated.go:727:	{ID: "ship_lifecycle_update", SourceStruct: "ShipState", Encoding: "map", IdentityField: "id", SparsePlaceholder: "", SparseTrailing: false, PreserveUnknownFields: false, Fields: []RealtimeWireField{
+services\game-server\internal\protocol\realtimewire\generated.go:736:	{ID: "ship_update", SourceStruct: "ShipState", Encoding: "sparse_positional_tuple", IdentityField: "id", SparsePlaceholder: "", SparseTrailing: true, PreserveUnknownFields: false, Fields: []RealtimeWireField{
+services\game-server\internal\protocol\realtimewire\generated.go:761:	{PacketID: "ship_delta", ReadableField: "ship_updates", RecordIDs: []string{"ship_update"}},
+services\game-server\internal\protocol\realtimewire\generated.go:764:	{PacketID: "ships_lifecycle", ReadableField: "ship_updates", RecordIDs: []string{"ship_lifecycle_update"}},
+services\game-server\internal\protocol\realtimewire\generated.go:776:	{PacketID: "world_delta", ReadableField: "ship_updates", RecordIDs: []string{"ship_update"}},
+services\game-server\internal\protocol\realtime\lanes.go:26:	PacketFamilyOverlayFull        = "overlay_full"
+services\game-server\internal\protocol\realtime\lanes.go:27:	PacketFamilyOverlayDelta       = "overlay_delta"
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:115:			"overlay_delta",
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:132:	if notes[0] != "overlay_delta" {
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:133:		t.Fatalf("notes[0] = %v, want overlay_delta", notes[0])
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:144:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:157:	if original["ship_updates"].([]any)[0].(map[string]any)["id"] != "ship-1" {
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:341:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:369:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:394:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:419:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:444:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:469:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:497:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:520:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:541:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:1129:		"ship_updates": []any{
+services\game-server\internal\protocol\realtime\compact_wire_packet_test.go:1152:	for _, key := range []string{"type", "sequence", "baseline_sequence", "server_sent_msec", "ship_updates"} {
+services\game-server\internal\protocol\realtime\match_metadata_test.go:13:		{name: "overlay_full", lane: LaneOverlay, kind: RealtimeLaneCandidateKindFull},
+services\game-server\internal\protocol\realtime\match_metadata_test.go:14:		{name: "overlay_delta", lane: LaneOverlay, kind: RealtimeLaneCandidateKindDelta},
+services\game-server\internal\protocol\realtime\compact_wire_descriptor_test.go:11:		"ship_updates": []any{map[string]any{"id": "player-7", "y": 12}},
+services\game-server\internal\protocol\realtime\active_test.go:81:		return "overlay_full"
+services\game-server\internal\protocol\realtime\active_test.go:83:		return "overlay_delta"
+services\game-server\internal\protocol\realtime\active_test.go:121:		case "overlay_full", "overlay_delta":
+services\game-server\internal\protocol\realtime\active_test.go:647:			LaneOverlay: []byte(`{"type":"overlay_full","lane":"overlay"}`),
+services\game-server\internal\protocol\realtime\active_test.go:869:	assertNotContainsKey(t, wire, "ship_updates")
+services\game-server\internal\protocol\realtime\wire_packets_test.go:194:	updates := mustSliceValue(t, wire, "ship_updates")
+services\game-server\internal\protocol\realtime\wire_packets_test.go:230:	for _, key := range []string{"ship_creates", "ship_updates", "ship_deletes", "bullet_creates", "bullet_updates", "asteroid_creates", "asteroid_updates", "asteroid_deletes", "pickup_creates", "pickup_updates", "pickup_deletes"} {
+services\game-server\internal\protocol\realtime\wire_packets_test.go:252:	update := mustMapValue(t, mustSliceValue(t, wire, "ship_updates")[0])
+services\game-server\internal\protocol\realtime\wire_packets_test.go:279:	for _, fragment := range []string{"ship_updates", "ship-1"} {
+services\game-server\internal\protocol\realtime\wire_packets_test.go:295:	for _, fragment := range []string{"receiver_creates", "receiver_updates", "receiver_deletes"} {
+services\game-server\internal\protocol\realtime\wire_packets_test.go:348:	updates := mustSliceValue(t, wire, "ship_updates")
+services\game-server\internal\protocol\realtime\wire_packets_test.go:622:	for _, key := range []string{"receiver_creates", "receiver_updates", "receiver_deletes"} {
+services\game-server\internal\protocol\realtime\wire_packets_test.go:635:	updates := mustSliceValue(t, wire, "receiver_updates")
+services\game-server\internal\protocol\realtime\wire_packets_test.go:783:	assertContainsKey(t, wire, "receiver_updates")
+services\game-server\internal\protocol\realtime\wire_packets_test.go:801:	updates := mustSliceValue(t, wire, "receiver_updates")
+services\game-server\internal\protocol\realtime\wire_packets_test.go:849:	updates := mustSliceValue(t, wire, "receiver_updates")
+services\game-server\internal\protocol\realtime\wire_packets_test.go:1670:	if hasOnlyKeys(wire, []string{"ship_creates", "ship_updates", "ship_deletes", "bullet_creates", "bullet_updates", "bullet_deletes", "asteroid_creates", "asteroid_updates", "asteroid_deletes", "pickup_creates", "pickup_updates", "pickup_deletes"}) {
+services\game-server\internal\protocol\realtime\wire_packets_test.go:1677:	if hasOnlyKeys(wire, []string{"receiver_creates", "receiver_updates", "receiver_deletes"}) {
+services\game-server\internal\protocol\realtime\wire_packets_test.go:1737:	updates := mustSliceValue(t, wire, "ship_updates")
+services\game-server\internal\protocol\realtime\wire_packets.go:16:	ShipUpdates []map[string]any `json:"ship_updates"`
+services\game-server\internal\protocol\realtime\wire_packets.go:245:	putFilteredRecordArrayIfNonEmpty(wire, "ship_updates", packet.Ships.Updates, []string{"id", "x", "y", "rotation", "thrusting"})
+services\game-server\internal\protocol\realtime\wire_packets.go:260:	putFilteredRecordArrayIfNonEmpty(wire, "ship_updates", packet.Ships.Updates, []string{"id", "x", "y", "rotation", "thrusting"})
+services\game-server\internal\protocol\realtime\wire_packets.go:276:		putFilteredRecordArrayIfNonEmpty(wire, "ship_updates", packet.ShipUpdates, []string{"id", "ship_type", "team_id", "health", "shields", "target_kind", "target_id"})
+services\game-server\internal\protocol\realtime\wire_packets.go:280:	putFilteredRecordArrayIfNonEmpty(wire, "ship_updates", packet.ShipUpdates, []string{"id", "x", "y", "rotation", "thrusting"})
+services\game-server\internal\protocol\realtime\wire_packets.go:308:	putRecordArrayIfNonEmpty(wire, "receiver_updates", packet.Receiver.Updates)
+services\game-server\internal\protocol\realtime\wire_packets.go:316:	putRecordArrayIfNonEmpty(wire, "receiver_updates", packet.Receiver.Updates)
+services\game-server\internal\protocol\realtime\parity.go:9:		issues = append(issues, "self_id not covered by overlay_full")
+services\game-server\internal\protocol\realtime\parity.go:12:		issues = append(issues, "lives not covered by overlay_full")
+client\scripts\networking\inbound\client_inbound_coordinator.gd:36:	_connect_dispatcher_signal("overlay_full_received", Callable(realtime_packet_pipeline, "apply_overlay_full"))
+client\scripts\networking\inbound\client_inbound_coordinator.gd:37:	_connect_dispatcher_signal("overlay_delta_received", Callable(realtime_packet_pipeline, "apply_overlay_delta"))
+client\scripts\networking\inbound\server_packet_dispatcher.gd:17:signal overlay_full_received(packet: Dictionary)
+client\scripts\networking\inbound\server_packet_dispatcher.gd:18:signal overlay_delta_received(packet: Dictionary)
+client\scripts\networking\inbound\server_packet_dispatcher.gd:58:	elif ServerPacketRouter.is_overlay_full(packet):
+client\scripts\networking\inbound\server_packet_dispatcher.gd:59:		overlay_full_received.emit(packet)
+client\scripts\networking\inbound\server_packet_dispatcher.gd:60:	elif ServerPacketRouter.is_overlay_delta(packet):
+client\scripts\networking\inbound\server_packet_dispatcher.gd:61:		overlay_delta_received.emit(packet)
+client\scripts\networking\inbound\server_packet_router.gd:58:static func is_overlay_full(packet: Dictionary) -> bool:
+client\scripts\networking\inbound\server_packet_router.gd:59:	return packet_type(packet) == Packets.TYPE_OVERLAY_FULL
+client\scripts\networking\inbound\server_packet_router.gd:62:static func is_overlay_delta(packet: Dictionary) -> bool:
+client\scripts\networking\inbound\server_packet_router.gd:63:	return packet_type(packet) == Packets.TYPE_OVERLAY_DELTA
+services\game-server\internal\networking\websocket_write_test.go:407:	assertStoredBaselineProjectionType(t, session.realtimeState, realtime.LaneOverlay, "overlay_full")
+services\game-server\internal\networking\websocket_write_test.go:464:	assertStoredBaselineProjectionType(t, session.realtimeState, realtime.LaneOverlay, "overlay_full")
+services\game-server\internal\networking\websocket_write_test.go:479:	case "world_full", "world_delta", "overlay_full", "overlay_delta", "session_full", "session_delta", "event_batch", "resync_request", "resync_required", "wf", "wd", "of", "od", "sf", "sd":
+services\game-server\internal\networking\websocket_write_test.go:628:	case "world_full", "world_delta", "overlay_full", "overlay_delta", "session_full", "session_delta", "event_batch", "resync_request", "resync_required", "wf", "wd", "of", "od", "sf", "sd":
+client\scripts\networking\realtime\realtime_packet_pipeline.gd:245:func apply_overlay_full(packet: Dictionary) -> void:
+client\scripts\networking\realtime\realtime_packet_pipeline.gd:248:func apply_overlay_delta(packet: Dictionary) -> void:
+client\scripts\protocol\realtime\realtime_router.gd:68:		"overlay_full":
+client\scripts\protocol\realtime\realtime_router.gd:69:			accepted_final_full = _overlay_applier.apply_overlay_full(overlay_lane_state, baseline_tracker, LaneMetadata.LANE_OVERLAY, expanded_packet)
+client\scripts\protocol\realtime\realtime_router.gd:70:		"overlay_delta":
+client\scripts\protocol\realtime\realtime_router.gd:71:			_overlay_applier.apply_overlay_delta(overlay_lane_state, baseline_tracker, LaneMetadata.LANE_OVERLAY, expanded_packet)
+client\scripts\protocol\realtime\realtime_router.gd:81:		var full_lane: String = {"world_full": LaneMetadata.LANE_WORLD, "overlay_full": LaneMetadata.LANE_OVERLAY, "session_full": LaneMetadata.LANE_SESSION}.get(packet_type, "")
+client\scripts\protocol\realtime\realtime_router.gd:116:	var assembly := _ship_lifecycle_assembler.accept(packet, "ship_creates", "ship_deletes", "ship_updates")
+client\scripts\protocol\realtime\world_lane_state.gd:9:const PENDING_SHIP_UPDATE_CAP := 2048
+client\scripts\protocol\realtime\world_lane_state.gd:16:var pending_ship_updates := {}
+client\scripts\protocol\realtime\world_lane_state.gd:18:var _pending_ship_update_order := []
+client\scripts\protocol\realtime\world_lane_state.gd:50:	pending_ship_updates.clear()
+client\scripts\protocol\realtime\world_lane_state.gd:51:	_pending_ship_update_order.clear()
+client\scripts\protocol\realtime\world_lane_state.gd:150:	apply_pending_ship_update(id)
+client\scripts\protocol\realtime\world_lane_state.gd:152:func merge_ship_update(record: Dictionary) -> void:
+client\scripts\protocol\realtime\world_lane_state.gd:158:func apply_pending_ship_update(id) -> void:
+client\scripts\protocol\realtime\world_lane_state.gd:159:	if not pending_ship_updates.has(id):
+client\scripts\protocol\realtime\world_lane_state.gd:162:		merge_ship_update(pending_ship_updates[id])
+client\scripts\protocol\realtime\world_lane_state.gd:163:	pending_ship_updates.erase(id)
+client\scripts\protocol\realtime\world_lane_state.gd:164:	_clear_pending_ship_update_order(id)
+client\scripts\protocol\realtime\world_lane_state.gd:166:func merge_or_buffer_ship_update(record: Dictionary) -> void:
+client\scripts\protocol\realtime\world_lane_state.gd:171:		merge_ship_update(record)
+client\scripts\protocol\realtime\world_lane_state.gd:175:	if not pending_ship_updates.has(id):
+client\scripts\protocol\realtime\world_lane_state.gd:176:		_pending_ship_update_order.append(id)
+client\scripts\protocol\realtime\world_lane_state.gd:177:	pending_ship_updates[id] = record.duplicate(true)
+client\scripts\protocol\realtime\world_lane_state.gd:178:	while _pending_ship_update_order.size() > PENDING_SHIP_UPDATE_CAP:
+client\scripts\protocol\realtime\world_lane_state.gd:179:		pending_ship_updates.erase(_pending_ship_update_order.pop_front())
+client\scripts\protocol\realtime\world_lane_state.gd:181:func clear_pending_ship_updates() -> void:
+client\scripts\protocol\realtime\world_lane_state.gd:182:	pending_ship_updates.clear()
+client\scripts\protocol\realtime\world_lane_state.gd:183:	_pending_ship_update_order.clear()
+client\scripts\protocol\realtime\world_lane_state.gd:185:func clear_pending_ship_update(id) -> void:
+client\scripts\protocol\realtime\world_lane_state.gd:186:	pending_ship_updates.erase(id)
+client\scripts\protocol\realtime\world_lane_state.gd:187:	_clear_pending_ship_update_order(id)
+client\scripts\protocol\realtime\world_lane_state.gd:356:	clear_pending_ship_update(id)
+client\scripts\protocol\realtime\world_lane_state.gd:369:func _clear_pending_ship_update_order(id) -> void:
+client\scripts\protocol\realtime\world_lane_state.gd:370:	_pending_ship_update_order.erase(id)
+client\scripts\protocol\realtime\world_lane_applier.gd:51:	_apply_entity_deltas(world_lane_state, _array_field(world_packet, "ship_creates"), _array_field(world_packet, "ship_updates"), _array_field(world_packet, "ship_deletes"), "ship")
+client\scripts\protocol\realtime\world_lane_applier.gd:59:	var assembly := _ship_delta_assembler.accept(ship_packet, "ship_updates")
+client\scripts\protocol\realtime\world_lane_applier.gd:65:	_apply_entity_deltas(world_lane_state, [], _array_field(assembled, "ship_updates"), [], "ship")
+client\scripts\protocol\realtime\world_lane_applier.gd:68:	if not _valid_lifecycle_payload(packet, "ship_creates", "ship_deletes", "ship_updates"):
+client\scripts\protocol\realtime\world_lane_applier.gd:70:	_apply_entity_deltas(world_lane_state, _array_field(packet, "ship_creates"), _array_field(packet, "ship_updates"), _array_field(packet, "ship_deletes"), "ship")
+client\scripts\protocol\realtime\world_lane_applier.gd:177:			world_lane_state.merge_or_buffer_ship_update(decoded)
+client\scripts\protocol\realtime\overlay_lane_applier.gd:6:func apply_overlay_full(overlay_lane_state: OverlayLaneState, baseline_tracker: BaselineTracker, lane: String, overlay_packet: Dictionary) -> bool:
+client\scripts\protocol\realtime\overlay_lane_applier.gd:23:func apply_overlay_delta(overlay_lane_state: OverlayLaneState, baseline_tracker: BaselineTracker, lane: String, overlay_packet: Dictionary) -> bool:
+client\scripts\protocol\realtime\overlay_lane_applier.gd:31:	overlay_lane_state.apply_overlay_delta(overlay_packet)
+client\scripts\protocol\realtime\overlay_lane_state.gd:34:func apply_overlay_delta(overlay_packet: Dictionary) -> void:
+client\scripts\protocol\realtime\overlay_lane_state.gd:39:	for record in _array_field(overlay_packet, "receiver_updates"):
+rg: data: The system cannot find the file specified. (os error 2)
+rg: contracts: The system cannot find the file specified. (os error 2)
+
+2026-07-29T18:54:07.512046Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "rg -n -C 8 -S \"\\[\\[records\\]\\]|id = \\\"ship_update\\\"|id = \\\"ship_lifecycle_update\\\"|id = \\\"receiver|id = \\\"overlay_|ship_updates|receiver_updates\" shared/packets/realtime_wire.toml | Select-Object -First 500"` rejected: blocked by policy
+2026-07-29T18:54:15.209550Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$content = Get-Content '"'shared/packets/realtime_wire.toml'; for ("'$i = 771; $i -le 835; $i++) { '"'{0}:{1}' -f ("'$i + 1), $content[$i] }'` rejected: blocked by policy
+2026-07-29T18:54:25.225350Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+
+2026-07-29T18:54:31.641175Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+
+2026-07-29T18:54:55.845481Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+
+2026-07-29T18:55:26.353393Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+91:	if record.Lane == LaneSession || record.Priority == PriorityLow {
+92:		return 7
+93:	}
+94:	return 8
+95:}
+96:
+97:func hotPacketCadenceAllows(mode HotLaneMode, sequence int) bool {
+98:	if sequence <= 0 {
+99:		sequence = 1
+100:	}
+101:	switch mode {
+102:	case HotLaneModeFullOwned60Hz:
+103:		return true
+104:	case HotLaneModeFullOwned30Hz:
+105:		return sequence%2 == 0
+106:	case HotLaneModeFullOwned20Hz:
+107:		return sequence%3 == 0
+108:	case HotLaneModeFullOwned15Hz:
+109:		return sequence%4 == 0
+110:	default:
+111:		return true
+112:	}
+113:}
+114:
+115:func laneBootstrapRank(record ScheduleRecord) int {
+116:	switch record.Lane {
+117:	case LaneWorld:
+118:		return 0
+119:	case LaneOverlay:
+120:		return 1
+121:	case LaneSession:
+122:		return 2
+123:	default:
+124:		return 3
+125:	}
+rg: services/game-server/internal/generated: The system cannot find the file specified. (os error 2)
+
+2026-07-29T18:55:34.228262Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg -n "''^" client/legacy/player_render/visual_sync_positions.gd client/legacy/player_render/player_sync_targets.gd client/legacy/player_render/player_sync_interpolation.gd 2>$null | Select-Object -First 500; rg --files client/legacy/player_render'` rejected: blocked by policy

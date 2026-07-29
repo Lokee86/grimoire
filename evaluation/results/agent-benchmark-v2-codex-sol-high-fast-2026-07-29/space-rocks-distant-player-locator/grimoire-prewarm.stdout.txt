@@ -1,0 +1,80 @@
+{
+  "version": 2,
+  "mode": "force-refresh",
+  "repository": {
+    "root": "C:\\!bin\\workspace\\.codex-benchmark-checkouts\\66185f47\\grimoire",
+    "git_head": "460da4af05c44d1835401fa853f5fc6b718262c8",
+    "git_dirty": false,
+    "source_fingerprint": "sha256:145bbecd1905d549edc77dbd79fdfdf82434a138f0c2d093f75e39634eb33907",
+    "git_available": true
+  },
+  "lexicon": {
+    "status": "current",
+    "snapshot": "sha256:6723746bcb83b4540eb52ed0f60dc16887bf6262d9c45a21e7d30f107bf766f1",
+    "prepared": true
+  },
+  "arcana": {
+    "status": "current",
+    "snapshot": "sha256:6723746bcb83b4540eb52ed0f60dc16887bf6262d9c45a21e7d30f107bf766f1",
+    "expected_snapshot": "sha256:6723746bcb83b4540eb52ed0f60dc16887bf6262d9c45a21e7d30f107bf766f1",
+    "prepared": true
+  },
+  "grimoire": {
+    "status": "current",
+    "snapshot": "c95dae26f37244b360c01d9cfbdebaf9099896c1",
+    "prepared": true
+  },
+  "knowledge": {
+    "status": "current",
+    "snapshot": "b941add363d947d3c27461c1e68ba3ba3f44a5f88eda3d973617260f41f4fa10",
+    "expected_snapshot": "b941add363d947d3c27461c1e68ba3ba3f44a5f88eda3d973617260f41f4fa10",
+    "prepared": true
+  },
+  "arcana_vectors": {
+    "status": "missing",
+    "snapshot": "sha256:6723746bcb83b4540eb52ed0f60dc16887bf6262d9c45a21e7d30f107bf766f1",
+    "expected_snapshot": "sha256:6723746bcb83b4540eb52ed0f60dc16887bf6262d9c45a21e7d30f107bf766f1",
+    "reason": "matching vector index is not prepared"
+  },
+  "knowledge_vectors": {
+    "status": "missing",
+    "expected_snapshot": "1044952fcb6aa664182009df940c3975cadb51e0d9d1dd3be61d710cdbb4445a",
+    "reason": "read knowledge vector manifest: open C:\\!bin\\workspace\\.codex-benchmark-checkouts\\66185f47\\grimoire\\.grimoire\\knowledge\\vectors\\qwen3-embedding-0.6b-q8_0-512d\\snapshot.manifest.json: The system cannot find the path specified."
+  },
+  "actions": [
+    {
+      "name": "refresh-lexicon",
+      "status": "completed",
+      "elapsed_ms": 70903
+    },
+    {
+      "name": "synchronize-arcana",
+      "status": "completed",
+      "elapsed_ms": 2259
+    },
+    {
+      "name": "prepare-grimoire",
+      "status": "completed",
+      "elapsed_ms": 14056
+    },
+    {
+      "name": "prepare-knowledge",
+      "status": "completed",
+      "elapsed_ms": 11295
+    }
+  ],
+  "timings": {
+    "initial_inspection_ms": 961,
+    "lock_wait_ms": 1,
+    "reinspection_ms": 4351,
+    "lexicon_ms": 70903,
+    "arcana_ms": 2259,
+    "source_index_ms": 14056,
+    "documentation_ms": 11295,
+    "marker_write_ms": 4,
+    "final_verification_ms": 177,
+    "total_ms": 104017
+  },
+  "deterministic_query_ready": true,
+  "elapsed_ms": 104017
+}

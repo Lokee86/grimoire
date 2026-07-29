@@ -1,0 +1,906 @@
+Reading additional input from stdin...
+2026-07-29T17:59:14.528718Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "rg -n --hidden -g '"'!client/addons/**'"' -g '"'!vendor/**'"' -g '"'!node_modules/**'"' \"SplitWorldHotUpdates|hot lane|HotLane|world update|WorldUpdate|snapshot|Snapshot|state_update|apply_state|publishPresentationFrameLocked|writeGameplayLaneProtocolMessage\" services/game-server client/scripts shared README.md docs 2>"'$null'` rejected: blocked by policy
+2026-07-29T17:59:23.266105Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg --files services/game-server/internal/protocol/realtime services/game-server/internal/networking services/game-server/internal/rooms client/scripts/networking client/scripts/world | Sort-Object'` rejected: blocked by policy
+2026-07-29T17:59:35.765322Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.9 seconds
+Output:
+services/game-server/internal\protocol\realtimewire\generated.go:669:	{ID: "player_session", SourceStruct: "PlayerSessionState", Encoding: "fixed_tuple", IdentityField: "id", SparsePlaceholder: "", SparseTrailing: false, PreserveUnknownFields: false, Fields: []RealtimeWireField{
+services/game-server/internal\protocol\realtimewire\generated.go:682:	{ID: "player_session_update", SourceStruct: "PlayerSessionState", Encoding: "sparse_key_value_tuple", IdentityField: "id", SparsePlaceholder: "", SparseTrailing: true, PreserveUnknownFields: true, Fields: []RealtimeWireField{
+services/game-server/internal/networking\websocket_write_test.go:63:func TestWriteGameplayLaneProtocolMessageWritesLanePacket(t *testing.T) {
+services/game-server/internal/networking\websocket_write_test.go:90:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal/networking\websocket_write_test.go:98:func TestWriteGameplayLaneProtocolMessageUsesWebRTCForLanePackets(t *testing.T) {
+services/game-server/internal/networking\websocket_write_test.go:125:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal/networking\websocket_write_test.go:133:func TestWriteGameplayLaneProtocolMessageBackpressureBlocksOnlyAffectedLaneGroup(t *testing.T) {
+services/game-server/internal/networking\websocket_write_test.go:160:		realtimeState:            realtime.NewRealtimeSessionState(playerID, matchID),
+services/game-server/internal/networking\websocket_write_test.go:163:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal/networking\websocket_write_test.go:185:func TestWriteGameplayLaneProtocolMessageSkipsWebSocketWithoutWebRTC(t *testing.T) {
+services/game-server/internal/networking\websocket_write_test.go:210:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal/networking\websocket_write_test.go:216:func TestWriteGameplayLaneProtocolMessageSkipsWebSocketWhenWebRTCNotReady(t *testing.T) {
+services/game-server/internal/networking\websocket_write_test.go:244:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal/networking\websocket_write_test.go:259:		realtimeState: realtime.NewRealtimeSessionState(member.PlayerID, "old-match"),
+services/game-server/internal/networking\websocket_write_test.go:275:func TestWriteGameplayLaneProtocolMessageDoesNotDrainEventBatchWhenEventLaneSendFails(t *testing.T) {
+services/game-server/internal/networking\websocket_write_test.go:297:	state := realtime.NewRealtimeSessionState(playerID, matchID)
+services/game-server/internal/networking\websocket_write_test.go:320:	if writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal/networking\websocket_write_test.go:342:func TestWriteGameplayLaneProtocolMessageAdvancesMetadataAndDrainsEventBatchOnWebRTCSendSuccess(t *testing.T) {
+services/game-server/internal/networking\websocket_write_test.go:364:	state := realtime.NewRealtimeSessionState(playerID, matchID)
+services/game-server/internal/networking\websocket_write_test.go:385:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal/networking\websocket_write_test.go:411:func TestWriteGameplayLaneProtocolMessageStoresBaselineProjectionAfterSuccessfulWrite(t *testing.T) {
+services/game-server/internal/networking\websocket_write_test.go:430:	state := realtime.NewRealtimeSessionState(playerID, matchID)
+services/game-server/internal/networking\websocket_write_test.go:457:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal/networking\websocket_write_test.go:551:func assertStoredBaselineProjectionType(t *testing.T, state realtime.RealtimeSessionState, lane realtime.Lane, wantType string) {
+services/game-server/internal/networking\websocket_write.go:38:			if !writeGameplayLaneProtocolMessage(session, remoteAddr) {
+services/game-server/internal/networking\websocket_write.go:45:func writeGameplayLaneProtocolMessage(session *webSocketSession, remoteAddr string) bool {
+services/game-server/internal/networking\websocket_write.go:56:	result, err := realtime.BuildActiveRealtimeResultForGame(gameplayContext.Game, context.GamePlayerID, session.realtimeState)
+services/game-server/internal/networking\websocket_write.go:78:	nextRealtimeState := result.SessionState
+services/game-server/internal/networking\websocket_write.go:265:		session.realtimeState = realtime.NewRealtimeSessionState(context.GamePlayerID, matchID)
+services/game-server/internal/networking\websocket_session.go:37:	realtimeState            realtime.RealtimeSessionState
+services/game-server/internal/networking\websocket_measurement_test.go:75:func TestWriteGameplayLaneProtocolMessageObservesOnlySuccessfulWrites(t *testing.T) {
+services/game-server/internal/networking\websocket_measurement_test.go:93:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal/networking\websocket_measurement_test.go:118:	if writeGameplayLaneProtocolMessage(failedSession, "127.0.0.1:1234") {
+services/game-server/internal\networking\resync_write_test.go:29:		realtimeState: realtime.NewRealtimeSessionState("player-1", matchID),
+services/game-server/internal\networking\resync_write_test.go:158:	session.realtimeState = realtime.NewRealtimeSessionState("player-1", newMatchID)
+services/game-server/internal\protocol\realtime\active_test.go:151:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\active_test.go:166:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\active_test.go:183:		encodedPacket, ok := result.EncodedPackets[candidate.Lane()]
+services/game-server/internal\protocol\realtime\active_test.go:231:	if first.SessionState.HotLaneTick != 1 {
+services/game-server/internal\protocol\realtime\active_test.go:232:		t.Fatalf("first hot lane tick = %d, want 1", first.SessionState.HotLaneTick)
+services/game-server/internal\protocol\realtime\active_test.go:238:	second := mustBuildActiveRealtimeResult(t, current, first.SessionState)
+services/game-server/internal\protocol\realtime\active_test.go:239:	if second.SessionState.HotLaneTick != 2 {
+services/game-server/internal\protocol\realtime\active_test.go:240:		t.Fatalf("second hot lane tick = %d, want 2", second.SessionState.HotLaneTick)
+services/game-server/internal\protocol\realtime\active_test.go:265:	if blocked.SessionState.HotLaneCohorts.AsteroidMode != HotLaneModeFullOwned15Hz {
+services/game-server/internal\protocol\realtime\active_test.go:266:		t.Fatalf("asteroid cohort mode = %q, want full-owned 15hz", blocked.SessionState.HotLaneCohorts.AsteroidMode)
+services/game-server/internal\protocol\realtime\active_test.go:277:	allowedState := blocked.SessionState
+services/game-server/internal\protocol\realtime\active_test.go:302:	allowedState := blocked.SessionState
+services/game-server/internal\protocol\realtime\active_test.go:326:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\active_test.go:336:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\active_test.go:417:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\active_test.go:427:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\active_test.go:440:	if result.SessionState.HotLaneCohorts.BulletMode != HotLaneModeFullOwned15Hz {
+services/game-server/internal\protocol\realtime\active_test.go:441:		t.Fatalf("bullet cohort mode = %q, want full-owned 15hz", result.SessionState.HotLaneCohorts.BulletMode)
+services/game-server/internal\protocol\realtime\active_test.go:501:	result := mustBuildActiveRealtimeResult(t, snapshot, NewRealtimeSessionState("player-1", "match-1"))
+services/game-server/internal\protocol\realtime\active_test.go:514:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\active_test.go:534:	snapshot.PlayerSessions["player-1"] = game.PlayerSessionState{ID: "player-1", ShipType: "v_wing", Score: 7, Lives: 3, PrimaryWeaponID: "laser", PrimaryAmmoPolicy: "infinite"}
+services/game-server/internal\protocol\realtime\active_test.go:538:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\active_test.go:557:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\active_test.go:581:	if _, ok := result.EncodedPackets[lane]; ok {
+services/game-server/internal\protocol\realtime\active_test.go:582:		t.Fatalf("expected no encoded packet for lane=%q, got %#v", lane, result.EncodedPackets[lane])
+services/game-server/internal\protocol\realtime\active_test.go:598:	encoded, ok := result.EncodedPackets[lane]
+services/game-server/internal\protocol\realtime\active_test.go:646:		EncodedPackets: map[Lane][]byte{
+services/game-server/internal\protocol\realtime\active_test.go:661:	if _, ok := result.EncodedPackets[LaneWorld]; ok {
+services/game-server/internal\protocol\realtime\active_test.go:664:	if _, ok := result.EncodedPackets[LaneOverlay]; !ok {
+services/game-server/internal\protocol\realtime\active_test.go:715:func TestIncludedRealtimeLaneCandidatesReturnsOnlyIncludedCandidates(t *testing.T) {
+services/game-server/internal\protocol\realtime\active_test.go:777:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\active.go:20:	SessionState       RealtimeSessionState
+services/game-server/internal\protocol\realtime\active.go:28:	EncodedPackets     map[Lane][]byte
+services/game-server/internal\protocol\realtime\active.go:35:func BuildActiveRealtimeResultForGame(gameInstance *game.Game, playerID string, state RealtimeSessionState) (ActiveRealtimeResult, error) {
+services/game-server/internal\protocol\realtime\active.go:40:func BuildActiveRealtimeResult(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) (ActiveRealtimeResult, error) {
+services/game-server/internal\protocol\realtime\active.go:81:		SessionState:       preparedState,
+services/game-server/internal\protocol\realtime\active.go:89:		EncodedPackets:     encodedPackets,
+services/game-server/internal\protocol\realtime\active.go:161:		diagnostics := CandidateWriteDiagnosticsFor(candidate, result.SessionState, encoded.EncodedBytes)
+services/game-server/internal\protocol\realtime\candidate_diagnostics.go:31:func CandidateWriteDiagnosticsFor(candidate RealtimeLaneCandidate, state RealtimeSessionState, encodedBytes int) CandidateWriteDiagnostics {
+services/game-server/internal\protocol\realtime\candidate_diagnostics.go:61:func hotPacketCadenceForDiagnostics(candidate RealtimeLaneCandidate, state RealtimeSessionState) string {
+services/game-server/internal\protocol\realtime\candidate_diagnostics.go:98:func hotLaneModesForDiagnostics(state RealtimeSessionState) (HotLaneMode, HotLaneMode, HotLaneMode) {
+services/game-server/internal\protocol\realtime\baseline_test.go:5:func TestRealtimeSessionStateIdentitySeparatesMatches(t *testing.T) {
+services/game-server/internal\protocol\realtime\baseline_test.go:6:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:14:	newMatch := NewRealtimeSessionState("player-1", "match-2")
+services/game-server/internal\protocol\realtime\baseline_test.go:32:func TestRealtimeSessionStateStartsUnsynced(t *testing.T) {
+services/game-server/internal\protocol\realtime\baseline_test.go:33:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:67:func TestRealtimeSessionStateStartsWithNoBaselineProjection(t *testing.T) {
+services/game-server/internal\protocol\realtime\baseline_test.go:68:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:75:func TestRealtimeSessionStateStoresReadsAndClearsBaselineProjection(t *testing.T) {
+services/game-server/internal\protocol\realtime\baseline_test.go:76:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:96:func TestRealtimeSessionStateIgnoresNilBaselineProjection(t *testing.T) {
+services/game-server/internal\protocol\realtime\baseline_test.go:97:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:106:func TestRealtimeSessionStateAcceptsFullLaneBaseline(t *testing.T) {
+services/game-server/internal\protocol\realtime\baseline_test.go:107:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:129:func TestRealtimeSessionStateChunkedBaselineRemainsIncompleteUntilFinalChunk(t *testing.T) {
+services/game-server/internal\protocol\realtime\baseline_test.go:130:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:169:func TestRealtimeSessionStateTracksBaselinePerLane(t *testing.T) {
+services/game-server/internal\protocol\realtime\baseline_test.go:170:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:185:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:205:	first := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:206:	second := NewRealtimeSessionState("player-2", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:221:func TestRealtimeSessionStateIgnoresStaleSequencesAndTracksWrongBaselineResync(t *testing.T) {
+services/game-server/internal\protocol\realtime\baseline_test.go:222:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:293:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline_test.go:340:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\baseline.go:27:type RealtimeSessionState struct {
+services/game-server/internal\protocol\realtime\baseline.go:37:func NewRealtimeSessionState(receiverID string, matchID string) RealtimeSessionState {
+services/game-server/internal\protocol\realtime\baseline.go:38:	return RealtimeSessionState{
+services/game-server/internal\protocol\realtime\baseline.go:48:func (state *RealtimeSessionState) AdvanceHotLaneTick() int {
+services/game-server/internal\protocol\realtime\baseline.go:56:func (state RealtimeSessionState) IdentityMatches(receiverID, matchID string) bool {
+services/game-server/internal\protocol\realtime\baseline.go:60:func (state *RealtimeSessionState) UpdateLane(lane Lane, metadata Metadata) {
+services/game-server/internal\protocol\realtime\baseline.go:76:func (state *RealtimeSessionState) MarkBaselineReady(lane Lane) {
+services/game-server/internal\protocol\realtime\baseline.go:83:func (state *RealtimeSessionState) StoreBaselineProjection(lane Lane, projection any) {
+services/game-server/internal\protocol\realtime\baseline.go:93:func (state RealtimeSessionState) BaselineProjection(lane Lane) (any, bool) {
+services/game-server/internal\protocol\realtime\baseline.go:101:func (state *RealtimeSessionState) ClearBaselineProjection(lane Lane) {
+services/game-server/internal\protocol\realtime\baseline.go:108:func (state *RealtimeSessionState) RequireFullBaseline(lane Lane) bool {
+services/game-server/internal\protocol\realtime\baseline.go:120:func (state RealtimeSessionState) LaneState(lane Lane) (RealtimeLaneState, bool) {
+services/game-server/internal\protocol\realtime\baseline.go:125:func (state RealtimeSessionState) LaneBaselineReady(lane Lane) bool {
+services/game-server/internal\protocol\realtime\baseline.go:136:func (state RealtimeSessionState) SharedWorldSnapshotID(snapshotID string, payloadsIdentical bool) string {
+services/game-server/internal\protocol\realtime\baseline.go:155:func CommitSuccessfulCandidate(state *RealtimeSessionState, candidate RealtimeLaneCandidate) {
+services/game-server/internal\game\packets.go:212:type PlayerSessionState struct {
+services/game-server/internal\protocol\realtime\event_projection_test.go:85:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\game\player_session_state.go:3:func (game *Game) playerSessionStateLocked(session *playerSession) PlayerSessionState {
+services/game-server/internal\game\player_session_state.go:4:	return PlayerSessionState{
+services/game-server/internal\game\player_session_state.go:19:func (game *Game) playerSessionStatesLocked() map[string]PlayerSessionState {
+services/game-server/internal\game\player_session_state.go:20:	playerSessions := make(map[string]PlayerSessionState, len(game.playerSessions))
+services/game-server/internal\game\player_session_state.go:25:		playerSessions[playerID] = game.playerSessionStateLocked(session)
+services/game-server/internal\protocol\realtime\drain_boundary_test.go:17:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\game\presentation_snapshot.go:12:	playerSessions  map[string]PlayerSessionState
+services/game-server/internal\game\presentation_snapshot.go:55:		playerSessions:  game.playerSessionStatesLocked(),
+services/game-server/internal\game\presentation_snapshot.go:71:	PlayerSessions  map[string]PlayerSessionState
+services/game-server/internal\networking\websocket_write_test.go:63:func TestWriteGameplayLaneProtocolMessageWritesLanePacket(t *testing.T) {
+services/game-server/internal\networking\websocket_write_test.go:90:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal\networking\websocket_write_test.go:98:func TestWriteGameplayLaneProtocolMessageUsesWebRTCForLanePackets(t *testing.T) {
+services/game-server/internal\networking\websocket_write_test.go:125:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal\networking\websocket_write_test.go:133:func TestWriteGameplayLaneProtocolMessageBackpressureBlocksOnlyAffectedLaneGroup(t *testing.T) {
+services/game-server/internal\networking\websocket_write_test.go:160:		realtimeState:            realtime.NewRealtimeSessionState(playerID, matchID),
+services/game-server/internal\networking\websocket_write_test.go:163:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal\networking\websocket_write_test.go:185:func TestWriteGameplayLaneProtocolMessageSkipsWebSocketWithoutWebRTC(t *testing.T) {
+services/game-server/internal\networking\websocket_write_test.go:210:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal\networking\websocket_write_test.go:216:func TestWriteGameplayLaneProtocolMessageSkipsWebSocketWhenWebRTCNotReady(t *testing.T) {
+services/game-server/internal\networking\websocket_write_test.go:244:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal\networking\websocket_write_test.go:259:		realtimeState: realtime.NewRealtimeSessionState(member.PlayerID, "old-match"),
+services/game-server/internal\networking\websocket_write_test.go:275:func TestWriteGameplayLaneProtocolMessageDoesNotDrainEventBatchWhenEventLaneSendFails(t *testing.T) {
+services/game-server/internal\networking\websocket_write_test.go:297:	state := realtime.NewRealtimeSessionState(playerID, matchID)
+services/game-server/internal\networking\websocket_write_test.go:320:	if writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal\networking\websocket_write_test.go:342:func TestWriteGameplayLaneProtocolMessageAdvancesMetadataAndDrainsEventBatchOnWebRTCSendSuccess(t *testing.T) {
+services/game-server/internal\networking\websocket_write_test.go:364:	state := realtime.NewRealtimeSessionState(playerID, matchID)
+services/game-server/internal\networking\websocket_write_test.go:385:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal\networking\websocket_write_test.go:411:func TestWriteGameplayLaneProtocolMessageStoresBaselineProjectionAfterSuccessfulWrite(t *testing.T) {
+services/game-server/internal\networking\websocket_write_test.go:430:	state := realtime.NewRealtimeSessionState(playerID, matchID)
+services/game-server/internal\networking\websocket_write_test.go:457:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal\networking\websocket_write_test.go:551:func assertStoredBaselineProjectionType(t *testing.T, state realtime.RealtimeSessionState, lane realtime.Lane, wantType string) {
+services/game-server/internal\networking\websocket_write.go:38:			if !writeGameplayLaneProtocolMessage(session, remoteAddr) {
+services/game-server/internal\networking\websocket_write.go:45:func writeGameplayLaneProtocolMessage(session *webSocketSession, remoteAddr string) bool {
+services/game-server/internal\networking\websocket_write.go:56:	result, err := realtime.BuildActiveRealtimeResultForGame(gameplayContext.Game, context.GamePlayerID, session.realtimeState)
+services/game-server/internal\networking\websocket_write.go:78:	nextRealtimeState := result.SessionState
+services/game-server/internal\networking\websocket_write.go:265:		session.realtimeState = realtime.NewRealtimeSessionState(context.GamePlayerID, matchID)
+services/game-server/internal\protocol\realtime\candidate_types.go:61:	SessionState  RealtimeSessionState
+services/game-server/internal\protocol\realtime\lane_candidate_event.go:7:func buildEventLaneCandidates(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) []RealtimeLaneCandidate {
+services/game-server/internal\networking\websocket_session.go:37:	realtimeState            realtime.RealtimeSessionState
+services/game-server/internal\protocol\realtime\hot_lane_projection.go:78:func previousShipHotLaneProjection(state RealtimeSessionState, fallback WorldWireFullPacket) ShipHotLaneProjection {
+services/game-server/internal\protocol\realtime\hot_lane_projection.go:87:func previousAsteroidHotLaneProjection(state RealtimeSessionState, fallback WorldWireFullPacket) AsteroidHotLaneProjection {
+services/game-server/internal\protocol\realtime\hot_lane_projection.go:96:func previousBulletHotLaneProjection(state RealtimeSessionState, fallback WorldWireFullPacket) BulletHotLaneProjection {
+services/game-server/internal\protocol\realtime\hot_lane_projection.go:105:func seedHotLaneProjections(state *RealtimeSessionState, world WorldWireFullPacket) {
+services/game-server/internal\protocol\realtime\hot_lane_projection.go:111:func syncHotLaneProjectionMembership(state *RealtimeSessionState, world WorldWireFullPacket) {
+services/game-server/internal\protocol\realtime\hot_lane_projection.go:117:func mergeShipHotLaneMembership(state *RealtimeSessionState, world WorldWireFullPacket) ShipHotLaneProjection {
+services/game-server/internal\protocol\realtime\hot_lane_projection.go:139:func mergeAsteroidHotLaneMembership(state *RealtimeSessionState, world WorldWireFullPacket) AsteroidHotLaneProjection {
+services/game-server/internal\protocol\realtime\hot_lane_projection.go:161:func mergeBulletHotLaneMembership(state *RealtimeSessionState, world WorldWireFullPacket) BulletHotLaneProjection {
+services/game-server/internal/networking\resync_write_test.go:29:		realtimeState: realtime.NewRealtimeSessionState("player-1", matchID),
+services/game-server/internal/networking\resync_write_test.go:158:	session.realtimeState = realtime.NewRealtimeSessionState("player-1", newMatchID)
+services/game-server/internal\networking\websocket_measurement_test.go:75:func TestWriteGameplayLaneProtocolMessageObservesOnlySuccessfulWrites(t *testing.T) {
+services/game-server/internal\networking\websocket_measurement_test.go:93:	if !writeGameplayLaneProtocolMessage(session, "127.0.0.1:1234") {
+services/game-server/internal\networking\websocket_measurement_test.go:118:	if writeGameplayLaneProtocolMessage(failedSession, "127.0.0.1:1234") {
+services/game-server/internal\protocol\realtime\hot_lane_independence_test.go:131:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\hot_lane_independence_test.go:160:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\parity_test.go:18:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\lane_candidate_world.go:9:func buildWorldLaneCandidates(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState, sessionState *RealtimeSessionState) ([]RealtimeLaneCandidate, error) {
+services/game-server/internal\protocol\realtime\lane_candidate_world.go:43:func buildReliableWorldCandidates(previousWorld WorldWireFullPacket, currentWorld WorldWireFullPacket, state RealtimeSessionState) []RealtimeLaneCandidate {
+services/game-server/internal\protocol\realtime\lane_candidate_world.go:88:func buildIndependentHotLaneCandidates(previousWorld WorldWireFullPacket, currentWorld WorldWireFullPacket, state RealtimeSessionState) ([]RealtimeLaneCandidate, HotLaneCohortState) {
+services/game-server/internal\protocol\realtime\lane_candidate_world.go:153:func nextHotLaneMetadata(world Metadata, state RealtimeSessionState, lane Lane) Metadata {
+services/game-server/internal\protocol\realtime\lane_candidate_overlay.go:9:func buildOverlayLaneCandidates(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) ([]RealtimeLaneCandidate, error) {
+services/game-server/internal\protocol\realtime\lane_candidate_session.go:9:func buildSessionLaneCandidates(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) ([]RealtimeLaneCandidate, error) {
+services/game-server/internal\protocol\realtime\lane_candidate_lifecycle.go:3:func buildShipLifecycleCandidate(worldDelta WorldWireDeltaPacket, state RealtimeSessionState) (RealtimeLaneCandidate, bool) {
+services/game-server/internal\protocol\realtime\lane_candidate_lifecycle.go:26:func buildBulletLifecycleCandidate(worldDelta WorldWireDeltaPacket, state RealtimeSessionState) (RealtimeLaneCandidate, bool) {
+services/game-server/internal\protocol\realtime\lane_candidate_lifecycle.go:43:func buildAsteroidLifecycleCandidate(worldDelta WorldWireDeltaPacket, state RealtimeSessionState) (RealtimeLaneCandidate, bool) {
+services/game-server/internal\protocol\realtime\planner_event_test.go:12:	plan := mustAssembleRealtimeLaneCandidates(t, snapshot, NewRealtimeSessionState("player-1", "match-1"))
+services/game-server/internal\protocol\realtime\planner_session_test.go:10:	snapshot := game.GameplayPresentationSnapshot{SelfID: "player-1", PlayerSessions: map[string]game.PlayerSessionState{"player-1": {ID: "player-1", ShipType: "v_wing"}}}
+services/game-server/internal\protocol\realtime\planner_session_test.go:12:	plan := mustAssembleRealtimeLaneCandidates(t, snapshot, NewRealtimeSessionState("player-1", "match-1"))
+services/game-server/internal\protocol\realtime\planner_session_test.go:29:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\planner_session_test.go:36:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_session_test.go:50:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\planner_session_test.go:57:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_session_test.go:62:		PlayerSessions:  map[string]game.PlayerSessionState{"player-1": {ID: "player-1", ShipType: "v_wing", Score: 5, Lives: 3, PrimaryWeaponID: "laser", PrimaryAmmoPolicy: "infinite"}},
+services/game-server/internal\protocol\realtime\planner_world_test.go:14:	plan := mustAssembleRealtimeLaneCandidates(t, snapshot, NewRealtimeSessionState("player-1", "match-1"))
+services/game-server/internal\protocol\realtime\planner_world_test.go:34:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_world_test.go:56:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_world_test.go:73:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_world_test.go:108:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_world_test.go:144:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_world_test.go:194:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_world_test.go:233:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_world_test.go:251:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_world_test.go:426:func syncedWorldState(t *testing.T, snapshot game.GameplayPresentationSnapshot) RealtimeSessionState {
+services/game-server/internal\protocol\realtime\planner_world_test.go:428:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_overlay_test.go:25:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\planner_overlay_test.go:42:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_overlay_test.go:105:	snapshot := game.GameplayPresentationSnapshot{SelfID: "player-1", PlayerSessions: map[string]game.PlayerSessionState{"player-1": {ID: "player-1"}}}
+services/game-server/internal\protocol\realtime\planner_overlay_test.go:107:	plan := mustAssembleRealtimeLaneCandidates(t, snapshot, NewRealtimeSessionState("player-1", "match-1"))
+services/game-server/internal\protocol\realtime\planner_test.go:11:var _ func(game.GameplayPresentationSnapshot, RealtimeSessionState) (RealtimeLanePlan, error) = AssembleRealtimeLaneCandidates
+services/game-server/internal\protocol\realtime\planner_test.go:13:func mustAssembleRealtimeLaneCandidates(t *testing.T, snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) RealtimeLanePlan {
+services/game-server/internal\protocol\realtime\planner_test.go:87:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\planner_test.go:172:	plan := mustAssembleRealtimeLaneCandidates(t, snapshot, NewRealtimeSessionState("player-1", "match-1"))
+services/game-server/internal\protocol\realtime\planner_test.go:191:	plan := mustAssembleRealtimeLaneCandidates(t, snapshot, NewRealtimeSessionState("player-1", "match-1"))
+services/game-server/internal\protocol\realtime\payload_stage4_test.go:270:	diagnostics := CandidateWriteDiagnosticsFor(candidate, NewRealtimeSessionState("player-1", "match-1"), 17)
+services/game-server/internal\protocol\realtime\projection_overlay_test.go:36:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\planner_candidate_diagnostics_test.go:17:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_candidate_diagnostics_test.go:50:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\planner_candidate_diagnostics_test.go:71:	fallback := CandidateWriteDiagnosticsFor(mustRealtimeLaneCandidate(EventBatchPacket{Type: PacketFamilyEventBatch, Metadata: Metadata{Lane: LaneEvent}}, nil), NewRealtimeSessionState("player-1", "match-1"), 0)
+services/game-server/internal\protocol\realtime\priority_test.go:5:func TestLaneCandidateClassificationTreatsLifecycleAndSessionStateAsRequired(t *testing.T) {
+services/game-server/internal\protocol\realtime\projection_session_test.go:14:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\planner.go:9:func AssembleRealtimeLaneCandidates(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) (RealtimeLanePlan, error) {
+services/game-server/internal\protocol\realtime\planner.go:13:func assembleRealtimeLaneCandidates(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState, sessionState *RealtimeSessionState) (RealtimeLanePlan, error) {
+services/game-server/internal\protocol\realtime\planner.go:41:func prepareRealtimeSendPlan(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) (RealtimeSendPrepared, error) {
+services/game-server/internal\protocol\realtime\planner.go:61:		SessionState:  state,
+services/game-server/internal\protocol\realtime\projection_world_test.go:60:		PlayerSessions: map[string]game.PlayerSessionState{
+services/game-server/internal\protocol\realtime\quantization_propagation_test.go:25:	_, err := AssembleRealtimeLaneCandidates(snapshot, NewRealtimeSessionState("player-1", "match-1"))
+services/game-server/internal\protocol\realtime\quantization_propagation_test.go:37:		PlayerSessions: map[string]game.PlayerSessionState{"player-1": {ID: "player-1", RespawnCooldown: math.NaN()}},
+services/game-server/internal\protocol\realtime\quantization_propagation_test.go:45:		PlayerSessions: map[string]game.PlayerSessionState{"player-1": {ID: "player-1", SpawnX: math.NaN()}},
+services/game-server/internal\protocol\realtime\quantization_propagation_test.go:52:	_, err := BuildActiveRealtimeResult(snapshot, NewRealtimeSessionState("player-1", "match-1"))
+services/game-server/internal\protocol\realtime\resync.go:28:func DecideResync(state RealtimeSessionState, lane Lane, expectedBaselineID string, requiredBaselineID string, observed RealtimeLaneState, hasObserved bool) ResyncDecision {
+services/game-server/internal\protocol\realtime\shadow.go:12:	SessionState      RealtimeSessionState
+services/game-server/internal\protocol\realtime\shadow.go:21:func BuildShadowRealtimeResult(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) (ShadowRealtimeResult, error) {
+services/game-server/internal\protocol\realtime\shadow.go:48:		SessionState:      prepared.SessionState,
+services/game-server/internal\protocol\realtime\shadow.go:62:		diagnostics := CandidateWriteDiagnosticsFor(candidate, result.SessionState, result.EncodedBytes[candidate.Lane()])
+services/game-server/internal\protocol\realtime\shadow_test.go:18:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\shadow_test.go:60:		SessionState: NewRealtimeSessionState("player-1", "match-1"),
+services/game-server/internal\protocol\realtime\shadow_test.go:84:	result := mustBuildShadowRealtimeResult(t, snapshot, NewRealtimeSessionState("player-1", "match-1"))
+services/game-server/internal\protocol\realtime\ship_lanes_test.go:28:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\ship_lanes_test.go:104:	state := NewRealtimeSessionState("player-1", "match-1")
+services/game-server/internal\protocol\realtime\stage4_test_helpers_test.go:36:func mustBuildActiveRealtimeResult(t *testing.T, snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) ActiveRealtimeResult {
+services/game-server/internal\protocol\realtime\stage4_test_helpers_test.go:45:func mustBuildShadowRealtimeResult(t *testing.T, snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) ShadowRealtimeResult {
+rg: services/game-server/internal/server: The system cannot find the file specified. (os error 2)
+
+2026-07-29T18:00:18.277117Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Total output lines: 1395
+Output:
+client/scripts/protocol/realtime/world_lane_applier.gd:1:extends RefCounted
+client/scripts/protocol/realtime/world_lane_applier.gd:2:
+client/scripts/protocol/realtime/world_lane_applier.gd:3:const RealtimeQuantize = preload("res://scripts/protocol/realtime/realtime_quantize.gd")
+client/scripts/protocol/realtime/world_lane_applier.gd:4:const HotDeltaChunkAssembler = preload("res://scripts/protocol/realtime/hot_delta_chunk_assembler.gd")
+client/scripts/protocol/realtime/world_lane_applier.gd:5:
+client/scripts/protocol/realtime/world_lane_applier.gd:6:const BaselineTracker = preload("res://scripts/protocol/realtime/baseline_tracker.gd")
+client/scripts/protocol/realtime/world_lane_applier.gd:7:
+client/scripts/protocol/realtime/world_lane_applier.gd:8:
+client/scripts/protocol/realtime/world_lane_applier.gd:9:var _full_assembler := WorldFullChunkAssembler.new()
+client/scripts/protocol/realtime/world_lane_applier.gd:10:var _ship_delta_assembler := HotDeltaChunkAssembler.new()
+client/scripts/protocol/realtime/world_lane_applier.gd:11:var _asteroid_delta_assembler := HotDeltaChunkAssembler.new()
+client/scripts/protocol/realtime/world_lane_applier.gd:12:var _bullet_delta_assembler := HotDeltaChunkAssembler.new()
+client/scripts/protocol/realtime/world_lane_applier.gd:13:
+client/scripts/protocol/realtime/world_lane_applier.gd:14:func apply_world_full(world_lane_state: WorldLaneState, baseline_tracker: BaselineTracker, lane: String, world_packet: Dictionary) -> bool:
+client/scripts/protocol/realtime/world_lane_applier.gd:15:	var baseline_id = world_packet.get("baseline_id")
+client/scripts/protocol/realtime/world_lane_applier.gd:16:	var sequence = world_packet.get("sequence")
+client/scripts/protocol/realtime/world_lane_applier.gd:17:	var snapshot_id = world_packet.get("snapshot_id")
+client/scripts/protocol/realtime/world_lane_applier.gd:18:	var chunk_index = world_packet.get("chunk_index", 0)
+client/scripts/protocol/realtime/world_lane_applier.gd:19:	var chunk_count = world_packet.get("chunk_count", 1)
+client/scripts/protocol/realtime/world_lane_applier.gd:20:	var is_final_chunk = world_packet.get("is_final_chunk", true)
+client/scripts/protocol/realtime/world_lane_applier.gd:21:
+client/scripts/protocol/realtime/world_lane_applier.gd:22:	var assembly := _full_assembler.accept(world_packet)
+client/scripts/protocol/realtime/world_lane_applier.gd:23:	if assembly.status == WorldFullChunkAssembler.ERROR:
+client/scripts/protocol/realtime/world_lane_applier.gd:24:		baseline_tracker.request_resync_for_lane(lane, assembly.reason)
+client/scripts/protocol/realtime/world_lane_applier.gd:25:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:26:	var accepted := baseline_tracker.record_full_chunk(lane, baseline_id, sequence, snapshot_id, chunk_index, chunk_count, is_final_chunk)
+client/scripts/protocol/realtime/world_lane_applier.gd:27:	if not accepted:
+client/scripts/protocol/realtime/world_lane_applier.gd:28:		_full_assembler.reset()
+client/scripts/protocol/realtime/world_lane_applier.gd:29:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:30:	if assembly.status != WorldFullChunkAssembler.COMPLETE:
+client/scripts/protocol/realtime/world_lane_applier.gd:31:		return true
+client/scripts/protocol/realtime/world_lane_applier.gd:32:	var assembled: Dictionary = assembly.packet
+client/scripts/protocol/realtime/world_lane_applier.gd:33:	world_lane_state.clear_pending_bullet_updates()
+client/scripts/protocol/realtime/world_lane_applier.gd:34:	world_lane_state.apply_full_lane(_decode_world_full_packet(assembled))
+client/scripts/protocol/realtime/world_lane_applier.gd:35:	return true
+client/scripts/protocol/realtime/world_lane_applier.gd:36:
+client/scripts/protocol/realtime/world_lane_applier.gd:37:func reset() -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:38:	_full_assembler.reset()
+client/scripts/protocol/realtime/world_lane_applier.gd:39:	_ship_delta_assembler.reset()
+client/scripts/protocol/realtime/world_lane_applier.gd:40:	_asteroid_delta_assembler.reset()
+client/scripts/protocol/realtime/world_lane_applier.gd:41:	_bullet_delta_assembler.reset()
+client/scripts/protocol/realtime/world_lane_applier.gd:42:
+client/scripts/protocol/realtime/world_lane_applier.gd:43:func apply_world_delta(world_lane_state: WorldLaneState, baseline_tracker: BaselineTracker, lane: String, world_packet: Dictionary) -> bool:
+client/scripts/protocol/realtime/world_lane_applier.gd:44:	var baseline_id = world_packet.get("baseline_id")
+client/scripts/protocol/realtime/world_lane_applier.gd:45:	var sequence = world_packet.get("sequence")
+client/scripts/protocol/realtime/world_lane_applier.gd:46:	var snapshot_id = world_packet.get("snapshot_id")
+client/scripts/protocol/realtime/world_lane_applier.gd:47:
+client/scripts/protocol/realtime/world_lane_applier.gd:48:	if not baseline_tracker.record_delta(lane, baseline_id, sequence, snapshot_id):
+client/scripts/protocol/realtime/world_lane_applier.gd:49:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:50:
+client/scripts/protocol/realtime/world_lane_applier.gd:51:	_apply_entity_deltas(world_lane_state, _array_field(world_packet, "ship_creates"), _array_field(world_packet, "ship_updates"), _array_field(world_packet, "ship_deletes"), "ship")
+client/scripts/protocol/realtime/world_lane_applier.gd:52:	_apply_entity_deltas(world_lane_state, _array_field(world_packet, "bullet_creates"), _array_field(world_packet, "bullet_updates"), _array_field(world_packet, "bullet_deletes"), "bullet")
+client/scripts/protocol/realtime/world_lane_applier.gd:53:	_apply_entity_deltas(world_lane_state, _array_field(world_packet, "asteroid_creates"), _array_field(world_packet, "asteroid_updates"), _array_field(world_packet, "asteroid_deletes"), "asteroid")
+client/scripts/protocol/realtime/world_lane_applier.gd:54:	_apply_entity_deltas(world_lane_state, _array_field(world_packet, "pickup_creates"), _array_field(world_packet, "pickup_updates"), _array_field(world_packet, "pickup_deletes"), "pickup")
+client/scripts/protocol/realtime/world_lane_applier.gd:55:	return true
+client/scripts/protocol/realtime/world_lane_applier.gd:56:
+client/scripts/protocol/realtime/world_lane_applier.gd:57:
+client/scripts/protocol/realtime/world_lane_applier.gd:58:func apply_ship_delta(world_lane_state: WorldLaneState, _lane: String, ship_packet: Dictionary) -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:59:	var assembly := _ship_delta_assembler.accept(ship_packet, "ship_updates")
+client/scripts/protocol/realtime/world_lane_applier.gd:60:	if assembly.status != HotDeltaChunkAssembler.COMPLETE:
+client/scripts/protocol/realtime/world_lane_applier.gd:61:		return
+client/scripts/protocol/realtime/world_lane_applier.gd:62:	var assembled: Dictionary = assembly.packet
+client/scripts/protocol/realtime/world_lane_applier.gd:63:	if not world_lane_state.accept_ship_delta_sequence(assembled.get("sequence")):
+client/scripts/protocol/realtime/world_lane_applier.gd:64:		return
+client/scripts/protocol/realtime/world_lane_applier.gd:65:	_apply_entity_deltas(world_lane_state, [], _array_field(assembled, "ship_updates"), [], "ship")
+client/scripts/protocol/realtime/world_lane_applier.gd:66:
+client/scripts/protocol/realtime/world_lane_applier.gd:67:func apply_ships_lifecycle(world_lane_state: WorldLaneState, packet: Dictionary) -> bool:
+client/scripts/protocol/realtime/world_lane_applier.gd:68:	if not _valid_lifecycle_payload(packet, "ship_creates", "ship_deletes", "ship_updates"):
+client/scripts/protocol/realtime/world_lane_applier.gd:69:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:70:	_apply_entity_deltas(world_lane_state, _array_field(packet, "ship_creates"), _array_field(packet, "ship_updates"), _array_field(packet, "ship_deletes"), "ship")
+client/scripts/protocol/realtime/world_lane_applier.gd:71:	return true
+client/scripts/protocol/realtime/world_lane_applier.gd:72:
+client/scripts/protocol/realtime/world_lane_applier.gd:73:func apply_asteroid_delta(world_lane_state: WorldLaneState, _lane: String, asteroid_packet: Dictionary) -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:74:	var assembly := _asteroid_delta_assembler.accept(asteroid_packet, "asteroid_updates")
+client/scripts/protocol/realtime/world_lane_applier.gd:75:	if assembly.status != HotDeltaChunkAssembler.COMPLETE:
+client/scripts/protocol/realtime/world_lane_applier.gd:76:		return
+client/scripts/protocol/realtime/world_lane_applier.gd:77:	var assembled: Dictionary = assembly.packet
+client/scripts/protocol/realtime/world_lane_applier.gd:78:	if not world_lane_state.accept_asteroid_delta_sequence(assembled.get("sequence")):
+client/scripts/protocol/realtime/world_lane_applier.gd:79:		return
+client/scripts/protocol/realtime/world_lane_applier.gd:80:	_apply_entity_deltas(world_lane_state, [], _array_field(assembled, "asteroid_updates"), [], "asteroid")
+client/scripts/protocol/realtime/world_lane_applier.gd:81:
+client/scripts/protocol/realtime/world_lane_applier.gd:82:func apply_asteroids_lifecycle(world_lane_state: WorldLaneState, packet: Dictionary) -> bool:
+client/scripts/protocol/realtime/world_lane_applier.gd:83:	if not _valid_lifecycle_payload(packet, "asteroid_creates", "asteroid_deletes"):
+client/scripts/protocol/realtime/world_lane_applier.gd:84:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:85:	_apply_entity_deltas(world_lane_state, _array_field(packet, "asteroid_creates"), [], _array_field(packet, "asteroid_deletes"), "asteroid")
+client/scripts/protocol/realtime/world_lane_applier.gd:86:	return true
+client/scripts/protocol/realtime/world_lane_applier.gd:87:
+client/scripts/protocol/realtime/world_lane_applier.gd:88:func apply_bullet_delta(world_lane_state: WorldLaneState, _lane: String, bullet_packet: Dictionary) -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:89:	var assembly := _bullet_delta_assembler.accept(bullet_packet, "bullet_updates")
+client/scripts/protocol/realtime/world_lane_applier.gd:90:	if assembly.status != HotDeltaChunkAssembler.COMPLETE:
+client/scripts/protocol/realtime/world_lane_applier.gd:91:		return
+client/scripts/protocol/realtime/world_lane_applier.gd:92:	var assembled: Dictionary = assembly.packet
+client/scripts/protocol/realtime/world_lane_applier.gd:93:	if not world_lane_state.accept_bullet_delta_sequence(assembled.get("sequence")):
+client/scripts/protocol/realtime/world_lane_applier.gd:94:		return
+client/scripts/protocol/realtime/world_lane_applier.gd:95:	_apply_entity_deltas(world_lane_state, [], _array_field(assembled, "bullet_updates"), [], "bullet")
+client/scripts/protocol/realtime/world_lane_applier.gd:96:
+client/scripts/protocol/realtime/world_lane_applier.gd:97:func apply_bullets_lifecycle(world_lane_state: WorldLaneState, packet: Dictionary) -> bool:
+client/scripts/protocol/realtime/world_lane_applier.gd:98:	if not _valid_lifecycle_payload(packet, "bullet_creates", "bullet_deletes"):
+client/scripts/protocol/realtime/world_lane_applier.gd:99:		return false
+client/scripts/protocol/realtime/world_lane_applier.gd:100:	_apply_entity_deltas(world_lane_state, _array_field(packet, "bullet_creates"), [], _array_field(packet, "bullet_deletes"), "bullet")
+client/scripts/protocol/realtime/world_lane_applier.gd:101:	return true
+client/scripts/protocol/realtime/world_lane_applier.gd:102:
+client/scripts/protocol/realtime/world_lane_applier.gd:103:func _decode_world_full_packet(world_packet: Dictionary) -> Dictionary:
+client/scripts/protocol/realtime/world_lane_applier.gd:104:	var decoded := world_packet.duplicate(true)
+client/scripts/protocol/realtime/world_lane_applier.gd:105:	decoded["ships"] = _decode_entity_records(_array_field(world_packet, "ships"), "ship")
+client/scripts/protocol/realtime/world_lane_applier.gd:106:	decoded["bullets"] = _decode_entity_records(_array_field(world_packet, "bullets"), "bullet")
+client/scripts/protocol/realtime/world_lane_applier.gd:107:	decoded["asteroids"] = _decode_entity_records(_array_field(world_packet, "asteroids"), "asteroid")
+client/scripts/protocol/realtime/world_lane_applier.gd:108:	decoded["pickups"] = _decode_entity_records(_array_field(world_packet, "pickups"), "pickup")
+client/scripts/protocol/realtime/world_lane_applier.gd:109:	return decoded
+client/scripts/protocol/realtime/world_lane_applier.gd:110:
+client/scripts/protocol/realtime/world_lane_applier.gd:111:func _decode_entity_records(records: Array, entity_kind: String) -> Array:
+client/scripts/protocol/realtime/world_lane_applier.gd:112:	var decoded: Array = []
+client/scripts/protocol/realtime/world_lane_applier.gd:113:	for record in records:
+client/scripts/protocol/realtime/world_lane_applier.gd:114:		if not (record is Dictionary):
+client/scripts/protocol/realtime/world_lane_applier.gd:115:			decoded.append(record)
+client/scripts/protocol/realtime/world_lane_applier.gd:116:			continue
+client/scripts/protocol/realtime/world_lane_applier.gd:117:		match entity_kind:
+client/scripts/protocol/realtime/world_lane_applier.gd:118:			"ship":
+client/scripts/protocol/realtime/world_lane_applier.gd:119:				decoded.append(RealtimeQuantize.decode_world_ship_record(record))
+client/scripts/protocol/realtime/world_lane_applier.gd:120:			"bullet":
+client/scripts/protocol/realtime/world_lane_applier.gd:121:				decoded.append(RealtimeQuantize.decode_world_bullet_record(record))
+client/scripts/protocol/realtime/world_lane_applier.gd:122:			"asteroid":
+client/scripts/protocol/realtime/world_lane_applier.gd:123:				decoded.append(RealtimeQuantize.decode_world_asteroid_record(record))
+client/scripts/protocol/realtime/world_lane_applier.gd:124:			"pickup":
+client/scripts/protocol/realtime/world_lane_applier.gd:125:				decoded.append(RealtimeQuantize.decode_world_pickup_record(record))
+client/scripts/protocol/realtime/world_lane_applier.gd:126:			_:
+client/scripts/protocol/realtime/world_lane_applier.gd:127:				decoded.append(record)
+client/scripts/protocol/realtime/world_lane_applier.gd:128:	return decoded
+client/scripts/protocol/realtime/world_lane_applier.gd:129:
+client/scripts/protocol/realtime/world_lane_applier.gd:130:func _array_field(packet: Dictionary, key: String) -> Array:
+client/scripts/protocol/realtime/world_lane_applier.gd:131:	# Missing sparse delta arrays are intentionally treated as empty no-ops.
+client/scripts/protocol/realtime/world_lane_applier.gd:132:	var value = packet.get(key, [])
+client/scripts/protocol/realtime/world_lane_applier.gd:133:	if value is Array:
+client/scripts/protocol/realtime/world_lane_applier.gd:134:		return value
+client/scripts/protocol/realtime/world_lane_applier.gd:135:	return []
+client/scripts/protocol/realtime/world_lane_applier.gd:136:
+client/scripts/protocol/realtime/world_lane_applier.gd:137:func _valid_lifecycle_payload(packet: Dictionary, creates_key: String, deletes_key: String, updates_key: String = "") -> bool:
+client/scripts/protocol/realtime/world_lane_applier.gd:138:	var array_keys := [creates_key, deletes_key]
+client/scripts/protocol/realtime/world_lane_applier.gd:139:	if not updates_key.is_empty():
+client/scripts/protocol/realtime/world_lane_applier.gd:140:		array_keys.append(updates_key)
+client/scripts/protocol/realtime/world_lane_applier.gd:141:	for key in array_keys:
+client/scripts/protocol/realtime/world_lane_applier.gd:142:		if packet.has(key) and not packet[key] is Array:
+client/scripts/protocol/realtime/world_lane_applier.gd:143:			return false
+client/scripts/protocol/realtime/world_lane_applier.gd:144:	for record in _array_field(packet, creates_key):
+client/scripts/protocol/realtime/world_lane_applier.gd:145:		if not record is Dictionary:
+client/scripts/protocol/realtime/world_lane_applier.gd:146:			return false
+client/scripts/protocol/realtime/world_lane_applier.gd:147:	if not updates_key.is_empty():
+client/scripts/protocol/realtime/world_lane_applier.gd:148:		for record in _array_field(packet, updates_key):
+client/scripts/protocol/realtime/world_lane_applier.gd:149:			if not record is Dictionary:
+client/scripts/protocol/realtime/world_lane_applier.gd:150:				return false
+client/scripts/protocol/realtime/world_lane_applier.gd:151:	return true
+client/scripts/protocol/realtime/world_lane_applier.gd:152:
+client/scripts/protocol/realtime/world_lane_applier.gd:153:func _apply_entity_deltas(world_lane_state: WorldLaneState, creates: Array, updates: Array, deletes: Array, entity_kind: String) -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:154:	for record in creates:
+client/scripts/protocol/realtime/world_lane_applier.gd:155:		_apply_entity_create(world_lane_state, record, entity_kind)
+client/scripts/protocol/realtime/world_lane_applier.gd:156:	for record in updates:
+client/scripts/protocol/realtime/world_lane_applier.gd:157:		_apply_entity_update(world_lane_state, record, entity_kind)
+client/scripts/protocol/realtime/world_lane_applier.gd:158:	for id in deletes:
+client/scripts/protocol/realtime/world_lane_applier.gd:159:		_apply_entity_delete(world_lane_state, id, entity_kind)
+client/scripts/protocol/realtime/world_lane_applier.gd:160:
+client/scripts/protocol/realtime/world_lane_applier.gd:161:func _apply_entity_create(world_lane_state: WorldLaneState, record: Dictionary, entity_kind: String) -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:162:	var decoded := _decode_entity_record(record, entity_kind)
+client/scripts/protocol/realtime/world_lane_applier.gd:163:	match entity_kind:
+client/scripts/protocol/realtime/world_lane_applier.gd:164:		"ship":
+client/scripts/protocol/realtime/world_lane_applier.gd:165:			world_lane_state.upsert_ship(decoded)
+client/scripts/protocol/realtime/world_lane_applier.gd:166:		"bullet":
+client/scripts/protocol/realtime/world_lane_applier.gd:167:			world_lane_state.upsert_bullet(decoded)
+client/scripts/protocol/realtime/world_lane_applier.gd:168:		"asteroid":
+client/scripts/protocol/realtime/world_lane_applier.gd:169:			world_lane_state.upsert_asteroid(decoded)
+client/scripts/protocol/realtime/world_lane_applier.gd:170:		"pickup":
+client/scripts/protocol/realtime/world_lane_applier.gd:171:			world_lane_state.upsert_pickup(decoded)
+client/scripts/protocol/realtime/world_lane_applier.gd:172:
+client/scripts/protocol/realtime/world_lane_applier.gd:173:func _apply_entity_update(world_lane_state: WorldLaneState, record: Dictionary, entity_kind: String) -> void:
+client/scripts/protocol/realtime/world_lane_applier.gd:174:	var decoded := _decode_entity_record(record, entity_kind)
+client/scripts/protocol/realtime/world_lane_applier.gd:175:	match entity_kind:
+client/scripts/protocol/realtime/world_lane_applier.gd:176:		"ship":
+client/scripts/protocol/realtime/world_lane_applier.gd:177:			world_lane_state.merge_or_buffer_ship_update(decoded)
+client/scripts/protocol/realtime/world_lane_applier.gd:178:		"bullet":
+client/scripts/protocol/realtime/world_lane_applier.gd:179:			world_lane_state.merge_or_buffer_bullet_update(decoded)
+client/scripts/protocol/realtime/world_lane_applier.gd:180:		"asteroid":
+client/scripts/protocol/realtime/world_lane_applier.gd:181:			world_lane_state.merge_or_buffer_asteroid_update(decoded)
+client/scripts/protocol/realtime/world_lane_applier.gd:182:		"pickup":
+client/scripts/protocol/realtime/world_lane_applier.gd:183:			world_lane_state.merge_pickup_update(decoded)
+client/scripts/protocol/realtime/world_lane_applier.gd:184:		_:
+client/scripts/protocol/realtime/world_lane_applier.gd:185:			_apply_entity_create(world_lane_state, decoded, entity_kind)
+client/scripts/protocol/realtime/world_lane_applier.gd:186:
+client/scripts/protocol/realtime/world_lane_applier.gd:187:func _decode_entity_record(record: Dictionary, entity_kind: String) -> Dictionary:
+client/scripts/protocol/realtime/world_lane_applier.gd:188:	if record == null:
+client/scripts/protocol/realtime/world_lane_applier.gd:189:		return {}
+client/scripts/protocol/realtime/world_lane_applier.gd:190:	match entity_kind:
+client/scripts/protocol/realtime/world_lane_applier.gd:191:		"ship":
+c…23026 tokens truncated…ervers
+client/scripts/networking/webrtc/webrtc_transport.gd:126:	if effective_ice_servers.is_empty():
+client/scripts/networking/webrtc/webrtc_transport.gd:127:		effective_ice_servers = ClientConstants.WEBRTC_ICE_SERVERS
+client/scripts/networking/webrtc/webrtc_transport.gd:128:	if !effective_ice_servers.is_empty():
+client/scripts/networking/webrtc/webrtc_transport.gd:129:		config["iceServers"] = effective_ice_servers
+client/scripts/networking/webrtc/webrtc_transport.gd:130:	return config
+client/scripts/networking/webrtc/webrtc_transport.gd:131:
+client/scripts/networking/webrtc/webrtc_transport.gd:132:func handle_answer(description_type: String, sdp: String) -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:133:	if _peer == null:
+client/scripts/networking/webrtc/webrtc_transport.gd:134:		return
+client/scripts/networking/webrtc/webrtc_transport.gd:135:	_peer.set_remote_description(description_type, sdp)
+client/scripts/networking/webrtc/webrtc_transport.gd:136:
+client/scripts/networking/webrtc/webrtc_transport.gd:137:func handle_remote_ice(media: String, index: int, name: String) -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:138:	if _peer == null:
+client/scripts/networking/webrtc/webrtc_transport.gd:139:		return
+client/scripts/networking/webrtc/webrtc_transport.gd:140:	_peer.add_ice_candidate(media, index, name)
+client/scripts/networking/webrtc/webrtc_transport.gd:141:
+client/scripts/networking/webrtc/webrtc_transport.gd:142:func poll() -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:143:	if _peer == null:
+client/scripts/networking/webrtc/webrtc_transport.gd:144:		return
+client/scripts/networking/webrtc/webrtc_transport.gd:145:	_peer.poll()
+client/scripts/networking/webrtc/webrtc_transport.gd:146:	if _channels.is_empty():
+client/scripts/networking/webrtc/webrtc_transport.gd:147:		return
+client/scripts/networking/webrtc/webrtc_transport.gd:148:	var all_ready: bool = true
+client/scripts/networking/webrtc/webrtc_transport.gd:149:	for spec in CHANNEL_SPECS:
+client/scripts/networking/webrtc/webrtc_transport.gd:150:		var lane: String = str(spec.get("lane", ""))
+client/scripts/networking/webrtc/webrtc_transport.gd:151:		var channel: Variant = _channels.get(lane)
+client/scripts/networking/webrtc/webrtc_transport.gd:152:		var channel_ready: bool = channel != null and channel.get_ready_state() == WebRTCDataChannel.STATE_OPEN
+client/scripts/networking/webrtc/webrtc_transport.gd:153:		if _ready_channels.get(lane, false) and !channel_ready and !_channel_close_reported.get(lane, false):
+client/scripts/networking/webrtc/webrtc_transport.gd:154:			_channel_close_reported[lane] = true
+client/scripts/networking/webrtc/webrtc_transport.gd:155:			channel_closed.emit(lane)
+client/scripts/networking/webrtc/webrtc_transport.gd:156:		if channel == null:
+client/scripts/networking/webrtc/webrtc_transport.gd:157:			all_ready = false
+client/scripts/networking/webrtc/webrtc_transport.gd:158:			continue
+client/scripts/networking/webrtc/webrtc_transport.gd:159:		_ready_channels[lane] = channel_ready
+client/scripts/networking/webrtc/webrtc_transport.gd:160:		all_ready = all_ready and channel_ready
+client/scripts/networking/webrtc/webrtc_transport.gd:161:	if !_ready_emitted and all_ready:
+client/scripts/networking/webrtc/webrtc_transport.gd:162:		_ready_emitted = true
+client/scripts/networking/webrtc/webrtc_transport.gd:163:		ready.emit(_channel_ready_payload())
+client/scripts/networking/webrtc/webrtc_transport.gd:164:	var total_drained := 0
+client/scripts/networking/webrtc/webrtc_transport.gd:165:	var drained_by_lane := {}
+client/scripts/networking/webrtc/webrtc_transport.gd:166:	while total_drained < MAX_PACKETS_PER_POLL:
+client/scripts/networking/webrtc/webrtc_transport.gd:167:		var drained_this_pass := 0
+client/scripts/networking/webrtc/webrtc_transport.gd:168:		for lanes_data in [[LIFECYCLE_LANES, _lifecycle_start_cursor], [GENERAL_LANES, _general_start_cursor]]:
+client/scripts/networking/webrtc/webrtc_transport.gd:169:			var lanes: Array = lanes_data[0]
+client/scripts/networking/webrtc/webrtc_transport.gd:170:			var start_cursor: int = lanes_data[1]
+client/scripts/networking/webrtc/webrtc_transport.gd:171:			for offset in lanes.size():
+client/scripts/networking/webrtc/webrtc_transport.gd:172:				if total_drained >= MAX_PACKETS_PER_POLL:
+client/scripts/networking/webrtc/webrtc_transport.gd:173:					break
+client/scripts/networking/webrtc/webrtc_transport.gd:174:				var lane: String = str(lanes[(start_cursor + offset) % lanes.size()])
+client/scripts/networking/webrtc/webrtc_transport.gd:175:				var channel: Variant = _channels.get(lane)
+client/scripts/networking/webrtc/webrtc_transport.gd:176:				if channel == null or channel.get_ready_state() != WebRTCDataChannel.STATE_OPEN:
+client/scripts/networking/webrtc/webrtc_transport.gd:177:					continue
+client/scripts/networking/webrtc/webrtc_transport.gd:178:				var lane_drained: int = int(drained_by_lane.get(lane, 0))
+client/scripts/networking/webrtc/webrtc_transport.gd:179:				if lane_drained >= MAX_PACKETS_PER_LANE_PER_POLL or channel.get_available_packet_count() <= 0:
+client/scripts/networking/webrtc/webrtc_transport.gd:180:					continue
+client/scripts/networking/webrtc/webrtc_transport.gd:181:				var raw_packet: PackedByteArray = channel.get_packet()
+client/scripts/networking/webrtc/webrtc_transport.gd:182:				if raw_packet is PackedByteArray:
+client/scripts/networking/webrtc/webrtc_transport.gd:183:					_handle_channel_packet(raw_packet, lane)
+client/scripts/networking/webrtc/webrtc_transport.gd:184:					drained_by_lane[lane] = lane_drained + 1
+client/scripts/networking/webrtc/webrtc_transport.gd:185:					total_drained += 1
+client/scripts/networking/webrtc/webrtc_transport.gd:186:					drained_this_pass += 1
+client/scripts/networking/webrtc/webrtc_transport.gd:187:		if drained_this_pass == 0:
+client/scripts/networking/webrtc/webrtc_transport.gd:188:			break
+client/scripts/networking/webrtc/webrtc_transport.gd:189:	_lifecycle_start_cursor = (_lifecycle_start_cursor + 1) % LIFECYCLE_LANES.size()
+client/scripts/networking/webrtc/webrtc_transport.gd:190:	_general_start_cursor = (_general_start_cursor + 1) % GENERAL_LANES.size()
+client/scripts/networking/webrtc/webrtc_transport.gd:191:
+client/scripts/networking/webrtc/webrtc_transport.gd:192:func send_json(packet: Dictionary) -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:193:	_send_json_to_lane("world", packet)
+client/scripts/networking/webrtc/webrtc_transport.gd:194:
+client/scripts/networking/webrtc/webrtc_transport.gd:195:
+client/scripts/networking/webrtc/webrtc_transport.gd:196:func send_tooling_json(packet: Dictionary) -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:197:	_send_json_to_lane("tooling", packet)
+client/scripts/networking/webrtc/webrtc_transport.gd:198:
+client/scripts/networking/webrtc/webrtc_transport.gd:199:
+client/scripts/networking/webrtc/webrtc_transport.gd:200:func send_smoke(smoke_id: String, message: String) -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:201:	send_json({
+client/scripts/networking/webrtc/webrtc_transport.gd:202:		"type": "webrtc_smoke",
+client/scripts/networking/webrtc/webrtc_transport.gd:203:		"smoke_id": smoke_id,
+client/scripts/networking/webrtc/webrtc_transport.gd:204:		"origin": SMOKE_ORIGIN_CLIENT,
+client/scripts/networking/webrtc/webrtc_transport.gd:205:		"message": message,
+client/scripts/networking/webrtc/webrtc_transport.gd:206:	})
+client/scripts/networking/webrtc/webrtc_transport.gd:207:
+client/scripts/networking/webrtc/webrtc_transport.gd:208:
+client/scripts/networking/webrtc/webrtc_transport.gd:209:func close() -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:210:	for lane in _channels.keys():
+client/scripts/networking/webrtc/webrtc_transport.gd:211:		var channel: Variant = _channels.get(lane)
+client/scripts/networking/webrtc/webrtc_transport.gd:212:		if channel != null:
+client/scripts/networking/webrtc/webrtc_transport.gd:213:			channel.close()
+client/scripts/networking/webrtc/webrtc_transport.gd:214:	if _peer != null:
+client/scripts/networking/webrtc/webrtc_transport.gd:215:		_peer.close()
+client/scripts/networking/webrtc/webrtc_transport.gd:216:	_peer = null
+client/scripts/networking/webrtc/webrtc_transport.gd:217:	_channels = {}
+client/scripts/networking/webrtc/webrtc_transport.gd:218:	_ready_channels = {}
+client/scripts/networking/webrtc/webrtc_transport.gd:219:	_ready_emitted = false
+client/scripts/networking/webrtc/webrtc_transport.gd:220:	_channel_close_reported = {}
+client/scripts/networking/webrtc/webrtc_transport.gd:221:	_lifecycle_start_cursor = 0
+client/scripts/networking/webrtc/webrtc_transport.gd:222:	_general_start_cursor = 0
+client/scripts/networking/webrtc/webrtc_transport.gd:223:	_reset_runtime_metrics()
+client/scripts/networking/webrtc/webrtc_transport.gd:224:
+client/scripts/networking/webrtc/webrtc_transport.gd:225:
+client/scripts/networking/webrtc/webrtc_transport.gd:226:func _on_session_description_created(description_type: String, sdp: String) -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:227:	if _peer != null:
+client/scripts/networking/webrtc/webrtc_transport.gd:228:		_peer.set_local_description(description_type, sdp)
+client/scripts/networking/webrtc/webrtc_transport.gd:229:	offer_created.emit(description_type, sdp)
+client/scripts/networking/webrtc/webrtc_transport.gd:230:
+client/scripts/networking/webrtc/webrtc_transport.gd:231:
+client/scripts/networking/webrtc/webrtc_transport.gd:232:func _on_ice_candidate_created(media: String, index: int, name: String) -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:233:	ice_candidate_created.emit(media, index, name)
+client/scripts/networking/webrtc/webrtc_transport.gd:234:
+client/scripts/networking/webrtc/webrtc_transport.gd:235:
+client/scripts/networking/webrtc/webrtc_transport.gd:236:func _handle_channel_packet(packet: PackedByteArray, lane: String = "") -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:237:	var raw_bytes := packet.size()
+client/scripts/networking/webrtc/webrtc_transport.gd:238:	var text: String = packet.get_string_from_utf8()
+client/scripts/networking/webrtc/webrtc_transport.gd:239:	var decode_result: Variant = PacketCodec.decode(text)
+client/scripts/networking/webrtc/webrtc_transport.gd:240:	if !decode_result.ok:
+client/scripts/networking/webrtc/webrtc_transport.gd:241:		_runtime_metrics.observe_decode_failure(raw_bytes)
+client/scripts/networking/webrtc/webrtc_transport.gd:242:		_metrics_for_lane(lane).observe_decode_failure(raw_bytes)
+client/scripts/networking/webrtc/webrtc_transport.gd:243:		failed.emit("invalid_json", decode_result.error)
+client/scripts/networking/webrtc/webrtc_transport.gd:244:		return
+client/scripts/networking/webrtc/webrtc_transport.gd:245:	var packet_type := _packet_type(decode_result.packet)
+client/scripts/networking/webrtc/webrtc_transport.gd:246:	_runtime_metrics.observe_inbound(raw_bytes, packet_type)
+client/scripts/networking/webrtc/webrtc_transport.gd:247:	_metrics_for_lane(lane).observe_inbound(raw_bytes, packet_type)
+client/scripts/networking/webrtc/webrtc_transport.gd:248:	_handle_decoded_packet(decode_result.packet, lane)
+client/scripts/networking/webrtc/webrtc_transport.gd:249:
+client/scripts/networking/webrtc/webrtc_transport.gd:250:
+client/scripts/networking/webrtc/webrtc_transport.gd:251:func _handle_decoded_packet(data: Dictionary, lane: String = "") -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:252:	if str(data.get("type", "")) == "bullet_delta":
+client/scripts/networking/webrtc/webrtc_transport.gd:253:		bullet_delta_received_count += 1
+client/scripts/networking/webrtc/webrtc_transport.gd:254:		var server_sent_msec = data.get("server_sent_msec", null)
+client/scripts/networking/webrtc/webrtc_transport.gd:255:		if server_sent_msec == null or int(server_sent_msec) <= 0:
+client/scripts/networking/webrtc/webrtc_transport.gd:256:			bullet_delta_missing_server_time_count += 1
+client/scripts/networking/webrtc/webrtc_transport.gd:257:		elif server_clock_offset_ms == -1:
+client/scripts/networking/webrtc/webrtc_transport.gd:258:			bullet_delta_unsynchronized_server_time_count += 1
+client/scripts/networking/webrtc/webrtc_transport.gd:259:		else:
+client/scripts/networking/webrtc/webrtc_transport.gd:260:			var client_sent_msec := int(server_sent_msec) - server_clock_offset_ms
+client/scripts/networking/webrtc/webrtc_transport.gd:261:			var age_msec := Time.get_ticks_msec() - client_sent_msec
+client/scripts/networking/webrtc/webrtc_transport.gd:262:			if age_msec < 0:
+client/scripts/networking/webrtc/webrtc_transport.gd:263:				bullet_delta_clock_skew_count += 1
+client/scripts/networking/webrtc/webrtc_transport.gd:264:				age_msec = 0
+client/scripts/networking/webrtc/webrtc_transport.gd:265:			bullet_delta_last_age_msec = age_msec
+client/scripts/networking/webrtc/webrtc_transport.gd:266:			bullet_delta_max_age_msec = maxi(bullet_delta_max_age_msec, age_msec)
+client/scripts/networking/webrtc/webrtc_transport.gd:267:	if str(data.get("type", "")) == "webrtc_smoke":
+client/scripts/networking/webrtc/webrtc_transport.gd:268:		smoke_received.emit(data)
+client/scripts/networking/webrtc/webrtc_transport.gd:269:		return
+client/scripts/networking/webrtc/webrtc_transport.gd:270:	packet_received.emit(data, lane)
+client/scripts/networking/webrtc/webrtc_transport.gd:271:
+client/scripts/networking/webrtc/webrtc_transport.gd:272:
+client/scripts/networking/webrtc/webrtc_transport.gd:273:func _send_json_to_lane(lane: String, packet: Dictionary) -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:274:	var channel: Variant = _channels.get(lane)
+client/scripts/networking/webrtc/webrtc_transport.gd:275:	if channel == null or channel.get_ready_state() != WebRTCDataChannel.STATE_OPEN:
+client/scripts/networking/webrtc/webrtc_transport.gd:276:		return
+client/scripts/networking/webrtc/webrtc_transport.gd:277:	var encoded := JSON.stringify(packet).to_utf8_buffer()
+client/scripts/networking/webrtc/webrtc_transport.gd:278:	var packet_type := _packet_type(packet)
+client/scripts/networking/webrtc/webrtc_transport.gd:279:	var result: int = int(channel.put_packet(encoded))
+client/scripts/networking/webrtc/webrtc_transport.gd:280:	if result != OK:
+client/scripts/networking/webrtc/webrtc_transport.gd:281:		_runtime_metrics.observe_send_failure(encoded.size(), packet_type)
+client/scripts/networking/webrtc/webrtc_transport.gd:282:		_metrics_for_lane(lane).observe_send_failure(encoded.size(), packet_type)
+client/scripts/networking/webrtc/webrtc_transport.gd:283:		return
+client/scripts/networking/webrtc/webrtc_transport.gd:284:	_runtime_metrics.observe_outbound(encoded.size(), packet_type)
+client/scripts/networking/webrtc/webrtc_transport.gd:285:	_metrics_for_lane(lane).observe_outbound(encoded.size(), packet_type)
+client/scripts/networking/webrtc/webrtc_transport.gd:286:
+client/scripts/networking/webrtc/webrtc_transport.gd:287:
+client/scripts/networking/webrtc/webrtc_transport.gd:288:func network_metrics_snapshot() -> Dictionary:
+client/scripts/networking/webrtc/webrtc_transport.gd:289:	var snapshot: Dictionary = _runtime_metrics.snapshot()
+client/scripts/networking/webrtc/webrtc_transport.gd:290:	var lanes := {}
+client/scripts/networking/webrtc/webrtc_transport.gd:291:	for lane in _lane_metrics.keys():
+client/scripts/networking/webrtc/webrtc_transport.gd:292:		lanes[lane] = _lane_metrics[lane].snapshot()
+client/scripts/networking/webrtc/webrtc_transport.gd:293:	snapshot["lanes"] = lanes
+client/scripts/networking/webrtc/webrtc_transport.gd:294:	snapshot["bullet_delta_received_count"] = bullet_delta_received_count
+client/scripts/networking/webrtc/webrtc_transport.gd:295:	snapshot["bullet_delta_last_age_msec"] = bullet_delta_last_age_msec
+client/scripts/networking/webrtc/webrtc_transport.gd:296:	snapshot["bullet_delta_max_age_msec"] = bullet_delta_max_age_msec
+client/scripts/networking/webrtc/webrtc_transport.gd:297:	snapshot["bullet_delta_missing_server_time_count"] = bullet_delta_missing_server_time_count
+client/scripts/networking/webrtc/webrtc_transport.gd:298:	snapshot["bullet_delta_unsynchronized_server_time_count"] = bullet_delta_unsynchronized_server_time_count
+client/scripts/networking/webrtc/webrtc_transport.gd:299:	snapshot["bullet_delta_clock_skew_count"] = bullet_delta_clock_skew_count
+client/scripts/networking/webrtc/webrtc_transport.gd:300:	return snapshot
+client/scripts/networking/webrtc/webrtc_transport.gd:301:
+client/scripts/networking/webrtc/webrtc_transport.gd:302:
+client/scripts/networking/webrtc/webrtc_transport.gd:303:func receive_metrics_snapshot() -> Dictionary:
+client/scripts/networking/webrtc/webrtc_transport.gd:304:	return network_metrics_snapshot()
+client/scripts/networking/webrtc/webrtc_transport.gd:305:
+client/scripts/networking/webrtc/webrtc_transport.gd:306:
+client/scripts/networking/webrtc/webrtc_transport.gd:307:func _reset_runtime_metrics() -> void:
+client/scripts/networking/webrtc/webrtc_transport.gd:308:	_runtime_metrics = NetworkRuntimeMetrics.new()
+client/scripts/networking/webrtc/webrtc_transport.gd:309:	_runtime_metrics.transport = "webrtc"
+client/scripts/networking/webrtc/webrtc_transport.gd:310:	_lane_metrics.clear()
+client/scripts/networking/webrtc/webrtc_transport.gd:311:
+client/scripts/networking/webrtc/webrtc_transport.gd:312:
+client/scripts/networking/webrtc/webrtc_transport.gd:313:func _metrics_for_lane(lane: String):
+client/scripts/networking/webrtc/webrtc_transport.gd:314:	if not _lane_metrics.has(lane):
+client/scripts/networking/webrtc/webrtc_transport.gd:315:		var metrics = NetworkRuntimeMetrics.new()
+client/scripts/networking/webrtc/webrtc_transport.gd:316:		metrics.transport = "webrtc:%s" % lane
+client/scripts/networking/webrtc/webrtc_transport.gd:317:		_lane_metrics[lane] = metrics
+client/scripts/networking/webrtc/webrtc_transport.gd:318:	return _lane_metrics[lane]
+client/scripts/networking/webrtc/webrtc_transport.gd:319:
+client/scripts/networking/webrtc/webrtc_transport.gd:320:
+client/scripts/networking/webrtc/webrtc_transport.gd:321:func _packet_type(packet: Dictionary) -> String:
+client/scripts/networking/webrtc/webrtc_transport.gd:322:	var packet_type := str(packet.get("type", ""))
+client/scripts/networking/webrtc/webrtc_transport.gd:323:	if not packet_type.is_empty():
+client/scripts/networking/webrtc/webrtc_transport.gd:324:		return packet_type
+client/scripts/networking/webrtc/webrtc_transport.gd:325:	return str(packet.get("t", ""))
+client/scripts/networking/webrtc/webrtc_transport.gd:326:
+client/scripts/networking/webrtc/webrtc_transport.gd:327:
+client/scripts/networking/webrtc/webrtc_transport.gd:328:func _channel_spec_for_lane(lane: String) -> Variant:
+client/scripts/networking/webrtc/webrtc_transport.gd:329:	for spec in CHANNEL_SPECS:
+client/scripts/networking/webrtc/webrtc_transport.gd:330:		if str(spec.get("lane", "")) == lane:
+client/scripts/networking/webrtc/webrtc_transport.gd:331:			return spec
+client/scripts/networking/webrtc/webrtc_transport.gd:332:	return null
+client/scripts/networking/webrtc/webrtc_transport.gd:333:
+client/scripts/networking/webrtc/webrtc_transport.gd:334:func _channel_ready_payload() -> Array:
+client/scripts/networking/webrtc/webrtc_transport.gd:335:	var channels: Array = []
+client/scripts/networking/webrtc/webrtc_transport.gd:336:	for spec in CHANNEL_SPECS:
+client/scripts/networking/webrtc/webrtc_transport.gd:337:		channels.append({
+client/scripts/networking/webrtc/webrtc_transport.gd:338:			"lane": str(spec.get("lane", "")),
+client/scripts/networking/webrtc/webrtc_transport.gd:339:			"channel_label": str(spec.get("label", "")),
+client/scripts/networking/webrtc/webrtc_transport.gd:340:			"channel_id": int(spec.get("id", 0)),
+client/scripts/networking/webrtc/webrtc_transport.gd:341:		})
+client/scripts/networking/webrtc/webrtc_transport.gd:342:	return channels
+rg: client/scripts/protocol/realtime/hot_lane_chunk_assembler.gd: The system cannot find the file specified. (os error 2)
+
+2026-07-29T18:00:40.982056Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$lines = Get-Content '"'services/game-server/internal/networking/websocket_session.go'; for ("'$i=22; $i -lt [Math]::Min(80,$lines.Count); $i++) { '"'{0}:{1}' -f ("'$i+1), $lines[$i] }'` rejected: blocked by policy
+2026-07-29T18:01:01.660957Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.8 seconds
+Output:
+1:package realtime
+2:
+3:func ExpandRealtimeCandidateChunks(candidates []RealtimeLaneCandidate) ([]RealtimeLaneCandidate, error) {
+4:	if len(candidates) == 0 {
+5:		return nil, nil
+6:	}
+7:
+8:	expanded := make([]RealtimeLaneCandidate, 0, len(candidates))
+9:	for _, candidate := range candidates {
+10:		chunks, err := expandRealtimeCandidate(candidate)
+11:		if err != nil {
+12:			return nil, err
+13:		}
+14:		expanded = append(expanded, chunks...)
+15:	}
+16:	return expanded, nil
+17:}
+18:
+19:func expandRealtimeCandidate(candidate RealtimeLaneCandidate) ([]RealtimeLaneCandidate, error) {
+20:	hardCapChunks, err := expandHardCapCandidate(candidate)
+21:	if err != nil {
+22:		return nil, err
+23:	}
+24:	if candidate.Kind() == RealtimeLaneCandidateKindFull && candidate.Lane() == LaneWorld {
+25:		return hardCapChunks, nil
+26:	}
+27:	lane, kind := candidate.Lane(), candidate.Kind()
+28:	if kind != RealtimeLaneCandidateKindDelta {
+29:		return hardCapChunks, nil
+30:	}
+31:
+32:	switch lane {
+33:	case LaneShipsLifecycle, LaneBulletsLifecycle, LaneAsteroidsLifecycle:
+34:		return hardCapChunks, nil
+35:	case LaneShips:
+36:		packet, ok := shipWireDeltaPacketFromCandidate(candidate)
+37:		if !ok {
+38:			return []RealtimeLaneCandidate{candidate}, nil
+39:		}
+40:		packet.Metadata.MatchID = candidate.MatchID
+41:
+42:		if shipWireDeltaChunkCount(packet) == 1 {
+43:			return []RealtimeLaneCandidate{normalizedShipWireDeltaCandidate(candidate, packet, packet.ShipUpdates, 0, 1)}, nil
+44:		}
+45:
+46:		chunkUpdates := greedyShipWireDeltaChunks(packet)
+47:		if len(chunkUpdates) == 0 {
+48:			return []RealtimeLaneCandidate{candidate}, nil
+49:		}
+50:
+51:		chunks := make([]RealtimeLaneCandidate, 0, len(chunkUpdates))
+52:		chunkCount := len(chunkUpdates)
+53:		for index, updates := range chunkUpdates {
+54:			chunks = append(chunks, normalizedShipWireDeltaCandidate(candidate, packet, updates, index, chunkCount))
+55:		}
+56:		return chunks, nil
+57:	case LaneBullets:
+58:		packet, ok := bulletWireDeltaPacketFromCandidate(candidate)
+59:		if !ok {
+60:			return []RealtimeLaneCandidate{candidate}, nil
+61:		}
+62:		packet.Metadata.MatchID = candidate.MatchID
+63:
+64:		if bulletWireDeltaChunkCount(packet) == 1 {
+65:			return []RealtimeLaneCandidate{normalizedBulletWireDeltaCandidate(candidate, packet, packet.BulletUpdates, 0, 1)}, nil
+66:		}
+67:
+68:		chunkUpdates := greedyBulletWireDeltaChunks(packet)
+69:		if len(chunkUpdates) == 0 {
+70:			return []RealtimeLaneCandidate{candidate}, nil
+71:		}
+72:
+73:		chunks := make([]RealtimeLaneCandidate, 0, len(chunkUpdates))
+74:		chunkCount := len(chunkUpdates)
+75:		for index, updates := range chunkUpdates {
+76:			chunks = append(chunks, normalizedBulletWireDeltaCandidate(candidate, packet, updates, index, chunkCount))
+77:		}
+78:		return chunks, nil
+79:	case LaneAsteroids:
+80:		packet, ok := asteroidWireDeltaPacketFromCandidate(candidate)
+81:		if !ok {
+82:			return []RealtimeLaneCandidate{candidate}, nil
+83:		}
+84:		packet.Metadata.MatchID = candidate.MatchID
+85:
+86:		if !asteroidWireDeltaRequiresChunking(packet) {
+87:			return []RealtimeLaneCandidate{normalizedAsteroidWireDeltaCandidate(candidate, packet, packet.AsteroidUpdates, 0, 1)}, nil
+88:		}
+89:
+90:		chunkUpdates := greedyAsteroidWireDeltaChunks(packet)
+91:		if len(chunkUpdates) == 0 {
+92:			return []RealtimeLaneCandidate{candidate}, nil
+93:		}
+94:
+95:		chunks := make([]RealtimeLaneCandidate, 0, len(chunkUpdates))
+96:		chunkCount := len(chunkUpdates)
+97:		for index, updates := range chunkUpdates {
+98:			chunks = append(chunks, normalizedAsteroidWireDeltaCandidate(candidate, packet, updates, index, chunkCount))
+99:		}
+100:		return chunks, nil
+101:	default:
+102:		return []RealtimeLaneCandidate{candidate}, nil
+103:	}
+104:}
+105:
+106:func shipWireDeltaChunkCount(packet ShipWireDeltaPacket) int {
+107:	if estimateShipDeltaPacketBytes(packet, packet.ShipUpdates) <= HardCapBytes {
+108:		return 1
+109:	}
+110:	return len(greedyShipWireDeltaChunks(packet))
+111:}
+112:
+113:func hotLaneModeForChunkCount(chunkCount int) HotLaneMode {
+114:	switch {
+115:	case chunkCount <= 1:
+116:		return HotLaneModeFullOwned60Hz
+117:	case chunkCount == 2:
+118:		return HotLaneModeFullOwned30Hz
+119:	case chunkCount == 3:
+120:		return HotLaneModeFullOwned20Hz
+121:	default:
+122:		return HotLaneModeFullOwned15Hz
+123:	}
+124:}
+125:
+126:func hotLaneModeForShipChunkCount(chunkCount int) HotLaneMode {
+127:	return hotLaneModeForChunkCount(chunkCount)
+128:}
+129:
+130:func shipWireDeltaPacketFromCandidate(candidate RealtimeLaneCandidate) (ShipWireDeltaPacket, bool) {
+131:	packet, ok := candidate.Payload.(ShipWireDeltaPacket)
+132:	return packet, ok
+133:}
+134:
+135:func normalizedShipWireDeltaCandidate(candidate RealtimeLaneCandidate, packet ShipWireDeltaPacket, updates []map[string]any, chunkIndex int, chunkCount int) RealtimeLaneCandidate {
+136:	packet.ShipUpdates = updates
+137:	packet.Metadata = packet.Metadata.WithChunk(chunkIndex, chunkCount)
+138:	candidate.Payload = packet
+139:	return candidate
+140:}
+141:
+142:func greedyShipWireDeltaChunks(packet ShipWireDeltaPacket) [][]map[string]any {
+143:	updates := packet.ShipUpdates
+144:	if len(updates) == 0 {
+145:		return [][]map[string]any{{}}
+rg: services/game-server/internal/protocol/realtime/*.go: IO error for operation on services/game-server/internal/protocol/realtime/*.go: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+
+2026-07-29T18:01:38.742252Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse --show-toplevel; git rev-parse HEAD; git status --short'` rejected: blocked by policy
+2026-07-29T18:01:41.018539Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T18:02:49.353568Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+
+2026-07-29T18:02:58.443185Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+services/game-server/internal/rooms/room_creation.go:1:package rooms
+services/game-server/internal/rooms/room_creation.go:2:
+services/game-server/internal/rooms/room_creation.go:3:import (
+services/game-server/internal/rooms/room_creation.go:4:	"fmt"
+services/game-server/internal/rooms/room_creation.go:5:
+services/game-server/internal/rooms/room_creation.go:6:	"github.com/Lokee86/space-rocks/services/game-server/internal/game/teams"
+services/game-server/internal/rooms/room_creation.go:7:)
+services/game-server/internal/rooms/room_creation.go:8:
+services/game-server/internal/rooms/room_creation.go:9:type RoomCreationConfig struct {
+services/game-server/internal/rooms/room_creation.go:10:	TeamConfig teams.Config
+services/game-server/internal/rooms/room_creation.go:11:	MaxPlayers int
+services/game-server/internal/rooms/room_creation.go:12:}
+services/game-server/internal/rooms/room_creation.go:13:
+services/game-server/internal/rooms/room_creation.go:14:func DefaultRoomCreationConfig() RoomCreationConfig {
+services/game-server/internal/rooms/room_creation.go:15:	return RoomCreationConfig{
+services/game-server/internal/rooms/room_creation.go:16:		TeamConfig: defaultTeamConfig(),
+services/game-server/internal/rooms/room_creation.go:17:		MaxPlayers: MaxPlayersPerRoom,
+services/game-server/internal/rooms/room_creation.go:18:	}
+services/game-server/internal/rooms/room_creation.go:19:}
+services/game-server/internal/rooms/room_creation.go:20:
+services/game-server/internal/rooms/room_creation.go:21:func normalizeRoomCreationConfig(config RoomCreationConfig) RoomCreationConfig {
+services/game-server/internal/rooms/room_creation.go:22:	defaults := DefaultRoomCreationConfig()
+services/game-server/internal/rooms/room_creation.go:23:	if config.TeamConfig.Structure == "" {
+services/game-server/internal/rooms/room_creation.go:24:		config.TeamConfig = defaults.TeamConfig
+services/game-server/internal/rooms/room_creation.go:25:	}
+services/game-server/internal/rooms/room_creation.go:26:	if config.MaxPlayers == 0 {
+services/game-server/internal/rooms/room_creation.go:27:		config.MaxPlayers = defaults.MaxPlayers
+services/game-server/internal/rooms/room_creation.go:28:	}
+services/game-server/internal/rooms/room_creation.go:29:	return config
+services/game-server/internal/rooms/room_creation.go:30:}
+services/game-server/internal/rooms/room_creation.go:31:
+services/game-server/internal/rooms/room_creation.go:32:func validateRoomCreationConfig(config RoomCreationConfig) error {
+services/game-server/internal/rooms/room_creation.go:33:	if err := teams.ValidateConfig(config.TeamConfig); err != nil {
+services/game-server/internal/rooms/room_creation.go:34:		return fmt.Errorf("invalid team configuration: %w", err)
+services/game-server/internal/rooms/room_creation.go:35:	}
+services/game-server/internal/rooms/room_creation.go:36:	if config.MaxPlayers < 1 || config.MaxPlayers > MaxPlayersPerRoom {
+services/game-server/internal/rooms/room_creation.go:37:		return fmt.Errorf("room capacity must be between 1 and %d", MaxPlayersPerRoom)
+services/game-server/internal/rooms/room_creation.go:38:	}
+services/game-server/internal/rooms/room_creation.go:39:	return nil
+services/game-server/internal/rooms/room_creation.go:40:}
+services/game-server/internal/rooms/constants.go:1:package rooms
+services/game-server/internal/rooms/constants.go:2:
+services/game-server/internal/rooms/constants.go:3:import (
+services/game-server/internal/rooms/constants.go:4:	"time"
+services/game-server/internal/rooms/constants.go:5:
+services/game-server/internal/rooms/constants.go:6:	"github.com/Lokee86/space-rocks/services/game-server/internal/playerids"
+services/game-server/internal/rooms/constants.go:7:)
+services/game-server/internal/rooms/constants.go:8:
+services/game-server/internal/rooms/constants.go:9:const (
+services/game-server/internal/rooms/constants.go:10:	DefaultRoomID        = "default"
+services/game-server/internal/rooms/constants.go:11:	RoomCleanupGraceTime = 30 * time.Second
+services/game-server/internal/rooms/constants.go:12:	MaxPlayersPerRoom    = playerids.MaxPlayers
+services/game-server/internal/rooms/constants.go:13:	RoomCodeLength       = 6
+services/game-server/internal/rooms/constants.go:14:	RoomCodeAlphabet     = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+services/game-server/internal/rooms/constants.go:15:)
+services/game-server/internal/rooms/constants.go:16:
+services/game-server/internal/rooms/constants.go:17:type RoomState string
+services/game-server/internal/rooms/constants.go:18:
+services/game-server/internal/rooms/constants.go:19:const (
+services/game-server/internal/rooms/constants.go:20:	RoomStateLobby    RoomState = "Lobby"
+services/game-server/internal/rooms/constants.go:21:	RoomStateStarting RoomState = "Starting"
+services/game-server/internal/rooms/constants.go:22:	RoomStateInGame   RoomState = "InGame"
+services/game-server/internal/rooms/constants.go:23:	RoomStateGameOver RoomState = "GameOver"
+services/game-server/internal/rooms/constants.go:24:	RoomStateClosed   RoomState = "Closed"
+services/game-server/internal/rooms/constants.go:25:)
+services/game-server/internal/rooms/constants.go:26:
+services/game-server/internal/rooms/constants.go:27:const (
+services/game-server/internal/rooms/constants.go:28:	RoomErrorRoomNotFound                 = "room_not_found"
+services/game-server/internal/rooms/constants.go:29:	RoomErrorRoomClosed                   = "room_closed"
+services/game-server/internal/rooms/constants.go:30:	RoomErrorRoomInGame                   = "room_in_game"
+services/game-server/internal/rooms/constants.go:31:	RoomErrorRoomFull                     = "room_full"
+services/game-server/internal/rooms/constants.go:32:	RoomErrorAlreadyInRoom                = "already_in_room"
+services/game-server/internal/rooms/constants.go:33:	RoomErrorNotInRoom                    = "not_in_room"
+services/game-server/internal/rooms/constants.go:34:	RoomErrorInvalidRoomCode              = "invalid_room_code"
+services/game-server/internal/rooms/constants.go:35:	RoomErrorNotReady                     = "not_ready"
+services/game-server/internal/rooms/constants.go:36:	RoomErrorNotRoomOwner                 = "not_room_owner"
+services/game-server/internal/rooms/constants.go:37:	RoomErrorCannotRemoveOwner            = "cannot_remove_owner"
+services/game-server/internal/rooms/constants.go:38:	RoomErrorRemovedByOwner               = "removed_by_owner"
+services/game-server/internal/rooms/constants.go:39:	RoomErrorInvalidRoomState             = "invalid_room_state"
+services/game-server/internal/rooms/constants.go:40:	RoomErrorAuthRequired                 = "auth_required"
+services/game-server/internal/rooms/constants.go:41:	RoomErrorInvalidToken                 = "invalid_token"
+services/game-server/internal/rooms/constants.go:42:	RoomErrorTokenVerificationUnavailable = "token_verification_unavailable"
+services/game-server/internal/rooms/constants.go:43:	RoomErrorInvalidTeamAssignment        = "invalid_team_assignment"
+services/game-server/internal/rooms/constants.go:44:)
+rg: services/game-server/internal/playerids/constants.go: The system cannot find the file specified. (os error 2)
+

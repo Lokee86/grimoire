@@ -1,0 +1,83 @@
+The smallest safe change is to keep distant-player position summaries on the existing `ship_delta` path, but send only absolute `id`/`x`/`y` samples at a low cadence. This preserves the current client-to-indicator pipeline, avoids a new packet schema, and does not restore 60 Hz updates for distant players.
+
+## Verified current behavior
+
+- Current receiver filtering is not implemented. World projection includes every player, and `buildIndependentHotLaneCandidates` projects and diffs all current ships without consulting receiver identity or position: `services/game-server/internal/protocol/realtime/projection_world.go:16-38`, `services/game-server/internal/protocol/realtime/lane_candidate_world.go:88-110`.
+
+- The ship hot projection contains only movement-facing fields (`id`, `x`, `y`, `rotation`, `thrusting`), and its delta helper returns only update records: `services/game-server/internal/protocol/realtime/hot_lane_projection.go:15-26`, `services/game-server/internal/protocol/realtime/hot_lane_projection.go:54-60`. Newly entering filtered membership needs explicit handling because the generic delta classifies a previously absent record as a create, not an update: `services/game-server/internal/protocol/realtime/delta.go:76-134`.
+
+- The existing `ship_update` wire record already supports sparse `x`/`y` records and is used by `ship_delta`; no contract extension or generation is required: `shared/packets/realtime_wire.toml:772-796`, `shared/packets/realtime_wire.toml:1599-1601`.
+
+- The client applies an assembled `ship_delta` through the normal ship-update merger: `client/scripts/protocol/realtime/world_lane_applier.gd:58-65`. That merger updates existing ships without dropping omitted rotation, presentation, health, or lifecycle fields: `client/scripts/protocol/realtime/world_lane_state.gd:144-177`. Existing tests specifically verify sparse field preservation: `client/tests/unit/protocol/realtime/test_world_lane_applier.gd:798-849`.
+
+- World sync turns the merged ship state into render targets, interpolation exposes remote visual positions, and gameplay presentation passes those positions to `OSIndicatorController`: `client/scripts/world/world_sync.gd:91-99`, `client/scripts/world/world_sync.gd:196-213`, `client/legacy/player_render/player_sync.gd:119-176`, `client/legacy/player_render/player_sync_interpolation.gd:15-32`, `client/scripts/gameplay/gameplay_composition.gd:260-268`, `client/scripts/gameplay/presentation/gameplay_presentation_flow.gd:32-44`.
+
+- The indicator controller hides onscreen targets, displays/clamps offscreen targets, and deletes an indicator only when its target disappears from the supplied position dictionary: `client/scripts/gameplay/presentation/os_indicator_controller.gd:25-59`.
+
+Consequently, if only full-rate movement becomes receiver-filtered while full/lifecycle membership remains global, a distant player’s indicator remains present but its direction eventually becomes stale. If the broader interest change also removes distant players from full/lifecycle membership, this proposal is insufficient: hot updates cannot create their render nodes, and the indicator controller will remove them.
+
+## Proposed design
+
+In the receiver-interest implementation, divide active remote ships into:
+
+- `fullRateShipIDs`: the receiver’s normal hot-interest set.
+- `distantIndicatorShipIDs`: active remote players outside that set, excluding the receiver.
+
+Then change ship candidate construction as follows:
+
+1. Build normal full-rate transform deltas only for `fullRateShipIDs`.
+
+2. Every 12 `HotLaneTick`s, append an absolute sparse record containing only `id`, `x`, and `y` for every `distantIndicatorShipID`. Twelve ticks gives a proposed 5 Hz fallback at the current 60 Hz server rate: `services/game-server/internal/constants/constants.go:5`, `services/game-server/internal/protocol/realtime/baseline.go:27-35`, `services/game-server/internal/protocol/realtime/active.go:40-43`.
+
+3. Emit those summaries unconditionally on their cadence tick, even when the position has not changed since the previous summary. This makes a lost unreliable packet self-healing at the next sample instead of allowing delta suppression to preserve stale indicator state.
+
+4. Keep summary records outside the full-rate ship delta baseline. They must not advance or alter filtered-interest membership. Newly entering full-rate interest must separately receive an immediate complete transform update.
+
+5. Deduplicate by ID and preserve deterministic ID ordering before constructing the packet.
+
+6. Feed the combined records into the existing `ShipWireDeltaPacket` and chunker. Existing chunking already applies the hard cap to ship update lists: `services/game-server/internal/protocol/realtime/hot_lane_chunker.go:32-56`, `services/game-server/internal/protocol/realtime/hot_lane_chunker.go:106-123`.
+
+The 12-tick cadence is deliberately divisible by every current hot-lane cadence divisor—1, 2, 3, and 4—so a fallback tick is eligible even when chunk pressure has reduced the lane to 30, 20, or 15 Hz: `services/game-server/internal/protocol/realtime/scheduler.go:97-112`.
+
+### Expected implementation surface
+
+- `services/game-server/internal/protocol/realtime/lane_candidate_world.go`
+  - Integrate summary selection immediately after receiver filtering.
+  - Create a ship candidate when either a full-rate delta or scheduled summary exists.
+
+- `services/game-server/internal/protocol/realtime/hot_lane_projection.go`
+  - Add a focused helper that produces deterministic `id`/`x`/`y` summary records from the already-quantized projection.
+  - Keep these records independent from `ShipHotLaneProjection` baseline comparison.
+
+- `services/game-server/internal/protocol/realtime/ship_lanes_test.go`
+  - Add packet-content, cadence, deduplication, and chunking tests.
+
+- `services/game-server/internal/protocol/realtime/planner_world_test.go`
+  - Add per-receiver interest and transition coverage.
+
+- `client/tests/unit/protocol/realtime/test_ship_hot_lanes.gd`
+  - Add a named regression proving an `x`/`y`-only distant summary updates an existing remote ship, a newer full-rate record supersedes it, and an older sequence cannot overwrite it. The underlying behavior already exists at `client/tests/unit/protocol/realtime/test_ship_hot_lanes.gd:8-28`.
+
+No client production files, packet TOML, or generated artifacts should change.
+
+## Required acceptance coverage
+
+- A moving nearby ship is eligible at normal hot cadence; a moving distant ship is absent on ticks 1–11 and included as `id`/`x`/`y` on tick 12.
+- The receiver is never included in the fallback set.
+- A ship cannot appear twice when interest changes on a summary tick.
+- The same distant position is retransmitted at tick 24 even if unchanged.
+- Dropping a summary does not affect later sequence acceptance; the next cadence sample repairs the position.
+- Far-to-near transition sends an immediate full transform; near-to-far transition stops full-rate delivery but continues 5 Hz summaries.
+- Deletion prevents a late summary from recreating a ship; current client behavior already covers this at `client/tests/unit/protocol/realtime/test_ship_hot_lanes.gd:79-101`.
+- Multiple receiver session states produce different full-rate sets without sharing cadence or projection state.
+- A large fallback cohort still passes the existing hot-lane hard-cap chunker.
+
+## Design boundaries and rationale
+
+“Reliable indicator” here means periodically self-healing presentation, not guaranteed transport delivery. `sr.ships` is explicitly unordered with zero retransmits: `services/game-server/internal/networking/webrtc_transport.go:30-40`. Moving fallback positions to `ships.lifecycle` or overlay would provide reliable delivery but would enlarge the schema/client surface and introduce stale cross-channel transform overwrites. Documentation also states that ordering is scoped to individual channels and does not order lifecycle against hot delivery: `docs/protocol/realtime-webrtc-gameplay-transport.md:98-108`.
+
+Documentation rationale places future receiver-interest policy in realtime projection over immutable presentation input, not in the mutable simulation collision index: `docs/planning/protocol/realtime-protocol-architecture.md:146-152`. The proposed helper should therefore consume the interest result owned by that work rather than querying `game/spatial` itself.
+
+Grimoire materially located the server/client seam, but its prepared snapshot remained behind the checkout after a refresh request. I therefore used no discovery handles as final evidence and verified all cited behavior directly in the checked-out files. No files were modified and no generators or tests were run.
+
+BENCHMARK_EVIDENCE_JSON:{"evidence":[{"path":"services/game-server/internal/protocol/realtime/lane_candidate_world.go","symbol":"buildIndependentHotLaneCandidates","lines":"88-110","claim":"Current ship hot candidates project and diff all current world ships without receiver-interest filtering."},{"path":"services/game-server/internal/protocol/realtime/hot_lane_projection.go","symbol":"projectShipHotLane/shipHotLaneUpdates","lines":"15-26,54-60","claim":"The ship hot projection carries transform fields and emits field-delta updates."},{"path":"services/game-server/internal/protocol/realtime/delta.go","symbol":"CompareLaneRecordFields","lines":"76-134","claim":"Records absent from the previous projection are classified as creates, so filtered membership entry needs explicit transform handling."},{"path":"shared/packets/realtime_wire.toml","symbol":"ship_update","lines":"772-796","claim":"The existing sparse ship-update record supports id, x, y, rotation, and thrusting, allowing x/y-only summaries without a schema change."},{"path":"client/scripts/protocol/realtime/world_lane_state.gd","symbol":"merge_or_buffer_ship_update","lines":"144-177","claim":"Sparse ship updates merge into existing records and preserve omitted fields."},{"path":"client/scripts/gameplay/presentation/os_indicator_controller.gd","symbol":"update_indicators","lines":"25-59","claim":"Indicators are driven by target positions, shown for offscreen targets, and removed only when targets disappear."},{"path":"services/game-server/internal/protocol/realtime/hot_lane_chunker.go","symbol":"expandRealtimeCandidate/shipWireDeltaChunkCount","lines":"32-56,106-123","claim":"Existing ship-delta chunking applies to the complete update list and selects cadence tiers from chunk count."},{"path":"services/game-server/internal/networking/webrtc_transport.go","symbol":"gameplayDataChannelSpecs","lines":"30-40","claim":"The ships channel is unordered with zero retransmits while lifecycle channels are ordered."},{"path":"docs/planning/protocol/realtime-protocol-architecture.md","symbol":"Future Interest Management Boundary","lines":"146-152","claim":"Documentation rationale assigns future interest policy to realtime projection over immutable presentation input and says it is not currently implemented."}]}

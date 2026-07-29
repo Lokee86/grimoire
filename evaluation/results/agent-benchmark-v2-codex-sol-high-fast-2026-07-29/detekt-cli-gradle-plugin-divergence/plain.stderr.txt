@@ -1,0 +1,39 @@
+Reading additional input from stdin...
+2026-07-29T18:18:21.647701Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-ChildItem -Force | Select-Object Mode,Name; rg --files -g 'AGENTS.md' -g '"'!**/.gradle/**'"'; git status --short; git rev-parse --show-toplevel; git log -1 --oneline"` rejected: blocked by policy
+2026-07-29T18:18:27.346511Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-ChildItem -Force | Select-Object Mode,Name'` rejected: blocked by policy
+2026-07-29T18:18:41.478882Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+
+2026-07-29T18:19:02.644610Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.8 seconds
+Output:
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt:7:internal data class PluginsHolder(override val paths: Collection<Path>?, override val loader: ClassLoader?) :
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt:8:    ExtensionsSpec.Plugins {
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\internal\PluginsHolder.kt:12:        paths?.forEach { require(it.exists()) { "Plugin jar '$it' does not exist." } }
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt:79:        names = ["--plugins", "-p"],
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt:85:    var plugins: List<Path> = emptyList()
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt:163:            "The additional 'ktlint' rule set, added with '--plugins', does support it and needs this flag."
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt:5:import dev.detekt.tooling.internal.PluginsHolder
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt:11:    var plugins: ExtensionsSpec.Plugins? = null
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt:17:            plugins,
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt:26:        require(plugins == null) { "Plugin source already specified." }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt:27:        plugins = PluginsHolder(paths(), null)
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt:31:        require(plugins == null) { "Plugin source already specified." }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt:32:        plugins = PluginsHolder(null, classLoader())
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\dsl\ExtensionsSpecBuilder.kt:37:    override val plugins: ExtensionsSpec.Plugins?,
+detekt-core/src/main/kotlin\dev\detekt\core\ProcessingSettings.kt:38:    ClassloaderAware by ExtensionFacade(spec.extensionsSpec.plugins),
+detekt-core/src/main/kotlin\dev\detekt\core\settings\ClassloaderAware.kt:17:class ExtensionFacade(private val plugins: ExtensionsSpec.Plugins?) :
+detekt-core/src/main/kotlin\dev\detekt\core\settings\ClassloaderAware.kt:23:        plugins?.paths?.forEach {
+detekt-core/src/main/kotlin\dev\detekt\core\settings\ClassloaderAware.kt:34:            plugins?.loader != null -> checkNotNull(plugins.loader)
+detekt-core/src/main/kotlin\dev\detekt\core\settings\ClassloaderAware.kt:36:            plugins?.paths != null -> {
+detekt-core/src/main/kotlin\dev\detekt\core\settings\ClassloaderAware.kt:37:                val pluginUrls = checkNotNull(plugins.paths)
+detekt-core/src/main/kotlin\dev\detekt\core\settings\ClassloaderAware.kt:52:        if (plugins?.paths != null) {
+detekt-cli/src/main/kotlin\dev\detekt\cli\runners\ConfigExporter.kt:14:                fromPaths { arguments.plugins }
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt:12:    val plugins: Plugins?
+detekt-tooling/src/main/kotlin\dev\detekt\tooling\api\spec\ExtensionsSpec.kt:19:    interface Plugins {
+detekt-core/src/main/kotlin\dev\detekt\core\tooling\DefaultConfigProvider.kt:38:    ExtensionFacade(extensionsSpec.plugins).pluginLoader
+detekt-cli/src/main/kotlin\dev\detekt\cli\Spec.kt:64:            fromPaths { args.plugins }
+rg: detekt-tooling-model/src/main/kotlin: The system cannot find the path specified. (os error 3)
+
+2026-07-29T18:19:25.000442Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-list --count HEAD'` rejected: blocked by policy

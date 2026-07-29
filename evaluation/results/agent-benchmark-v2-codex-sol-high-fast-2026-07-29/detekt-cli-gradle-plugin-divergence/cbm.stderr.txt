@@ -1,0 +1,863 @@
+Reading additional input from stdin...
+2026-07-29T18:23:27.703436Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-ChildItem -Name; rg -n "third.party|custom rule|custom rules|plugin jar|ruleset JAR|rule-set|rule set" README.md docs detekt-gradle-plugin detekt-cli detekt-core 2>$null'` rejected: blocked by policy
+2026-07-29T18:23:27.706335Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "git status --short; git rev-parse HEAD; rg -n --hidden --glob '"'!**/.git/**'"' \"detektPlugins|pluginClasspath|plugins\\.set|plugins\\.from|--plugins|plugins\" detekt-cli detekt-gradle-plugin detekt-core detekt-tooling 2>"'$null'` rejected: blocked by policy
+2026-07-29T18:23:31.877649Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "git status --short
+git rev-parse HEAD
+rg -n --hidden --glob '"'!**/.git/**'"' 'detektPlugins|pluginClasspath|plugins\\.set|plugins\\.from|--plugins' detekt-cli detekt-gradle-plugin detekt-core detekt-tooling"` rejected: blocked by policy
+2026-07-29T18:23:40.533740Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T18:23:57.853507Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$p='"'detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/plugin/DetektPlugin.kt'; "'$c=Get-Content $p; for($i=1;$i -le $c.Count;$i++){ if($i -ge 105 -and $i -le 185){'"'{0,4}: {1}' -f "'$i,$c[$i-1]}}'` rejected: blocked by policy
+2026-07-29T18:23:57.854122Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$p='"'detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/Detekt.kt'; "'$c=Get-Content $p; for($i=1;$i -le $c.Count;$i++){ if($i -ge 1 -and $i -le 285){'"'{0,4}: {1}' -f "'$i,$c[$i-1]}}'` rejected: blocked by policy
+2026-07-29T18:23:57.854745Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$p='"'detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/plugin/DetektBasePlugin.kt'; "'$c=Get-Content $p; for($i=1;$i -le $c.Count;$i++){ if($i -ge 80 -and $i -le 170){'"'{0,4}: {1}' -f "'$i,$c[$i-1]}}'` rejected: blocked by policy
+2026-07-29T18:23:57.855874Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$p='"'detekt-cli/src/main/kotlin/dev/detekt/cli/CliArgs.kt'; "'$c=Get-Content $p; for($i=1;$i -le $c.Count;$i++){ if($i -ge 65 -and $i -le 95){'"'{0,4}: {1}' -f "'$i,$c[$i-1]}}; rg -n '"'plugins|plugin' detekt-cli/src/main/kotlin detekt-core/src/main/kotlin detekt-tooling/src/main/kotlin"` rejected: blocked by policy
+2026-07-29T18:24:16.691685Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "rg -n -C 5 'detektPlugins|custom rule|custom rules|plugins' docs detekt-gradle-plugin/src/functionalTest detekt-gradle-plugin/src/test detekt-gradle-plugin/src/main 2>"'$null'` rejected: blocked by policy
+2026-07-29T18:24:23.149357Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Total output lines: 456
+Output:
+detekt-gradle-plugin/src/functionalTest\resources\jvm\build.gradle:1:plugins {
+detekt-gradle-plugin/src/functionalTest\resources\jvm\build.gradle-2-    id("org.jetbrains.kotlin.jvm")
+detekt-gradle-plugin/src/functionalTest\resources\jvm\build.gradle-3-    id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\resources\jvm\build.gradle-4-}
+detekt-gradle-plugin/src/functionalTest\resources\jvm\build.gradle-5-
+detekt-gradle-plugin/src/functionalTest\resources\jvm\build.gradle-6-repositories {
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt-46-import org.gradle.api.tasks.PathSensitive
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt-47-import org.gradle.api.tasks.PathSensitivity
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt-48-import org.gradle.api.tasks.SkipWhenEmpty
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt-49-import org.gradle.api.tasks.SourceTask
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt-50-import org.gradle.api.tasks.TaskAction
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt:51:import org.gradle.language.base.plugins.LifecycleBasePlugin
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt-52-import org.gradle.workers.WorkerExecutor
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt-53-import javax.inject.Inject
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt-54-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt-55-@CacheableTask
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektCreateBaselineTask.kt-56-abstract class DetektCreateBaselineTask @Inject constructor(
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt-14-import org.gradle.api.tasks.CacheableTask
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt-15-import org.gradle.api.tasks.Classpath
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt-16-import org.gradle.api.tasks.Internal
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt-17-import org.gradle.api.tasks.OutputFile
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt-18-import org.gradle.api.tasks.TaskAction
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt:19:import org.gradle.language.base.plugins.LifecycleBasePlugin
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt-20-import org.gradle.workers.WorkerExecutor
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt-21-import javax.inject.Inject
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt-22-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt-23-@CacheableTask
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\DetektGenerateConfigTask.kt-24-abstract class DetektGenerateConfigTask @Inject constructor(
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-55-import org.gradle.api.tasks.PathSensitivity
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-56-import org.gradle.api.tasks.SkipWhenEmpty
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-57-import org.gradle.api.tasks.SourceTask
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-58-import org.gradle.api.tasks.TaskAction
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-59-import org.gradle.api.tasks.options.Option
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt:60:import org.gradle.language.base.plugins.LifecycleBasePlugin
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-61-import org.gradle.workers.WorkerExecutor
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-62-import javax.inject.Inject
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-63-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-64-@CacheableTask
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-65-abstract class Detekt @Inject constructor(
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-246-            "==== To replicate this task in the cli, please invoke: "
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-247-                .let { it + "=".repeat(separatorLength - it.length) }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-248-        )
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-249-        val arguments = buildList {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-250-            if (!pluginClasspath.isEmpty) {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt:251:                add(pluginClasspath.joinToString(",", "--plugins "))
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-252-            }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-253-            addAll(arguments)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-254-        }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-255-        println("java -jar detekt-cli-${BuildConfig.DETEKT_VERSION}-all.jar ${arguments.joinToString(" ")}")
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\Detekt.kt-256-        println("=".repeat(separatorLength))
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-3-import dev.detekt.gradle.Detekt
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-4-import dev.detekt.gradle.DetektCreateBaselineTask
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-5-import dev.detekt.gradle.extensions.DetektExtension
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-6-import dev.detekt.gradle.plugin.internal.conventionCompat
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-7-import org.gradle.api.Project
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt:8:import org.gradle.api.plugins.JavaBasePlugin
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt:9:import org.gradle.api.plugins.JavaPluginExtension
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-10-import org.gradle.jvm.toolchain.JavaToolchainService
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-11-import org.jetbrains.kotlin.gradle.dsl.KotlinJvmExtension
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-12-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-13-internal fun Project.setDetektTaskDefaults(extension: DetektExtension) {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-14-    tasks.withType(Detekt::class.java).configureEach {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt:15:        project.plugins.withType(JavaBasePlugin::class.java) { _ ->
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-16-            val toolchain = project.extensions.getByType(JavaPluginExtension::class.java).toolchain
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-17-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-18-            // acquire a provider that returns the launcher for the toolchain
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-19-            val service = project.extensions.getByType(JavaToolchainService::class.java)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-20-            val defaultLauncher = service.launcherFor(toolchain)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-21-            it.jdkHome.convention(defaultLauncher.map { launcher -> launcher.metadata.installationPath })
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-22-        }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-23-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt:24:        project.plugins.withId("org.jetbrains.kotlin.jvm") { _ ->
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-25-            val compilerOptions = project.extensions.getByType(KotlinJvmExtension::class.java).compilerOptions
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-26-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-27-            it.jvmTarget.convention(compilerOptions.jvmTarget.map { jvmTarget -> jvmTarget.target })
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-28-        }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-29-
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-42-    }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-43-}
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-44-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-45-internal fun Project.setCreateBaselineTaskDefaults(extension: DetektExtension) {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-46-    tasks.withType(DetektCreateBaselineTask::class.java).configureEach {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt:47:        project.plugins.withType(JavaBasePlugin::class.java) { _ ->
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-48-            val toolchain = project.extensions.getByType(JavaPluginExtension::class.java).toolchain
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-49-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-50-            // acquire a provider that returns the launcher for the toolchain
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-51-            val service = project.extensions.getByType(JavaToolchainService::class.java)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-52-            val defaultLauncher = service.launcherFor(toolchain)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-53-            it.jdkHome.convention(defaultLauncher.map { launcher -> launcher.metadata.installationPath })
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-54-        }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-55-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt:56:        project.plugins.withId("org.jetbrains.kotlin.jvm") { _ ->
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-57-            val compilerOptions = project.extensions.getByType(KotlinJvmExtension::class.java).compilerOptions
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-58-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-59-            it.jvmTarget.convention(compilerOptions.jvmTarget.map { jvmTarget -> jvmTarget.target })
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-60-        }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\SharedTasks.kt-61-
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-11-import dev.detekt.gradle.internal.setDetektTaskDefaults
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-12-import dev.detekt.gradle.plugin.internal.mapExplicitArgMode
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-13-import dev.detekt.gradle.plugin.internal.rootProjectDirectoryCompat
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-14-import org.gradle.api.Plugin
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-15-import org.gradle.api.Project
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt:16:import org.gradle.api.plugins.ReportingBasePlugin
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-17-import org.gradle.api.reporting.ReportingExtension
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-18-import org.jetbrains.kotlin.gradle.plugin.KotlinBasePlugin
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-19-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetContainer
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-20-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-21-class DetektBasePlugin : Plugin<Project> {
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-72-        setDetektTaskDefaults(extension)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-73-        setCreateBaselineTaskDefaults(extension)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-74-    }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-75-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-76-    private fun Project.registerSourceSetTasks(extension: DetektExtension) {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt:77:        project.plugins.withType(KotlinBasePlugin::class.java) {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-78-            if (sourceSetListenerConfigured) return@withType
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-79-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-80-            project.extensions.findByType(KotlinSourceSetContainer::class.java)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-81-                ?.sourceSets
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-82-                ?.configureEach { sourceSet ->
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-146-        // This flag is ignored unless the compiler plugin is applied to the project
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-147-        private const val DEFAULT_COMPILER_PLUGIN_ENABLED = true
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-148-    }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-149-}
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt-150-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektBasePlugin.kt:151:internal const val CONFIGURATION_DETEKT_PLUGINS = "detektPlugins"
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt-5-import dev.detekt.gradle.extensions.DetektExtension
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt-6-import dev.detekt.gradle.plugin.DetektPlugin
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt-7-import org.gradle.api.Project
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt-8-import org.gradle.api.file.FileCollection
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt-9-import org.gradle.api.provider.Provider
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt:10:import org.gradle.language.base.plugins.LifecycleBasePlugin
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt-11-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt-12-internal class DetektPlain(private val project: Project) {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt-13-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt-14-    fun registerTasks(extension: DetektExtension) {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\internal\DetektPlain.kt-15-        project.registerDetektTask(extension)
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-50-        }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-51-        project.registerGenerateConfigTask(extension)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-52-    }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-53-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-54-    private fun Project.registerDetektJvmTasks(extension: DetektExtension) {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt:55:        plugins.withId("org.jetbrains.kotlin.jvm") {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-56-            DetektJvmCompilations.registerTasks(project, extension)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-57-        }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-58-    }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-59-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-60-    private fun Project.registerDetektMultiplatformTasks(extension: DetektExtension) {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt:61:        plugins.withId("org.jetbrains.kotlin.multiplatform") {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-62-            DetektKmpJvmCompilations.registerTasks(project, extension)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-63-        }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-64-    }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-65-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-66-    private fun Project.registerDetektAndroidTasks(extension: DetektExtension) {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt:67:        plugins.withId("com.android.base") {
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-68-            @Suppress("MagicNumber")
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-69-            fun agp9() =
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-70-                extensions.getByType(AndroidComponentsExtension::class.java).pluginVersion >= AndroidPluginVersion(9, 0)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-71-
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-72-            fun enableKotlinDslEnabled() = extensions.getByType(CommonExtension::class.java).enableKotlin
+--
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-82-                DetektAndroidCompilations.registerTasks(project, extension)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-83-                DetektAndroidCompilations.linkTasks(project, extension)
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\plugin\DetektPlugin.kt-84-            }
+detekt-gradle-plugin/src/main\kotlin\dev\detekt\gradle\pl…3532 tokens truncated…in\dev\detekt\gradle\DetektAndroidSpec.kt-758-""".trimIndent()
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-759-
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-760-@Language("gradle.kts")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-761-private val APP_PLUGIN_BLOCK = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt:762:    plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-763-        id("com.android.application")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-764-        kotlin("android")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-765-        id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-766-    }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-767-    kotlin {
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-771-    }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-772-""".trimIndent()
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-773-
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-774-@Language("gradle.kts")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-775-private val LIB_PLUGIN_BLOCK = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt:776:    plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-777-        id("com.android.library")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-778-        kotlin("android")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-779-        id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-780-    }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\DetektAndroidSpec.kt-781-    kotlin {
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-31-                    ${builder.gradleSubprojectsApplyPlugins.reIndent(baseIndent = 5)}
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-32-                """.trimIndent()
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-33-            )
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-34-        }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-35-        val mainBuildFileContent: String = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt:36:            plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-37-                id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-38-            }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-39-            
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-40-            val reportMerge = tasks.register<dev.detekt.gradle.report.ReportMergeTask>("reportMerge") {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-41-                output.set(project.layout.buildDirectory.file("reports/detekt/merge.xml"))
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-45-            
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-46-            subprojects {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-47-                apply(plugin = "org.jetbrains.kotlin.jvm")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-48-                apply(plugin = "dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-49-            
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt:50:                plugins.withType<dev.detekt.gradle.plugin.DetektPlugin> {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-51-                    tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-52-                        reportMerge.configure { input.from(reports.checkstyle.outputLocation) }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-53-                    }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-54-                }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-55-
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-102-        val projectLayout = ProjectLayout(0).apply {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-103-            addSubmodule(
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-104-                name = "app",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-105-                numberOfSourceFilesPerSourceDir = 1,
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-106-                buildFileContent = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt:107:                    plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-108-                        id("com.android.application")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-109-                        id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-110-                    }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-111-                    android {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-112-                       compileSdk = 34
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-124-            )
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-125-            addSubmodule(
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-126-                name = "lib",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-127-                numberOfSourceFilesPerSourceDir = 1,
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-128-                buildFileContent = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt:129:                    plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-130-                        id("com.android.library")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-131-                    }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-132-                    android {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-133-                        compileSdk = 34
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-134-                        namespace = "io.github.detekt.lib"
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-140-                """.trimIndent(),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-141-                srcDirs = listOf("src/main/java", "src/debug/java", "src/test/java", "src/androidUnitTest/java")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-142-            )
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-143-        }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-144-        val mainBuildFileContent: String = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt:145:            plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-146-                id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-147-            }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-148-            
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-149-            val reportMerge = tasks.register<dev.detekt.gradle.report.ReportMergeTask>("reportMerge") {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-150-                output.set(project.layout.buildDirectory.file("reports/detekt/merge.xml"))
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-153-            }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-154-            
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-155-            subprojects {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-156-                apply(plugin = "dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-157-            
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt:158:                plugins.withType<dev.detekt.gradle.plugin.DetektPlugin> {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-159-                    tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-160-                        reportMerge.configure { input.from(reports.checkstyle.outputLocation) }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-161-                    }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-162-                }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\report\ReportMergeSpec.kt-163-            }
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-19-                    "src/test/kotlin",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-20-                ),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-21-            ),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-22-            buildFileName = "build.gradle.kts",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-23-            mainBuildFileContent = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt:24:                plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-25-                    id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-26-                    kotlin("jvm")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-27-                }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-28-                
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-29-                repositories {
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-52-                    "src/androidTest/kotlin",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-53-                ),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-54-            ),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-55-            buildFileName = "build.gradle.kts",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-56-            mainBuildFileContent = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt:57:                plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-58-                    id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-59-                    id("com.android.library")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-60-                    kotlin("android")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-61-                }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-62-                
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-99-                    "src/androidTest/kotlin",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-100-                ),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-101-            ),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-102-            buildFileName = "build.gradle.kts",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-103-            mainBuildFileContent = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt:104:                plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-105-                    id("com.android.application")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-106-                    id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-107-                }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-108-
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-109-                repositories {
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-131-        gradleRunner.checkTask("test")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-132-        gradleRunner.checkTask("androidTest")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-133-    }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-134-
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-135-    @Test
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt:136:    fun `generates source set tasks when multiple plugins of type KotlinBasePlugin are applied #8613`() {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-137-        val gradleRunner = DslGradleRunner(
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-138-            projectLayout = ProjectLayout(
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-139-                numberOfSourceFilesInRootPerSourceDir = 1,
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-140-                srcDirs = listOf(
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-141-                    "src/main/kotlin",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-142-                    "src/test/kotlin",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-143-                ),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-144-            ),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-145-            buildFileName = "build.gradle.kts",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-146-            mainBuildFileContent = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt:147:                plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-148-                    id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-149-                    kotlin("jvm") // This plugin has type KotlinBasePlugin
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-150-                }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-151-            
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-152-                // This plugin also has type KotlinBasePlugin
+--
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-189-                    "src/nativeTest/kotlin",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-190-                ),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-191-            ),
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-192-            buildFileName = "build.gradle.kts",
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-193-            mainBuildFileContent = """
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt:194:                plugins {
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-195-                    id("dev.detekt")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-196-                    kotlin("multiplatform")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-197-                    id("com.android.kotlin.multiplatform.library")
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-198-                }
+detekt-gradle-plugin/src/functionalTest\kotlin\dev\detekt\gradle\plugin\DetektBasePluginSpec.kt-199-                
+rg: docs: The system cannot find the file specified. (os error 2)
+
+2026-07-29T18:24:38.203291Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.9 seconds
+Output:
+package dev.detekt.core.settings
+
+import dev.detekt.tooling.api.spec.ExtensionsSpec
+import org.jetbrains.kotlin.utils.closeQuietly
+import java.io.Closeable
+import java.net.URLClassLoader
+import kotlin.io.path.exists
+import kotlin.io.path.extension
+
+interface ClassloaderAware {
+
+    val pluginLoader: ClassLoader
+
+    fun closeLoaderIfNeeded()
+}
+
+class ExtensionFacade(private val plugins: ExtensionsSpec.Plugins?) :
+    AutoCloseable,
+    Closeable,
+    ClassloaderAware {
+
+    init {
+        plugins?.paths?.forEach {
+            require(it.exists()) { "Given plugin ‘$it’ does not exist." }
+            require(it.extension == "jar") { "Given plugin ‘$it’ is not a JAR." }
+        }
+    }
+
+    /**
+     * Shared class loader used to load services from plugin jars.
+     */
+    override val pluginLoader: ClassLoader by lazy {
+        when {
+            plugins?.loader != null -> checkNotNull(plugins.loader)
+
+            plugins?.paths != null -> {
+                val pluginUrls = checkNotNull(plugins.paths)
+                    .map { it.toUri().toURL() }
+                    .toTypedArray()
+                URLClassLoader(pluginUrls, javaClass.classLoader)
+            }
+
+            else -> javaClass.classLoader
+        }
+    }
+
+    override fun close() {
+        closeLoaderIfNeeded()
+    }
+
+    override fun closeLoaderIfNeeded() {
+        if (plugins?.paths != null) {
+            // we created a classloader and need to close it
+            closeQuietly(pluginLoader as? URLClassLoader)
+        }
+    }
+}
+package dev.detekt.cli
+
+import dev.detekt.api.RuleSetId
+import dev.detekt.tooling.api.spec.ProcessingSpec
+import dev.detekt.tooling.api.spec.RulesSpec
+import dev.detekt.tooling.api.spec.RulesSpec.RunPolicy.DisableDefaultRuleSets
+import dev.detekt.tooling.api.spec.RulesSpec.RunPolicy.NoRestrictions
+import dev.detekt.utils.PathFilters
+import java.nio.file.Path
+import kotlin.io.path.absolute
+import kotlin.io.path.extension
+import kotlin.io.path.relativeTo
+import kotlin.io.path.walk
+
+@Suppress("LongMethod")
+internal fun CliArgs.createSpec(output: Appendable, error: Appendable): ProcessingSpec {
+    val args = this
+    return ProcessingSpec {
+        logging {
+            debug = args.debug
+            outputChannel = output
+            errorChannel = error
+        }
+
+        project {
+            basePath = args.basePath.absolute()
+            val pathFilters = PathFilters.of(includes = args.includes, excludes = args.excludes)
+            val absoluteBasePath = basePath.absolute()
+            inputPaths = args.inputPaths.walk()
+                .filter { path -> path.isKotlinFile() }
+                .map { path -> path.absolute().relativeTo(absoluteBasePath) }
+                .filter { path -> pathFilters?.isIgnored(path) != true }
+                .map { path -> absoluteBasePath.resolve(path).normalize() }
+                .toSet()
+            analysisMode = args.analysisMode
+        }
+
+        rules {
+            autoCorrect = args.autoCorrect
+            activateAllRules = args.allRules
+            failurePolicy = args.failurePolicy
+            runPolicy = args.toRunPolicy()
+        }
+
+        baseline {
+            path = args.baseline
+            shouldCreateDuringAnalysis = args.createBaseline
+        }
+
+        config {
+            useDefaultConfig = args.buildUponDefaultConfig
+            shouldValidateBeforeAnalysis = null
+            configPaths = args.config
+            resources = args.configResource
+        }
+
+        execution {
+            parallelParsing = args.parallel
+            parallelAnalysis = args.parallel
+        }
+
+        extensions {
+            disableDefaultRuleSets = args.disableDefaultRuleSets
+            fromPaths { args.plugins }
+        }
+
+        reports {
+            args.reportPaths.forEach {
+                report { it.kind to it.path }
+            }
+        }
+
+        compiler {
+            jvmTarget = args.jvmTarget.toString()
+            languageVersion = args.languageVersion?.versionString
+            apiVersion = args.apiVersion?.versionString
+            classpath = args.classpath
+            jdkHome = args.jdkHome
+            freeCompilerArgs = args.freeCompilerArgs
+        }
+    }
+}
+
+private fun Iterable<Path>.walk(): Sequence<Path> = asSequence().flatMap { it.walk() }
+
+private fun Path.isKotlinFile() = extension in KT_ENDINGS
+
+private val KT_ENDINGS = setOf("kt", "kts")
+
+private fun CliArgs.toRunPolicy(): RulesSpec.RunPolicy {
+    val parts = runRule?.split(":")
+        ?: return if (disableDefaultRuleSets) DisableDefaultRuleSets else NoRestrictions
+    require(parts.size == 2) { "Pattern 'RuleSetId:RuleName' expected." }
+    return RulesSpec.RunPolicy.RestrictToSingleRule(RuleSetId(parts[0]), parts[1])
+}
+package dev.detekt.gradle.invoke
+
+import dev.detekt.gradle.internal.ClassLoaderCache
+import dev.detekt.gradle.internal.GlobalClassLoaderCache
+import dev.detekt.gradle.plugin.internal.verificationExceptionCompat
+import org.gradle.api.GradleException
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.Property
+import org.gradle.workers.WorkAction
+import org.gradle.workers.WorkParameters
+import java.io.File
+import java.io.PrintStream
+import java.lang.reflect.InvocationTargetException
+
+internal interface DetektInvoker {
+
+    fun invokeCli(arguments: List<String>, classpath: Set<File>, taskName: String, ignoreFailures: Boolean = false)
+
+    companion object {
+
+        fun create(isDryRun: Boolean = false): DetektInvoker =
+            if (isDryRun) {
+                DryRunInvoker()
+            } else {
+                DefaultCliInvoker()
+            }
+    }
+}
+
+internal interface DetektWorkParameters : WorkParameters {
+    val arguments: ListProperty<String>
+    val ignoreFailures: Property<Boolean>
+    val dryRun: Property<Boolean>
+    val taskName: Property<String>
+    val classpath: ConfigurableFileCollection
+}
+
+internal abstract class DetektWorkAction : WorkAction<DetektWorkParameters> {
+    @Suppress("SwallowedException", "TooGenericExceptionCaught")
+    override fun execute() {
+        if (parameters.dryRun.getOrElse(false)) {
+            DryRunInvoker().invokeCli(
+                parameters.arguments.get(),
+                parameters.classpath.files,
+                parameters.taskName.get(),
+                parameters.ignoreFailures.get()
+            )
+            return
+        }
+
+        DefaultCliInvoker().invokeCli(
+            parameters.arguments.get(),
+            parameters.classpath.files,
+            parameters.taskName.get(),
+            parameters.ignoreFailures.get()
+        )
+    }
+}
+
+internal class DefaultCliInvoker(private val classLoaderCache: ClassLoaderCache = GlobalClassLoaderCache) :
+    DetektInvoker {
+
+    override fun invokeCli(arguments: List<String>, classpath: Set<File>, taskName: String, ignoreFailures: Boolean) {
+        try {
+            val loader = classLoaderCache.getOrCreate(classpath)
+            val clazz = loader.loadClass("dev.detekt.cli.Main")
+            val runner = clazz.getMethod(
+                "buildRunner",
+                Array<String>::class.java,
+                PrintStream::class.java,
+                PrintStream::class.java
+            ).invoke(null, arguments.toTypedArray(), System.out, System.err)
+            runner::class.java.getMethod("execute").invoke(runner)
+        } catch (reflectionWrapper: InvocationTargetException) {
+            processResult(reflectionWrapper.targetException.message, reflectionWrapper, ignoreFailures)
+        }
+    }
+}
+
+private fun isAnalysisFailure(msg: String) = "Analysis failed with" in msg && "issues" in msg
+
+@Suppress("ThrowsCount")
+private fun processResult(message: String?, reflectionWrapper: Exception, ignoreFailures: Boolean) {
+    if (message != null && isAnalysisFailure(message)) {
+        if (!ignoreFailures) throw verificationExceptionCompat(message, reflectionWrapper)
+    } else {
+        throw GradleException(message ?: "There was a problem running detekt.", reflectionWrapper)
+    }
+}
+
+private class DryRunInvoker : DetektInvoker {
+
+    override fun invokeCli(arguments: List<String>, classpath: Set<File>, taskName: String, ignoreFailures: Boolean) {
+        println("Invoking detekt with dry-run.")
+        println("Task: $taskName")
+        println("Arguments: ${arguments.joinToString(" ")}")
+        println("Classpath: $classpath")
+        println("Ignore failures: $ignoreFailures")
+    }
+}
+[31;1mGet-Content: [0m
+[31;1m[36;1mLine |[0m
+[31;1m[36;1m[36;1m   5 | [0m [36;1mGet-Content 'detekt-gradle-plugin/src/main/kotlin/dev/detekt/gradle/i[0m …[0m
+[31;1m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[31;1m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mCannot find path 'C:\!bin\workspace\.codex-benchmark-checkouts\b776fca2\cbm\detekt-gradle-plugin\src\main\kotlin\dev\detekt\gradle\invoke\DetektWorkAction.kt' because it does not exist.[0m
+
+2026-07-29T18:25:16.378421Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.8 seconds
+Output:
+package dev.detekt.gradle.invoke
+
+import dev.detekt.gradle.extensions.DetektReport
+import dev.detekt.gradle.extensions.FailOnSeverity
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileCollection
+import org.gradle.api.file.RegularFile
+import java.io.File
+
+private const val DEBUG_PARAMETER = "--debug"
+private const val INPUT_PARAMETER = "--input"
+private const val ANALYSIS_MODE = "--analysis-mode"
+private const val CONFIG_PARAMETER = "--config"
+private const val BASELINE_PARAMETER = "--baseline"
+private const val PARALLEL_PARAMETER = "--parallel"
+private const val DISABLE_DEFAULT_RULESETS_PARAMETER = "--disable-default-rulesets"
+private const val BUILD_UPON_DEFAULT_CONFIG_PARAMETER = "--build-upon-default-config"
+private const val AUTO_CORRECT_PARAMETER = "--auto-correct"
+private const val FAIL_ON_SEVERITY_PARAMETER = "--fail-on-severity"
+private const val ALL_RULES_PARAMETER = "--all-rules"
+private const val REPORT_PARAMETER = "--report"
+private const val GENERATE_CONFIG_PARAMETER = "--generate-config"
+private const val CREATE_BASELINE_PARAMETER = "--create-baseline"
+private const val CLASSPATH_PARAMETER = "--classpath"
+private const val API_VERSION_PARAMETER = "--api-version"
+private const val LANGUAGE_VERSION_PARAMETER = "--language-version"
+private const val JVM_TARGET_PARAMETER = "--jvm-target"
+private const val JDK_HOME_PARAMETER = "--jdk-home"
+private const val BASE_PATH_PARAMETER = "--base-path"
+private const val OPT_IN_PARAMETER = "-opt-in"
+private const val NO_JDK_PARAMETER = "-no-jdk"
+private const val MULTIPLATFORM_ENABLED_PARAMETER = "-Xmulti-platform"
+private const val EXPLICIT_API_MODE = "-Xexplicit-api"
+
+/* parameters passed with single hyphen prefix must be passed at end of command line argument list so they get passed
+   as freeCompilerArgs
+ */
+private const val FRIEND_PATHS_PARAMETER = "-Xfriend-paths"
+
+internal sealed interface CliArgument {
+    fun toArgument(): List<String>
+}
+
+internal object CreateBaselineArgument : CliArgument {
+    override fun toArgument() = listOf(CREATE_BASELINE_PARAMETER)
+}
+
+internal data class GenerateConfigArgument(val file: RegularFile) : CliArgument {
+    override fun toArgument() = listOf(GENERATE_CONFIG_PARAMETER, file.asFile.absolutePath)
+}
+
+internal data class InputArgument(val fileCollection: FileCollection) : CliArgument {
+    override fun toArgument() =
+        listOf(INPUT_PARAMETER, fileCollection.joinToString(File.pathSeparator) { it.absolutePath })
+}
+
+internal data class ClasspathArgument(val fileCollection: FileCollection) : CliArgument {
+    override fun toArgument() =
+        if (!fileCollection.isEmpty) {
+            listOf(
+                CLASSPATH_PARAMETER,
+                fileCollection.files.filter(File::exists).joinToString(File.pathSeparator) { it.absolutePath },
+                ANALYSIS_MODE,
+                "full",
+            )
+        } else {
+            listOf(ANALYSIS_MODE, "light")
+        }
+}
+
+internal data class ApiVersionArgument(val apiVersion: String?) : CliArgument {
+    override fun toArgument() = apiVersion?.let { listOf(API_VERSION_PARAMETER, it) }.orEmpty()
+}
+
+internal data class LanguageVersionArgument(val languageVersion: String?) : CliArgument {
+    override fun toArgument() = languageVersion?.let { listOf(LANGUAGE_VERSION_PARAMETER, it) }.orEmpty()
+}
+
+internal data class JvmTargetArgument(val jvmTarget: String?) : CliArgument {
+    override fun toArgument() = jvmTarget?.let { listOf(JVM_TARGET_PARAMETER, it) }.orEmpty()
+}
+
+internal data class JdkHomeArgument(val jdkHome: DirectoryProperty) : CliArgument {
+    override fun toArgument() = jdkHome.orNull?.let { listOf(JDK_HOME_PARAMETER, it.toString()) }.orEmpty()
+}
+
+internal data class BaselineArgument(val baseline: RegularFile?) : CliArgument {
+    override fun toArgument() = baseline?.let { listOf(BASELINE_PARAMETER, it.asFile.absolutePath) }.orEmpty()
+}
+
+internal data class BaselineArgumentOrEmpty(val baseline: RegularFile?) : CliArgument {
+    override fun toArgument(): List<String> =
+        if (baseline?.asFile?.exists() == true) {
+            listOf(BASELINE_PARAMETER, baseline.asFile.absolutePath)
+        } else {
+            emptyList()
+        }
+}
+
+internal data class DefaultReportArgument(val report: DetektReport) : CliArgument {
+    override fun toArgument(): List<String> =
+        if (report.required.get()) {
+            listOf(REPORT_PARAMETER, "${report.type.reportId}:${report.outputLocation.get().asFile.absoluteFile}")
+        } else {
+            emptyList()
+        }
+}
+
+internal data class CustomReportArgument(val reportId: String, val file: RegularFile) : CliArgument {
+    override fun toArgument() = listOf(REPORT_PARAMETER, "$reportId:${file.asFile.absolutePath}")
+}
+
+internal data class FreeArgs(val args: List<String>) : CliArgument {
+    override fun toArgument(): List<String> = args
+}
+
+internal data class FriendPathArgs(val fileCollection: FileCollection) : CliArgument {
+    override fun toArgument() =
+        if (!fileCollection.isEmpty) {
+            listOf(FRIEND_PATHS_PARAMETER, fileCollection.joinToString(",") { it.absolutePath })
+        } else {
+            emptyList()
+        }
+}
+
+internal data class BasePathArgument(val basePath: String?) : CliArgument {
+    override fun toArgument() = basePath?.let { listOf(BASE_PATH_PARAMETER, it) }.orEmpty()
+}
+
+internal data class FailOnSeverityArgument(val ignoreFailures: Boolean, val minSeverity: FailOnSeverity) :
+    CliArgument {
+    override fun toArgument(): List<String> {
+        val effectiveSeverity = if (ignoreFailures) FailOnSeverity.Never else minSeverity
+        return listOf(FAIL_ON_SEVERITY_PARAMETER, effectiveSeverity.name.lowercase())
+    }
+}
+
+internal data class ConfigArgument(val files: FileCollection) : CliArgument {
+    override fun toArgument() =
+        if (files.isEmpty) {
+            emptyList()
+        } else {
+            listOf(CONFIG_PARAMETER, files.joinToString(File.pathSeparator) { it.absolutePath })
+        }
+}
+
+internal sealed class BoolCliArgument(open val value: Boolean, val configSwitch: String) : CliArgument {
+    override fun toArgument() = if (value) listOf(configSwitch) else emptyList()
+}
+
+internal data class DebugArgument(override val value: Boolean) : BoolCliArgument(value, DEBUG_PARAMETER)
+
+internal data class ParallelArgument(override val value: Boolean) : BoolCliArgument(value, PARALLEL_PARAMETER)
+
+internal data class DisableDefaultRuleSetArgument(override val value: Boolean) :
+    BoolCliArgument(value, DISABLE_DEFAULT_RULESETS_PARAMETER)
+
+internal data class BuildUponDefaultConfigArgument(override val value: Boolean) :
+    BoolCliArgument(value, BUILD_UPON_DEFAULT_CONFIG_PARAMETER)
+
+internal data class AllRulesArgument(override val value: Boolean) : BoolCliArgument(value, ALL_RULES_PARAMETER)
+
+internal data class AutoCorrectArgument(override val value: Boolean) : BoolCliArgument(value, AUTO_CORRECT_PARAMETER)
+
+internal data class OptInArguments(val list: List<String>) : CliArgument {
+    override fun toArgument() =
+        if (list.isNotEmpty()) {
+            listOf(OPT_IN_PARAMETER, list.joinToString(","))
+        } else {
+            emptyList()
+        }
+}
+
+internal data class NoJdkArgument(override val value: Boolean) : BoolCliArgument(value, NO_JDK_PARAMETER)
+
+internal data class ExplicitApiArgument(val mode: String?) : CliArgument {
+    override fun toArgument() = mode?.let { listOf("$EXPLICIT_API_MODE=$it") }.orEmpty()
+}
+
+internal data class MultiPlatformEnabledArgument(override val value: Boolean) :
+    BoolCliArgument(value, MULTIPLATFORM_ENABLED_PARAMETER)
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-17-
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-18-    @Parameter(
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-19-        names = ["--input", "-i"],
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-20-        converter = PathConverter::class,
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt:21:        splitter = PathSplitter::class,
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-22-        validateValueWith = [PathValidator::class],
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-23-        description = "Input paths to analyze. Multiple paths are separated by ':' on *nix or ';' on Windows. " +
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-24-            "If not specified the current working directory is used."
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-25-    )
+--
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-52-
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-53-    @Parameter(
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-54-        names = ["--config", "-c"],
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-55-        converter = PathConverter::class,
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt:56:        splitter = PathSplitter::class,
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-57-        validateValueWith = [PathValidator::class],
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-58-        description = "Path to the config file (path/to/config.yml). " +
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-59-            "Multiple configuration files can be specified with ':' on *nix or ';' on Windows as separator."
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-60-    )
+--
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-62-
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-63-    @Parameter(
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-64-        names = ["--config-resource", "-cr"],
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-65-        converter = ClasspathResourceConverter::class,
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt:66:        splitter = PathSplitter::class,
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-67-        description = "Path to the config resource on detekt's classpath (path/to/config.yml)."
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-68-    )
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-69-    var configResource: List<URL> = emptyList()
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-70-
+--
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-77-
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-78-    @Parameter(
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-79-        names = ["--plugins", "-p"],
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-80-        converter = PathConverter::class,
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt:81:        splitter = PathSplitter::class,
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-82-        validateValueWith = [PathValidator::class],
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-83-        description = "Extra paths to plugin jars separated by ':' on *nix or ';' on Windows."
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-84-    )
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-85-    var plugins: List<Path> = emptyList()
+--
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-191-     */
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-192-    @Parameter(
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-193-        names = ["--classpath", "-cp"],
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-194-        converter = PathConverter::class,
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt:195:        splitter = PathSplitter::class,
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-196-        validateValueWith = [PathValidator::class],
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-197-        description = "Paths where to find user class files and depending jar files. Used for type resolution."
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-198-    )
+detekt-cli/src/main/kotlin\dev\detekt\cli\CliArgs.kt-199-    var classpath: List<Path> = emptyList()
+--
+detekt-cli/src/main/kotlin\dev\detekt\cli\ArgumentConverters.kt-64-            throw ParameterException(e.message, e)
+detekt-cli/src/main/kotlin\dev\detekt\cli\ArgumentConverters.kt-65-        }
+detekt-cli/src/main/kotlin\dev\detekt\cli\ArgumentConverters.kt-66-}
+detekt-cli/src/main/kotlin\dev\detekt\cli\ArgumentConverters.kt-67-
+detekt-cli/src/main/kotlin\dev\detekt\cli\ArgumentConverters.kt:68:class PathSplitter : IParameterSplitter {
+detekt-cli/src/main/kotlin\dev\detekt\cli\ArgumentConverters.kt-69-    override fun split(value: String): List<String> = value.split(File.pathSeparatorChar)
+detekt-cli/src/main/kotlin\dev\detekt\cli\ArgumentConverters.kt-70-}
+detekt-cli/src/main/kotlin\dev\detekt\cli\ArgumentConverters.kt-71-
+detekt-cli/src/main/kotlin\dev\detekt\cli\ArgumentConverters.kt-72-class PathValidator : IValueValidator<List<Path>> {
+

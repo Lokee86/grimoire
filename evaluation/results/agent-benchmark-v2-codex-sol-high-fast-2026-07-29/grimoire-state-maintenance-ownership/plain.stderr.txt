@@ -1,0 +1,312 @@
+Reading additional input from stdin...
+2026-07-29T17:32:29.638687Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git status --short; git rev-parse HEAD; git log -1 --oneline'` rejected: blocked by policy
+2026-07-29T17:32:33.972769Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T17:32:52.188871Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T17:33:00.209599Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+internal/app/README.md:11:- `index` — prepared source-state construction.
+internal/app/README.md:12:- `knowledge index|search|inspect` — standalone document-lane diagnostics.
+internal/app/README.md:24:2. Align Grimoire source state with available Lexicon and Arcana snapshots.
+internal/app/README.md:35:`discovery_prepare.go` runs Grimoire-owned source and document preparation in process while preserving Lexicon and Arcana as explicit executable boundaries. Provider failures become warnings when other discovery lanes can continue.
+internal/app/README.md:47:- `index.go` and related files — source preparation.
+internal/app/README.md:57:`internal/app` coordinates packages and translates errors. Source ranking belongs to `retrieve`; document ranking to `knowledge`; language facts to Lexicon; graph semantics to Arcana; vector storage to Lodestone; and investigation persistence to `investigation`.
+internal/app/status.go:14:func runStatus(args []string, stdout, stderr io.Writer) error {
+internal/app/status.go:19:	force := flags.Bool("force", false, "force-refresh Lexicon, Arcana, Grimoire source, and knowledge state")
+internal/app/status.go:20:	lexiconCommand := flags.String("lexicon-command", "", "Lexicon executable override")
+internal/app/status.go:21:	arcanaCommand := flags.String("arcana-command", "", "Arcana executable override")
+internal/app/status.go:27:		mode = repostate.RefreshIfNeeded
+internal/app/status.go:30:		mode = repostate.ForceRefresh
+internal/app/status.go:33:		Root: *root, Mode: mode,
+internal/app/status.go:34:		LexiconCommand: agentruntime.ResolveProviderCommand(*root, *lexiconCommand, "lexicon"),
+internal/app/status.go:35:		ArcanaCommand:  agentruntime.ResolveProviderCommand(*root, *arcanaCommand, "arcana"),
+internal/app/status.go:44:	status, err := repostate.Ensure(context.Background(), options)
+internal/app/discovery_prepare.go:15:func ensureDiscoveryRepository(ctx context.Context, options repostate.Options) (repostate.Status, error) {
+internal/app/discovery_prepare.go:21:			case "index":
+internal/app/discovery_prepare.go:24:				if len(arguments) > 1 && arguments[1] == "index" {
+internal/app/discovery_prepare.go:25:					return runKnowledge(arguments[1:], io.Discard, io.Discard)
+internal/app/discovery_prepare.go:31:	return repostate.Ensure(ctx, options)
+internal/app/discovery_prepare.go:34:func sameDiscoveryCommand(command, expected string) bool {
+internal/app/discovery_prepare.go:42:func runDiscoveryCommand(ctx context.Context, command repostate.ProcessCommand) error {
+internal/agentruntime/runtime.go:20:func Execute(ctx context.Context, request Request, options Options) (Response, error) {
+internal/agentruntime/runtime.go:27:	ensure := options.EnsureRepository
+internal/agentruntime/runtime.go:29:		ensure = repostate.Ensure
+internal/agentruntime/runtime.go:40:		Root: request.Root, Mode: request.StateMode,
+internal/agentruntime/runtime.go:41:		LexiconState: request.LexiconState, ArcanaState: request.ArcanaState,
+internal/agentruntime/runtime.go:43:		LexiconCommand: request.LexiconCmd, ArcanaCommand: request.ArcanaCmd,
+internal/agentruntime/runtime.go:46:	response := Response{Schema: SchemaVersion, Mode: request.Mode}
+internal/agentruntime/runtime.go:55:		return response, errors.New("repository analysis state is not current; use state_mode refresh-if-needed")
+internal/agentruntime/runtime.go:63:	if request.Mode == "inspect" && strings.HasPrefix(strings.TrimSpace(request.Anchor), "knowledge://") {
+internal/agentruntime/runtime.go:69:	queryRequest.PreparedSnapshot = agentquery.Snapshot{
+internal/agentruntime/runtime.go:71:		Providers: map[string]string{
+internal/agentruntime/runtime.go:72:			"lexicon": preparation.Lexicon.Snapshot,
+internal/agentruntime/runtime.go:73:			"arcana":  preparation.Arcana.Snapshot,
+internal/agentruntime/runtime.go:77:	queryOnlyForSnapshot := request.Mode == "inspect" && len(codeHandles) == 0 && len(documentHandles) > 0
+internal/agentruntime/runtime.go:79:		queryRequest.Mode = "orient"
+internal/agentruntime/runtime.go:93:			Mode:     request.Mode,
+internal/agentruntime/runtime.go:127:		Providers:  queryResponse.Snapshot.Providers,
+internal/agentruntime/runtime.go:157:func normalizeRequest(request Request, options Options) Request {
+internal/agentruntime/runtime.go:167:	if request.StateMode == "" {
+internal/agentruntime/runtime.go:168:		request.StateMode = options.DefaultMode
+internal/agentruntime/runtime.go:170:	if request.StateMode == "" {
+internal/agentruntime/runtime.go:171:		request.StateMode = repostate.RefreshIfNeeded
+internal/agentruntime/runtime.go:174:		if request.Mode == "trace" {
+internal/agentruntime/runtime.go:180:	if strings.TrimSpace(request.LexiconCmd) == "" {
+internal/agentruntime/runtime.go:181:		request.LexiconCmd = resolveProviderCommand(request.Root, request.LexiconCmd, "lexicon")
+internal/agentruntime/runtime.go:183:	if strings.TrimSpace(request.ArcanaCmd) == "" {
+internal/agentruntime/runtime.go:184:		request.ArcanaCmd = resolveProviderCommand(request.Root, request.ArcanaCmd, "arcana")
+internal/agentruntime/runtime.go:189:func resolveStatePath(root, state string) (string, error) {
+internal/agentruntime/runtime.go:203:func splitHandles(handles []string) (knowledgeHandles, codeHandles []string) {
+internal/agentruntime/runtime.go:214:func useDocumentVectors(request Request) bool {
+internal/agentruntime/runtime.go:218:func includeDocuments(request Request) bool {
+internal/agentruntime/runtime.go:225:	return request.Mode == "orient" || request.Mode == "search"
+internal/agentruntime/runtime.go:228:func retrieveDocuments(ctx context.Context, request Request, statePath string, preparation repostate.Status, handles []string) ([]knowledge.Result, int, []string, error) {
+internal/agentruntime/runtime.go:234:	rebuild := loadErr != nil || preparation.Knowledge.Status != "current"
+internal/agentruntime/runtime.go:240:			return nil, 0, nil, fmt.Errorf("load knowledge index: %w", loadErr)
+internal/agentruntime/runtime.go:244:			return nil, 0, nil, fmt.Errorf("build knowledge index: %w", err)
+internal/agentruntime/runtime.go:248:			return nil, 0, nil, fmt.Errorf("save knowledge index: %w", err)
+internal/agentruntime/runtime.go:266:	if request.Mode == "inspect" && len(handles) > 0 && strings.TrimSpace(request.Query) == "" {
+internal/agentruntime/runtime.go:273:	if query == "" && request.Mode == "orient" {
+internal/agentruntime/runtime.go:281:		if request.Mode == "trace" {
+internal/agentruntime/runtime.go:299:	compacted := compactKnowledgeResults(searched.Results)
+internal/agentruntime/runtime.go:300:	available := uniqueKnowledgeResultCount(results, compacted)
+internal/agentruntime/runtime.go:304:	results = appendUniqueKnowledge(results, compacted...)
+internal/agentruntime/runtime.go:305:	results = applyKnowledgePreviews(results, explicitCount, request.Detail)
+internal/agentruntime/runtime.go:313:func uniqueKnowledgeResultCount(existing, candidates []knowledge.Result) int {
+internal/agentruntime/runtime.go:324:func compactKnowledgeResults(results []knowledge.Result) []knowledge.Result {
+internal/agentruntime/runtime.go:329:	for index := range compacted {
+internal/agentruntime/runtime.go:330:		result := &compacted[index]
+internal/agentruntime/runtime.go:331:		result.Text = compactKnowledgeText(result.Text, maxTextBytes)
+internal/agentruntime/runtime.go:342:func compactKnowledgeText(text string, maxBytes int) string {
+internal/agentruntime/runtime.go:358:func appendUniqueKnowledge(existing []knowledge.Result, values ...knowledge.Result) []knowledge.Result {
+internal/repostate/inspect.go:17:	"github.com/Lokee86/grimoire/internal/index"
+internal/repostate/inspect.go:22:type paths struct {
+internal/repostate/inspect.go:26:type stateMarker struct {
+internal/repostate/inspect.go:27:	SourceFingerprint string `json:"source_fingerprint"`
+internal/repostate/inspect.go:28:	QuickFingerprint  string `json:"quick_fingerprint,omitempty"`
+internal/repostate/inspect.go:29:	LexiconSnapshot   string `json:"lexicon_snapshot,omitempty"`
+internal/repostate/inspect.go:33:var fingerprintRepository = sourceFingerprint
+internal/repostate/inspect.go:35:func normalize(options Options) (paths, error) {
+internal/repostate/inspect.go:55:		root: absolute, lexicon: resolve(options.LexiconState, ".lexicon"),
+internal/repostate/inspect.go:56:		arcana: resolve(options.ArcanaState, ".arcana"), grimoire: grimoire,
+internal/repostate/inspect.go:61:func inspect(ctx context.Context, location paths) (Status, error) {
+internal/repostate/inspect.go:65:func inspectWithFingerprint(ctx context.Context, location paths, fingerprint string) (Status, error) {
+internal/repostate/inspect.go:74:	if fingerprint == "" {
+internal/repostate/inspect.go:75:		fingerprint = reusablePreparedFingerprint(location, repository, quickFingerprint)
+internal/repostate/inspect.go:77:	if fingerprint == "" {
+internal/repostate/inspect.go:78:		fingerprint, err = fingerprintRepository(location.root)
+internal/repostate/inspect.go:80:			return Status{}, fmt.Errorf("fingerprint source: %w", err)
+internal/repostate/inspect.go:84:		repository.GitDirty = preparedSourceChanged(location, repository, quickFingerprint, fingerprint)
+internal/repostate/inspect.go:86:	repository.SourceFingerprint = fingerprint
+internal/repostate/inspect.go:88:	status.Lexicon = inspectLexicon(location, fingerprint, repository.GitDirty)
+internal/repostate/inspect.go:89:	status.Arcana = inspectArcana(location, status.Lexicon.Snapshot)
+internal/repostate/inspect.go:90:	for _, warning := range status.Arcana.Warnings {
+internal/repostate/inspect.go:91:		status.Warnings = append(status.Warnings, "Arcana compatibility warning: "+warning)
+internal/repostate/inspect.go:93:	status.Grimoire = inspectGrimoire(location, fingerprint, status.Lexicon.Snapshot)
+internal/repostate/inspect.go:94:	var currentKnowledge knowledge.Index
+internal/repostate/inspect.go:96:	status.Knowledge, currentKnowledge, knowledgeAvailable = inspectKnowledge(location, fingerprint)
+internal/repostate/inspect.go:97:	status.ArcanaVectors = inspectArcanaVectors(location, status.Arcana.Snapshot)
+internal/repostate/inspect.go:98:	if status.Arcana.Status != "current" && status.ArcanaVectors.Status == "current" {
+internal/repostate/inspect.go:99:		status.ArcanaVectors.Status = "stale"
+internal/repostate/inspect.go:100:		status.ArcanaVectors.Reason = "Arcana graph state is not current"
+internal/repostate/inspect.go:102:	status.KnowledgeVectors = inspectKnowledgeVectors(location, currentKnowledge, knowledgeAvailable)
+internal/repostate/inspect.go:103:	if status.Knowledge.Status != "current" && status.KnowledgeVectors.Status == "current" {
+internal/repostate/inspect.go:104:		status.KnowledgeVectors.Status = "stale"
+internal/repostate/inspect.go:105:		status.KnowledgeVectors.Reason = "knowledge index is stale; refresh it before trusting documentation vector freshness"
+internal/repostate/inspect.go:112:func inspectLexicon(location paths, fingerprint string, dirty bool) ComponentStatus {
+internal/repostate/inspect.go:126:	status := ComponentStatus{Status: "current", Snapshot: id, Prepared: true}
+internal/repostate/inspect.go:129:		if marker.SourceFingerprint != "" && marker.SourceFingerprint != fingerprint {
+internal/repostate/inspect.go:131:			status.StaleReasons = append(status.StaleReasons, "source fingerprint changed since Lexicon preparation")
+internal/repostate/inspect.go:140:func inspectArcana(location paths, expected string) ComponentStatus {
+internal/repostate/inspect.go:156:		status.StaleReasons = append(status.StaleReasons, "Lexicon snapshot is unavailable for alignment")
+internal/repostate/inspect.go:159:		status.StaleReasons = append(status.StaleReasons, "Arcana snapshot does not match Lexicon CURRENT")
+internal/repostate/inspect.go:169:		status.Warnings = append(status.Warnings, "read Arcana compatibility warnings: "+warningErr.Error())
+internal/repostate/inspect.go:173:		status.StaleReasons = append(status.StaleReasons, "Arcana snapshot is incomplete")
+internal/repostate/inspect.go:176:		status.StaleReasons = append(status.StaleReasons, "Arcana lexicon.snapshot does not match CURRENT")
+internal/repostate/inspect.go:178:	status.Prepared = status.Status == "current"
+internal/repostate/inspect.go:182:func inspectGrimoire(location paths, fingerprint, lexiconID string) ComponentStatus {
+internal/repostate/inspect.go:184:	snapshot, err := index.Load(location.grimoire)
+internal/repostate/inspect.go:191:		status.StaleReasons = []string{"prepared index is missing"}
+internal/repostate/inspect.go:196:	status.Prepared = true
+internal/repostate/inspect.go:200:		status.Prepared = false
+internal/repostate/inspect.go:204:	if marker.SourceFingerprint != fingerprint {
+internal/repostate/inspect.go:206:		status.Prepared = false
+internal/repostate/inspect.go:207:		status.StaleReasons = append(status.StaleReasons, "source fingerprint changed since Grimoire preparation")
+internal/repostate/inspect.go:209:	if marker.LexiconSnapshot != lexiconID {
+internal/repostate/inspect.go:211:		status.Prepared = false
+internal/repostate/inspect.go:212:		status.StaleReasons = append(status.StaleReasons, "prepared index Lexicon snapshot is not current")
+internal/repostate/inspect.go:217:func inspectKnowledge(location paths, repositoryFingerprint string) (ComponentStatus, knowledge.Index, bool) {
+internal/repostate/inspect.go:220:		return ComponentStatus{Status: "absent", StaleReasons: []string{"knowledge index is missing"}}, knowledge.Index{}, false
+internal/repostate/inspect.go:226:	status := ComponentStatus{Status: "current", Snapshot: actual, Expected: actual, Prepared: true}
+internal/repostate/inspect.go:229:		status.Prepared = false
+internal/repostate/inspect.go:233:		status.Prepared = false
+internal/repostate/inspect.go:234:		status.StaleReasons = append(status.StaleReasons, "repository content changed since knowledge indexing")
+internal/repostate/inspect.go:239:func inspectKnowledgeVectors(location paths, current knowledge.Index, knowledgeAvailable bool) VectorStatus {
+internal/repostate/inspect.go:241:		return VectorStatus{Status: "missing", Reason: "no knowledge index is available"}
+internal/repostate/inspect.go:246:		Model: info.Model, Count: info.Count, Bytes: info.SnapshotBytes,
+internal/repostate/inspect.go:268:func inspectArcanaVectors(location paths, arcanaID string) VectorStatus {
+internal/repostate/inspect.go:270:		return VectorStatus{Status: "missing", Reason: "no current Arcana snapshot"}
+internal/repostate/inspect.go:278:		status.Reason = "matching vector index is not prepared"
+internal/repostate/inspect.go:282:	repository, err := readArcanaRepositoryIdentity(filepath.Join(location.arcana, "snapshots", digest, "repository.manifest"))
+internal/repostate/inspect.go:285:		status.Reason = "cannot validate current Arcana graph identity: " + err.Error()
+internal/repostate/inspect.go:291:		status.Reason = "invalid Arcana vector manifest: " + err.Error()
+internal/repostate/inspect.go:294:	status.Model = manifest.Model
+internal/repostate/inspect.go:296:	if reason := validateArcanaVectorManifest(manifest, repository); reason != "" {
+internal/repostate/inspect.go:305:		status.Reason = "Arcana vector data file is missing"
+internal/repostate/inspect.go:312:		status.Reason = fmt.Sprintf("Arcana vector data is %d bytes; expected %d", info.Size(), expectedBytes)
+internal/repostate/inspect.go:315:	if count, err := countArcanaVectorRecords(filepath.Join(base, manifest.RecordsFile)); err != nil || count != manifest.ItemCount {
+internal/repostate/inspect.go:318:			status.Reason = "invalid Arcana vector node records: " + err.Error()
+internal/repostate/inspect.go:320:			status.Reason = fmt.Sprintf("Arcana vector index has %d node records; expected %d", count, manifest.ItemCount)
+internal/repostate/inspect.go:333:			status.Reason = "Arcana vector " + data.label + " checksum does not match its manifest"
+internal/repostate/inspect.go:341:type arcanaVectorManifest struct {
+internal/repostate/inspect.go:345:	Model                    string `json:"model"`
+internal/repostate/inspect.go:356:type arcanaRepositoryIdentity struct {
+internal/repostate/inspect.go:361:func readArcanaRepositoryIdentity(path string) (arcanaRepositoryIdentity, error) {
+internal/repostate/inspect.go:374:	if err != nil || nodeCount < 0 || values["version"] != "1" || !validArcanaHexID(values["snapshot_id"]) || !validArcanaHexID(values["graph_snapshot_id"]) {
+internal/repostate/inspect.go:382:// Mirrors Arcana's manifest contract for status inspection; eligibility decisions remain in Arcana.
+internal/repostate/inspect.go:385:func arcanaSemanticIndexIdentity() string {
+internal/repostate/inspect.go:389:func validateArcanaVectorManifest(manifest arcanaVectorManifest, repository arcanaRepositoryIdentity) string {
+internal/repostate/inspect.go:393:		return fmt.Sprintf("unsupported Arcana vector index version %d", manifest.Version)
+internal/repostate/inspect.go:395:		return "Arcana vector index does not match the current graph identity"
+internal/repostate/inspect.go:396:	case manifest.Model != embedding.ModelReference || manifest.Identity != arcanaSemanticIndexIdentity() || manifest.Dimensions != embedding.Dimensions:
+internal/repostate/inspect.go:397:		return "Arcana vector index does not match Grimoire's embedding contract"
+internal/repostate/inspect.go:399:		return "Arcana vector index does not match the semantic eligibility policy"
+internal/repostate/inspect.go:401:		return "Arcana vector index has a negative document count"
+internal/repostate/inspect.go:403:		return "Arcana vector index byte length overflows the supported size"
+internal/repostate/inspect.go:405:		return "Arcana vector index uses unsupported data filenames"
+internal/repostate/inspect.go:407:		return "Arcana vector index has invalid data checksums"
+internal/repostate/inspect.go:413:func countArcanaVectorRecords(path string) (int, error) {
+internal/repostate/inspect.go:427:		if err := json.Unmarshal(scanner.Bytes(), &record); err != nil || !validArcanaHexID(record.NodeKey) || strings.TrimSpace(record.Kind) == "" || strings.TrimSpace(record.Name) == "" {
+internal/repostate/inspect.go:438:func validArcanaHexID(value string) bool {
+internal/repostate/inspect.go:450:func validSHA256(value string) bool {
+internal/repostate/inspect.go:462:func fileSHA256(path string) (string, error) {
+internal/repostate/inspect.go:475:func readCurrent(path string) (string, error) {
+internal/repostate/inspect.go:490:func validSnapshotID(value string) bool {
+internal/repostate/inspect.go:503:func fileExists(path string) bool {
+internal/repostate/inspect.go:508:func readJSON(path string, target any) error {
+internal/repostate/ensure.go:14:var repositoryLocks sync.Map
+internal/repostate/ensure.go:16:func now() time.Time { return time.Now() }
+internal/repostate/ensure.go:18:func elapsedMS(start time.Time) int64 { return time.Since(start).Milliseconds() }
+internal/repostate/ensure.go:20:func Ensure(ctx context.Context, options Options) (Status, error) {
+internal/repostate/ensure.go:26:	mode := options.Mode
+internal/repostate/ensure.go:30:	if mode != CurrentOnly && mode != RefreshIfNeeded && mode != ForceRefresh {
+internal/repostate/ensure.go:39:	status.Mode = mode
+internal/repostate/ensure.go:45:	if mode == RefreshIfNeeded && repositoryStateCurrent(status) {
+internal/repostate/ensure.go:54:			if markerErr := writeMarkersTimed(&status, location, status.Repository.SourceFingerprint, currentLexiconSnapshot(status), status.Repository.GitHead); markerErr != nil {
+internal/repostate/ensure.go:65:	guard.Lock()
+internal/repostate/ensure.go:67:	fileGuard, err := acquireFileLock(ctx, filepath.Join(location.grimoire, "repostate.lock"))
+internal/repostate/ensure.go:73:	priorTimings.LockWaitMS += elapsedMS(lockStarted)
+internal/repostate/ensure.go:83:	status.Mode = mode
+internal/repostate/ensure.go:86:	if mode == ForceRefresh || status.Lexicon.Status != "current" {
+internal/repostate/ensure.go:88:		if mode == ForceRefresh {
+internal/repostate/ensure.go:91:		if status.Lexicon.Status == "absent" || !fileExists(filepath.Join(location.lexicon, "config.json")) {
+internal/repostate/ensure.go:95:			Executable:  commandFor(options.LexiconCommand, "lexicon"),
+internal/repostate/ensure.go:100:			status.Warnings = append(status.Warnings, "Lexicon refresh unavailable; continuing with source analysis: "+refreshErr.Error())
+internal/repostate/ensure.go:101:		} else if markerErr := markLexiconPrepared(location, status.Repository.SourceFingerprint, status.Repository.GitHead); markerErr != nil {
+internal/repostate/ensure.go:102:			status.Warnings = append(status.Warnings, "Lexicon preparation metadata unavailable; continuing with source analysis: "+markerErr.Error())
+internal/repostate/ensure.go:110:		status.Mode = mode
+internal/repostate/ensure.go:111:		if refreshErr == nil && status.Lexicon.Status != "current" {
+internal/repostate/ensure.go:112:			status.Warnings = append(status.Warnings, "Lexicon refresh did not produce a current snapshot; continuing with source analysis: "+strings.Join(status.Lexicon.StaleReasons, "; "))
+internal/repostate/ensure.go:116:	if status.Lexicon.Status == "current" && status.Lexicon.Snapshot != "" && (mode == ForceRefresh || status.Arcana.Status != "current" || lexiconChanged) {
+internal/repostate/ensure.go:118:			Executable: commandFor(options.ArcanaCommand, "arcana"),
+internal/repostate/ensure.go:122:			status.Warnings = append(status.Warnings, "Arcana synchronization unavailable; continuing without graph traversal: "+syncErr.Error())
+internal/repostate/ensure.go:130:		status.Mode = mode
+internal/repostate/ensure.go:131:		if syncErr == nil && status.Arcana.Status != "current" {
+internal/repostate/ensure.go:132:			status.Warnings = append(status.Warnings, "Arcana synchronization did not produce a current graph; continuing without graph traversal: "+strings.Join(status.Arcana.StaleReasons, "; "))
+internal/repostate/ensure.go:136:	if mode == ForceRefresh || status.Grimoire.Status != "current" || lexiconChanged || arcanaChanged {
+internal/repostate/ensure.go:137:		arguments := []string{"index", "--root", location.root, "--state", location.grimoire}
+internal/repostate/ensure.go:138:		if status.Lexicon.Status == "current" && status.Lexicon.Snapshot != "" {
+internal/repostate/ensure.go:139:			arguments = append(arguments, "--lexicon-state", location.lexicon, "--lexicon-command", commandFor(options.LexiconCommand, "lexicon"))
+internal/repostate/ensure.go:147:		if err := writeMarkersTimed(&status, location, status.Repository.SourceFingerprint, currentLexiconSnapshot(status), status.Repository.GitHead); err != nil {
+internal/repostate/ensure.go:155:	status.Mode = mode
+internal/repostate/ensure.go:156:	if mode == ForceRefresh || status.Knowledge.Status != "current" {
+internal/repostate/ensure.go:157:		arguments := []string{"knowledge", "index", "--root", location.root, "--state", location.knowledge}
+internal/repostate/ensure.go:162:			status.Warnings = append(status.Warnings, "knowledge indexing unavailable; continuing with code-only retrieval: "+err.Error())
+internal/repostate/ensure.go:168:		status.Mode = mode
+internal/repostate/ensure.go:171:	finalFingerprint, fingerprintErr := fingerprintRepository(location.root)
+internal/repostate/ensure.go:173:	if fingerprintErr != nil {
+internal/repostate/ensure.go:174:		return failStatus(status, started, fmt.Errorf("verify source after repository preparation: %w", fingerprintErr))
+internal/repostate/ensure.go:180:		if err := writeMarkersTimed(&status, location, finalFingerprint, currentLexiconSnapshot(status), status.Repository.GitHead); err != nil {
+internal/repostate/ensure.go:183:		// Marker writes are deliberately excluded from the source fingerprint.
+internal/repostate/ensure.go:191:func perform(ctx context.Context, status *Status, name string, runner CommandRunner, command ProcessCommand) error {
+internal/repostate/ensure.go:211:func failStatus(status Status, started time.Time, err error) (Status, error) {
+internal/repostate/ensure.go:220:func writeMarkersTimed(status *Status, location paths, fingerprint, lexiconID, gitHead string) error {
+internal/repostate/ensure.go:222:	err := writeMarkers(location, fingerprint, lexiconID, gitHead)
+internal/repostate/ensure.go:227:func writeMarkers(location paths, fingerprint, lexiconID, gitHead string) error {
+internal/repostate/ensure.go:233:			return fmt.Errorf("fingerprint repository metadata: %w", err)
+internal/repostate/ensure.go:237:		SourceFingerprint: fingerprint,
+internal/repostate/ensure.go:239:		LexiconSnapshot:   lexiconID,
+internal/repostate/ensure.go:248:			return fmt.Errorf("write Lexicon preparation metadata: %w", err)
+internal/repostate/ensure.go:257:func markLexiconPrepared(location paths, fingerprint, gitHead string) error {
+internal/repostate/ensure.go:260:		return fmt.Errorf("read Lexicon CURRENT after refresh: %w", err)
+internal/repostate/ensure.go:266:			return fmt.Errorf("fingerprint repository metadata: %w", err)
+internal/repostate/ensure.go:270:		SourceFingerprint: fingerprint,
+internal/repostate/ensure.go:272:		LexiconSnapshot:   id,
+internal/repostate/ensure.go:279:		return fmt.Errorf("write Lexicon preparation metadata: %w", err)
+internal/repostate/ensure.go:284:func reinspect(ctx context.Context, location paths, previous Status, mode Mode) (Status, error) {
+internal/repostate/ensure.go:290:	status.Mode = mode
+internal/repostate/ensure.go:298:func marshalJSON(value any) ([]byte, error) {
+internal/repostate/ensure.go:306:func atomicWrite(path string, data []byte) error {
+internal/repostate/ensure.go:321:func lockFor(path string) *sync.Mutex {
+internal/repostate/ensure.go:322:	value, _ := repositoryLocks.LoadOrStore(path, &sync.Mutex{})
+internal/repostate/provider.go:3:func currentLexiconSnapshot(status Status) string {
+internal/repostate/provider.go:4:	if status.Lexicon.Status != "current" {
+internal/repostate/provider.go:7:	return status.Lexicon.Snapshot
+internal/repostate/types.go:5:// Mode controls whether Ensure may invoke repository preparation commands.
+internal/repostate/types.go:6:type Mode string
+internal/repostate/types.go:9:	CurrentOnly     Mode = "current-only"
+internal/repostate/types.go:10:	RefreshIfNeeded Mode = "refresh-if-needed"
+internal/repostate/types.go:11:	ForceRefresh    Mode = "force-refresh"
+internal/repostate/types.go:15:type ProcessCommand struct {
+internal/repostate/types.go:22:// Lexicon, Arcana, and Grimoire command boundaries without owning analyzers.
+internal/repostate/types.go:23:type CommandRunner func(context.Context, ProcessCommand) error
+internal/repostate/types.go:25:type Options struct {
+internal/repostate/types.go:27:	Mode Mode
+internal/repostate/types.go:29:	LexiconState  string
+internal/repostate/types.go:30:	ArcanaState   string
+internal/repostate/types.go:33:	LexiconCommand  string
+internal/repostate/types.go:34:	ArcanaCommand   string
+internal/repostate/types.go:39:type Status struct {
+internal/repostate/types.go:41:	Mode                    Mode               `json:"mode"`
+internal/repostate/types.go:43:	Lexicon                 ComponentStatus    `json:"lexicon"`
+internal/repostate/types.go:44:	Arcana                  ComponentStatus    `json:"arcana"`
+internal/repostate/types.go:46:	Knowledge               ComponentStatus    `json:"knowledge"`
+internal/repostate/types.go:47:	ArcanaVectors           VectorStatus       `json:"arcana_vectors"`
+internal/repostate/types.go:48:	KnowledgeVectors        VectorStatus       `json:"knowledge_vectors"`
+internal/repostate/types.go:57:type RepositoryStatus struct {
+internal/repostate/types.go:61:	SourceFingerprint string `json:"source_fingerprint,omitempty"`
+internal/repostate/types.go:65:type ComponentStatus struct {
+internal/repostate/types.go:71:	Prepared     bool     `json:"prepared"`
+internal/repostate/types.go:74:type VectorStatus struct {
+internal/repostate/types.go:78:	Model    string `json:"model,omitempty"`
+internal/repostate/types.go:84:type Action struct {
+rg: internal/app/discovery.go: The system cannot find the file specified. (os error 2)
+
+2026-07-29T17:33:03.622292Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$lineNumber=0; Get-Content '"'internal/repostate/ensure.go' | ForEach-Object { "'$lineNumber++; if ($lineNumber -le 190) { '"'{0,4}: {1}' -f "'$lineNumber, $_ } }'` rejected: blocked by policy
+2026-07-29T17:33:38.462584Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+internal/app/run_test.go:64:	state := filepath.Join(root, ".warlock", "tools", "grimoire")
+internal/app/run.go:130:func runIndex(args []string, stdout, stderr io.Writer) error {
+internal/app/run.go:134:	state := flags.String("state", "", "prepared index repository path")
+internal/app/run.go:147:	statePath, err := resolveState(*root, *state)
+internal/app/run.go:198:func resolveState(root, state string) (string, error) {
+internal/repostate/repostate_test.go:326:	lexiconState := filepath.Join(root, ".warlock", "tools", "lexicon")
+internal/repostate/repostate_test.go:327:	arcanaState := filepath.Join(root, ".warlock", "tools", "arcana")
+internal/repostate/repostate_test.go:328:	grimoireState := filepath.Join(root, ".warlock", "tools", "grimoire")
+internal/repostate/repostate_test.go:332:		LexiconState: lexiconState, ArcanaState: arcanaState, GrimoireState: grimoireState,
+internal/repostate/repostate_test.go:336:				if actual := environmentValue(command.Environment, "LEXICON_STATE_DIR"); actual != lexiconState {
+internal/repostate/repostate_test.go:352:				writeGrimoireState(t, root, grimoireState, id)
+internal/repostate/repostate_test.go:600:	writeGrimoireState(t, root, filepath.Join(root, ".grimoire"), lexiconID)
+internal/repostate/repostate_test.go:603:func writeGrimoireState(t *testing.T, root, state, lexiconID string) {
+internal/repostate/inspect.go:53:	grimoire := resolve(options.GrimoireState, ".grimoire")
+internal/repostate/inspect.go:55:		root: absolute, lexicon: resolve(options.LexiconState, ".lexicon"),
+internal/repostate/inspect.go:56:		arcana: resolve(options.ArcanaState, ".arcana"), grimoire: grimoire,
+rg: internal/app/index.go: The system cannot find the file specified. (os error 2)
+
+2026-07-29T17:35:28.978317Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+rg: lexicon/internal/consumer/*.go: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+rg: lexicon/internal/scan/*.go: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+

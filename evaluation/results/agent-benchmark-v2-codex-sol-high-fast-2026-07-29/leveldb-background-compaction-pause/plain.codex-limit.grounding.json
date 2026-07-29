@@ -1,0 +1,29 @@
+{
+  "valid": false,
+  "process_completed": false,
+  "refusal_detected": false,
+  "evidence_json_found": false,
+  "evidence_json_valid": false,
+  "inline_citations": 0,
+  "structured_items": 0,
+  "handle_items": 0,
+  "canonical_handle_items": 0,
+  "required_prefixes_found": [],
+  "missing_required_prefixes": [],
+  "findings": [
+    {
+      "code": "process_failed",
+      "message": "agent process exited with code 1",
+      "path": "",
+      "start_line": 0,
+      "end_line": 0
+    },
+    {
+      "code": "missing_evidence_json",
+      "message": "missing BENCHMARK_EVIDENCE_JSON: line",
+      "path": "",
+      "start_line": 0,
+      "end_line": 0
+    }
+  ]
+}

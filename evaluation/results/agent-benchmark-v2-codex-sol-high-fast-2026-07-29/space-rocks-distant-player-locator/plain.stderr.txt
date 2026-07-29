@@ -1,0 +1,568 @@
+Reading additional input from stdin...
+2026-07-29T18:36:29.432867Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-Command *grimoire* -ErrorAction SilentlyContinue | Select-Object Name,CommandType,Source'` rejected: blocked by policy
+2026-07-29T18:36:33.729713Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-ChildItem -Force 'C:\\Users\\archa\\.agents\\skills\\grimoire' | Select-Object Name,Length,Attributes"` rejected: blocked by policy
+2026-07-29T18:37:00.658105Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$files = @('"'client\\scripts\\gameplay\\presentation\\os_indicator_controller.gd','client\\scripts\\gameplay\\presentation\\gameplay_presentation_flow.gd'); foreach ("'$file in $files) { Write-Output "FILE $file"; $n=0; Get-Content $file | ForEach-Object { $n++; "${n}:$_" } }'` rejected: blocked by policy
+2026-07-29T18:37:31.083343Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Total output lines: 565
+Output:
+services/game-server/internal/protocol/realtime/projection_world.go:1:package realtime
+services/game-server/internal/protocol/realtime/projection_world.go:2:
+services/game-server/internal/protocol/realtime/projection_world.go:3:import (
+services/game-server/internal/protocol/realtime/projection_world.go:4:	"sort"
+services/game-server/internal/protocol/realtime/projection_world.go:5:
+services/game-server/internal/protocol/realtime/projection_world.go:6:	game "github.com/Lokee86/space-rocks/services/game-server/internal/game"
+services/game-server/internal/protocol/realtime/projection_world.go:7:)
+services/game-server/internal/protocol/realtime/projection_world.go:8:
+services/game-server/internal/protocol/realtime/projection_world.go:9:type WorldLaneProjection struct {
+services/game-server/internal/protocol/realtime/projection_world.go:10:	Ships     []WorldShipRecord
+services/game-server/internal/protocol/realtime/projection_world.go:11:	Bullets   []WorldBulletRecord
+services/game-server/internal/protocol/realtime/projection_world.go:12:	Asteroids []WorldAsteroidRecord
+services/game-server/internal/protocol/realtime/projection_world.go:13:	Pickups   []WorldPickupRecord
+services/game-server/internal/protocol/realtime/projection_world.go:14:}
+services/game-server/internal/protocol/realtime/projection_world.go:15:
+services/game-server/internal/protocol/realtime/projection_world.go:16:func ProjectWorldLane(snapshot game.GameplayPresentationSnapshot) WorldLaneProjection {
+services/game-server/internal/protocol/realtime/projection_world.go:17:	shipKeys := make([]string, 0, len(snapshot.Players))
+services/game-server/internal/protocol/realtime/projection_world.go:18:	for id := range snapshot.Players {
+services/game-server/internal/protocol/realtime/projection_world.go:19:		shipKeys = append(shipKeys, id)
+services/game-server/internal/protocol/realtime/projection_world.go:20:	}
+services/game-server/internal/protocol/realtime/projection_world.go:21:	sort.Strings(shipKeys)
+services/game-server/internal/protocol/realtime/projection_world.go:22:
+services/game-server/internal/protocol/realtime/projection_world.go:23:	ships := make([]WorldShipRecord, 0, len(shipKeys))
+services/game-server/internal/protocol/realtime/projection_world.go:24:	for _, id := range shipKeys {
+services/game-server/internal/protocol/realtime/projection_world.go:25:		player := snapshot.Players[id]
+services/game-server/internal/protocol/realtime/projection_world.go:26:		ships = append(ships, WorldShipRecord{
+services/game-server/internal/protocol/realtime/projection_world.go:27:			ID:         id,
+services/game-server/internal/protocol/realtime/projection_world.go:28:			ShipType:   player.ShipType,
+services/game-server/internal/protocol/realtime/projection_world.go:29:			TeamID:     player.TeamID,
+services/game-server/internal/protocol/realtime/projection_world.go:30:			X:          player.X,
+services/game-server/internal/protocol/realtime/projection_world.go:31:			Y:          player.Y,
+services/game-server/internal/protocol/realtime/projection_world.go:32:			Rotation:   player.Rotation,
+services/game-server/internal/protocol/realtime/projection_world.go:33:			Health:     player.Health,
+services/game-server/internal/protocol/realtime/projection_world.go:34:			Shields:    player.Shields,
+services/game-server/internal/protocol/realtime/projection_world.go:35:			Thrusting:  player.Thrusting,
+services/game-server/internal/protocol/realtime/projection_world.go:36:			TargetKind: player.TargetKind,
+services/game-server/internal/protocol/realtime/projection_world.go:37:			TargetID:   player.TargetID,
+services/game-server/internal/protocol/realtime/projection_world.go:38:		})
+services/game-server/internal/protocol/realtime/projection_world.go:39:	}
+services/game-server/internal/protocol/realtime/projection_world.go:40:
+services/game-server/internal/protocol/realtime/projection_world.go:41:	bulletKeys := make([]string, 0, len(snapshot.Bullets))
+services/game-server/internal/protocol/realtime/projection_world.go:42:	for id := range snapshot.Bullets {
+services/game-server/internal/protocol/realtime/projection_world.go:43:		bulletKeys = append(bulletKeys, id)
+services/game-server/internal/protocol/realtime/projection_world.go:44:	}
+services/game-server/internal/protocol/realtime/projection_world.go:45:	sort.Strings(bulletKeys)
+services/game-server/internal/protocol/realtime/projection_world.go:46:
+services/game-server/internal/protocol/realtime/projection_world.go:47:	bullets := make([]WorldBulletRecord, 0, len(bulletKeys))
+services/game-server/internal/protocol/realtime/projection_world.go:48:	for _, id := range bulletKeys {
+services/game-server/internal/protocol/realtime/projection_world.go:49:		bullet := snapshot.Bullets[id]
+services/game-server/internal/protocol/realtime/projection_world.go:50:		bullets = append(bullets, WorldBulletRecord{
+services/game-server/internal/protocol/realtime/projection_world.go:51:			ID:             id,
+services/game-server/internal/protocol/realtime/projection_world.go:52:			OwnerID:        bullet.OwnerID,
+services/game-server/internal/protocol/realtime/projection_world.go:53:			X:              bullet.X,
+services/game-server/internal/protocol/realtime/projection_world.go:54:			Y:              bullet.Y,
+services/game-server/internal/protocol/realtime/projection_world.go:55:			Rotation:       bullet.Rotation,
+services/game-server/internal/protocol/realtime/projection_world.go:56:			WeaponID:       bullet.WeaponID,
+services/game-server/internal/protocol/realtime/projection_world.go:57:			ProjectileType: bullet.ProjectileType,
+services/game-server/internal/protocol/realtime/projection_world.go:58:		})
+services/game-server/internal/protocol/realtime/projection_world.go:59:	}
+services/game-server/internal/protocol/realtime/projection_world.go:60:
+services/game-server/internal/protocol/realtime/projection_world.go:61:	asteroidKeys := make([]string, 0, len(snapshot.Asteroids))
+services/game-server/internal/protocol/realtime/projection_world.go:62:	for id := range snapshot.Asteroids {
+services/game-server/internal/protocol/realtime/projection_world.go:63:		asteroidKeys = append(asteroidKeys, id)
+services/game-server/internal/protocol/realtime/projection_world.go:64:	}
+services/game-server/internal/protocol/realtime/projection_world.go:65:	sort.Strings(asteroidKeys)
+services/game-server/internal/protocol/realtime/projection_world.go:66:
+services/game-server/internal/protocol/realtime/projection_world.go:67:	asteroids := make([]WorldAsteroidRecord, 0, len(asteroidKeys))
+services/game-server/internal/protocol/realtime/projection_world.go:68:	for _, id := range asteroidKeys {
+services/game-server/internal/protocol/realtime/projection_world.go:69:		asteroid := snapshot.Asteroids[id]
+services/game-server/internal/protocol/realtime/projection_world.go:70:		asteroids = append(asteroids, WorldAsteroidRecord{
+services/game-server/internal/protocol/realtime/projection_world.go:71:			ID:      id,
+services/game-server/internal/protocol/realtime/projection_world.go:72:			X:       asteroid.X,
+services/game-server/internal/protocol/realtime/projection_world.go:73:			Y:       asteroid.Y,
+services/game-server/internal/protocol/realtime/projection_world.go:74:			Size:    asteroid.Size,
+services/game-server/internal/protocol/realtime/projection_world.go:75:			Health:  asteroid.Health,
+services/game-server/internal/protocol/realtime/projection_world.go:76:			Scale:   asteroid.Scale,
+services/game-server/internal/protocol/realtime/projection_world.go:77:			Variant: asteroid.Variant,
+services/game-server/internal/protocol/realtime/projection_world.go:78:		})
+services/game-server/internal/protocol/realtime/projection_world.go:79:	}
+services/game-server/internal/protocol/realtime/projection_world.go:80:
+services/game-server/internal/protocol/realtime/projection_world.go:81:	pickupKeys := make([]string, 0, len(snapshot.Pickups))
+services/game-server/internal/protocol/realtime/projection_world.go:82:	for id := range snapshot.Pickups {
+services/game-server/internal/protocol/realtime/projection_world.go:83:		pickupKeys = append(pickupKeys, id)
+services/game-server/internal/protocol/realtime/projection_world.go:84:	}
+services/game-server/internal/protocol/realtime/projection_world.go:85:	sort.Strings(pickupKeys)
+services/game-server/internal/protocol/realtime/projection_world.go:86:
+services/game-server/internal/protocol/realtime/projection_world.go:87:	pickups := make([]WorldPickupRecord, 0, len(pickupKeys))
+services/game-server/internal/protocol/realtime/projection_world.go:88:	for _, id := range pickupKeys {
+services/game-server/internal/protocol/realtime/projection_world.go:89:		pickup := snapshot.Pickups[id]
+services/game-server/internal/protocol/realtime/projection_world.go:90:		pickups = append(pickups, WorldPickupRecord{
+services/game-server/internal/protocol/realtime/projection_world.go:91:			ID:              id,
+services/game-server/internal/protocol/realtime/projection_world.go:92:			Type:            pickup.Type,
+services/game-server/internal/protocol/realtime/projection_world.go:93:			PickupClass:     pickup.PickupClass,
+services/game-server/internal/protocol/realtime/projection_world.go:94:			X:               pickup.X,
+services/game-server/internal/protocol/realtime/projection_world.go:95:			Y:               pickup.Y,
+services/game-server/internal/protocol/realtime/projection_world.go:96:			Health:          pickup.Health,
+services/game-server/internal/protocol/realtime/projection_world.go:97:			AgeSeconds:      pickup.AgeSeconds,
+services/game-server/internal/protocol/realtime/projection_world.go:98:			LifespanSeconds: pickup.LifespanSeconds,
+services/game-server/internal/protocol/realtime/projection_world.go:99:		})
+services/game-server/internal/protocol/realtime/projection_world.go:100:	}
+services/game-server/internal/protocol/realtime/projection_world.go:101:
+services/game-server/internal/protocol/realtime/projection_world.go:102:	return WorldLaneProjection{
+services/game-server/internal/protocol/realtime/projection_world.go:103:		Ships:     ships,
+services/game-server/internal/protocol/realtime/projection_world.go:104:		Bullets:   bullets,
+services/game-server/internal/protocol/realtime/projection_world.go:105:		Asteroids: asteroids,
+services/game-server/internal/protocol/realtime/projection_world.go:106:		Pickups:   pickups,
+services/game-server/internal/protocol/realtime/projection_world.go:107:	}
+services/game-server/internal/protocol/realtime/projection_world.go:108:}
+services/game-server/internal/protocol/realtime/projection_world.go:109:
+services/game-server/internal/protocol/realtime/projection_world.go:110:func BuildWorldFullPacket(snapshot game.GameplayPresentationSnapshot, sequence int) WorldFullPacket {
+services/game-server/internal/protocol/realtime/projection_world.go:111:	projection := ProjectWorldLane(snapshot)
+services/game-server/internal/protocol/realtime/projection_world.go:112:	return WorldFullPacket{
+services/game-server/internal/protocol/realtime/projection_world.go:113:		Type: PacketFamilyWorldFull,
+services/game-server/internal/protocol/realtime/projection_world.go:114:		Metadata: Metadata{
+services/game-server/internal/protocol/realtime/projection_world.go:115:			Lane:           LaneWorld,
+services/game-server/internal/protocol/realtime/projection_world.go:116:			Sequence:       sequence,
+services/game-server/internal/protocol/realtime/projection_world.go:117:			BaselineID:     FullBaselineID(LaneWorld, sequence),
+services/game-server/internal/protocol/realtime/projection_world.go:118:			SnapshotID:     FullBaselineID(LaneWorld, sequence),
+services/game-server/internal/protocol/realtime/projection_world.go:119:			ServerSentMsec: snapshot.ServerSentMsec,
+services/game-server/internal/protocol/realtime/projection_world.go:120:			SnapshotKind:   SnapshotKind("full"),
+services/game-server/internal/protocol/realtime/projection_world.go:121:			ChunkIndex:     0,
+services/game-server/internal/protocol/realtime/projection_world.go:122:			ChunkCount:     1,
+services/game-server/internal/protocol/realtime/projection_world.go:123:			IsFinalChunk:   true,
+services/game-server/internal/protocol/realtime/projection_world.go:124:		},
+services/game-server/internal/protocol/realtime/projection_world.go:125:		Ships:     projection.Ships,
+services/game-server/internal/protocol/realtime/projection_world.go:126:		Bullets:   projection.Bullets,
+services/game-server/internal/protocol/realtime/projection_world.go:127:		Asteroids: projection.Asteroids,
+services/game-server/internal/protocol/realtime/projection_world.go:128:		Pickups:   projection.Pickups,
+services/game-server/internal/protocol/realtime/projection_world.go:129:	}
+services/game-server/internal/protocol/realtime/projection_world.go:130:}
+services/game-server/internal/protocol/realtime/planner.go:1:package realtime
+services/game-server/internal/protocol/realtime/planner.go:2:
+services/game-server/internal/protocol/realtime/planner.go:3:import (
+services/game-server/internal/protocol/realtime/planner.go:4:	"fmt"
+services/game-server/internal/protocol/realtime/planner.go:5:
+services/game-server/internal/protocol/realtime/planner.go:6:	game "github.com/Lokee86/space-rocks/services/game-server/internal/game"
+services/game-server/internal/protocol/realtime/planner.go:7:)
+services/game-server/internal/protocol/realtime/planner.go:8:
+services/game-server/internal/protocol/realtime/planner.go:9:func AssembleRealtimeLaneCandidates(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) (RealtimeLanePlan, error) {
+services/game-server/internal/protocol/realtime/planner.go:10:	return assembleRealtimeLaneCandidates(snapshot, state, nil)
+services/game-server/internal/protocol/realtime/planner.go:11:}
+services/game-server/internal/protocol/realtime/planner.go:12:
+services/game-server/internal/protocol/realtime/planner.go:13:func assembleRealtimeLaneCandidates(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState, sessionState *RealtimeSessionState) (RealtimeLanePlan, error) {
+services/game-server/internal/protocol/realtime/planner.go:14:	candidates := make([]RealtimeLaneCandidate, 0, 4)
+services/game-server/internal/protocol/realtime/planner.go:15:
+services/game-server/internal/protocol/realtime/planner.go:16:	worldCandidates, err := buildWorldLaneCandidates(snapshot, state, sessionState)
+services/game-server/internal/protocol/realtime/planner.go:17:	if err != nil {
+services/game-server/internal/protocol/realtime/planner.go:18:		return RealtimeLanePlan{}, err
+services/game-server/internal/protocol/realtime/planner.go:19:	}
+services/game-server/internal/protocol/realtime/planner.go:20:	candidates = append(candidates, worldCandidates...)
+services/game-server/internal/protocol/realtime/planner.go:21:
+services/game-server/internal/protocol/realtime/planner.go:22:	overlayCandidates, err := buildOverlayLaneCandidates(snapshot, state)
+services/game-server/internal/protocol/realtime/planner.go:23:	if err != nil {
+services/game-server/internal/protocol/realtime/planner.go:24:		return RealtimeLanePlan{}, err
+services/game-server/internal/protocol/realtime/planner.go:25:	}
+services/game-server/internal/protocol/realtime/planner.go:26:	candidates = append(candidates, overlayCandidates...)
+services/game-server/internal/protocol/realtime/planner.go:27:
+services/game-server/internal/protocol/realtime/planner.go:28:	sessionCandidates, err := buildSessionLaneCandidates(snapshot, state)
+services/game-server/internal/protocol/realtime/planner.go:29:	if err != nil {
+services/game-server/internal/protocol/realtime/planner.go:30:		return RealtimeLanePlan{}, err
+services/game-server/internal/protocol/realtime/planner.go:31:	}
+services/game-server/internal/protocol/realtime/planner.go:32:	candidates = append(candidates, sessionCandidates...)
+services/game-server/internal/protocol/realtime/planner.go:33:	candidates = append(candidates, buildEventLaneCandidates(snapshot, state)...)
+services/game-server/internal/protocol/realtime/planner.go:34:	for index := range candidates {
+services/game-server/internal/protocol/realtime/planner.go:35:		candidates[index].MatchID = state.MatchID
+services/game-server/internal/protocol/realtime/planner.go:36:	}
+services/game-server/internal/protocol/realtime/planner.go:37:
+services/game-server/internal/protocol/realtime/planner.go:38:	return RealtimeLanePlan{Candidates: candidates}, nil
+services/game-server/internal/protocol/realtime/planner.go:39:}
+services/game-server/internal/protocol/realtime/planner.go:40:
+services/game-server/internal/protocol/realtime/planner.go:41:func prepareRealtimeSendPlan(snapshot game.GameplayPresentationSnapshot, state RealtimeSessionState) (RealtimeSendPrepared, error) {
+services/game-server/internal/protocol/realtime/planner.go:42:	state.AdvanceHotLaneTick()
+services/game-server/internal/protocol/realtime/planner.go:43:	candidatePlan, err := assembleRealtimeLaneCandidates(snapshot, state, &state)
+services/game-server/internal/protocol/realtime/planner.go:44:	if err != nil {
+services/game-server/internal/protocol/realtime/planner.go:45:		return RealtimeSendPrepared{}, fmt.Errorf("assemble realtime lane candidates: %w", err)
+services/game-server/internal/protocol/realtime/planner.go:46:	}
+services/game-server/internal/protocol/realtime/planner.go:47:	candidatePlan.Candidates, err = ExpandRealtimeCandidateChunks(candidatePlan.Candidates)
+services/game-server/internal/protocol/realtime/planner.go:48:	if err != nil {
+services/game-server/internal/protocol/realtime/planner.go:49:		return RealtimeSendPrepared{}, err
+services/game-server/internal/protocol/realtime/planner.go:50:	}
+services/game-server/internal/protocol/realtime/planner.go:51:
+services/game-server/internal/protocol/realtime/planner.go:52:	records := make([]ScheduleRecord, 0, len(candidatePlan.Candidates))
+services/game-server/internal/protocol/realtime/planner.go:53:	for i, candidate := range candidatePlan.Candidates {
+services/game-server/internal/protocol/realtime/planner.go:54:		records = append(records, scheduleRecordForCandidate(i, candidate))
+services/game-server/internal/protocol/realtime/planner.go:55:	}
+services/game-server/internal/protocol/realtime/planner.go:56:
+services/game-server/internal/protocol/realtime/planner.go:57:	return RealtimeSendPrepared{
+services/game-server/internal/protocol/realtime/planner.go:58:		CandidatePlan: candidatePlan,
+services/game-server/internal/protocol/realtime/planner.go:59:		Records:       records,
+services/game-server/internal/protocol/realtime/planner.go:60:		SendPlan:      SelectSendPlan(records),
+services/game-server/internal/protocol/realtime/planner.go:61:		SessionState:  state,
+services/game-server/internal/protocol/realtime/planner.go:62:	}, nil
+services/game-server/internal/protocol/realtime/planner.go:63:}
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:1:package realtime
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:2:
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:3:type ShipHotLaneProjection struct {
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:4:	Records []WorldShipWireRecord
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:5:}
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:6:
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:7:type AsteroidHotLaneProjection struct {
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:8:	Records []WorldAsteroidWireRecord
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:9:}
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:10:
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:11:type BulletHotLaneProjection struct {
+services/game-server/internal/protocol/realtime/hot_lane_projection.go:12:	Records []WorldBulletWireRecord
+services/game-server/internal…5085 tokens truncated…l/realtime/lane_candidate_world.go:21:	storedWorld, worldHasProjection := state.BaselineProjection(LaneWorld)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:22:	worldCanUseProjection := worldReady && worldSynced && worldState.IsFinalChunk && worldState.BaselineID != "" && worldHasProjection
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:23:	if !worldCanUseProjection {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:24:		return append(candidates, mustRealtimeLaneCandidate(currentWorld, currentWorld)), nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:25:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:26:	previousWorld, ok := storedWorld.(WorldWireFullPacket)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:27:	if !ok {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:28:		return append(candidates, mustRealtimeLaneCandidate(currentWorld, currentWorld)), nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:29:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:30:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:31:	if WorldWirePayloadChanged(previousWorld, currentWorld) {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:32:		candidates = append(candidates, buildReliableWorldCandidates(previousWorld, currentWorld, state)...)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:33:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:34:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:35:	hotCandidates, cohortState := buildIndependentHotLaneCandidates(previousWorld, currentWorld, state)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:36:	candidates = append(candidates, hotCandidates...)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:37:	if sessionState != nil {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:38:		sessionState.HotLaneCohorts = cohortState
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:39:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:40:	return candidates, nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:41:}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:42:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:43:func buildReliableWorldCandidates(previousWorld WorldWireFullPacket, currentWorld WorldWireFullPacket, state RealtimeSessionState) []RealtimeLaneCandidate {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:44:	worldDelta := BuildWorldWireDeltaPacket(previousWorld, currentWorld)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:45:	_, shipReliableUpdates := partitionShipUpdates(worldDelta.Ships.Updates)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:46:	worldDelta.Ships.Updates = shipReliableUpdates
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:47:	worldDelta.Asteroids.Updates = nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:48:	worldDelta.Bullets.Updates = nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:49:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:50:	shipLifecyclePresent := len(worldDelta.Ships.Creates) > 0 || len(worldDelta.Ships.Updates) > 0 || len(worldDelta.Ships.Deletes) > 0
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:51:	asteroidLifecyclePresent := len(worldDelta.Asteroids.Creates) > 0 || len(worldDelta.Asteroids.Deletes) > 0
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:52:	bulletLifecyclePresent := len(worldDelta.Bullets.Creates) > 0 || len(worldDelta.Bullets.Deletes) > 0
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:53:	projectionAdvanceRequired := WorldWireDeltaHasChanges(worldDelta)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:54:	if !projectionAdvanceRequired {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:55:		return nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:56:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:57:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:58:	candidates := make([]RealtimeLaneCandidate, 0, 4)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:59:	if shipLifecyclePresent {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:60:		if candidate, ok := buildShipLifecycleCandidate(worldDelta, state); ok {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:61:			candidates = append(candidates, candidate)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:62:			worldDelta.Ships.Creates = nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:63:			worldDelta.Ships.Updates = nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:64:			worldDelta.Ships.Deletes = nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:65:		}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:66:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:67:	if asteroidLifecyclePresent {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:68:		if candidate, ok := buildAsteroidLifecycleCandidate(worldDelta, state); ok {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:69:			candidates = append(candidates, candidate)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:70:			worldDelta.Asteroids.Creates = nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:71:			worldDelta.Asteroids.Deletes = nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:72:		}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:73:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:74:	if bulletLifecyclePresent {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:75:		if candidate, ok := buildBulletLifecycleCandidate(worldDelta, state); ok {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:76:			candidates = append(candidates, candidate)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:77:			worldDelta.Bullets.Creates = nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:78:			worldDelta.Bullets.Deletes = nil
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:79:		}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:80:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:81:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:82:	chainedWorldProjection := currentWorld
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:83:	chainedWorldProjection.Metadata = worldDelta.Metadata
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:84:	candidates = append(candidates, mustRealtimeLaneCandidate(worldDelta, chainedWorldProjection))
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:85:	return candidates
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:86:}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:87:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:88:func buildIndependentHotLaneCandidates(previousWorld WorldWireFullPacket, currentWorld WorldWireFullPacket, state RealtimeSessionState) ([]RealtimeLaneCandidate, HotLaneCohortState) {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:89:	cohortState := state.HotLaneCohorts
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:90:	cohortState.EnsureInitialized()
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:91:	candidates := make([]RealtimeLaneCandidate, 0, 3)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:92:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:93:	currentShips := projectShipHotLane(currentWorld)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:94:	shipActive := shipHotProjectionIDs(currentShips)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:95:	assignHotRoutesWithOverride(cohortState.ShipRoutes, sortedHotLaneUpdateIDs(shipActive), HotUpdateRouteShips)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:96:	cohortState.RemoveMissingShips(shipActive)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:97:	shipUpdates := shipHotLaneUpdates(previousShipHotLaneProjection(state, previousWorld), currentShips)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:98:	if len(shipUpdates) > 0 {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:99:		packet := ShipWireDeltaPacket{
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:100:			Type:        PacketFamilyShipDelta,
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:101:			Metadata:    nextHotLaneMetadata(currentWorld.Metadata, state, LaneShips),
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:102:			ShipUpdates: shipUpdates,
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:103:		}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:104:		cohortState.ShipMode = hotLaneModeForChunkCount(shipWireDeltaChunkCount(packet))
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:105:		if hotPacketCadenceAllows(cohortState.ShipMode, state.HotLaneTick) {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:106:			candidates = append(candidates, mustRealtimeLaneCandidate(packet, currentShips))
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:107:		}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:108:	} else {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:109:		cohortState.ShipMode = HotLaneModeInline
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:110:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:111:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:112:	currentAsteroids := projectAsteroidHotLane(currentWorld)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:113:	asteroidActive := asteroidHotProjectionIDs(currentAsteroids)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:114:	assignHotRoutesWithOverride(cohortState.AsteroidRoutes, sortedHotLaneUpdateIDs(asteroidActive), HotUpdateRouteAsteroids)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:115:	cohortState.RemoveMissingAsteroids(asteroidActive)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:116:	asteroidUpdates := asteroidHotLaneUpdates(previousAsteroidHotLaneProjection(state, previousWorld), currentAsteroids)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:117:	if len(asteroidUpdates) > 0 {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:118:		packet := AsteroidWireDeltaPacket{
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:119:			Type:            PacketFamilyAsteroidDelta,
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:120:			Metadata:        nextHotLaneMetadata(currentWorld.Metadata, state, LaneAsteroids),
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:121:			AsteroidUpdates: asteroidUpdates,
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:122:		}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:123:		cohortState.AsteroidMode = hotLaneModeForChunkCount(asteroidWireDeltaChunkCount(packet))
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:124:		if hotPacketCadenceAllows(cohortState.AsteroidMode, state.HotLaneTick) {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:125:			candidates = append(candidates, mustRealtimeLaneCandidate(packet, currentAsteroids))
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:126:		}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:127:	} else {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:128:		cohortState.AsteroidMode = HotLaneModeInline
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:129:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:130:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:131:	currentBullets := projectBulletHotLane(currentWorld)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:132:	bulletActive := bulletHotProjectionIDs(currentBullets)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:133:	assignHotRoutesWithOverride(cohortState.BulletRoutes, sortedHotLaneUpdateIDs(bulletActive), HotUpdateRouteBullets)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:134:	cohortState.RemoveMissingBullets(bulletActive)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:135:	bulletUpdates := bulletHotLaneUpdates(previousBulletHotLaneProjection(state, previousWorld), currentBullets)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:136:	if len(bulletUpdates) > 0 {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:137:		packet := BulletWireDeltaPacket{
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:138:			Type:          PacketFamilyBulletDelta,
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:139:			Metadata:      nextHotLaneMetadata(currentWorld.Metadata, state, LaneBullets),
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:140:			BulletUpdates: bulletUpdates,
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:141:		}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:142:		cohortState.BulletMode = hotLaneModeForChunkCount(bulletWireDeltaChunkCount(packet))
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:143:		if hotPacketCadenceAllows(cohortState.BulletMode, state.HotLaneTick) {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:144:			candidates = append(candidates, mustRealtimeLaneCandidate(packet, currentBullets))
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:145:		}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:146:	} else {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:147:		cohortState.BulletMode = HotLaneModeInline
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:148:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:149:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:150:	return candidates, cohortState
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:151:}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:152:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:153:func nextHotLaneMetadata(world Metadata, state RealtimeSessionState, lane Lane) Metadata {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:154:	laneState, synced := state.LaneState(lane)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:155:	sequence := NextLaneSequence(laneState, synced)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:156:	if worldState, ok := state.LaneState(LaneWorld); ok && worldState.BaselineID != "" {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:157:		world.BaselineID = worldState.BaselineID
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:158:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:159:	world.MatchID = state.MatchID
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:160:	world.Lane = lane
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:161:	world.Sequence = sequence
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:162:	world.SnapshotID = DeltaSnapshotID(lane, sequence)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:163:	world.SnapshotKind = SnapshotKind("delta")
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:164:	world = world.WithChunk(0, 1)
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:165:	return world
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:166:}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:167:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:168:func shipHotProjectionIDs(projection ShipHotLaneProjection) map[string]bool {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:169:	ids := make(map[string]bool, len(projection.Records))
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:170:	for _, record := range projection.Records {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:171:		ids[record.ID] = true
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:172:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:173:	return ids
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:174:}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:175:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:176:func asteroidHotProjectionIDs(projection AsteroidHotLaneProjection) map[string]bool {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:177:	ids := make(map[string]bool, len(projection.Records))
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:178:	for _, record := range projection.Records {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:179:		ids[record.ID] = true
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:180:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:181:	return ids
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:182:}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:183:
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:184:func bulletHotProjectionIDs(projection BulletHotLaneProjection) map[string]bool {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:185:	ids := make(map[string]bool, len(projection.Records))
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:186:	for _, record := range projection.Records {
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:187:		ids[record.ID] = true
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:188:	}
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:189:	return ids
+services/game-server/internal/protocol/realtime/lane_candidate_world.go:190:}
+rg: services/game-server/internal/protocol/realtime/types.go: The system cannot find the file specified. (os error 2)
+
+2026-07-29T18:37:46.746421Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git status --short; git rev-parse HEAD; git log -n 20 --oneline --decorate'` rejected: blocked by policy
+2026-07-29T18:37:52.952725Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T18:38:55.456573Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.8 seconds
+Output:
+[31;1mGet-Content: [0m
+[31;1m[36;1mLine |[0m
+[31;1m[36;1m[36;1m   2 | [0m [36;1mGet-Content -Raw 'skills\packet-schema-change\SKILL.md'[0m
+[31;1m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[31;1m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mCannot find path 'C:\!bin\workspace\.codex-benchmark-checkouts\66185f47\plain\skills\packet-schema-change\SKILL.md' because it does not exist.[0m
+
+2026-07-29T18:39:02.678630Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg -n -i -A 10 -B 4 "source of truth|packet.*output|generated|push" tools/data_sync/!README.md docs/agent/generated-files.md docs/data/packet-schema.md docs/data/packets.md 2>$null'` rejected: blocked by policy
+2026-07-29T18:39:17.104079Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+1:package realtime
+2:
+3:const (
+4:	LaneWorld              = "world"
+5:	LaneOverlay            = "overlay"
+6:	LaneSession            = "session"
+7:	LaneEvent              = "event"
+8:	LaneControl            = "control"
+9:	LaneShips              = "ships"
+10:	LaneShipsLifecycle     = "ships.lifecycle"
+11:	LaneAsteroids          = "asteroids"
+12:	LaneBullets            = "bullets"
+13:	LaneAsteroidsLifecycle = "asteroids.lifecycle"
+14:	LaneBulletsLifecycle   = "bullets.lifecycle"
+15:)
+16:
+17:func IsBaselineLane(lane Lane) bool {
+18:	return lane == LaneWorld || lane == LaneOverlay || lane == LaneSession
+19:}
+20:
+21:const (
+22:	PacketFamilyWorldFull          = "world_full"
+23:	PacketFamilyWorldDelta         = "world_delta"
+24:	PacketFamilyShipDelta          = "ship_delta"
+25:	PacketFamilyShipsLifecycle     = "ships_lifecycle"
+26:	PacketFamilyOverlayFull        = "overlay_full"
+27:	PacketFamilyOverlayDelta       = "overlay_delta"
+28:	PacketFamilySessionFull        = "session_full"
+29:	PacketFamilySessionDelta       = "session_delta"
+30:	PacketFamilyAsteroidDelta      = "asteroid_delta"
+31:	PacketFamilyBulletDelta        = "bullet_delta"
+32:	PacketFamilyAsteroidsLifecycle = "asteroids_lifecycle"
+33:	PacketFamilyBulletsLifecycle   = "bullets_lifecycle"
+34:	PacketFamilyEventBatch         = "event_batch"
+35:	PacketFamilyResyncRequest      = "resync_request"
+36:	PacketFamilyResyncRequired     = "resync_required"
+37:)
+services/game-server/internal/networking/webrtc_transport.go:12:type webRTCChannelSpec struct {
+services/game-server/internal/networking/webrtc_transport.go:17:	MaxRetransmits *uint16
+services/game-server/internal/networking/webrtc_transport.go:21:	webRTCChannelLaneWorld       = "world"
+services/game-server/internal/networking/webrtc_transport.go:27:func webRTCChannelSpecs() []webRTCChannelSpec {
+services/game-server/internal/networking/webrtc_transport.go:29:	return []webRTCChannelSpec{
+services/game-server/internal/networking/webrtc_transport.go:34:		{Lane: "asteroids", Label: "sr.asteroids", ID: 5, Ordered: false, MaxRetransmits: &zeroRetransmits},
+services/game-server/internal/networking/webrtc_transport.go:35:		{Lane: "bullets", Label: "sr.bullets", ID: 6, Ordered: false, MaxRetransmits: &zeroRetransmits},
+services/game-server/internal/networking/webrtc_transport.go:39:		{Lane: "ships", Label: "sr.ships", ID: 10, Ordered: false, MaxRetransmits: &zeroRetransmits},
+services/game-server/internal/networking/webrtc_transport.go:40:		{Lane: "ships.lifecycle", Label: "sr.ships.lifecycle", ID: 11, Ordered: true},
+services/game-server/internal/networking/webrtc_transport.go:44:func webRTCChannelLabelForLane(lane string) (string, bool) {
+services/game-server/internal/networking/webrtc_transport.go:45:	for _, spec := range webRTCChannelSpecs() {
+services/game-server/internal/networking/webrtc_transport.go:232:	return p.SendEncodedLaneJSON(webRTCChannelLaneWorld, encoded)
+services/game-server/internal/networking/webrtc_transport.go:236:	return p.SendLaneJSON(webRTCChannelLaneWorld, packet)
+services/game-server/internal/networking/webrtc_transport.go:332:	for _, spec := range webRTCChannelSpecs() {
+services/game-server/internal/networking/webrtc_transport.go:339:			MaxRetransmits: spec.MaxRetransmits,
+services/game-server/internal/networking/webrtc_transport.go:381:	if _, ok := webRTCChannelLabelForLane(lane); !ok {
+services/game-server/internal/networking/webrtc_transport.go:431:	for _, spec := range webRTCChannelSpecs() {
+rg: services/game-server/internal/networking/webrtc_channels.go: The system cannot find the file specified. (os error 2)
+rg: services/game-server/internal/networking/*.go: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+
+2026-07-29T18:39:38.510341Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+213-type = "bool"
+214-
+215-[[structs]]
+216-
+217:id = "ShipState"
+218-
+219-[[structs.fields]]
+220-
+221-name = "id"
+222-json = "id"
+223-type = "string"
+224-
+225-[[structs.fields]]
+226-
+227-name = "ship_type"
+228-json = "ship_type"
+229-type = "string"
+230-
+231-[[structs.fields]]
+232-
+233-name = "team_id"
+234-go_name = "TeamID"
+235-json = "team_id"
+236-type = "string"
+237-
+238-[[structs.fields]]
+239-
+240-name = "x"
+241-json = "x"
+242-type = "float"
+243-
+244-[[structs.fields]]
+245-
+246-name = "y"
+247-json = "y"
+248-type = "float"
+249-
+250-[[structs.fields]]
+251-
+252-name = "rotation"
+253-json = "rotation"
+254-type = "float"
+255-
+256-[[structs.fields]]
+257-
+258-name = "health"
+259-json = "health"
+260-type = "int"
+261-
+262-[[structs.fields]]
+263-
+264-name = "shields"
+265-json = "shields"
+266-type = "int"
+267-
+268-[[structs.fields]]
+269-
+270-name = "thrusting"
+271-json = "thrusting"
+272-type = "bool"
+273-
+274-[[structs.fields]]
+275-
+276-name = "target_kind"
+277-go_name = "TargetKind"
+278-json = "target_kind"
+279-type = "string"
+280-
+281-[[structs.fields]]
+282-
+283-name = "target_id"
+284-go_name = "TargetID"
+285-json = "target_id"
+286-type = "string"
+287-
+288-[[structs.fields]]
+289-
+290-name = "primary_weapon_id"
+291-go_name = "PrimaryWeaponID"
+292-json = "primary_weapon_id"
+293-type = "string"
+294-
+295-[[structs.fields]]
+296-
+297-name = "primary_ammo_policy"
+298-go_name = "PrimaryAmmoPolicy"
+299-json = "primary_ammo_policy"
+300-type = "string"
+301-
+302-[[structs.fields]]
+303-
+304-name = "primary_cooldown_remaining"
+305-go_name = "PrimaryCooldownRemaining"
+306-json = "primary_cooldown_remaining"
+307-type = "float"
+308-
+309-[[structs.fields]]
+310-
+311-name = "primary_ammo_remaining"
+312-go_name = "PrimaryAmmoRemaining"
+313-json = "primary_ammo_remaining"
+314-type = "int"
+315-
+316-[[structs.fields]]
+317-
+services/game-server/internal/game/runtime/packets_generated.go:18:type ShipState struct {
+rg: services/game-server/internal/game/runtime/*.go: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+

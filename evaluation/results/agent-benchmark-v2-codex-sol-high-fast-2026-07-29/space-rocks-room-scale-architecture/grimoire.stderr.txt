@@ -1,0 +1,365 @@
+Reading additional input from stdin...
+2026-07-29T18:07:21.889545Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git status --short; git rev-parse HEAD; rg --files | Sort-Object'` rejected: blocked by policy
+2026-07-29T18:07:25.082130Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git status --short
+git rev-parse HEAD
+rg --files'` rejected: blocked by policy
+2026-07-29T18:07:33.965613Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'git rev-parse HEAD'` rejected: blocked by policy
+2026-07-29T18:07:56.394114Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg --files services/game-server/internal/networking services/game-server/internal/protocol/realtime client/scripts/protocol/realtime client/scripts/world client/scripts/networking/webrtc | Sort-Object'` rejected: blocked by policy
+2026-07-29T18:08:45.560468Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+services/game-server/internal/game/runtime/camera.go:1:package runtime
+services/game-server/internal/game/runtime/camera.go:2:
+services/game-server/internal/game/runtime/camera.go:3:import (
+services/game-server/internal/game/runtime/camera.go:4:	"github.com/Lokee86/space-rocks/services/game-server/internal/constants"
+services/game-server/internal/game/runtime/camera.go:5:	"github.com/Lokee86/space-rocks/services/game-server/internal/game/physics"
+services/game-server/internal/game/runtime/camera.go:6:)
+services/game-server/internal/game/runtime/camera.go:7:
+services/game-server/internal/game/runtime/camera.go:8:const (
+services/game-server/internal/game/runtime/camera.go:9:	BaseVisibleWorldWidth  = 1280.0
+services/game-server/internal/game/runtime/camera.go:10:	BaseVisibleWorldHeight = 720.0
+services/game-server/internal/game/runtime/camera.go:11:	MinCameraZoom          = 0.5
+services/game-server/internal/game/runtime/camera.go:12:	MaxCameraZoom          = 2.0
+services/game-server/internal/game/runtime/camera.go:13:
+services/game-server/internal/game/runtime/camera.go:14:	MinVisibleWorldWidth  = BaseVisibleWorldWidth / MaxCameraZoom
+services/game-server/internal/game/runtime/camera.go:15:	MinVisibleWorldHeight = BaseVisibleWorldHeight / MaxCameraZoom
+services/game-server/internal/game/runtime/camera.go:16:	MaxVisibleWorldWidth  = BaseVisibleWorldWidth / MinCameraZoom
+services/game-server/internal/game/runtime/camera.go:17:	MaxVisibleWorldHeight = BaseVisibleWorldHeight / MinCameraZoom
+services/game-server/internal/game/runtime/camera.go:18:)
+services/game-server/internal/game/runtime/camera.go:19:
+services/game-server/internal/game/runtime/camera.go:20:func DefaultCameraConfig() ClientConfig {
+services/game-server/internal/game/runtime/camera.go:21:	return ClientConfig{
+services/game-server/internal/game/runtime/camera.go:22:		VisibleWorldWidth:  BaseVisibleWorldWidth,
+services/game-server/internal/game/runtime/camera.go:23:		VisibleWorldHeight: BaseVisibleWorldHeight,
+services/game-server/internal/game/runtime/camera.go:24:	}
+services/game-server/internal/game/runtime/camera.go:25:}
+services/game-server/internal/game/runtime/camera.go:26:
+services/game-server/internal/game/runtime/camera.go:27:func ClampCameraConfig(config ClientConfig) ClientConfig {
+services/game-server/internal/game/runtime/camera.go:28:	if config.VisibleWorldWidth <= 0 || config.VisibleWorldHeight <= 0 {
+services/game-server/internal/game/runtime/camera.go:29:		return DefaultCameraConfig()
+services/game-server/internal/game/runtime/camera.go:30:	}
+services/game-server/internal/game/runtime/camera.go:31:
+services/game-server/internal/game/runtime/camera.go:32:	widthZoom := BaseVisibleWorldWidth / config.VisibleWorldWidth
+services/game-server/internal/game/runtime/camera.go:33:	heightZoom := BaseVisibleWorldHeight / config.VisibleWorldHeight
+services/game-server/internal/game/runtime/camera.go:34:	zoom := min(max(max(widthZoom, heightZoom), MinCameraZoom), MaxCameraZoom)
+services/game-server/internal/game/runtime/camera.go:35:	return ClientConfig{
+services/game-server/internal/game/runtime/camera.go:36:		VisibleWorldWidth:  BaseVisibleWorldWidth / zoom,
+services/game-server/internal/game/runtime/camera.go:37:		VisibleWorldHeight: BaseVisibleWorldHeight / zoom,
+services/game-server/internal/game/runtime/camera.go:38:	}
+services/game-server/internal/game/runtime/camera.go:39:}
+services/game-server/internal/game/runtime/camera.go:40:
+services/game-server/internal/game/runtime/camera.go:41:func (view *CameraView) SetConfig(config ClientConfig) {
+services/game-server/internal/game/runtime/camera.go:42:	view.Config = ClampCameraConfig(config)
+services/game-server/internal/game/runtime/camera.go:43:}
+services/game-server/internal/game/runtime/camera.go:44:
+services/game-server/internal/game/runtime/camera.go:45:func (view *CameraView) SetPosition(position physics.Vector2) {
+services/game-server/internal/game/runtime/camera.go:46:	view.X = position.X
+services/game-server/internal/game/runtime/camera.go:47:	view.Y = position.Y
+services/game-server/internal/game/runtime/camera.go:48:}
+services/game-server/internal/game/runtime/camera.go:49:
+services/game-server/internal/game/runtime/camera.go:50:func (view *CameraView) Position() physics.Vector2 {
+services/game-server/internal/game/runtime/camera.go:51:	return physics.Vector2{X: view.X, Y: view.Y}
+services/game-server/internal/game/runtime/camera.go:52:}
+services/game-server/internal/game/runtime/camera.go:53:
+services/game-server/internal/game/runtime/camera.go:54:func (view *CameraView) IsInside(position physics.Vector2) bool {
+services/game-server/internal/game/runtime/camera.go:55:	width := view.VisibleWorldWidth()
+services/game-server/internal/game/runtime/camera.go:56:	height := view.VisibleWorldHeight()
+services/game-server/internal/game/runtime/camera.go:57:	left := view.X - width*0.5
+services/game-server/internal/game/runtime/camera.go:58:	right := view.X + width*0.5
+services/game-server/internal/game/runtime/camera.go:59:	top := view.Y - height*0.5
+services/game-server/internal/game/runtime/camera.go:60:	bottom := view.Y + height*0.5
+services/game-server/internal/game/runtime/camera.go:61:
+services/game-server/internal/game/runtime/camera.go:62:	return position.X >= left &&
+services/game-server/internal/game/runtime/camera.go:63:		position.X <= right &&
+services/game-server/internal/game/runtime/camera.go:64:		position.Y >= top &&
+services/game-server/internal/game/runtime/camera.go:65:		position.Y <= bottom
+services/game-server/internal/game/runtime/camera.go:66:}
+services/game-server/internal/game/runtime/camera.go:67:
+services/game-server/internal/game/runtime/camera.go:68:func (view *CameraView) IsFarFrom(position physics.Vector2) bool {
+services/game-server/internal/game/runtime/camera.go:69:	width := view.VisibleWorldWidth()
+services/game-server/internal/game/runtime/camera.go:70:	height := view.VisibleWorldHeight()
+services/game-server/internal/game/runtime/camera.go:71:	left := view.X - width*0.5 - constants.AsteroidDespawnMargin
+services/game-server/internal/game/runtime/camera.go:72:	right := view.X + width*0.5 + constants.AsteroidDespawnMargin
+services/game-server/internal/game/runtime/camera.go:73:	top := view.Y - height*0.5 - constants.AsteroidDespawnMargin
+services/game-server/internal/game/runtime/camera.go:74:	bottom := view.Y + height*0.5 + constants.AsteroidDespawnMargin
+services/game-server/internal/game/runtime/camera.go:75:
+services/game-server/internal/game/runtime/camera.go:76:	return position.X < left ||
+services/game-server/internal/game/runtime/camera.go:77:		position.X > right ||
+services/game-server/internal/game/runtime/camera.go:78:		position.Y < top ||
+services/game-server/internal/game/runtime/camera.go:79:		position.Y > bottom
+services/game-server/internal/game/runtime/camera.go:80:}
+services/game-server/internal/game/runtime/camera.go:81:
+services/game-server/internal/game/runtime/camera.go:82:func (view *CameraView) VisibleWorldWidth() float64 {
+services/game-server/internal/game/runtime/camera.go:83:	if view.Config.VisibleWorldWidth > 0 {
+services/game-server/internal/game/runtime/camera.go:84:		return view.Config.VisibleWorldWidth
+services/game-server/internal/game/runtime/camera.go:85:	}
+services/game-server/internal/game/runtime/camera.go:86:
+services/game-server/internal/game/runtime/camera.go:87:	return BaseVisibleWorldWidth
+services/game-server/internal/game/runtime/camera.go:88:}
+services/game-server/internal/game/runtime/camera.go:89:
+services/game-server/internal/game/runtime/camera.go:90:func (view *CameraView) VisibleWorldHeight() float64 {
+services/game-server/internal/game/runtime/camera.go:91:	if view.Config.VisibleWorldHeight > 0 {
+services/game-server/internal/game/runtime/camera.go:92:		return view.Config.VisibleWorldHeight
+services/game-server/internal/game/runtime/camera.go:93:	}
+services/game-server/internal/game/runtime/camera.go:94:
+services/game-server/internal/game/runtime/camera.go:95:	return BaseVisibleWorldHeight
+services/game-server/internal/game/runtime/camera.go:96:}
+services/game-server/internal/game/spatial/grid/rebuild.go:1:package grid
+services/game-server/internal/game/spatial/grid/rebuild.go:2:
+services/game-server/internal/game/spatial/grid/rebuild.go:3:import (
+services/game-server/internal/game/spatial/grid/rebuild.go:4:	"math"
+services/game-server/internal/game/spatial/grid/rebuild.go:5:
+services/game-server/internal/game/spatial/grid/rebuild.go:6:	"github.com/Lokee86/space-rocks/services/game-server/internal/game/spatial"
+services/game-server/internal/game/spatial/grid/rebuild.go:7:)
+services/game-server/internal/game/spatial/grid/rebuild.go:8:
+services/game-server/internal/game/spatial/grid/rebuild.go:9:func (index *Index) insert(entry spatial.Entry) {
+services/game-server/internal/game/spatial/grid/rebuild.go:10:	xCells := index.axisRange(entry.Position.X-entry.Radius, entry.Position.X+entry.Radius, index.bounds.Width, index.cellWidth, index.cellsX)
+services/game-server/internal/game/spatial/grid/rebuild.go:11:	yCells := index.axisRange(entry.Position.Y-entry.Radius, entry.Position.Y+entry.Radius, index.bounds.Height, index.cellHeight, index.cellsY)
+services/game-server/internal/game/spatial/grid/rebuild.go:12:
+services/game-server/internal/game/spatial/grid/rebuild.go:13:	for yOffset := 0; yOffset < yCells.count; yOffset++ {
+services/game-server/internal/game/spatial/grid/rebuild.go:14:		y := (yCells.start + yOffset) % index.cellsY
+services/game-server/internal/game/spatial/grid/rebuild.go:15:		for xOffset := 0; xOffset < xCells.count; xOffset++ {
+services/game-server/internal/game/spatial/grid/rebuild.go:16:			x := (xCells.start + xOffset) % index.cellsX
+services/game-server/internal/game/spatial/grid/rebuild.go:17:			bucketIndex := y*index.cellsX + x
+services/game-server/internal/game/spatial/grid/rebuild.go:18:			if len(index.buckets[bucketIndex]) == 0 {
+services/game-server/internal/game/spatial/grid/rebuild.go:19:				index.touched = append(index.touched, bucketIndex)
+services/game-server/internal/game/spatial/grid/rebuild.go:20:			}
+services/game-server/internal/game/spatial/grid/rebuild.go:21:			index.buckets[bucketIndex] = append(index.buckets[bucketIndex], entry)
+services/game-server/internal/game/spatial/grid/rebuild.go:22:		}
+services/game-server/internal/game/spatial/grid/rebuild.go:23:	}
+services/game-server/internal/game/spatial/grid/rebuild.go:24:}
+services/game-server/internal/game/spatial/grid/rebuild.go:25:
+services/game-server/internal/game/spatial/grid/rebuild.go:26:type axisRange struct {
+services/game-server/internal/game/spatial/grid/rebuild.go:27:	start int
+services/game-server/internal/game/spatial/grid/rebuild.go:28:	count int
+services/game-server/internal/game/spatial/grid/rebuild.go:29:}
+services/game-server/internal/game/spatial/grid/rebuild.go:30:
+services/game-server/internal/game/spatial/grid/rebuild.go:31:func (index *Index) axisRange(minimum, maximum, size, cellExtent float64, count int) axisRange {
+services/game-server/internal/game/spatial/grid/rebuild.go:32:	if maximum-minimum >= size {
+services/game-server/internal/game/spatial/grid/rebuild.go:33:		return axisRange{count: count}
+services/game-server/internal/game/spatial/grid/rebuild.go:34:	}
+services/game-server/internal/game/spatial/grid/rebuild.go:35:
+services/game-server/internal/game/spatial/grid/rebuild.go:36:	first := int(math.Floor(minimum / cellExtent))
+services/game-server/internal/game/spatial/grid/rebuild.go:37:	last := int(math.Floor(maximum / cellExtent))
+services/game-server/internal/game/spatial/grid/rebuild.go:38:	span := last - first + 1
+services/game-server/internal/game/spatial/grid/rebuild.go:39:	if span > count {
+services/game-server/internal/game/spatial/grid/rebuild.go:40:		span = count
+services/game-server/internal/game/spatial/grid/rebuild.go:41:	}
+services/game-server/internal/game/spatial/grid/rebuild.go:42:	start := first % count
+services/game-server/internal/game/spatial/grid/rebuild.go:43:	if start < 0 {
+services/game-server/internal/game/spatial/grid/rebuild.go:44:		start += count
+services/game-server/internal/game/spatial/grid/rebuild.go:45:	}
+services/game-server/internal/game/spatial/grid/rebuild.go:46:	return axisRange{start: start, count: span}
+services/game-server/internal/game/spatial/grid/rebuild.go:47:}
+services/game-server/internal/game/spatial/grid/query_rect.go:1:package grid
+services/game-server/internal/game/spatial/grid/query_rect.go:2:
+services/game-server/internal/game/spatial/grid/query_rect.go:3:import (
+services/game-server/internal/game/spatial/grid/query_rect.go:4:	"math"
+services/game-server/internal/game/spatial/grid/query_rect.go:5:
+services/game-server/internal/game/spatial/grid/query_rect.go:6:	"github.com/Lokee86/space-rocks/services/game-server/internal/game/physics"
+services/game-server/internal/game/spatial/grid/query_rect.go:7:	"github.com/Lokee86/space-rocks/services/game-server/internal/game/space"
+services/game-server/internal/game/spatial/grid/query_rect.go:8:	"github.com/Lokee86/space-rocks/services/game-server/internal/game/spatial"
+services/game-server/internal/game/spatial/grid/query_rect.go:9:)
+services/game-server/internal/game/spatial/grid/query_rect.go:10:
+services/game-server/internal/game/spatial/grid/query_rect.go:11:func (index *Index) QueryRect(dst []spatial.Ref, rect spatial.Rect, mask spatial.KindMask) []spatial.Ref {
+services/game-server/internal/game/spatial/grid/query_rect.go:12:	if mask == 0 {
+services/game-server/internal/game/spatial/grid/query_rect.go:13:		return dst
+services/game-server/internal/game/spatial/grid/query_rect.go:14:	}
+services/game-server/internal/game/spatial/grid/query_rect.go:15:
+services/game-server/internal/game/spatial/grid/query_rect.go:16:	rect.Center = space.WrapPosition(rect.Center, index.bounds)
+services/game-server/internal/game/spatial/grid/query_rect.go:17:	rect.HalfExtents.X = math.Max(0, rect.HalfExtents.X)
+services/game-server/internal/game/spatial/grid/query_rect.go:18:	rect.HalfExtents.Y = math.Max(0, rect.HalfExtents.Y)
+services/game-server/internal/game/spatial/grid/query_rect.go:19:	xCells := index.axisRange(rect.Center.X-rect.HalfExtents.X, rect.Center.X+rect.HalfExtents.X, index.bounds.Width, index.cellWidth, index.cellsX)
+services/game-server/internal/game/spatial/grid/query_rect.go:20:	yCells := index.axisRange(rect.Center.Y-rect.HalfExtents.Y, rect.Center.Y+rect.HalfExtents.Y, index.bounds.Height, index.cellHeight, index.cellsY)
+services/game-server/internal/game/spatial/grid/query_rect.go:21:	generation := index.beginQuery()
+services/game-server/internal/game/spatial/grid/query_rect.go:22:
+services/game-server/internal/game/spatial/grid/query_rect.go:23:	for yOffset := 0; yOffset < yCells.count; yOffset++ {
+services/game-server/internal/game/spatial/grid/query_rect.go:24:		y := (yCells.start + yOffset) % index.cellsY
+services/game-server/internal/game/spatial/grid/query_rect.go:25:		for xOffset := 0; xOffset < xCells.count; xOffset++ {
+services/game-server/internal/game/spatial/grid/query_rect.go:26:			x := (xCells.start + xOffset) % index.cellsX
+services/game-server/internal/game/spatial/grid/query_rect.go:27:			for _, entry := range index.buckets[y*index.cellsX+x] {
+services/game-server/internal/game/spatial/grid/query_rect.go:28:				if !mask.Allows(entry.Ref.Kind) || !index.markQueryRef(entry.Ref, generation) {
+services/game-server/internal/game/spatial/grid/query_rect.go:29:					continue
+services/game-server/internal/game/spatial/grid/query_rect.go:30:				}
+services/game-server/internal/game/spatial/grid/query_rect.go:31:				if circleOverlapsRect(rect, entry.Position, entry.Radius, index.bounds) {
+services/game-server/internal/game/spatial/grid/query_rect.go:32:					dst = append(dst, entry.Ref)
+services/game-server/internal/game/spatial/grid/query_rect.go:33:				}
+services/game-server/internal/game/spatial/grid/query_rect.go:34:			}
+services/game-server/internal/game/spatial/grid/query_rect.go:35:		}
+services/game-server/internal/game/spatial/grid/query_rect.go:36:	}
+services/game-server/internal/game/spatial/grid/query_rect.go:37:	return dst
+services/game-server/internal/game/spatial/grid/query_rect.go:38:}
+services/game-server/internal/game/spatial/grid/query_rect.go:39:
+services/game-server/internal/game/spatial/grid/query_rect.go:40:func circleOverlapsRect(rect spatial.Rect, position physics.Vector2, radius float64, bounds space.Bounds) bool {
+services/game-server/internal/game/spatial/grid/query_rect.go:41:	delta := space.ShortestDelta(rect.Center, position, bounds)
+services/game-server/internal/game/spatial/grid/query_rect.go:42:	distanceX := math.Max(0, math.Abs(delta.X)-rect.HalfExtents.X)
+services/game-server/internal/game/spatial/grid/query_rect.go:43:	distanceY := math.Max(0, math.Abs(delta.Y)-rect.HalfExtents.Y)
+services/game-server/internal/game/spatial/grid/query_rect.go:44:	return distanceX*distanceX+distanceY*distanceY <= radius*radius
+services/game-server/internal/game/spatial/grid/query_rect.go:45:}
+services/game-server/internal/game/spatial/types.go:1:package spatial
+services/game-server/internal/game/spatial/types.go:2:
+services/game-server/internal/game/spatial/types.go:3:import "github.com/Lokee86/space-rocks/services/game-server/internal/game/physics"
+services/game-server/internal/game/spatial/types.go:4:
+services/game-server/internal/game/spatial/types.go:5:type Kind uint8
+services/game-server/internal/game/spatial/types.go:6:
+services/game-server/internal/game/spatial/types.go:7:const (
+services/game-server/internal/game/spatial/types.go:8:	KindPlayer Kind = 1 << iota
+services/game-server/internal/game/spatial/types.go:9:	KindProjectile
+services/game-server/internal/game/spatial/types.go:10:	KindAsteroid
+services/game-server/internal/game/spatial/types.go:11:	KindEnemy
+services/game-server/internal/game/spatial/types.go:12:	KindPickup
+services/game-server/internal/game/spatial/types.go:13:)
+services/game-server/internal/game/spatial/types.go:14:
+services/game-server/internal/game/spatial/types.go:15:type KindMask uint8
+services/game-server/internal/game/spatial/types.go:16:
+services/game-server/internal/game/spatial/types.go:17:const AllKinds KindMask = KindMask(KindPlayer | KindProjectile | KindAsteroid | KindEnemy | KindPickup)
+services/game-server/internal/game/spatial/types.go:18:
+services/game-server/internal/game/spatial/types.go:19:func (mask KindMask) Allows(kind Kind) bool {
+services/game-server/internal/game/spatial/types.go:20:	return kind != 0 && mask&KindMask(kind) != 0
+services/game-server/internal/game/spatial/types.go:21:}
+services/game-server/internal/game/spatial/types.go:22:
+services/game-server/internal/game/spatial/types.go:23:type Ref struct {
+services/game-server/internal/game/spatial/types.go:24:	Kind Kind
+services/game-server/internal/game/spatial/types.go:25:	ID   string
+services/game-server/internal/game/spatial/types.go:26:}
+services/game-server/internal/game/spatial/types.go:27:
+services/game-server/internal/game/spatial/types.go:28:type Entry struct {
+services/game-server/internal/game/spatial/types.go:29:	Ref      Ref
+services/game-server/internal/game/spatial/types.go:30:	Position physics.Vector2
+services/game-server/internal/game/spatial/types.go:31:	Radius   float64
+services/game-server/internal/game/spatial/types.go:32:}
+services/game-server/internal/game/spatial/types.go:33:
+services/game-server/internal/game/spatial/types.go:34:type Rect struct {
+services/game-server/internal/game/spatial/types.go:35:	Center      physics.Vector2
+services/game-server/internal/game/spatial/types.go:36:	HalfExtents physics.Vector2
+services/game-server/internal/game/spatial/types.go:37:}
+services/game-server/internal/game/visibility.go:1:package game
+services/game-server/internal/game/visibility.go:2:
+services/game-server/internal/game/visibility.go:3:import (
+services/game-server/internal/game/visibility.go:4:	"math"
+services/game-server/internal/game/visibility.go:5:
+services/game-server/internal/game/visibility.go:6:	"github.com/Lokee86/space-rocks/services/game-server/internal/constants"
+services/game-server/internal/game/visibility.go:7:	"github.com/Lokee86/space-rocks/services/game-server/internal/game/physics"
+services/game-server/internal/game/visibility.go:8:	"github.com/Lokee86/space-rocks/services/game-server/internal/game/runtime"
+services/game-server/internal/game/visibility.go:9:	"github.com/Lokee86/space-rocks/services/game-server/internal/game/space"
+services/game-server/internal/game/visibility.go:10:)
+services/game-server/internal/game/visibility.go:11:
+services/game-server/internal/game/visibility.go:12:func (game *Game) randomAsteroidSpawnPosition(targetView *runtime.CameraView) physics.Vector2 {
+services/game-server/internal/game/visibility.go:13:	margin := constants.AsteroidSpawnMargin
+services/game-server/internal/game/visibility.go:14:	for attempts := 0; ; attempts++ {
+services/game-server/internal/game/visibility.go:15:		spawn := game.randomOffscreenPosition(targetView, margin)
+services/game-server/internal/game/visibility.go:16:		if !game.isInsideAsteroidSpawnClearanceForAnyCamera(spawn) {
+services/game-server/internal/game/visibility.go:17:			return spawn
+services/game-server/internal/game/visibility.go:18:		}
+services/game-server/internal/game/visibility.go:19:
+services/game-server/internal/game/visibility.go:20:		if attempts > 0 && attempts%16 == 0 {
+services/game-server/internal/game/visibility.go:21:			margin += constants.AsteroidSpawnMargin
+services/game-server/internal/game/visibility.go:22:		}
+services/game-server/internal/game/visibility.go:23:	}
+services/game-server/internal/game/visibility.go:24:}
+services/game-server/internal/game/visibility.go:25:
+services/game-server/internal/game/visibility.go:26:func (game *Game) randomOffscreenPosition(view *runtime.CameraView, margin float64) physics.Vector2 {
+services/game-server/internal/game/visibility.go:27:	width := view.VisibleWorldWidth()
+services/game-server/internal/game/visibility.go:28:	height := view.VisibleWorldHeight()
+services/game-server/internal/game/visibility.go:29:	left := view.X - width*0.5
+services/game-server/internal/game/visibility.go:30:	right := view.X + width*0.5
+services/game-server/internal/game/visibility.go:31:	top := view.Y - height*0.5
+services/game-server/internal/game/visibility.go:32:	bottom := view.Y + height*0.5
+services/game-server/internal/game/visibility.go:33:
+services/game-server/internal/game/visibility.go:34:	switch game.rngSource.Intn(4) {
+services/game-server/internal/game/visibility.go:35:	case 0:
+services/game-server/internal/game/visibility.go:36:		return physics.Vector2{X: game.randomRange(left, right), Y: top - margin}
+services/game-server/internal/game/visibility.go:37:	case 1:
+services/game-server/internal/game/visibility.go:38:		return physics.Vector2{
+services/game-server/internal/game/visibility.go:39:			X: right + margin,
+services/game-server/internal/game/visibility.go:40:			Y: game.randomRange(top, bottom),
+services/game-server/internal/game/visibility.go:41:		}
+services/game-server/internal/game/visibility.go:42:	case 2:
+services/game-server/internal/game/visibility.go:43:		return physics.Vector2{
+services/game-server/internal/game/visibility.go:44:			X: game.randomRange(left, right),
+services/game-server/internal/game/visibility.go:45:			Y: bottom + margin,
+services/game-server/internal/game/visibility.go:46:		}
+services/game-server/internal/game/visibility.go:47:	default:
+services/game-server/internal/game/visibility.go:48:		return physics.Vector2{X: left - margin, Y: game.randomRange(top, bottom)}
+services/game-server/internal/game/visibility.go:49:	}
+services/game-server/internal/game/visibility.go:50:}
+services/game-server/internal/game/visibility.go:51:
+services/game-server/internal/game/visibility.go:52:func (game *Game) isInsideAsteroidSpawnClearanceForAnyCamera(position physics.Vector2) bool {
+services/game-server/internal/game/visibility.go:53:	for _, view := range game.cameraViews {
+services/game-server/internal/game/visibility.go:54:		if isInsideCameraViewWithMargin(view, position, constants.AsteroidSpawnMargin) {
+services/game-server/internal/game/visibility.go:55:			return true
+services/game-server/internal/game/visibility.go:56:		}
+services/game-server/internal/game/visibility.go:57:	}
+services/game-server/internal/game/visibility.go:58:
+services/game-server/internal/game/visibility.go:59:	return false
+services/game-server/internal/game/visibility.go:60:}
+services/game-server/internal/game/visibility.go:61:
+services/game-server/internal/game/visibility.go:62:func (game *Game) isAsteroidFarFromAllCameras(asteroid *runtime.Asteroid) bool {
+services/game-server/internal/game/visibility.go:63:	if !game.hasCameraViews() {
+services/game-server/internal/game/visibility.go:64:		return true
+services/game-server/internal/game/visibility.go:65:	}
+services/game-server/internal/game/visibility.go:66:
+services/game-server/internal/game/visibility.go:67:	for _, view := range game.cameraViews {
+services/game-server/internal/game/visibility.go:68:		if !isFarFromCameraView(view, asteroid.Position()) {
+services/game-server/internal/game/visibility.go:69:			return false
+services/game-server/internal/game/visibility.go:70:		}
+services/game-server/internal/game/visibility.go:71:	}
+services/game-server/internal/game/visibility.go:72:
+services/game-server/internal/game/visibility.go:73:	return true
+services/game-server/internal/game/visibility.go:74:}
+services/game-server/internal/game/visibility.go:75:
+services/game-server/internal/game/visibility.go:76:func (game *Game) isBulletFarFromAllCameras(bullet *runtime.Bullet) bool {
+services/game-server/internal/game/visibility.go:77:	if !game.hasCameraViews() {
+services/game-server/internal/game/visibility.go:78:		return true
+services/game-server/internal/game/visibility.go:79:	}
+services/game-server/internal/game/visibility.go:80:
+services/game-server/internal/game/visibility.go:81:	for _, view := range game.cameraViews {
+services/game-server/internal/game/visibility.go:82:		if !isFarFromCameraView(view, bullet.Position()) {
+services/game-server/internal/game/visibility.go:83:			return false
+services/game-server/internal/game/visibility.go:84:		}
+services/game-server/internal/game/visibility.go:85:	}
+services/game-server/internal/game/visibility.go:86:
+services/game-server/internal/game/visibility.go:87:	return true
+services/game-server/internal/game/visibility.go:88:}
+services/game-server/internal/game/visibility.go:89:
+services/game-server/internal/game/visibility.go:90:func (game *Game) hasCameraViews() bool {
+services/game-server/internal/game/visibility.go:91:	return len(game.cameraViews) > 0
+services/game-server/internal/game/visibility.go:92:}
+services/game-server/internal/game/visibility.go:93:
+services/game-server/internal/game/visibility.go:94:func isInsideCameraView(view *runtime.CameraView, position physics.Vector2) bool {
+services/game-server/internal/game/visibility.go:95:	delta := space.Delta(view.Position(), position)
+services/game-server/internal/game/visibility.go:96:	return math.Abs(delta.X) <= view.VisibleWorldWidth()*0.5 &&
+services/game-server/internal/game/visibility.go:97:		math.Abs(delta.Y) <= view.VisibleWorldHeight()*0.5
+services/game-server/internal/game/visibility.go:98:}
+services/game-server/internal/game/visibility.go:99:
+services/game-server/internal/game/visibility.go:100:func isInsideCameraViewWithMargin(view *runtime.CameraView, position physics.Vector2, margin float64) bool {
+services/game-server/internal/game/visibility.go:101:	delta := space.Delta(view.Position(), position)
+services/game-server/internal/game/visibility.go:102:	return math.Abs(delta.X) < view.VisibleWorldWidth()*0.5+margin &&
+services/game-server/internal/game/visibility.go:103:		math.Abs(delta.Y) < view.VisibleWorldHeight()*0.5+margin
+services/game-server/internal/game/visibility.go:104:}
+services/game-server/internal/game/visibility.go:105:
+services/game-server/internal/game/visibility.go:106:func isFarFromCameraView(view *runtime.CameraView, position physics.Vector2) bool {
+services/game-server/internal/game/visibility.go:107:	delta := space.Delta(view.Position(), position)
+services/game-server/internal/game/visibility.go:108:	return math.Abs(delta.X) > view.VisibleWorldWidth()*0.5+constants.AsteroidDespawnMargin ||
+services/game-server/internal/game/visibility.go:109:		math.Abs(delta.Y) > view.VisibleWorldHeight()*0.5+constants.AsteroidDespawnMargin
+services/game-server/internal/game/visibility.go:110:}
+services/game-server/internal/game/visibility.go:111:
+services/game-server/internal/game/visibility.go:112:func (game *Game) randomRange(minValue float64, maxValue float64) float64 {
+services/game-server/internal/game/visibility.go:113:	return minValue + game.rngSource.Float64()*(maxValue-minValue)
+services/game-server/internal/game/visibility.go:114:}
+services/game-server/internal/game/spatial/index.go:1:package spatial
+services/game-server/internal/game/spatial/index.go:2:
+services/game-server/internal/game/spatial/index.go:3:import "github.com/Lokee86/space-rocks/services/game-server/internal/game/physics"
+services/game-server/internal/game/spatial/index.go:4:
+services/game-server/internal/game/spatial/index.go:5:type Index interface {
+services/game-server/internal/game/spatial/index.go:6:	Rebuild(entries []Entry)
+services/game-server/internal/game/spatial/index.go:7:	QueryCircle(dst []Ref, center physics.Vector2, radius float64, mask KindMask) []Ref
+services/game-server/internal/game/spatial/index.go:8:	QueryRect(dst []Ref, rect Rect, mask KindMask) []Ref
+services/game-server/internal/game/spatial/index.go:9:}
+rg: services/game-server/internal/game/spatial_index.go: The system cannot find the file specified. (os error 2)
+
+2026-07-29T18:09:10.804725Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+rg: services/game-server/internal/protocol/realtime/*.go: IO error for operation on services/game-server/internal/protocol/realtime/*.go: The filename, directory name, or volume label syntax is incorrect. (os error 123)
+

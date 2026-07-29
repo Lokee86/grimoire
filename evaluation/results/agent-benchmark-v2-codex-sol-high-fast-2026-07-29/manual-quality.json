@@ -1,0 +1,95 @@
+{
+  "method": "Manual review against the hidden weighted rubric; grounding-invalid and infrastructure-failed runs are unscored.",
+  "maximum_per_task": 8,
+  "tasks": {
+    "grimoire-state-maintenance-ownership": {
+      "plain": {
+        "score": 8,
+        "notes": "Full ownership, rationale, event seam, state alignment, and verification coverage."
+      },
+      "cbm": {
+        "score": 8,
+        "notes": "Full rubric coverage."
+      },
+      "grimoire": {
+        "score": 8,
+        "notes": "Full rubric coverage with the clearest state-alignment and duplicate-sync analysis."
+      }
+    },
+    "space-rocks-room-scale-architecture": {
+      "plain": {
+        "score": 8,
+        "notes": "Complete authority, membership, budgeting, cross-stack, and rollout analysis."
+      },
+      "cbm": {
+        "score": null,
+        "notes": "Disqualified: five nonexistent cited paths and missing required shared/ evidence."
+      },
+      "grimoire": {
+        "score": 8,
+        "notes": "Complete receiver-interest architecture and implementation sequence."
+      }
+    },
+    "detekt-cli-gradle-plugin-divergence": {
+      "plain": {
+        "score": 8,
+        "notes": "Correct Gradle classloader/invocation boundary and verification plan."
+      },
+      "cbm": {
+        "score": 8,
+        "notes": "Full rubric coverage."
+      },
+      "grimoire": {
+        "score": 8,
+        "notes": "Correct classloader cache and task-to-CLI seam analysis."
+      }
+    },
+    "space-rocks-distant-player-locator": {
+      "plain": {
+        "score": 8,
+        "notes": "Separate locator packet/read-model seam with generated protocol and client routing coverage."
+      },
+      "cbm": {
+        "score": 8,
+        "notes": "Uses a low-rate reliable world-delta beacon, separate from hot movement, with commit/cadence semantics."
+      },
+      "grimoire": {
+        "score": 7,
+        "notes": "Strong analysis, but reuses the hot ship_delta path instead of the rubric's separate low-cadence locator seam."
+      }
+    },
+    "leveldb-background-compaction-pause": {
+      "plain": {
+        "score": 8,
+        "notes": "Full scheduling, manual-compaction, write-pressure, concurrency, and deterministic verification coverage."
+      },
+      "cbm": {
+        "score": 8,
+        "notes": "Correct DBImpl admission/dispatch seam, preserved flush/manual paths, nested ownership, and race-focused tests."
+      },
+      "grimoire": {
+        "score": 8,
+        "notes": "Correct per-DB scheduler seam, automatic-only gate, in-flight completion semantics, and complete failure-oriented test plan."
+      }
+    }
+  },
+  "eligible_totals": {
+    "plain": {
+      "score": 40,
+      "maximum": 40,
+      "valid_runs": 5
+    },
+    "cbm": {
+      "score": 32,
+      "maximum": 32,
+      "valid_runs": 4,
+      "disqualified_runs": 1
+    },
+    "grimoire": {
+      "score": 39,
+      "maximum": 40,
+      "valid_runs": 5
+    }
+  },
+  "runner_note": "LevelDB was completed with Hermes one-shot; the first four tasks used Codex CLI. Model, reasoning, and Fast/Priority tier were held constant."
+}

@@ -1,0 +1,269 @@
+{
+  "preparation": {
+    "cbm": {
+      "project": "C-bin-workspace-.hb-leveldb-c",
+      "elapsed_seconds": 0.861
+    },
+    "grimoire": {
+      "elapsed_seconds": 9.317,
+      "timings": {
+        "initial_inspection_ms": 180,
+        "lock_wait_ms": 1,
+        "reinspection_ms": 768,
+        "lexicon_ms": 5332,
+        "arcana_ms": 389,
+        "source_index_ms": 1567,
+        "documentation_ms": 297,
+        "marker_write_ms": 3,
+        "final_verification_ms": 119,
+        "total_ms": 8667
+      },
+      "actions": [
+        {
+          "name": "refresh-lexicon",
+          "status": "completed",
+          "elapsed_ms": 5332
+        },
+        {
+          "name": "synchronize-arcana",
+          "status": "completed",
+          "elapsed_ms": 389
+        },
+        {
+          "name": "prepare-grimoire",
+          "status": "completed",
+          "elapsed_ms": 1567
+        },
+        {
+          "name": "prepare-knowledge",
+          "status": "completed",
+          "elapsed_ms": 297
+        }
+      ]
+    }
+  },
+  "runs": {
+    "plain": {
+      "runner": "Hermes one-shot",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-codex",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "exit_code": 0,
+      "elapsed_seconds": 399.127,
+      "usage": {
+        "estimated_cost_usd": 0.0,
+        "cost_status": "included",
+        "cost_source": "none",
+        "input_tokens": 113789,
+        "output_tokens": 17584,
+        "cache_read_tokens": 657408,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 10692,
+        "total_tokens": 788781,
+        "api_calls": 13,
+        "model": "gpt-5.6-sol",
+        "provider": "openai-codex",
+        "session_id": "20260729_125228_02ef52",
+        "completed": true,
+        "failed": false,
+        "service_tier": "priority"
+      },
+      "answer_bytes": 19274,
+      "discovery_output": {
+        "calls": 0,
+        "response_bytes": 0,
+        "modes": {},
+        "new_nodes": 0,
+        "new_source_ranges": 0,
+        "new_documents": 0,
+        "new_relationships": 0,
+        "new_graph_paths": 0,
+        "tool_errors": 0,
+        "invalid_records": 0
+      },
+      "grounding": {
+        "valid": true,
+        "process_completed": true,
+        "refusal_detected": false,
+        "evidence_json_found": true,
+        "evidence_json_valid": true,
+        "inline_citations": 62,
+        "structured_items": 12,
+        "handle_items": 0,
+        "canonical_handle_items": 0,
+        "required_prefixes_found": [
+          "db/db_impl",
+          "include/leveldb",
+          "db"
+        ],
+        "missing_required_prefixes": [],
+        "findings": []
+      },
+      "execution_valid": true,
+      "grounding_valid": true,
+      "eligible_for_scoring": true,
+      "quality_assessed": false,
+      "completed_at": "2026-07-29T19:59:04.221684+00:00",
+      "profile": {
+        "profile": "bench-lvl-hsf-plain",
+        "model": {
+          "provider": "openai-codex",
+          "default": "gpt-5.6-sol",
+          "base_url": "https://chatgpt.com/backend-api/codex"
+        },
+        "reasoning_effort": "high",
+        "service_tier": "fast"
+      }
+    },
+    "cbm": {
+      "runner": "Hermes one-shot",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-codex",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "exit_code": 0,
+      "elapsed_seconds": 387.554,
+      "usage": {
+        "estimated_cost_usd": 0.0,
+        "cost_status": "included",
+        "cost_source": "none",
+        "input_tokens": 112327,
+        "output_tokens": 16377,
+        "cache_read_tokens": 570880,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 9819,
+        "total_tokens": 699584,
+        "api_calls": 12,
+        "model": "gpt-5.6-sol",
+        "provider": "openai-codex",
+        "session_id": "20260729_125911_e17bc7",
+        "completed": true,
+        "failed": false,
+        "service_tier": "priority"
+      },
+      "answer_bytes": 18204,
+      "discovery_output": {
+        "calls": 0,
+        "response_bytes": 0,
+        "modes": {},
+        "new_nodes": 0,
+        "new_source_ranges": 0,
+        "new_documents": 0,
+        "new_relationships": 0,
+        "new_graph_paths": 0,
+        "tool_errors": 0,
+        "invalid_records": 0
+      },
+      "grounding": {
+        "valid": true,
+        "process_completed": true,
+        "refusal_detected": false,
+        "evidence_json_found": true,
+        "evidence_json_valid": true,
+        "inline_citations": 54,
+        "structured_items": 16,
+        "handle_items": 0,
+        "canonical_handle_items": 0,
+        "required_prefixes_found": [
+          "db/db_impl",
+          "include/leveldb",
+          "db"
+        ],
+        "missing_required_prefixes": [],
+        "findings": []
+      },
+      "execution_valid": true,
+      "grounding_valid": true,
+      "eligible_for_scoring": true,
+      "quality_assessed": false,
+      "completed_at": "2026-07-29T20:05:34.933380+00:00",
+      "profile": {
+        "profile": "bench-lvl-hsf-cbm",
+        "model": {
+          "provider": "openai-codex",
+          "default": "gpt-5.6-sol",
+          "base_url": "https://chatgpt.com/backend-api/codex"
+        },
+        "reasoning_effort": "high",
+        "service_tier": "fast"
+      }
+    },
+    "grimoire": {
+      "runner": "Hermes one-shot",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-codex",
+      "reasoning_effort": "high",
+      "service_tier": "fast",
+      "exit_code": 0,
+      "elapsed_seconds": 422.042,
+      "usage": {
+        "estimated_cost_usd": 0.0,
+        "cost_status": "included",
+        "cost_source": "none",
+        "input_tokens": 100796,
+        "output_tokens": 17509,
+        "cache_read_tokens": 1084928,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 11204,
+        "total_tokens": 1203233,
+        "api_calls": 18,
+        "model": "gpt-5.6-sol",
+        "provider": "openai-codex",
+        "session_id": "20260729_130542_4d4a2f",
+        "completed": true,
+        "failed": false,
+        "service_tier": "priority"
+      },
+      "answer_bytes": 15663,
+      "discovery_output": {
+        "calls": 2,
+        "response_bytes": 28917,
+        "modes": {
+          "search": 1,
+          "inspect": 1
+        },
+        "new_nodes": 24,
+        "new_source_ranges": 28,
+        "new_documents": 0,
+        "new_relationships": 0,
+        "new_graph_paths": 0,
+        "tool_errors": 0,
+        "invalid_records": 0
+      },
+      "grounding": {
+        "valid": true,
+        "process_completed": true,
+        "refusal_detected": false,
+        "evidence_json_found": true,
+        "evidence_json_valid": true,
+        "inline_citations": 31,
+        "structured_items": 15,
+        "handle_items": 4,
+        "canonical_handle_items": 4,
+        "required_prefixes_found": [
+          "db/db_impl",
+          "include/leveldb",
+          "db"
+        ],
+        "missing_required_prefixes": [],
+        "findings": []
+      },
+      "execution_valid": true,
+      "grounding_valid": true,
+      "eligible_for_scoring": true,
+      "quality_assessed": false,
+      "completed_at": "2026-07-29T20:12:40.119845+00:00",
+      "profile": {
+        "profile": "bench-lvl-hsf-grimoire",
+        "model": {
+          "provider": "openai-codex",
+          "default": "gpt-5.6-sol",
+          "base_url": "https://chatgpt.com/backend-api/codex"
+        },
+        "reasoning_effort": "high",
+        "service_tier": "fast"
+      }
+    }
+  }
+}
