@@ -49,7 +49,7 @@ func TestSearchHandleInspectsExactPreparedSource(t *testing.T) {
 	}
 }
 
-func TestSearchCompactsDuplicateExactAndLexicalRanges(t *testing.T) {
+func TestSearchRemovesDuplicateExactAndLexicalRangesFromBudget(t *testing.T) {
 	root, facts := queryFixture(t)
 	response, err := Execute(context.Background(), Request{
 		Schema: SchemaVersion, Mode: "search", Root: root,
@@ -58,19 +58,15 @@ func TestSearchCompactsDuplicateExactAndLexicalRanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	exact := make(map[string]string)
+	exact := make(map[string]bool)
 	for _, result := range response.ExactMatches {
-		exact[handleKey(result.Node.Handle)] = result.Node.Handle.Value
+		exact[handleKey(result.Node.Handle)] = true
 	}
 	for _, result := range response.SourceMatches {
-		if duplicate := exact[handleKey(result.Node.Handle)]; duplicate != "" {
-			if result.DuplicateOf != duplicate || result.Excerpt != "" {
-				t.Fatalf("duplicate lexical evidence was not compacted: %+v", result)
-			}
-			return
+		if exact[handleKey(result.Node.Handle)] || result.DuplicateOf != "" {
+			t.Fatalf("duplicate lexical evidence consumed the global budget: %+v", result)
 		}
 	}
-	t.Fatal("fixture did not produce duplicate exact and lexical evidence")
 }
 
 func TestSearchKeepsDocumentationOutOfSourceLanes(t *testing.T) {
@@ -94,29 +90,38 @@ func TestSearchKeepsDocumentationOutOfSourceLanes(t *testing.T) {
 	}
 }
 
-func TestSearchAppliesLimitPerEvidenceLane(t *testing.T) {
+func TestSearchKeepsLaneLocalRankingsAndDefersGraphExpansion(t *testing.T) {
 	root, facts := queryFixture(t)
 	response, err := Execute(context.Background(), Request{
 		Schema: SchemaVersion, Mode: "search", Root: root,
-		Query: "SubmitLogin session start", LexiconFacts: facts, Limit: 1,
+		Query: "SubmitLogin session start", LexiconFacts: facts, Limit: 4,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(response.ExactMatches) != 1 || len(response.SourceMatches) != 1 ||
-		len(response.SymbolMatches) != 1 || len(response.RelationshipMatches) != 1 {
-		t.Fatalf("lane limits were not independent: exact=%d source=%d symbols=%d relationships=%d",
-			len(response.ExactMatches), len(response.SourceMatches),
-			len(response.SymbolMatches), len(response.RelationshipMatches))
+	if len(response.ExactMatches) == 0 || response.ExactMatches[0].Excerpt == "" {
+		t.Fatalf("exact evidence lost its excerpt: %+v", response.ExactMatches)
 	}
-	if response.ExactMatches[0].Excerpt == "" ||
-		(response.SourceMatches[0].Excerpt == "" && response.SourceMatches[0].DuplicateOf == "") ||
-		response.SymbolMatches[0].Excerpt == "" {
-		t.Fatalf("discovery results lack excerpts or duplicate references: exact=%+v source=%+v symbol=%+v",
-			response.ExactMatches[0], response.SourceMatches[0], response.SymbolMatches[0])
+	if len(response.SymbolMatches) == 0 || response.SymbolMatches[0].Excerpt == "" {
+		t.Fatalf("symbol evidence lost its excerpt: %+v", response.SymbolMatches)
 	}
-	if response.RelationshipMatches[0].Relation != "calls-endpoint" {
-		t.Fatalf("unexpected relationship match: %+v", response.RelationshipMatches[0])
+	if len(response.RelationshipMatches) != 0 {
+		t.Fatalf("broad search expanded graph relationships automatically: %+v", response.RelationshipMatches)
+	}
+	if len(response.DeferredExpansions) != 1 || response.DeferredExpansions[0].Kind != "relationships" ||
+		!slices.Equal(response.DeferredExpansions[0].FollowUpModes, []string{"trace", "impact"}) {
+		t.Fatalf("deferred graph expansion was not reported: %+v", response.DeferredExpansions)
+	}
+	if len(response.Coverage) != 3 {
+		t.Fatalf("lane coverage = %+v", response.Coverage)
+	}
+	for _, coverage := range response.Coverage {
+		if coverage.Returned > 4 || coverage.Available < coverage.Returned || coverage.Previewed > defaultLanePreviewCount {
+			t.Fatalf("invalid lane-local coverage: %+v", coverage)
+		}
+	}
+	if len(response.SymbolMatches) > defaultLanePreviewCount && response.SymbolMatches[defaultLanePreviewCount].Excerpt != "" {
+		t.Fatalf("lower-ranked symbol carried an inline preview instead of a handle-only result: %+v", response.SymbolMatches[defaultLanePreviewCount])
 	}
 }
 

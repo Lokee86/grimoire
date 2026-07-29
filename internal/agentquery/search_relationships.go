@@ -3,14 +3,13 @@ package agentquery
 import (
 	"context"
 	"fmt"
-
-	"github.com/Lokee86/grimoire/internal/structure"
+	"strconv"
 )
 
 func (engine *Engine) searchRelationships(
 	ctx context.Context,
 	request Request,
-	seeds []structure.Node,
+	seeds []relationshipSeed,
 	response *Response,
 ) []RelationshipMatch {
 	if len(seeds) == 0 {
@@ -30,18 +29,19 @@ func (engine *Engine) searchRelationships(
 
 func (engine *Engine) arcanaRelationships(
 	ctx context.Context,
-	seeds []structure.Node,
+	seeds []relationshipSeed,
 	limit int,
 	response *Response,
 ) ([]RelationshipMatch, bool) {
-	matches := make([]RelationshipMatch, 0, limit)
-	seen := make(map[string]bool)
+	buckets := make([][]RelationshipMatch, 0, len(seeds))
 	for _, seed := range seeds {
-		resolved, err := engine.arcana.Resolve(ctx, engine.arcanaSnapshot, seed.Name, seed.Path, 4)
+		resolved, err := engine.arcana.Resolve(ctx, engine.arcanaSnapshot, seed.Node.Name, seed.Node.Path, 4)
 		if err != nil {
-			response.Warnings = append(response.Warnings, "Arcana relationship discovery unavailable: "+err.Error())
-			return matches, false
+			response.Warnings = append(response.Warnings, "Arcana relationship discovery unavailable for seed "+seed.Node.Name+": "+err.Error())
+			continue
 		}
+		bucket := make([]RelationshipMatch, 0, limit)
+		seen := make(map[string]bool)
 		for _, subjectValue := range resolved {
 			if subjectValue.NodeID == nil {
 				continue
@@ -54,8 +54,8 @@ func (engine *Engine) arcanaRelationships(
 				nil,
 			)
 			if err != nil {
-				response.Warnings = append(response.Warnings, "Arcana relationship discovery unavailable: "+err.Error())
-				return matches, false
+				response.Warnings = append(response.Warnings, "Arcana relationship discovery unavailable for seed "+seed.Node.Name+": "+err.Error())
+				continue
 			}
 			subject := engine.node("arcana", engine.arcanaSnapshotID, subjectValue)
 			for _, neighbor := range neighbors {
@@ -65,40 +65,52 @@ func (engine *Engine) arcanaRelationships(
 					continue
 				}
 				seen[key] = true
-				matches = append(matches, RelationshipMatch{
-					Rank:      len(matches) + 1,
-					Provider:  "arcana",
-					Subject:   subject,
-					Direction: neighbor.Direction,
-					Relation:  neighbor.Relation,
-					Certainty: neighbor.Certainty,
-					Object:    object,
-					Reasons:   []string{"Arcana direct graph relationship"},
+				seedNode := engine.node(seed.Provider, seed.Snapshot, seed.Node)
+				bucket = append(bucket, RelationshipMatch{
+					Provider:    "arcana",
+					Subject:     subject,
+					Direction:   neighbor.Direction,
+					Relation:    neighbor.Relation,
+					Certainty:   neighbor.Certainty,
+					Object:      object,
+					Reasons:     relationshipReasons("Arcana direct graph relationship", seed),
+					Seed:        &seedNode,
+					SeedLane:    seed.Lane,
+					SeedRank:    seed.Rank,
+					SeedScore:   seed.Score,
+					SeedReasons: append([]string(nil), seed.Reasons...),
 				})
-				if len(matches) == limit {
-					return matches, true
+				if len(bucket) == limit {
+					break
 				}
 			}
+			if len(bucket) == limit {
+				break
+			}
+		}
+		if len(bucket) > 0 {
+			buckets = append(buckets, bucket)
 		}
 	}
-	return matches, false
+	return interleaveRelationshipBuckets(buckets, limit)
 }
 
 func (engine *Engine) lexiconRelationships(
-	seeds []structure.Node,
+	seeds []relationshipSeed,
 	limit int,
 ) ([]RelationshipMatch, bool) {
 	if engine.lexicon == nil {
 		return nil, false
 	}
-	matches := make([]RelationshipMatch, 0, limit)
-	seen := make(map[string]bool)
+	buckets := make([][]RelationshipMatch, 0, len(seeds))
 	for _, seed := range seeds {
-		if seed.Identity == "" {
+		if seed.Node.Identity == "" {
 			continue
 		}
-		subject := engine.node("lexicon", engine.lexiconSnapshot, seed)
-		impacts := engine.lexicon.Impact([]string{seed.Identity}, "both", nil, 1, limit)
+		subject := engine.node("lexicon", engine.lexiconSnapshot, seed.Node)
+		impacts := engine.lexicon.Impact([]string{seed.Node.Identity}, "both", nil, 1, limit)
+		bucket := make([]RelationshipMatch, 0, len(impacts))
+		seen := make(map[string]bool)
 		for _, impact := range impacts {
 			object := engine.node("lexicon", engine.lexiconSnapshot, impact.Node)
 			key := relationshipKey(subject, impact.Direction, impact.Relation, object)
@@ -107,24 +119,78 @@ func (engine *Engine) lexiconRelationships(
 			}
 			seen[key] = true
 			spans, evidence := siteRanges(impact.Sites, engine.source.Identity())
-			matches = append(matches, RelationshipMatch{
-				Rank:      len(matches) + 1,
-				Provider:  "lexicon",
-				Subject:   subject,
-				Direction: impact.Direction,
-				Relation:  impact.Relation,
-				Certainty: certainty(impact.Relation),
-				Object:    object,
-				Reasons:   []string{"Lexicon direct relationship fallback"},
-				Evidence:  evidence,
-				Spans:     spans,
+			seedNode := engine.node(seed.Provider, seed.Snapshot, seed.Node)
+			bucket = append(bucket, RelationshipMatch{
+				Provider:    "lexicon",
+				Subject:     subject,
+				Direction:   impact.Direction,
+				Relation:    impact.Relation,
+				Certainty:   certainty(impact.Relation),
+				Object:      object,
+				Reasons:     relationshipReasons("Lexicon direct relationship fallback", seed),
+				Evidence:    evidence,
+				Spans:       spans,
+				Seed:        &seedNode,
+				SeedLane:    seed.Lane,
+				SeedRank:    seed.Rank,
+				SeedScore:   seed.Score,
+				SeedReasons: append([]string(nil), seed.Reasons...),
 			})
-			if len(matches) == limit {
-				return matches, true
-			}
+		}
+		if len(bucket) > 0 {
+			buckets = append(buckets, bucket)
 		}
 	}
-	return matches, false
+	return interleaveRelationshipBuckets(buckets, limit)
+}
+
+func interleaveRelationshipBuckets(buckets [][]RelationshipMatch, limit int) ([]RelationshipMatch, bool) {
+	if limit <= 0 {
+		return nil, len(buckets) > 0
+	}
+	indices := make([]int, len(buckets))
+	seen := make(map[string]bool)
+	ordered := make([]RelationshipMatch, 0, limit)
+	for {
+		progressed := false
+		for bucketIndex, bucket := range buckets {
+			for indices[bucketIndex] < len(bucket) {
+				match := bucket[indices[bucketIndex]]
+				indices[bucketIndex]++
+				key := relationshipKey(match.Subject, match.Direction, match.Relation, match.Object)
+				if seen[key] {
+					continue
+				}
+				seen[key] = true
+				ordered = append(ordered, match)
+				progressed = true
+				break
+			}
+		}
+		if !progressed {
+			break
+		}
+	}
+	truncated := len(ordered) > limit
+	if truncated {
+		ordered = ordered[:limit]
+	}
+	for index := range ordered {
+		ordered[index].Rank = index + 1
+	}
+	return ordered, truncated
+}
+
+func relationshipReasons(base string, seed relationshipSeed) []string {
+	reasons := []string{base}
+	if seed.Lane != "" {
+		reason := "seeded from " + seed.Lane
+		if seed.Rank > 0 {
+			reason += " rank " + strconv.Itoa(seed.Rank)
+		}
+		reasons = append(reasons, reason)
+	}
+	return reasons
 }
 
 func relationshipKey(subject Node, direction, relation string, object Node) string {

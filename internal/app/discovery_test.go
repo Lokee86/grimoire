@@ -49,7 +49,7 @@ func TestSearchUsesDefaultLimitPerLane(t *testing.T) {
 	}
 }
 
-func TestSearchPreservesExactAndLexicalEvidenceInSeparateLanes(t *testing.T) {
+func TestSearchDoesNotSpendBudgetOnDuplicateLexicalEvidence(t *testing.T) {
 	root := t.TempDir()
 	content := "package damage\n\nfunc ResolveDamage() int { return 10 }\n"
 	if err := os.WriteFile(filepath.Join(root, "damage.go"), []byte(content), 0o644); err != nil {
@@ -72,10 +72,10 @@ func TestSearchPreservesExactAndLexicalEvidenceInSeparateLanes(t *testing.T) {
 	if len(response.ExactMatches) != 1 || response.ExactMatches[0].Node.Path != "damage.go" {
 		t.Fatalf("expected exact source evidence, got %+v", response.ExactMatches)
 	}
-	if len(response.SourceMatches) != 1 || response.SourceMatches[0].Node.Path != "damage.go" {
-		t.Fatalf("expected independently retained lexical evidence, got %+v", response.SourceMatches)
+	if len(response.SourceMatches) != 0 {
+		t.Fatalf("duplicate lexical evidence consumed the global budget: %+v", response.SourceMatches)
 	}
-	if response.ExactMatches[0].Provider != "exact" || response.SourceMatches[0].Provider != "lexical" {
-		t.Fatalf("discovery provenance was merged: exact=%+v source=%+v", response.ExactMatches, response.SourceMatches)
+	if response.ExactMatches[0].Provider != "exact" {
+		t.Fatalf("exact evidence provenance changed: %+v", response.ExactMatches)
 	}
 }

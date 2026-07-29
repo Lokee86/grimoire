@@ -102,7 +102,7 @@ Core workflow:
 
 Commands:
   orient    Discover compact source and symbol anchors
-  search    Search exact, source, documentation, symbol, and relationship lanes
+  search    Search exact, source, documentation, and symbol lanes; defer graph expansion
   trace     Expand bounded structural paths from a returned handle
   impact    Find bounded incoming or outgoing dependents
   inspect   Read exact evidence for returned handles

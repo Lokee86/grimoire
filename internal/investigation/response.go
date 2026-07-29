@@ -8,12 +8,41 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type evidenceIdentity struct {
+	Kind      string          `json:"kind"`
+	Snapshot  string          `json:"snapshot"`
+	Canonical json.RawMessage `json:"canonical"`
+}
+
+type legacyEvidenceIdentity struct {
 	Kind     string          `json:"kind"`
 	Snapshot string          `json:"snapshot"`
 	Payload  json.RawMessage `json:"payload"`
+}
+
+type nodeIdentity struct {
+	ID string `json:"id"`
+}
+
+type sourceRangeIdentity struct {
+	Path        string `json:"path"`
+	StartLine   int    `json:"start_line"`
+	StartColumn int    `json:"start_column,omitempty"`
+	EndLine     int    `json:"end_line"`
+	EndColumn   int    `json:"end_column,omitempty"`
+}
+
+type graphPathIdentity struct {
+	ID    string   `json:"id,omitempty"`
+	Nodes []string `json:"nodes"`
+	Edges []string `json:"edges,omitempty"`
+}
+
+type documentIdentity struct {
+	ID string `json:"id"`
 }
 
 func evidenceKey(kind, snapshot string, value any) (string, json.RawMessage, error) {
@@ -21,12 +50,123 @@ func evidenceKey(kind, snapshot string, value any) (string, json.RawMessage, err
 	if err != nil {
 		return "", nil, err
 	}
-	identity, err := json.Marshal(evidenceIdentity{Kind: kind, Snapshot: snapshot, Payload: payload})
+	canonical, err := canonicalEvidence(kind, value)
+	if err != nil {
+		return "", nil, err
+	}
+	identity, err := json.Marshal(evidenceIdentity{Kind: kind, Snapshot: snapshot, Canonical: canonical})
 	if err != nil {
 		return "", nil, err
 	}
 	digest := sha256.Sum256(identity)
 	return hex.EncodeToString(digest[:]), payload, nil
+}
+
+func legacyEvidenceKey(kind, snapshot string, payload json.RawMessage) string {
+	identity, _ := json.Marshal(legacyEvidenceIdentity{Kind: kind, Snapshot: snapshot, Payload: payload})
+	digest := sha256.Sum256(identity)
+	return hex.EncodeToString(digest[:])
+}
+
+func canonicalEvidence(kind string, value any) (json.RawMessage, error) {
+	if payload, ok := value.(json.RawMessage); ok {
+		decoded, err := decodeEvidencePayload(kind, payload)
+		if err != nil {
+			return nil, err
+		}
+		return canonicalEvidence(kind, decoded)
+	}
+
+	var canonical any
+	switch kind {
+	case "node":
+		node, ok := value.(Node)
+		if !ok {
+			return nil, fmt.Errorf("canonical node identity: unexpected %T", value)
+		}
+		canonical = nodeIdentity{ID: strings.TrimSpace(node.ID)}
+	case "source":
+		source, ok := value.(SourceRange)
+		if !ok {
+			return nil, fmt.Errorf("canonical source identity: unexpected %T", value)
+		}
+		canonical = sourceRangeIdentity{
+			Path:        filepath.ToSlash(strings.TrimSpace(source.Path)),
+			StartLine:   source.StartLine,
+			StartColumn: source.StartColumn,
+			EndLine:     source.EndLine,
+			EndColumn:   source.EndColumn,
+		}
+	case "path":
+		path, ok := value.(GraphPath)
+		if !ok {
+			return nil, fmt.Errorf("canonical graph path identity: unexpected %T", value)
+		}
+		canonical = graphPathIdentity{
+			ID:    strings.TrimSpace(path.ID),
+			Nodes: trimmedStrings(path.Nodes),
+			Edges: trimmedStrings(path.Edges),
+		}
+	case "document":
+		document, ok := value.(Document)
+		if !ok {
+			return nil, fmt.Errorf("canonical document identity: unexpected %T", value)
+		}
+		canonical = documentIdentity{ID: strings.TrimSpace(document.ID)}
+	default:
+		canonical = value
+	}
+	return json.Marshal(canonical)
+}
+
+func decodeEvidencePayload(kind string, payload json.RawMessage) (any, error) {
+	var target any
+	switch kind {
+	case "node":
+		target = &Node{}
+	case "source":
+		target = &SourceRange{}
+	case "path":
+		target = &GraphPath{}
+	case "document":
+		target = &Document{}
+	case "question":
+		target = &UnresolvedQuestion{}
+	case "rejected_branch", "accepted_branch":
+		target = &Branch{}
+	default:
+		return nil, fmt.Errorf("decode canonical evidence: unknown kind %q", kind)
+	}
+	if err := json.Unmarshal(payload, target); err != nil {
+		return nil, fmt.Errorf("decode canonical %s evidence: %w", kind, err)
+	}
+	switch value := target.(type) {
+	case *Node:
+		return *value, nil
+	case *SourceRange:
+		return *value, nil
+	case *GraphPath:
+		return *value, nil
+	case *Document:
+		return *value, nil
+	case *UnresolvedQuestion:
+		return *value, nil
+	case *Branch:
+		return *value, nil
+	default:
+		return nil, fmt.Errorf("decode canonical evidence: unexpected %T", target)
+	}
+}
+
+func trimmedStrings(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	trimmed := make([]string, len(values))
+	for index, value := range values {
+		trimmed[index] = strings.TrimSpace(value)
+	}
+	return trimmed
 }
 
 func recordEvidence(dir string, current manifest, response Response) (Delta, storedResponse, error) {
@@ -158,6 +298,12 @@ func recordEvidence(dir string, current manifest, response Response) (Delta, sto
 		}
 		event.AcceptedBranchKeys = append(event.AcceptedBranchKeys, key)
 	}
+	retrievalHits, err := resolveRetrievalHits(current, response)
+	if err != nil {
+		return delta, event, err
+	}
+	delta.RetrievalHits = retrievalHits
+	event.RetrievalHits = retrievalHits
 	return delta, event, nil
 }
 
@@ -278,6 +424,11 @@ func buildDelta(current manifest, response Response, responseID string) (Delta, 
 			return delta, err
 		}
 	}
+	retrievalHits, err := resolveRetrievalHits(current, response)
+	if err != nil {
+		return delta, err
+	}
+	delta.RetrievalHits = retrievalHits
 	return delta, nil
 }
 

@@ -41,8 +41,26 @@ type Response struct {
 	Suggestions         []Suggestion        `json:"suggestions,omitempty"`
 	Unresolved          []Unresolved        `json:"unresolved,omitempty"`
 	Warnings            []string            `json:"warnings,omitempty"`
+	Coverage            []LaneCoverage      `json:"coverage,omitempty"`
+	DeferredExpansions  []DeferredExpansion `json:"deferred_expansions,omitempty"`
 	TruncatedLanes      []string            `json:"truncated_lanes,omitempty"`
 	Truncated           bool                `json:"truncated,omitempty"`
+}
+
+type LaneCoverage struct {
+	Lane                 string `json:"lane"`
+	Available            int    `json:"available"`
+	Returned             int    `json:"returned"`
+	Previewed            int    `json:"previewed,omitempty"`
+	Deferred             int    `json:"deferred,omitempty"`
+	SuppressedDuplicates int    `json:"suppressed_duplicates,omitempty"`
+}
+
+type DeferredExpansion struct {
+	Kind           string   `json:"kind"`
+	CandidateCount int      `json:"candidate_count"`
+	FollowUpModes  []string `json:"follow_up_modes"`
+	Reason         string   `json:"reason"`
 }
 
 type Snapshot struct {
@@ -91,16 +109,21 @@ type Result struct {
 }
 
 type RelationshipMatch struct {
-	Rank      int      `json:"rank"`
-	Provider  string   `json:"provider"`
-	Subject   Node     `json:"subject"`
-	Direction string   `json:"direction"`
-	Relation  string   `json:"relation"`
-	Certainty string   `json:"certainty,omitempty"`
-	Object    Node     `json:"object"`
-	Reasons   []string `json:"reasons,omitempty"`
-	Evidence  []string `json:"evidence,omitempty"`
-	Spans     []Range  `json:"spans,omitempty"`
+	Rank        int      `json:"rank"`
+	Provider    string   `json:"provider"`
+	Subject     Node     `json:"subject"`
+	Direction   string   `json:"direction"`
+	Relation    string   `json:"relation"`
+	Certainty   string   `json:"certainty,omitempty"`
+	Object      Node     `json:"object"`
+	Reasons     []string `json:"reasons,omitempty"`
+	Evidence    []string `json:"evidence,omitempty"`
+	Spans       []Range  `json:"spans,omitempty"`
+	Seed        *Node    `json:"seed,omitempty"`
+	SeedLane    string   `json:"seed_lane,omitempty"`
+	SeedRank    int      `json:"seed_rank,omitempty"`
+	SeedScore   float64  `json:"seed_score,omitempty"`
+	SeedReasons []string `json:"seed_reasons,omitempty"`
 }
 
 type Path struct {

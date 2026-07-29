@@ -71,19 +71,21 @@ type Node struct {
 }
 
 type SourceRange struct {
-	Path        string `json:"path"`
-	StartLine   int    `json:"start_line"`
-	StartColumn int    `json:"start_column,omitempty"`
-	EndLine     int    `json:"end_line"`
-	EndColumn   int    `json:"end_column,omitempty"`
-	Text        string `json:"text,omitempty"`
+	Path        string            `json:"path"`
+	StartLine   int               `json:"start_line"`
+	StartColumn int               `json:"start_column,omitempty"`
+	EndLine     int               `json:"end_line"`
+	EndColumn   int               `json:"end_column,omitempty"`
+	Text        string            `json:"text,omitempty"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
 type GraphPath struct {
-	ID    string   `json:"id,omitempty"`
-	Nodes []string `json:"nodes"`
-	Edges []string `json:"edges,omitempty"`
-	Label string   `json:"label,omitempty"`
+	ID       string            `json:"id,omitempty"`
+	Nodes    []string          `json:"nodes"`
+	Edges    []string          `json:"edges,omitempty"`
+	Label    string            `json:"label,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 type Document struct {
@@ -92,6 +94,37 @@ type Document struct {
 	Title    string            `json:"title,omitempty"`
 	Content  string            `json:"content,omitempty"`
 	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+type EvidenceRef struct {
+	Kind  string `json:"kind"`
+	Index int    `json:"index"`
+}
+
+type RetrievalSeed struct {
+	Evidence EvidenceRef `json:"evidence"`
+	Lane     string      `json:"lane,omitempty"`
+	Provider string      `json:"provider,omitempty"`
+	Rank     int         `json:"rank,omitempty"`
+	Score    float64     `json:"score,omitempty"`
+	Reasons  []string    `json:"reasons,omitempty"`
+}
+
+type RetrievalHit struct {
+	Evidence        EvidenceRef    `json:"evidence"`
+	RelatedEvidence []EvidenceRef  `json:"related_evidence,omitempty"`
+	Lane            string         `json:"lane"`
+	Provider        string         `json:"provider,omitempty"`
+	Rank            int            `json:"rank,omitempty"`
+	Score           float64        `json:"score,omitempty"`
+	Reasons         []string       `json:"reasons,omitempty"`
+	DuplicateOf     string         `json:"duplicate_of,omitempty"`
+	Direction       string         `json:"direction,omitempty"`
+	Relation        string         `json:"relation,omitempty"`
+	Certainty       string         `json:"certainty,omitempty"`
+	Depth           int            `json:"depth,omitempty"`
+	Support         []string       `json:"support,omitempty"`
+	Seed            *RetrievalSeed `json:"seed,omitempty"`
 }
 
 type UnresolvedQuestion struct {
@@ -112,6 +145,7 @@ type Response struct {
 	SourceRanges        []SourceRange        `json:"source_ranges,omitempty"`
 	GraphPaths          []GraphPath          `json:"graph_paths,omitempty"`
 	Documents           []Document           `json:"documents,omitempty"`
+	RetrievalHits       []RetrievalHit       `json:"retrieval_hits,omitempty"`
 	UnresolvedQuestions []UnresolvedQuestion `json:"unresolved_questions,omitempty"`
 	RejectedBranches    []Branch             `json:"rejected_branches,omitempty"`
 	AcceptedBranches    []Branch             `json:"accepted_branches,omitempty"`
@@ -177,17 +211,51 @@ type DocumentRecord struct {
 	Evidence Document       `json:"evidence"`
 }
 
+type RetrievalSeedRecord struct {
+	EvidenceHandle string   `json:"evidence_handle"`
+	EvidenceKind   string   `json:"evidence_kind"`
+	Lane           string   `json:"lane,omitempty"`
+	Provider       string   `json:"provider,omitempty"`
+	Rank           int      `json:"rank,omitempty"`
+	Score          float64  `json:"score,omitempty"`
+	Reasons        []string `json:"reasons,omitempty"`
+}
+
+type EvidenceHandleRef struct {
+	Handle string `json:"handle"`
+	Kind   string `json:"kind"`
+}
+
+type RetrievalHitRecord struct {
+	EvidenceHandle  string               `json:"evidence_handle"`
+	EvidenceKind    string               `json:"evidence_kind"`
+	RelatedEvidence []EvidenceHandleRef  `json:"related_evidence,omitempty"`
+	Lane            string               `json:"lane"`
+	Provider        string               `json:"provider,omitempty"`
+	Rank            int                  `json:"rank,omitempty"`
+	Score           float64              `json:"score,omitempty"`
+	Reasons         []string             `json:"reasons,omitempty"`
+	DuplicateOf     string               `json:"duplicate_of,omitempty"`
+	Direction       string               `json:"direction,omitempty"`
+	Relation        string               `json:"relation,omitempty"`
+	Certainty       string               `json:"certainty,omitempty"`
+	Depth           int                  `json:"depth,omitempty"`
+	Support         []string             `json:"support,omitempty"`
+	Seed            *RetrievalSeedRecord `json:"seed,omitempty"`
+}
+
 type Delta struct {
 	ResponseID string `json:"response_id"`
 
-	NewNodes          []NodeRecord        `json:"new_nodes,omitempty"`
-	PriorNodeHandles  []NodeHandle        `json:"prior_node_handles,omitempty"`
-	NewSourceRanges   []SourceRangeRecord `json:"new_source_ranges,omitempty"`
-	PriorSourceRanges []SourceRangeHandle `json:"prior_source_range_handles,omitempty"`
-	NewGraphPaths     []GraphPathRecord   `json:"new_graph_paths,omitempty"`
-	PriorGraphPaths   []GraphPathHandle   `json:"prior_graph_path_handles,omitempty"`
-	NewDocuments      []DocumentRecord    `json:"new_documents,omitempty"`
-	PriorDocuments    []DocumentHandle    `json:"prior_document_handles,omitempty"`
+	NewNodes          []NodeRecord         `json:"new_nodes,omitempty"`
+	PriorNodeHandles  []NodeHandle         `json:"prior_node_handles,omitempty"`
+	NewSourceRanges   []SourceRangeRecord  `json:"new_source_ranges,omitempty"`
+	PriorSourceRanges []SourceRangeHandle  `json:"prior_source_range_handles,omitempty"`
+	NewGraphPaths     []GraphPathRecord    `json:"new_graph_paths,omitempty"`
+	PriorGraphPaths   []GraphPathHandle    `json:"prior_graph_path_handles,omitempty"`
+	NewDocuments      []DocumentRecord     `json:"new_documents,omitempty"`
+	PriorDocuments    []DocumentHandle     `json:"prior_document_handles,omitempty"`
+	RetrievalHits     []RetrievalHitRecord `json:"retrieval_hits,omitempty"`
 
 	NewQuestions        []UnresolvedQuestion `json:"new_unresolved_questions,omitempty"`
 	PriorQuestionIDs    []string             `json:"prior_unresolved_question_ids,omitempty"`
@@ -243,6 +311,53 @@ func validateDocument(value Document) error {
 	}
 	return nil
 }
+func validateEvidenceRef(response Response, value EvidenceRef) error {
+	if value.Index < 0 {
+		return errors.New("evidence reference index must not be negative")
+	}
+	switch value.Kind {
+	case "node":
+		if value.Index >= len(response.Nodes) {
+			return errors.New("node evidence reference is out of range")
+		}
+	case "source":
+		if value.Index >= len(response.SourceRanges) {
+			return errors.New("source evidence reference is out of range")
+		}
+	case "path":
+		if value.Index >= len(response.GraphPaths) {
+			return errors.New("path evidence reference is out of range")
+		}
+	case "document":
+		if value.Index >= len(response.Documents) {
+			return errors.New("document evidence reference is out of range")
+		}
+	default:
+		return fmt.Errorf("unsupported evidence reference kind %q", value.Kind)
+	}
+	return nil
+}
+
+func validateRetrievalHit(response Response, value RetrievalHit) error {
+	if strings.TrimSpace(value.Lane) == "" {
+		return errors.New("retrieval hit lane is required")
+	}
+	if err := validateEvidenceRef(response, value.Evidence); err != nil {
+		return err
+	}
+	for _, related := range value.RelatedEvidence {
+		if err := validateEvidenceRef(response, related); err != nil {
+			return fmt.Errorf("related evidence: %w", err)
+		}
+	}
+	if value.Seed != nil {
+		if err := validateEvidenceRef(response, value.Seed.Evidence); err != nil {
+			return fmt.Errorf("seed: %w", err)
+		}
+	}
+	return nil
+}
+
 func validateQuestion(value UnresolvedQuestion) error {
 	if strings.TrimSpace(value.Question) == "" {
 		return errors.New("unresolved question is required")
@@ -278,6 +393,11 @@ func responseValidate(response Response) error {
 	for _, value := range response.Documents {
 		if err := validateDocument(value); err != nil {
 			return fmt.Errorf("document: %w", err)
+		}
+	}
+	for _, value := range response.RetrievalHits {
+		if err := validateRetrievalHit(response, value); err != nil {
+			return fmt.Errorf("retrieval hit: %w", err)
 		}
 	}
 	for _, value := range response.UnresolvedQuestions {

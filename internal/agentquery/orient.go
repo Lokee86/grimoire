@@ -94,7 +94,7 @@ func (engine *Engine) orient(request Request, response *Response) error {
 		response.Suggestions = append(response.Suggestions, Suggestion{
 			Mode:   "search",
 			Query:  "<specific symbol, contract, behavior, or literal>",
-			Reason: "discover evidence in independent source, document, symbol, exact, and relationship lanes",
+			Reason: "discover ranked source, document, symbol, and exact evidence before explicit trace or impact expansion",
 		})
 	}
 	return nil

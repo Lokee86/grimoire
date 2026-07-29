@@ -56,8 +56,8 @@ func runMCP(args []string, input io.Reader, output, stderr io.Writer) error {
 		Name:         "grimoire",
 		Version:      Version,
 		ToolName:     "grimoire_discover",
-		Description:  "Discover repository evidence through independent exact-source, source, documentation, symbol, and relationship lanes, then trace, assess impact, or inspect stable handles.",
-		Instructions: "Start with search. Treat source as current behavior and documentation as separately ranked intent or rationale. Follow returned symbol and relationship handles with trace or impact, and inspect only the exact evidence needed. Reuse one session name to deduplicate repeated evidence.",
+		Description:  "Discover repository evidence through independent exact-source, source, documentation, and symbol lanes, then explicitly trace, assess impact, or inspect stable handles.",
+		Instructions: "Start with search. Treat source as current behavior and documentation as separately ranked intent or rationale. Follow selected returned handles with trace or impact, and inspect only the exact evidence needed. Reuse one session name to deduplicate repeated evidence.",
 		InputSchema:  agentToolInputSchema(),
 		MaxMessage:   *maxMessage,
 	}, handler)

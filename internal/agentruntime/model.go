@@ -36,6 +36,8 @@ type Response struct {
 	Suggestions         []agentquery.Suggestion        `json:"suggestions,omitempty"`
 	Unresolved          []agentquery.Unresolved        `json:"unresolved,omitempty"`
 	Warnings            []string                       `json:"warnings,omitempty"`
+	Coverage            []agentquery.LaneCoverage      `json:"coverage,omitempty"`
+	DeferredExpansions  []agentquery.DeferredExpansion `json:"deferred_expansions,omitempty"`
 	TruncatedLanes      []string                       `json:"truncated_lanes,omitempty"`
 	Truncated           bool                           `json:"truncated,omitempty"`
 }

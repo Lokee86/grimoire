@@ -106,6 +106,118 @@ func TestRecordDeduplicatesAndReturnsDelta(t *testing.T) {
 	}
 }
 
+func TestSourceRangeHandleIgnoresRetrievalOccurrenceMetadata(t *testing.T) {
+	root := t.TempDir()
+	snapshot := testSnapshot()
+	ledger, err := Create(root, "stable-source-handle", snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	first := Response{Snapshot: snapshot, SourceRanges: []SourceRange{{
+		Path:      `pkg\file.go`,
+		StartLine: 12,
+		EndLine:   18,
+		Text:      "first excerpt",
+		Metadata: map[string]string{
+			"retrieval_lane": "symbol_matches",
+			"rank":           "1",
+			"score":          "0.95",
+		},
+	}}}
+	firstDelta, err := ledger.RecordResponse(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(firstDelta.NewSourceRanges) != 1 {
+		t.Fatalf("first source range was not new: %+v", firstDelta)
+	}
+	firstHandle := firstDelta.NewSourceRanges[0].Handle.String()
+
+	second := Response{Snapshot: snapshot, SourceRanges: []SourceRange{{
+		Path:      "pkg/file.go",
+		StartLine: 12,
+		EndLine:   18,
+		Text:      "second excerpt",
+		Metadata: map[string]string{
+			"retrieval_lane": "relationship_matches",
+			"rank":           "7",
+			"score":          "0.42",
+			"match_reasons":  "different query",
+		},
+	}}}
+	secondDelta, err := ledger.RecordResponse(second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(secondDelta.NewSourceRanges) != 0 || len(secondDelta.PriorSourceRanges) != 1 {
+		t.Fatalf("same canonical source range was not reused: %+v", secondDelta)
+	}
+	if got := secondDelta.PriorSourceRanges[0].String(); got != firstHandle {
+		t.Fatalf("reused handle = %q, want %q", got, firstHandle)
+	}
+}
+
+func TestRetrievalHitsPreserveOccurrenceTuples(t *testing.T) {
+	root := t.TempDir()
+	snapshot := testSnapshot()
+	ledger, err := Create(root, "retrieval-tuples", snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := Response{
+		Snapshot:     snapshot,
+		Nodes:        []Node{{ID: "seed-node", Kind: "function"}},
+		SourceRanges: []SourceRange{{Path: "pkg/file.go", StartLine: 20, EndLine: 24, Text: "func Target()"}},
+		RetrievalHits: []RetrievalHit{
+			{
+				Evidence: EvidenceRef{Kind: "source", Index: 0},
+				Lane:     "symbol_matches", Provider: "lexicon", Rank: 1, Score: 0.91,
+				Reasons: []string{"qualified name match"},
+			},
+			{
+				Evidence: EvidenceRef{Kind: "source", Index: 0},
+				Lane:     "relationship_matches", Provider: "arcana", Rank: 4, Score: 0.37,
+				Reasons: []string{"callee of selected seed"}, Relation: "calls", Direction: "outgoing",
+				Seed: &RetrievalSeed{
+					Evidence: EvidenceRef{Kind: "node", Index: 0},
+					Lane:     "exact_matches", Provider: "lexicon", Rank: 2, Score: 0.88,
+					Reasons: []string{"literal source match"},
+				},
+			},
+		},
+	}
+
+	delta, err := ledger.RecordResponse(response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(delta.RetrievalHits) != 2 {
+		t.Fatalf("retrieval hit count = %d, want 2", len(delta.RetrievalHits))
+	}
+	first, second := delta.RetrievalHits[0], delta.RetrievalHits[1]
+	if first.EvidenceHandle != second.EvidenceHandle {
+		t.Fatalf("same evidence resolved to different handles: %q != %q", first.EvidenceHandle, second.EvidenceHandle)
+	}
+	if first.Lane != "symbol_matches" || first.Rank != 1 || first.Score != 0.91 || first.Reasons[0] != "qualified name match" {
+		t.Fatalf("first occurrence tuple changed: %+v", first)
+	}
+	if second.Lane != "relationship_matches" || second.Rank != 4 || second.Score != 0.37 || second.Relation != "calls" || second.Seed == nil {
+		t.Fatalf("second occurrence tuple changed: %+v", second)
+	}
+	if second.Seed.EvidenceHandle != delta.NewNodes[0].Handle.String() || second.Seed.Lane != "exact_matches" || second.Seed.Rank != 2 || second.Seed.Score != 0.88 {
+		t.Fatalf("seed occurrence tuple changed: %+v", second.Seed)
+	}
+
+	replayed, err := ledger.RecordResponse(response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(replayed.RetrievalHits) != 2 || replayed.RetrievalHits[1].Rank != 4 {
+		t.Fatalf("replayed retrieval tuples changed: %+v", replayed.RetrievalHits)
+	}
+}
+
 func TestResolveRecordedHandles(t *testing.T) {
 	root := t.TempDir()
 	snapshot := testSnapshot()

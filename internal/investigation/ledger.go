@@ -48,17 +48,18 @@ type storedEvidence struct {
 	Digest   string          `json:"digest"`
 }
 type storedResponse struct {
-	Version            int      `json:"version"`
-	ResponseID         string   `json:"response_id"`
-	Snapshot           string   `json:"snapshot"`
-	Digest             string   `json:"digest"`
-	NodeKeys           []string `json:"node_keys,omitempty"`
-	SourceRangeKeys    []string `json:"source_range_keys,omitempty"`
-	GraphPathKeys      []string `json:"graph_path_keys,omitempty"`
-	DocumentKeys       []string `json:"document_keys,omitempty"`
-	QuestionKeys       []string `json:"question_keys,omitempty"`
-	RejectedBranchKeys []string `json:"rejected_branch_keys,omitempty"`
-	AcceptedBranchKeys []string `json:"accepted_branch_keys,omitempty"`
+	Version            int                  `json:"version"`
+	ResponseID         string               `json:"response_id"`
+	Snapshot           string               `json:"snapshot"`
+	Digest             string               `json:"digest"`
+	NodeKeys           []string             `json:"node_keys,omitempty"`
+	SourceRangeKeys    []string             `json:"source_range_keys,omitempty"`
+	GraphPathKeys      []string             `json:"graph_path_keys,omitempty"`
+	DocumentKeys       []string             `json:"document_keys,omitempty"`
+	QuestionKeys       []string             `json:"question_keys,omitempty"`
+	RejectedBranchKeys []string             `json:"rejected_branch_keys,omitempty"`
+	AcceptedBranchKeys []string             `json:"accepted_branch_keys,omitempty"`
+	RetrievalHits      []RetrievalHitRecord `json:"retrieval_hits,omitempty"`
 }
 
 func Create(stateDir, sessionID string, snapshot Snapshot) (*Ledger, error) {
@@ -370,7 +371,7 @@ func validateManifestFiles(dir string, current manifest) error {
 			return fmt.Errorf("%w: evidence record %q does not match its index", ErrCorrupt, key)
 		}
 		derivedKey, _, err := evidenceKey(stored.Kind, stored.Snapshot, stored.Payload)
-		if err != nil || derivedKey != key {
+		if err != nil || (derivedKey != key && legacyEvidenceKey(stored.Kind, stored.Snapshot, stored.Payload) != key) {
 			return fmt.Errorf("%w: evidence record %q has the wrong content identity", ErrCorrupt, key)
 		}
 		if meta.Handle != "" {
@@ -404,6 +405,46 @@ func validateManifestFiles(dir string, current manifest) error {
 				return fmt.Errorf("%w: response %q references missing evidence", ErrCorrupt, responseID)
 			}
 		}
+		for _, hit := range response.RetrievalHits {
+			if err := validateRecordedRetrievalHit(current, hit); err != nil {
+				return fmt.Errorf("%w: response %q has invalid retrieval hit: %v", ErrCorrupt, responseID, err)
+			}
+		}
+	}
+	return nil
+}
+
+func validateRecordedRetrievalHit(current manifest, hit RetrievalHitRecord) error {
+	if strings.TrimSpace(hit.Lane) == "" {
+		return errors.New("lane is required")
+	}
+	if err := validateRecordedEvidenceHandle(current, hit.EvidenceKind, hit.EvidenceHandle); err != nil {
+		return err
+	}
+	for _, related := range hit.RelatedEvidence {
+		if err := validateRecordedEvidenceHandle(current, related.Kind, related.Handle); err != nil {
+			return fmt.Errorf("related evidence: %w", err)
+		}
+	}
+	if hit.Seed != nil {
+		if err := validateRecordedEvidenceHandle(current, hit.Seed.EvidenceKind, hit.Seed.EvidenceHandle); err != nil {
+			return fmt.Errorf("seed: %w", err)
+		}
+	}
+	return nil
+}
+
+func validateRecordedEvidenceHandle(current manifest, kind, handle string) error {
+	decoded, err := decodeHandle(handle, kind)
+	if err != nil {
+		return err
+	}
+	if decoded.Snapshot != current.Snapshot.Digest() {
+		return errors.New("handle snapshot does not match response snapshot")
+	}
+	meta, exists := current.Evidence[decoded.Digest]
+	if !exists || meta.Kind != kind {
+		return errors.New("handle does not reference recorded evidence")
 	}
 	return nil
 }

@@ -53,7 +53,7 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 	codeOnly := flags.Bool("code-only", false, "omit the documentation lane")
 	includeDocuments := flags.Bool("include-documents", true, "include separately ranked documentation matches")
 	documentVectors := flags.Bool("document-vectors", false, "use available documentation vectors in addition to BM25")
-	detail := flags.String("detail", "", "trace detail: summary or full; defaults to summary")
+	detail := flags.String("detail", "", "response detail: default previews or full inline evidence")
 	requestJSON := flags.String("request", "", "complete "+agentquery.SchemaVersion+" JSON request object")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
 	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")

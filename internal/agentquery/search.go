@@ -4,52 +4,47 @@ import (
 	"context"
 
 	"github.com/Lokee86/grimoire/internal/retrieve"
-	"github.com/Lokee86/grimoire/internal/structure"
 )
 
 func (engine *Engine) search(ctx context.Context, request Request, response *Response) error {
 	candidateLimit := min(200, max(request.Limit*8, request.Limit))
 
 	exactCandidates := retrieve.Exact(engine.source, request.Query, candidateLimit)
-	exactMatches, exactTruncated := engine.sourceResults(
+	exactMatches, exactAvailable, _ := engine.sourceResults(
 		exactCandidates,
 		request.Limit,
 		"exact",
 		"literal source match",
+		nil,
 	)
+	exactPreviewed := applyResultPreviews(exactMatches, request.Detail)
 	response.ExactMatches = exactMatches
-	markLaneTruncated(response, "exact_matches", exactTruncated)
+	recordLaneCoverage(response, "exact_matches", exactAvailable, len(exactMatches), exactPreviewed, 0)
 
 	exactHandles := make(map[string]string, len(exactMatches))
 	for _, result := range exactMatches {
 		exactHandles[handleKey(result.Node.Handle)] = result.Node.Handle.Value
 	}
 	sourceCandidates := retrieve.Search(engine.source, request.Query, candidateLimit)
-	sourceMatches, sourceTruncated := engine.sourceResults(
+	sourceMatches, sourceAvailable, suppressedDuplicates := engine.sourceResults(
 		sourceCandidates,
 		request.Limit,
 		"lexical",
 		"prepared source BM25 match",
+		exactHandles,
 	)
-	for index := range sourceMatches {
-		if duplicate := exactHandles[handleKey(sourceMatches[index].Node.Handle)]; duplicate != "" {
-			sourceMatches[index].DuplicateOf = duplicate
-			sourceMatches[index].Excerpt = ""
-			sourceMatches[index].Reasons = []string{"same source range as exact match"}
-		}
-	}
+	sourcePreviewed := applyResultPreviews(sourceMatches, request.Detail)
 	response.SourceMatches = sourceMatches
-	markLaneTruncated(response, "source_matches", sourceTruncated)
+	recordLaneCoverage(response, "source_matches", sourceAvailable, len(sourceMatches), sourcePreviewed, suppressedDuplicates)
 
-	seeds := make([]structure.Node, 0, request.Limit)
+	symbolAvailable := 0
 	if engine.lexicon != nil {
 		matches := engine.lexicon.Find(request.Query, candidateLimit)
-		eligible := 0
 		for _, match := range matches {
 			if isDocumentationPath(match.Node.Path) {
 				continue
 			}
-			eligible++
+			symbolAvailable++
 			if len(response.SymbolMatches) >= request.Limit {
 				continue
 			}
@@ -61,12 +56,10 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 				Score:    match.Score,
 				Reasons:  append([]string(nil), match.Reasons...),
 			})
-			seeds = append(seeds, match.Node)
 		}
 		for index := range response.SymbolMatches {
 			response.SymbolMatches[index].Rank = index + 1
 		}
-		markLaneTruncated(response, "symbol_matches", eligible > len(response.SymbolMatches))
 	}
 
 	if len(response.SymbolMatches) == 0 && engine.arcanaSnapshot != "" {
@@ -74,12 +67,12 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 		if err != nil {
 			response.Warnings = append(response.Warnings, "Arcana symbol discovery unavailable: "+err.Error())
 		} else {
-			eligible := 0
+			symbolAvailable = 0
 			for _, value := range nodes {
 				if isDocumentationPath(value.Path) {
 					continue
 				}
-				eligible++
+				symbolAvailable++
 				if len(response.SymbolMatches) >= request.Limit {
 					continue
 				}
@@ -90,16 +83,16 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 					Excerpt:  engine.nodeExcerpt(value),
 					Reasons:  []string{"Arcana graph symbol match"},
 				})
-				seeds = append(seeds, value)
 			}
 			for index := range response.SymbolMatches {
 				response.SymbolMatches[index].Rank = index + 1
 			}
-			markLaneTruncated(response, "symbol_matches", eligible > len(response.SymbolMatches))
 		}
 	}
+	symbolPreviewed := applyResultPreviews(response.SymbolMatches, request.Detail)
+	recordLaneCoverage(response, "symbol_matches", symbolAvailable, len(response.SymbolMatches), symbolPreviewed, 0)
 
-	response.RelationshipMatches = engine.searchRelationships(ctx, request, seeds, response)
+	deferRelationshipExpansion(response, searchExpansionCandidateCount(response))
 	return nil
 }
 
@@ -108,10 +101,12 @@ func (engine *Engine) sourceResults(
 	limit int,
 	provider string,
 	reason string,
-) ([]Result, bool) {
+	exclude map[string]string,
+) ([]Result, int, int) {
 	results := make([]Result, 0, min(limit, len(candidates)))
 	seen := make(map[string]bool)
 	eligible := 0
+	suppressed := 0
 	for _, candidate := range candidates {
 		if isDocumentationPath(candidate.Chunk.Path) {
 			continue
@@ -122,6 +117,10 @@ func (engine *Engine) sourceResults(
 			continue
 		}
 		seen[key] = true
+		if exclude[key] != "" {
+			suppressed++
+			continue
+		}
 		eligible++
 		if len(results) >= limit {
 			continue
@@ -136,7 +135,27 @@ func (engine *Engine) sourceResults(
 			Reasons:  append([]string{reason}, candidate.Reasons...),
 		})
 	}
-	return results, eligible > len(results)
+	return results, eligible, suppressed
+}
+
+func searchExpansionCandidateCount(response *Response) int {
+	if response == nil {
+		return 0
+	}
+	seen := make(map[string]bool)
+	for _, lane := range [][]Result{response.ExactMatches, response.SourceMatches, response.SymbolMatches} {
+		for _, result := range lane {
+			if result.Node.Handle.Value == "" {
+				continue
+			}
+			key := handleKey(result.Node.Handle)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+		}
+	}
+	return len(seen)
 }
 
 func markLaneTruncated(response *Response, lane string, truncated bool) {
@@ -144,5 +163,10 @@ func markLaneTruncated(response *Response, lane string, truncated bool) {
 		return
 	}
 	response.Truncated = true
+	for _, existing := range response.TruncatedLanes {
+		if existing == lane {
+			return
+		}
+	}
 	response.TruncatedLanes = append(response.TruncatedLanes, lane)
 }

@@ -91,14 +91,21 @@ func Execute(ctx context.Context, request Request, options Options) (Response, e
 	response.Suggestions = queryResponse.Suggestions
 	response.Warnings = append(response.Warnings, preparation.Warnings...)
 	response.Warnings = append(response.Warnings, queryResponse.Warnings...)
+	response.Coverage = append([]agentquery.LaneCoverage(nil), queryResponse.Coverage...)
+	response.DeferredExpansions = append([]agentquery.DeferredExpansion(nil), queryResponse.DeferredExpansions...)
 	response.Truncated = queryResponse.Truncated
 	response.TruncatedLanes = append(response.TruncatedLanes, queryResponse.TruncatedLanes...)
 
-	documentResults, documentWarnings, err := retrieveDocuments(ctx, request, statePath, preparation, documentHandles)
+	documentResults, documentAvailable, documentWarnings, err := retrieveDocuments(ctx, request, statePath, preparation, documentHandles)
 	response.Warnings = append(response.Warnings, documentWarnings...)
 	if err != nil {
 		return response, err
 	}
+	recordRuntimeEvidenceCoverage(&queryResponse, documentResults, documentAvailable)
+	response.Coverage = append([]agentquery.LaneCoverage(nil), queryResponse.Coverage...)
+	response.DeferredExpansions = append([]agentquery.DeferredExpansion(nil), queryResponse.DeferredExpansions...)
+	response.Truncated = queryResponse.Truncated
+	response.TruncatedLanes = append([]string(nil), queryResponse.TruncatedLanes...)
 
 	if strings.TrimSpace(request.Session) == "" {
 		if !queryOnlyForSnapshot {
@@ -123,6 +130,15 @@ func Execute(ctx context.Context, request Request, options Options) (Response, e
 		return response, fmt.Errorf("open investigation session: %w", err)
 	}
 	ledgerResponse := investigationResponse(queryResponse, documentResults)
+	ledgerResponse, investigationTruncated, err := boundInvestigationResponse(ledger, ledgerResponse, request.Limit)
+	if err != nil {
+		return response, fmt.Errorf("budget investigation response: %w", err)
+	}
+	if investigationTruncated {
+		response.Truncated = true
+		response.TruncatedLanes = appendUniqueString(response.TruncatedLanes, "investigation_delta")
+		response.Warnings = append(response.Warnings, "investigation delta compacted to serialized evidence budget")
+	}
 	delta, err := ledger.RecordResponse(ledgerResponse)
 	if err != nil {
 		return response, fmt.Errorf("record investigation response: %w", err)
@@ -206,9 +222,9 @@ func includeDocuments(request Request) bool {
 	return anchor != "" && !strings.Contains(anchor, "://")
 }
 
-func retrieveDocuments(ctx context.Context, request Request, statePath string, preparation repostate.Status, handles []string) ([]knowledge.Result, []string, error) {
+func retrieveDocuments(ctx context.Context, request Request, statePath string, preparation repostate.Status, handles []string) ([]knowledge.Result, int, []string, error) {
 	if !includeDocuments(request) && len(handles) == 0 {
-		return nil, nil, nil
+		return nil, 0, nil, nil
 	}
 	knowledgeState := filepath.Join(statePath, "knowledge")
 	current, loadErr := knowledge.Load(knowledgeState)
@@ -218,15 +234,15 @@ func retrieveDocuments(ctx context.Context, request Request, statePath string, p
 		if loadErr == nil {
 			previous = &current
 		} else if !errors.Is(loadErr, os.ErrNotExist) && !errors.Is(loadErr, knowledge.ErrIncompatibleIndex) {
-			return nil, nil, fmt.Errorf("load knowledge index: %w", loadErr)
+			return nil, 0, nil, fmt.Errorf("load knowledge index: %w", loadErr)
 		}
 		built, _, err := knowledge.Build(request.Root, previous, knowledge.BuildOptions{})
 		if err != nil {
-			return nil, nil, fmt.Errorf("build knowledge index: %w", err)
+			return nil, 0, nil, fmt.Errorf("build knowledge index: %w", err)
 		}
 		built.SourceFingerprint = preparation.Repository.SourceFingerprint
 		if err := knowledge.Save(knowledgeState, built); err != nil {
-			return nil, nil, fmt.Errorf("save knowledge index: %w", err)
+			return nil, 0, nil, fmt.Errorf("save knowledge index: %w", err)
 		}
 		current = built
 	}
@@ -235,16 +251,17 @@ func retrieveDocuments(ctx context.Context, request Request, statePath string, p
 	for _, handle := range handles {
 		value, err := knowledge.Inspect(current, "", handle)
 		if err != nil {
-			return nil, nil, err
+			return nil, 0, nil, err
 		}
 		result, ok := value.(knowledge.Result)
 		if !ok {
-			return nil, nil, fmt.Errorf("knowledge handle %q did not resolve to a section", handle)
+			return nil, 0, nil, fmt.Errorf("knowledge handle %q did not resolve to a section", handle)
 		}
 		results = append(results, result)
 	}
+	explicitCount := len(results)
 	if request.Mode == "inspect" && len(handles) > 0 && strings.TrimSpace(request.Query) == "" {
-		return results, nil, nil
+		return results, len(results), nil, nil
 	}
 	query := strings.TrimSpace(request.Query)
 	if query == "" {
@@ -254,7 +271,7 @@ func retrieveDocuments(ctx context.Context, request Request, statePath string, p
 		query = "repository architecture overview entry points design rationale"
 	}
 	if query == "" {
-		return results, nil, nil
+		return results, len(results), nil, nil
 	}
 	topK := request.Limit
 	if topK <= 0 {
@@ -267,20 +284,38 @@ func retrieveDocuments(ctx context.Context, request Request, statePath string, p
 	if topK > 200 {
 		topK = 200
 	}
-	searchOptions := knowledge.SearchOptions{TopK: topK}
+	candidateLimit := min(200, max(topK*4, topK))
+	searchOptions := knowledge.SearchOptions{TopK: candidateLimit}
 	if useDocumentVectors(request) && knowledgevector.Available(knowledgeState) {
 		searchOptions.Vector = knowledgevector.Ranker{State: knowledgeState, Index: current, Endpoint: embedding.DefaultEndpoint}
 	}
 	searched, err := knowledge.Search(ctx, current, query, searchOptions)
 	if err != nil {
-		return nil, nil, fmt.Errorf("search knowledge: %w", err)
+		return nil, 0, nil, fmt.Errorf("search knowledge: %w", err)
 	}
-	results = appendUniqueKnowledge(results, compactKnowledgeResults(searched.Results)...)
+	compacted := compactKnowledgeResults(searched.Results)
+	available := uniqueKnowledgeResultCount(results, compacted)
+	if len(compacted) > topK {
+		compacted = compacted[:topK]
+	}
+	results = appendUniqueKnowledge(results, compacted...)
+	results = applyKnowledgePreviews(results, explicitCount, request.Detail)
 	warnings := []string(nil)
 	if searched.VectorError != "" {
 		warnings = append(warnings, "knowledge vector ranking unavailable: "+searched.VectorError)
 	}
-	return results, warnings, nil
+	return results, available, warnings, nil
+}
+
+func uniqueKnowledgeResultCount(existing, candidates []knowledge.Result) int {
+	seen := make(map[string]bool, len(existing)+len(candidates))
+	for _, result := range existing {
+		seen[result.Handle] = true
+	}
+	for _, result := range candidates {
+		seen[result.Handle] = true
+	}
+	return len(seen)
 }
 
 func compactKnowledgeResults(results []knowledge.Result) []knowledge.Result {
