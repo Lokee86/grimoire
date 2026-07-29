@@ -175,17 +175,45 @@ func (m Mirror) copy(relative, source string) error {
 }
 
 func (m Mirror) removeMissing(desired map[string]string) error {
-	return filepath.WalkDir(m.Root, func(path string, entry fs.DirEntry, walkErr error) error {
+	directories := make([]string, 0)
+	if err := filepath.WalkDir(m.Root, func(path string, entry fs.DirEntry, walkErr error) error {
 		if os.IsNotExist(walkErr) {
 			return nil
 		}
-		if walkErr != nil || entry.IsDir() {
+		if walkErr != nil {
 			return walkErr
+		}
+		if entry.IsDir() {
+			if path != m.Root {
+				directories = append(directories, path)
+			}
+			return nil
 		}
 		relative, _ := filepath.Rel(m.Root, path)
 		if _, ok := desired[filepath.Clean(relative)]; !ok {
 			return os.Remove(path)
 		}
 		return nil
+	}); err != nil {
+		return err
+	}
+
+	sort.Slice(directories, func(left, right int) bool {
+		return len(directories[left]) > len(directories[right])
 	})
+	for _, directory := range directories {
+		entries, err := os.ReadDir(directory)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if len(entries) == 0 {
+			if err := os.Remove(directory); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+	}
+	return nil
 }

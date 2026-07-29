@@ -1,0 +1,3 @@
+# Local combined installation output. The packaged adapters are runtime copies,
+# not a second source tree for this repository.
+/bin/

@@ -13,6 +13,7 @@ func TestIgnorePolicyUsesRepositoryPatternsAndPermanentExclusions(t *testing.T) 
 nested/*.go
 !nested/keep.go
 cache/
+/root-only/
 locked/
 !locked/keep.py
 !.git/keep.go
@@ -26,16 +27,18 @@ locked/
 	}
 
 	tests := map[string]bool{
-		"main.py":        true,
-		"keep.py":        false,
-		"nested/drop.go": true,
-		"nested/keep.go": false,
-		"cache/data.py":  true,
-		"locked/keep.py": true,
-		".git/keep.go":   true,
-		"src/visible.go": false,
-		"cache":          true,
-		".lexiconignore": false,
+		"main.py":                  true,
+		"keep.py":                  false,
+		"nested/drop.go":           true,
+		"nested/keep.go":           false,
+		"cache/data.py":            true,
+		"root-only/data.go":        true,
+		"nested/root-only/data.go": false,
+		"locked/keep.py":           true,
+		".git/keep.go":             true,
+		"src/visible.go":           false,
+		"cache":                    true,
+		".lexiconignore":           false,
 	}
 	for relative, expected := range tests {
 		infoIsDir := relative == "cache"

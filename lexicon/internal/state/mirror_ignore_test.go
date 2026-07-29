@@ -34,6 +34,35 @@ func TestMirrorSyncAllAppliesLexiconIgnore(t *testing.T) {
 	assertMirrorFile(t, mirrorRoot, "main.py", false)
 	assertMirrorFile(t, mirrorRoot, "ignored/nested.py", false)
 	assertMirrorFile(t, mirrorRoot, "vendor/vendor.py", false)
+	assertMirrorFile(t, mirrorRoot, "ignored", false)
+	assertMirrorFile(t, mirrorRoot, "vendor", false)
+}
+
+func TestMirrorSyncAllPrunesDirectoriesThatBecomeIgnored(t *testing.T) {
+	source := t.TempDir()
+	mirrorRoot := t.TempDir()
+	path := filepath.Join(source, "generated", "nested", "main.go")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("package generated\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	mirror := Mirror{Root: mirrorRoot}
+	if err := mirror.SyncAll(source); err != nil {
+		t.Fatal(err)
+	}
+	assertMirrorFile(t, mirrorRoot, "generated/nested/main.go", true)
+
+	if err := os.WriteFile(filepath.Join(source, ".lexiconignore"), []byte("/generated/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := mirror.SyncAll(source); err != nil {
+		t.Fatal(err)
+	}
+	assertMirrorFile(t, mirrorRoot, "generated/nested/main.go", false)
+	assertMirrorFile(t, mirrorRoot, "generated/nested", false)
+	assertMirrorFile(t, mirrorRoot, "generated", false)
 }
 
 func TestMirrorSyncPathsAppliesLexiconIgnore(t *testing.T) {

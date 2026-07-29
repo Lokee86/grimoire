@@ -50,14 +50,14 @@ func (p IgnorePolicy) Ignored(path string, isDir bool) bool {
 	parts := strings.Split(matchPath, "/")
 	for index := 1; index < len(parts); index++ {
 		parent := strings.Join(parts[:index], "/") + "/"
-		if p.matcher.MatchesPath(parent) {
+		if p.matcher.MatchesPath(parent) || p.matcher.MatchesPath("/"+parent) {
 			return true
 		}
 	}
 	if isDir {
 		matchPath += "/"
 	}
-	return p.matcher.MatchesPath(matchPath)
+	return p.matcher.MatchesPath(matchPath) || p.matcher.MatchesPath("/"+matchPath)
 }
 
 func IsIgnoreFile(root, path string) bool {
