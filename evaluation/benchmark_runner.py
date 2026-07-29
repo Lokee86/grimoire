@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -12,12 +13,13 @@ from typing import Any
 import yaml
 
 from benchmark_grounding import summarize_audit, validate_answer
+from benchmark_provenance import capture_provenance, file_identity
 
 COMMON_PROMPT = r'''Read-only repository investigation. Do not modify repository files, run generators, or implement the change. Normal shell, Git, and direct file inspection are allowed. Use only the optional discovery tool available in this condition, and stop using it when direct inspection is cheaper.
 
 Produce an implementation-grade investigation grounded in the checked-out revision. Cite every material current-behavior claim as repository-relative `path:line` or `path:start-end`. Distinguish verified current behavior from proposed design and from documentation rationale.
 
-End with exactly one line beginning `BENCHMARK_EVIDENCE_JSON:` followed by compact JSON with one array named `evidence`. Every item must contain `path`, `symbol`, `lines`, and `claim`. When the available discovery system returns an opaque inspected source-range handle, also include that exact value as `handle`; do not invent handles.
+End with exactly one line beginning `BENCHMARK_EVIDENCE_JSON:` followed by compact JSON with one array named `evidence`. Evidence without a discovery handle must contain `path`, `symbol`, `lines`, and `claim`. When Grimoire returns an opaque inspected source-range handle, submit only that exact `handle` plus `claim`; the harness derives the canonical path and range. Do not repeat or invent immutable handle metadata.
 '''
 
 
@@ -75,6 +77,41 @@ class BenchmarkEnvironment:
         self.arcana_binary = grimoire_build / "bin" / "arcana.exe"
         self.cbm_skill = self.grimoire_repo / "evaluation" / "results" / "cbm-0.9.0-SKILL.md"
         self.grimoire_skill = grimoire_build / "skills" / "grimoire" / "SKILL.md"
+
+    def rebuild(self, version: str, jobs: int = 1) -> None:
+        run_checked([
+            sys.executable,
+            str(self.grimoire_repo / "scripts" / "workflow.py"),
+            "build",
+            "--version",
+            version,
+            "--output",
+            str(self.grimoire_build),
+            "--jobs",
+            str(jobs),
+        ], cwd=self.grimoire_repo, timeout=7200)
+
+    def provenance(self, task_suite: Path, conditions: tuple[str, ...]) -> dict[str, Any]:
+        return capture_provenance(
+            repository=self.grimoire_repo,
+            task_suite=task_suite,
+            build_root=self.grimoire_build,
+            hermes=self.hermes,
+            cbm_binary=self.cbm_binary,
+            cbm_skill=self.cbm_skill,
+            conditions=conditions,
+        )
+
+    def profile_identity(self, name: str) -> dict[str, Any]:
+        profile = self.profile_root / name
+        return {
+            "config": file_identity(profile / "config.yaml"),
+            "skill_tree": file_identity(profile / "skills" / "grimoire" / "SKILL.md")
+            if (profile / "skills" / "grimoire" / "SKILL.md").is_file()
+            else file_identity(profile / "skills" / "codebase-memory" / "SKILL.md")
+            if (profile / "skills" / "codebase-memory" / "SKILL.md").is_file()
+            else None,
+        }
 
     def require_dependencies(self, conditions: tuple[str, ...]) -> None:
         required = [self.hermes, self.base_profile / "config.yaml", self.base_profile / ".env"]
@@ -270,7 +307,10 @@ def collect_runs(
                 "answer_bytes": answer_path.stat().st_size if answer_path.is_file() else 0,
                 "discovery_output": summarize_audit(audit_path),
                 "grounding": grounding.to_dict(),
-                "valid": grounding.valid,
+                "execution_valid": exit_code == 0,
+                "grounding_valid": grounding.valid,
+                "eligible_for_scoring": exit_code == 0 and grounding.valid,
+                "quality_assessed": False,
                 "completed_at": datetime.now(timezone.utc).isoformat(),
             }
             pending.remove(condition)

@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import time
 
+from benchmark_provenance import assert_frozen, git_changes, git_commit, verify_build_version
 from benchmark_runner import BenchmarkEnvironment, collect_runs, prepare_worktree
 from benchmark_tasks import load_task_suite, validate_evidence_prefixes
 
@@ -20,6 +21,22 @@ DEFAULT_CHECKOUTS = ROOT / "benchmark-checkouts" / "agent-benchmark-v2"
 MODEL = "gpt-5.6-sol"
 PROVIDER = "openai-codex"
 CONDITIONS = ("plain", "cbm", "grimoire")
+IGNORED_HARNESS_CHANGES = (
+    ".warlock/",
+    ".worktrees/",
+    "build/",
+    "evaluation/__pycache__/",
+    "evaluation/results/",
+)
+
+
+def relevant_harness_changes(changes: list[str]) -> list[str]:
+    relevant = []
+    for change in changes:
+        path = change[3:].replace("\\", "/") if len(change) > 3 else change
+        if not any(path.startswith(prefix) for prefix in IGNORED_HARNESS_CHANGES):
+            relevant.append(change)
+    return relevant
 
 
 def select_tasks(suite: dict, selected: list[str]) -> list[dict]:
@@ -41,6 +58,7 @@ def initialize_summary(
     model: str,
     provider: str,
     conditions: tuple[str, ...],
+    provenance: dict,
 ) -> dict:
     started_at = datetime.now(timezone.utc).isoformat()
     summary_path = output / "summary.json"
@@ -51,8 +69,10 @@ def initialize_summary(
             "model": model,
             "provider": provider,
             "conditions": list(conditions),
-            "parallel_within_task": len(conditions) > 1,
+            "parallel_within_task": False,
+            "condition_execution": "sequential",
             "sequential_tasks": True,
+            "provenance": provenance,
             "started_at": started_at,
             "last_run_started_at": started_at,
             "tasks": {},
@@ -63,6 +83,7 @@ def initialize_summary(
         "task_suite": str(task_suite),
         "model": model,
         "provider": provider,
+        "provenance": provenance,
     }
     for key, value in expected.items():
         if summary.get(key) != value:
@@ -72,7 +93,8 @@ def initialize_summary(
             )
     summary.setdefault("tasks", {})
     summary["conditions"] = list(dict.fromkeys([*summary.get("conditions", []), *conditions]))
-    summary["parallel_within_task"] = len(conditions) > 1
+    summary["parallel_within_task"] = False
+    summary["condition_execution"] = "sequential"
     summary["sequential_tasks"] = True
     summary["last_run_started_at"] = started_at
     return summary
@@ -93,28 +115,55 @@ def main() -> int:
     args.output = args.output.resolve()
     args.checkout_root = args.checkout_root.resolve()
 
-    suite = load_task_suite(args.tasks.resolve(), ROOT)
+    task_suite = args.tasks.resolve()
+    suite = load_task_suite(task_suite, ROOT)
     tasks = select_tasks(suite, args.task)
     conditions = tuple(dict.fromkeys(args.condition or CONDITIONS))
     environment = BenchmarkEnvironment(ROOT, args.build.resolve(), args.model, args.provider)
-    environment.require_dependencies(conditions)
+    harness_commit = git_commit(GRIMOIRE_REPO)
+    build_version = f"benchmark-{harness_commit[:12]}"
+    changes = relevant_harness_changes(git_changes(GRIMOIRE_REPO))
+
     if args.check:
-        print(json.dumps({
-            "ready": True,
+        report = {
+            "ready": False,
             "tasks": [task["id"] for task in tasks],
             "conditions": conditions,
             "build": str(args.build.resolve()),
-        }, indent=2))
-        return 0
+            "harness_commit": harness_commit,
+            "expected_build_version": build_version,
+            "harness_changes": changes,
+        }
+        try:
+            environment.require_dependencies(conditions)
+            provenance = environment.provenance(task_suite, conditions)
+            verify_build_version(provenance, build_version)
+            report["provenance"] = provenance
+            report["ready"] = not changes
+        except (OSError, RuntimeError, ValueError) as error:
+            report["error"] = str(error)
+        print(json.dumps(report, indent=2))
+        return 0 if report["ready"] else 1
+
+    if changes:
+        raise RuntimeError(
+            "benchmark harness has uncommitted source changes; commit or isolate them before running:\n"
+            + "\n".join(changes)
+        )
+    environment.rebuild(build_version)
+    environment.require_dependencies(conditions)
+    provenance = environment.provenance(task_suite, conditions)
+    verify_build_version(provenance, build_version)
     args.output.mkdir(parents=True, exist_ok=True)
     args.checkout_root.mkdir(parents=True, exist_ok=True)
 
     summary = initialize_summary(
         args.output,
-        task_suite=args.tasks.resolve(),
+        task_suite=task_suite,
         model=args.model,
         provider=args.provider,
         conditions=conditions,
+        provenance=provenance,
     )
     for task in tasks:
         task_output = args.output / task["id"]
@@ -140,6 +189,7 @@ def main() -> int:
             preparation["grimoire"] = environment.prewarm_grimoire(checkouts["grimoire"], task_output)
 
         profiles: dict[str, str] = {}
+        profile_provenance: dict[str, dict] = {}
         for condition in conditions:
             profile = f"bench-v2-{task['id'][:20]}-{condition}"
             audit = task_output / "grimoire.mcp-audit.jsonl" if condition == "grimoire" else None
@@ -153,27 +203,32 @@ def main() -> int:
                 audit_log=audit,
             )
             profiles[condition] = profile
+            profile_provenance[condition] = environment.profile_identity(profile)
 
-        active = {
-            condition: environment.launch(
-                task,
-                condition,
-                checkouts[condition],
-                task_output,
-                profiles[condition],
-                cbm_project,
-            )
-            for condition in conditions
-        }
-        runs = collect_runs(
-            active,
-            checkout_by_condition=checkouts,
-            output=task_output,
-            expected_sections=suite["evidence_sections"],
-            required_path_prefixes=[
-                item["path_prefix"] for item in task["rubric"]["required_evidence"]
-            ],
-        )
+        runs: dict[str, dict] = {}
+        required_prefixes = [
+            item["path_prefix"] for item in task["rubric"]["required_evidence"]
+        ]
+        for condition in conditions:
+            assert_frozen(environment.provenance(task_suite, conditions), provenance)
+            active = {
+                condition: environment.launch(
+                    task,
+                    condition,
+                    checkouts[condition],
+                    task_output,
+                    profiles[condition],
+                    cbm_project,
+                )
+            }
+            runs.update(collect_runs(
+                active,
+                checkout_by_condition={condition: checkouts[condition]},
+                output=task_output,
+                expected_sections=suite["evidence_sections"],
+                required_path_prefixes=required_prefixes,
+            ))
+            assert_frozen(environment.provenance(task_suite, conditions), provenance)
         summary["tasks"][task["id"]] = {
             "category": task["category"],
             "repository": str(task["repo"]),
@@ -181,6 +236,7 @@ def main() -> int:
             "rubric": task["rubric"],
             "preparation": preparation,
             "profiles": profiles,
+            "profile_provenance": profile_provenance,
             "runs": runs,
         }
         (args.output / "summary.partial.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")

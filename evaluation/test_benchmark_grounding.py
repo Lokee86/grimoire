@@ -26,8 +26,8 @@ class BenchmarkGroundingTests(unittest.TestCase):
             }) + "\n", encoding="utf-8")
             answer = (
                 "Target is declared here at target.go:3 and repeated as `target.go:3`.\n"
-                'BENCHMARK_EVIDENCE_JSON:{"ownership":[{"path":"target.go","symbol":"Target",'
-                '"lines":"3","claim":"Target owns the behavior","handle":"g1_range"}]}\n'
+                'BENCHMARK_EVIDENCE_JSON:{"ownership":[{"handle":"g1_range",'
+                '"claim":"Target owns the behavior"}]}\n'
             )
             report = validate_answer(
                 root,
@@ -48,7 +48,7 @@ class BenchmarkGroundingTests(unittest.TestCase):
             self.assertEqual(summary["new_source_ranges"], 1)
             self.assertGreater(summary["response_bytes"], 0)
 
-    def test_rejects_missing_files_bad_ranges_and_mismatched_handles(self) -> None:
+    def test_rejects_bad_inline_citations_but_uses_canonical_handle_range(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "target.go").write_text("one\ntwo\n", encoding="utf-8")
@@ -80,7 +80,8 @@ class BenchmarkGroundingTests(unittest.TestCase):
             codes = {finding.code for finding in report.findings}
             self.assertIn("inline_citation_missing_path", codes)
             self.assertIn("inline_citation_out_of_range", codes)
-            self.assertIn("handle_range_mismatch", codes)
+            self.assertNotIn("handle_range_mismatch", codes)
+            self.assertEqual(report.canonical_handle_items, 1)
 
     def test_accepts_and_validates_noncontiguous_structured_ranges(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -108,7 +109,7 @@ class BenchmarkGroundingTests(unittest.TestCase):
             self.assertFalse(report.valid)
             self.assertIn("structured_evidence_out_of_range", {finding.code for finding in report.findings})
 
-    def test_rejects_one_handle_for_multiple_ranges(self) -> None:
+    def test_handle_metadata_is_canonical_even_when_repeated_fields_disagree(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "target.go").write_text("one\ntwo\nthree\n", encoding="utf-8")
@@ -130,8 +131,8 @@ class BenchmarkGroundingTests(unittest.TestCase):
                 expected_sections=["evidence"],
                 audit_log=audit,
             )
-            self.assertFalse(report.valid)
-            self.assertIn("handle_multiple_ranges", {finding.code for finding in report.findings})
+            self.assertTrue(report.valid, report.to_dict())
+            self.assertEqual(report.canonical_handle_items, 1)
 
     def test_accepts_non_session_inspection_handles(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -148,8 +149,8 @@ class BenchmarkGroundingTests(unittest.TestCase):
                 }]},
             }) + "\n", encoding="utf-8")
             answer = (
-                'BENCHMARK_EVIDENCE_JSON:{"evidence":[{"path":"target.go","symbol":"Target",'
-                '"lines":"2-3","claim":"canonical inspection","handle":"grimoire:v1:range"}]}\n'
+                'BENCHMARK_EVIDENCE_JSON:{"evidence":[{"handle":"grimoire:v1:range",'
+                '"claim":"canonical inspection"}]}\n'
             )
             report = validate_answer(
                 root,

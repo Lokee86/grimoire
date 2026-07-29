@@ -1106,9 +1106,295 @@
         }
       },
       "grimoire_rerun_note": "Healthy Arcana rerun after compatibility fix; prior degraded artifacts retained with grimoire.degraded-2026-07-28 prefixes."
+    },
+    "grimoire-state-maintenance-ownership": {
+      "category": "source-plus-rationale",
+      "repository": "C:\\!bin\\workspace\\grimoire",
+      "commit": "a0afdd7389783daea42135f6a9b6fedc1f3ccc02",
+      "rubric": {
+        "dimensions": [
+          {
+            "id": "implemented_ownership",
+            "weight": 2,
+            "description": "Separates Grimoire request-driven preparation from provider and daemon ownership."
+          },
+          {
+            "id": "rationale",
+            "weight": 2,
+            "description": "Uses architecture, roadmap, and limitation documents as rationale rather than executable truth."
+          },
+          {
+            "id": "seam",
+            "weight": 2,
+            "description": "Defines an explicit event/input seam without making one-shot commands daemon-dependent."
+          },
+          {
+            "id": "state_alignment",
+            "weight": 1,
+            "description": "Preserves Lexicon, Arcana, Grimoire, and documentation freshness contracts."
+          },
+          {
+            "id": "verification",
+            "weight": 1,
+            "description": "Covers no-daemon fallback, coalescing, branch changes, missed events, and cold start."
+          }
+        ],
+        "required_evidence": [
+          {
+            "path_prefix": "internal/repostate/",
+            "reason": "implemented preparation and state-alignment owner"
+          },
+          {
+            "path_prefix": "internal/agentruntime/",
+            "reason": "request-time orchestration"
+          },
+          {
+            "path_prefix": "docs/architecture/",
+            "reason": "component boundaries and rationale"
+          },
+          {
+            "path_prefix": "docs/planning/",
+            "reason": "explicit future lifecycle work"
+          }
+        ],
+        "disallowed_assumptions": [
+          "mandatory daemon dependency",
+          "provider state mutated by Warlock directly",
+          "documentation treated as current executable behavior"
+        ]
+      },
+      "preparation": {
+        "cbm": {
+          "project": "C-bin-workspace-benchmark-checkouts-agent-benchmark-v2-grimoire-state-maintenance-ownership-cbm",
+          "elapsed_seconds": 3.07
+        },
+        "grimoire": {
+          "elapsed_seconds": 199.301,
+          "timings": {
+            "initial_inspection_ms": 349,
+            "lock_wait_ms": 1,
+            "reinspection_ms": 3493,
+            "lexicon_ms": 184790,
+            "arcana_ms": 1295,
+            "source_index_ms": 8328,
+            "documentation_ms": 748,
+            "marker_write_ms": 3,
+            "final_verification_ms": 147,
+            "total_ms": 199162
+          },
+          "actions": [
+            {
+              "name": "refresh-lexicon",
+              "status": "completed",
+              "elapsed_ms": 184790
+            },
+            {
+              "name": "synchronize-arcana",
+              "status": "completed",
+              "elapsed_ms": 1295
+            },
+            {
+              "name": "prepare-grimoire",
+              "status": "completed",
+              "elapsed_ms": 8328
+            },
+            {
+              "name": "prepare-knowledge",
+              "status": "completed",
+              "elapsed_ms": 748
+            }
+          ]
+        }
+      },
+      "profiles": {
+        "plain": "bench-v2-grimoire-state-maint-plain",
+        "cbm": "bench-v2-grimoire-state-maint-cbm",
+        "grimoire": "bench-v2-grimoire-state-maint-grimoire"
+      },
+      "runs": {
+        "grimoire": {
+          "exit_code": 0,
+          "elapsed_seconds": 214.08,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 134372,
+            "output_tokens": 6453,
+            "cache_read_tokens": 945152,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 1142,
+            "total_tokens": 1085977,
+            "api_calls": 13,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_170402_6ae258",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 16281,
+          "discovery_output": {
+            "calls": 1,
+            "response_bytes": 44392,
+            "modes": {
+              "search": 1
+            },
+            "new_nodes": 24,
+            "new_source_ranges": 21,
+            "new_documents": 8,
+            "new_relationships": 0,
+            "new_graph_paths": 8,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 52,
+            "structured_items": 12,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "internal/repostate",
+              "internal/agentruntime",
+              "docs/architecture",
+              "docs/planning"
+            ],
+            "missing_required_prefixes": [],
+            "findings": []
+          },
+          "completed_at": "2026-07-29T00:07:28.914399+00:00",
+          "execution_valid": true,
+          "grounding_valid": true,
+          "eligible_for_scoring": true,
+          "quality_assessed": false
+        },
+        "plain": {
+          "exit_code": 0,
+          "elapsed_seconds": 222.149,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 109910,
+            "output_tokens": 6515,
+            "cache_read_tokens": 709632,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 1544,
+            "total_tokens": 826057,
+            "api_calls": 13,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_170402_35b640",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 14183,
+          "discovery_output": {
+            "calls": 0,
+            "response_bytes": 0,
+            "modes": {},
+            "new_nodes": 0,
+            "new_source_ranges": 0,
+            "new_documents": 0,
+            "new_relationships": 0,
+            "new_graph_paths": 0,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 43,
+            "structured_items": 13,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "internal/repostate",
+              "internal/agentruntime",
+              "docs/architecture",
+              "docs/planning"
+            ],
+            "missing_required_prefixes": [],
+            "findings": []
+          },
+          "completed_at": "2026-07-29T00:07:36.961451+00:00",
+          "execution_valid": true,
+          "grounding_valid": true,
+          "eligible_for_scoring": true,
+          "quality_assessed": false
+        },
+        "cbm": {
+          "exit_code": 0,
+          "elapsed_seconds": 250.192,
+          "usage": {
+            "estimated_cost_usd": 0.0,
+            "cost_status": "included",
+            "cost_source": "none",
+            "input_tokens": 99156,
+            "output_tokens": 8661,
+            "cache_read_tokens": 353280,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 2718,
+            "total_tokens": 461097,
+            "api_calls": 9,
+            "model": "gpt-5.6-sol",
+            "provider": "openai-codex",
+            "session_id": "20260728_170402_aa3767",
+            "completed": true,
+            "failed": false,
+            "service_tier": null
+          },
+          "answer_bytes": 19752,
+          "discovery_output": {
+            "calls": 0,
+            "response_bytes": 0,
+            "modes": {},
+            "new_nodes": 0,
+            "new_source_ranges": 0,
+            "new_documents": 0,
+            "new_relationships": 0,
+            "new_graph_paths": 0,
+            "tool_errors": 0,
+            "invalid_records": 0
+          },
+          "grounding": {
+            "valid": true,
+            "process_completed": true,
+            "refusal_detected": false,
+            "evidence_json_found": true,
+            "evidence_json_valid": true,
+            "inline_citations": 37,
+            "structured_items": 23,
+            "handle_items": 0,
+            "canonical_handle_items": 0,
+            "required_prefixes_found": [
+              "internal/repostate",
+              "internal/agentruntime",
+              "docs/architecture",
+              "docs/planning"
+            ],
+            "missing_required_prefixes": [],
+            "findings": []
+          },
+          "completed_at": "2026-07-29T00:08:05.018164+00:00",
+          "execution_valid": true,
+          "grounding_valid": true,
+          "eligible_for_scoring": true,
+          "quality_assessed": false
+        }
+      }
     }
   },
-  "completed_at": "2026-07-28T22:40:34.549406+00:00",
-  "revalidated_at": "2026-07-28T22:51:42.668917+00:00",
-  "last_run_started_at": "2026-07-28T20:35:35.954097+00:00"
+  "completed_at": "2026-07-29T00:08:08.021732+00:00",
+  "revalidated_at": "2026-07-29T08:51:31.168971+00:00",
+  "last_run_started_at": "2026-07-29T00:00:29.563369+00:00"
 }

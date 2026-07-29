@@ -100,7 +100,9 @@ def main() -> int:
         "conditions": {
             condition: {
                 "usage": source_task["runs"][condition].get("usage") is not None,
-                "valid": source_task["runs"][condition].get("valid"),
+                "grounding_valid": source_task["runs"][condition].get("grounding_valid"),
+                "eligible_for_scoring": source_task["runs"][condition].get("eligible_for_scoring"),
+                "quality_assessed": source_task["runs"][condition].get("quality_assessed", False),
             }
             for condition in CONDITIONS
         },

@@ -105,10 +105,10 @@ def validate_answer(
         if unknown:
             report.findings.append(Finding("unknown_evidence_sections", f"unexpected sections: {', '.join(unknown)}"))
         evidence_paths = {
-            normalize_path(str(item.get("path", "")))
+            canonical_evidence_path(item, handle_ranges)
             for section in expected
             for item in evidence.get(section, [])
-            if isinstance(item, dict) and item.get("path")
+            if isinstance(item, dict) and canonical_evidence_path(item, handle_ranges)
         }
         for raw_prefix in required_path_prefixes:
             raw = str(raw_prefix)
@@ -165,7 +165,29 @@ def validate_item(
         report.findings.append(Finding("invalid_evidence_item", f"{label} must be an object"))
         return
     report.structured_items += 1
-    missing = [name for name in ("path", "symbol", "lines", "claim") if not item.get(name)]
+    if not item.get("claim"):
+        report.findings.append(Finding("missing_evidence_fields", f"{label} missing: claim"))
+        return
+
+    handle = item.get("handle")
+    if handle:
+        report.handle_items += 1
+        canonical = handle_ranges.get(str(handle))
+        if canonical is None:
+            report.findings.append(Finding("unknown_handle", f"{label} references an unrecorded handle"))
+            return
+        validate_range(
+            root,
+            canonical.path,
+            canonical.start_line,
+            canonical.end_line,
+            report,
+            "structured_evidence",
+        )
+        report.canonical_handle_items += 1
+        return
+
+    missing = [name for name in ("path", "symbol", "lines") if not item.get(name)]
     if missing:
         report.findings.append(Finding("missing_evidence_fields", f"{label} missing: {', '.join(missing)}"))
         return
@@ -177,34 +199,17 @@ def validate_item(
     path = str(item["path"])
     for start, end in ranges:
         validate_range(root, path, start, end, report, "structured_evidence")
-
-    handle = item.get("handle")
-    if handle:
-        report.handle_items += 1
-        if len(ranges) != 1:
-            report.findings.append(Finding(
-                "handle_multiple_ranges",
-                f"{label} supplies one handle for {len(ranges)} noncontiguous ranges",
-                path,
-            ))
-            return
-        start, end = ranges[0]
-        canonical = handle_ranges.get(str(handle))
-        if canonical is None:
-            report.findings.append(Finding("unknown_handle", f"{label} references an unrecorded handle", path, start, end))
-        elif canonical != CanonicalRange(normalize_path(path), start, end):
-            report.findings.append(Finding(
-                "handle_range_mismatch",
-                f"{label} claims {path}:{start}-{end}; handle resolves to {canonical.path}:{canonical.start_line}-{canonical.end_line}",
-                path,
-                start,
-                end,
-            ))
-        else:
-            report.canonical_handle_items += 1
-    elif require_handle:
+    if require_handle:
         start, end = ranges[0]
         report.findings.append(Finding("missing_grimoire_handle", f"{label} must include an inspected source-range handle", path, start, end))
+
+
+def canonical_evidence_path(item: dict[str, Any], handle_ranges: dict[str, CanonicalRange]) -> str:
+    handle = item.get("handle")
+    if handle and str(handle) in handle_ranges:
+        return handle_ranges[str(handle)].path
+    path = item.get("path")
+    return normalize_path(str(path)) if path else ""
 
 
 def parse_line_ranges(value: Any) -> list[tuple[int, int]]:

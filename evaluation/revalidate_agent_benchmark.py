@@ -67,8 +67,12 @@ def main() -> int:
                     encoding="utf-8",
                 )
                 run["grounding"] = payload
-                run["valid"] = report.valid
-                task_results[condition] = report.valid
+                run["execution_valid"] = int(run["exit_code"]) == 0
+                run["grounding_valid"] = report.valid
+                run["eligible_for_scoring"] = int(run["exit_code"]) == 0 and report.valid
+                run["quality_assessed"] = False
+                run.pop("valid", None)
+                task_results[condition] = run["eligible_for_scoring"]
         finally:
             for checkout in created_checkouts:
                 run_checked(["git", "worktree", "remove", "--force", str(checkout)], cwd=task["repo"], timeout=300)

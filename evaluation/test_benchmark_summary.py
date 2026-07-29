@@ -26,12 +26,15 @@ class BenchmarkSummaryTests(unittest.TestCase):
             }
             (output / "summary.json").write_text(json.dumps(existing), encoding="utf-8")
 
+            existing["provenance"] = {"schema": "test", "hash": "same"}
+            (output / "summary.json").write_text(json.dumps(existing), encoding="utf-8")
             summary = initialize_summary(
                 output,
                 task_suite=suite,
                 model="model",
                 provider="provider",
                 conditions=("cbm", "grimoire"),
+                provenance=existing["provenance"],
             )
 
             self.assertEqual(summary["tasks"], existing["tasks"])
@@ -59,6 +62,31 @@ class BenchmarkSummaryTests(unittest.TestCase):
                     model="model",
                     provider="provider",
                     conditions=("plain",),
+                    provenance={"schema": "test"},
+                )
+
+    def test_changed_provenance_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            suite = output / "tasks.json"
+            existing = {
+                "schema": "grimoire.agent-benchmark.v2",
+                "task_suite": str(suite),
+                "model": "model",
+                "provider": "provider",
+                "provenance": {"schema": "test", "hash": "old"},
+                "tasks": {},
+            }
+            (output / "summary.json").write_text(json.dumps(existing), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "incompatible provenance"):
+                initialize_summary(
+                    output,
+                    task_suite=suite,
+                    model="model",
+                    provider="provider",
+                    conditions=("plain",),
+                    provenance={"schema": "test", "hash": "new"},
                 )
 
 
