@@ -43,6 +43,7 @@ The release directory contains:
 - `adapters/c-family/lexicon-c-family`;
 - `adapters/go/lexicon-go`;
 - `adapters/gdscript/lexicon-gdscript`;
+- `adapters/lotusscript/lexicon-lotusscript`;
 - `adapters/generic/lexicon-generic`;
 - `adapters/rust/lexicon-rust`;
 - the compiled TypeScript `dist/cli.js`;
@@ -58,7 +59,7 @@ The packaged executable discovers the adjacent `adapters/` directory automatical
 
 Creating a complete distribution requires:
 
-- Go plus a working CGO C compiler for the application, C/C++ adapter, Go adapter, GDScript adapter, and generic adapter;
+- Go plus a working CGO C compiler for the application, C/C++ adapter, Go adapter, GDScript adapter, LotusScript adapter, and generic adapter;
 - Rust and Cargo for the Rust adapter;
 - Node.js and npm for TypeScript compilation and production dependency installation;
 - Python to run the packaging script.

@@ -11,7 +11,7 @@ import (
 )
 
 func TestCommandPrefersPackagedExecutables(t *testing.T) {
-	for _, language := range []string{"c-family", "go", "gdscript", "rust"} {
+	for _, language := range []string{"c-family", "go", "gdscript", "lotusscript", "rust"} {
 		t.Run(language, func(t *testing.T) {
 			root := t.TempDir()
 			executable := filepath.Join(root, language, "lexicon-"+language)

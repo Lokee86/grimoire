@@ -54,7 +54,7 @@ func (r Runner) command(ctx context.Context, request Request) (*exec.Cmd, error)
 	switch request.Language {
 	case "generic":
 		return nil, fmt.Errorf("generic adapter requires an extension-qualified language")
-	case "c-family", "go", "gdscript":
+	case "c-family", "go", "gdscript", "lotusscript":
 		if executable, ok := packagedExecutable(r.Root, request.Language); ok {
 			return exec.CommandContext(ctx, executable, arguments...), nil
 		}

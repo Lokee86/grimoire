@@ -21,7 +21,7 @@ function attributes(category: string, source: string, constraint = "", flags: Pa
 function target(facts: FactStore, name: string, localPath = ""): string {
   const normalized = name.replaceAll("\\", "/");
   const identity = `dependency:typescript:${normalized}`;
-  return facts.addNode("module", normalized, localPath || `.lexicon/dependencies/typescript/${normalized}`, identity, identity, undefined, {
+  return facts.addNode("module", normalized, localPath || `@dependencies/typescript/${normalized}`, identity, identity, undefined, {
     dependency: true,
     ecosystem: "javascript",
   });

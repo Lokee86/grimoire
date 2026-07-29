@@ -28,6 +28,7 @@ Lexicon documentation follows these rules:
 | [SEMANTIC_ACCEPTANCE.md](SEMANTIC_ACCEPTANCE.md) | Required observable gates for dataflow, dispatch, dependencies, runtime evidence, and integration |
 | [SEMANTIC_CORPUS_VALIDATION.md](SEMANTIC_CORPUS_VALIDATION.md) | Dated real-repository validation record for the non-Go adapter corpus |
 | [GO_ADAPTER_VALIDATION.md](GO_ADAPTER_VALIDATION.md) | Dated Go semantic-adapter validation record and its measured limits |
+| [LOTUSSCRIPT_ADAPTER_VALIDATION.md](LOTUSSCRIPT_ADAPTER_VALIDATION.md) | Dated LotusScript calibration, validation, and holdout record |
 | [RELEASE_PACKAGING.md](RELEASE_PACKAGING.md) | Distribution layout, build requirements, runtime requirements, and packaging command |
 
 ## Related documentation

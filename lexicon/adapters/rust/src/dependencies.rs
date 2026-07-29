@@ -110,7 +110,7 @@ pub(crate) fn add_dependencies(context: &mut Context, metadata: &[Metadata]) {
                     "module",
                     &identity,
                     &normalized,
-                    &format!(".lexicon/dependencies/rust/{normalized}"),
+                    &format!("@dependencies/rust/{normalized}"),
                     &identity,
                     None,
                     None,

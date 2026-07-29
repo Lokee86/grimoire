@@ -29,7 +29,7 @@ def _attributes(category: str, source: str, constraint: str = "", *, path: bool 
 def _target(facts: Facts, name: str, *, local_path: str = "") -> str:
     normalized = name.replace("\\", "/")
     identity = f"dependency:python:{normalized}"
-    display_path = local_path or f".lexicon/dependencies/python/{normalized}"
+    display_path = local_path or f"@dependencies/python/{normalized}"
     return facts.add_node(
         "module",
         normalized,

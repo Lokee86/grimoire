@@ -65,7 +65,7 @@ func (s *scanner) addDependencyFacts() error {
 
 func (s *scanner) dependencyNode(ecosystem, name string, local bool, localPath string) NodeKey {
 	identity := "dependency:" + ecosystem + ":" + name
-	path := ".lexicon/dependencies/" + ecosystem + "/" + strings.ReplaceAll(name, "\\", "/")
+	path := "@dependencies/" + ecosystem + "/" + strings.ReplaceAll(name, "\\", "/")
 	if local {
 		path = localPath
 	}

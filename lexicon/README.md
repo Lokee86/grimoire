@@ -10,7 +10,7 @@ Lexicon is primarily a one-shot CLI application. It can also run an optional fil
 
 Lexicon currently provides:
 
-- deterministic adapters for C, C++, Go, GDScript, Python, Ruby, Rust, JavaScript, TypeScript, and Svelte script blocks;
+- deterministic adapters for C, C++, Go, GDScript, LotusScript, Python, Ruby, Rust, JavaScript, TypeScript, and Svelte script blocks;
 - conservative generic fallback coverage for curated source-code extensions without a dedicated adapter;
 - a normalized facts-v1 JSONL adapter boundary;
 - immutable content-addressed binary fact objects;
@@ -32,6 +32,7 @@ The adapters are functional semantic analyzers, not merely syntax inventories. P
 | C / C++ | Go | Official Tree-sitter C and C++ grammars | Mixed repositories, headers, declarations, includes, inheritance, calls, and conservative dataflow |
 | Go | Go | `go/parser`, `go/types`, packages, SSA, and VTA | Multi-module repositories, typed calls, interfaces, dataflow, dependencies |
 | GDScript | Go | Dedicated parser and bounded type-flow model | Godot projects, inheritance, callbacks, autoloads, local dispatch |
+| LotusScript | Go | Dedicated parser, ODP/DXL extractor, and repository-local script-library resolver | Classes, script libraries, ODP agents, inheritance, typed receiver calls, declarations, and unresolved dynamic/external targets |
 | Python | Python | Standard-library `ast` | Imports, inheritance, protocols, higher-order flow, dataflow |
 | Ruby | Ruby | Standard-library `Ripper` | Reopened types, mixins, blocks, Rails-aware bounded flow |
 | Rust | Rust | `syn` and Cargo metadata | Workspaces, traits, implementations, callbacks, dependencies |

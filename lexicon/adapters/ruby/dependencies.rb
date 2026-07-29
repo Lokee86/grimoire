@@ -25,7 +25,7 @@ module LexiconRuby
       add_node(
         kind: "module",
         name: normalized,
-        path: local_path.empty? ? ".lexicon/dependencies/ruby/#{normalized}" : normalized,
+        path: local_path.empty? ? "@dependencies/ruby/#{normalized}" : normalized,
         qualified_name: identity,
         canonical: identity,
         attributes: { "dependency" => true, "ecosystem" => "ruby" }

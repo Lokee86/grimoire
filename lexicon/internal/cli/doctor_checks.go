@@ -13,13 +13,14 @@ import (
 )
 
 var doctorRuntimeExecutables = map[string][][]string{
-	"c-family":   {{"go"}},
-	"go":         {{"go"}},
-	"gdscript":   {{"go"}},
-	"python":     {{"python", "python3"}},
-	"ruby":       {{"ruby"}},
-	"rust":       {{"cargo"}},
-	"typescript": {{"node"}, {"npm", "npm.cmd"}},
+	"c-family":    {{"go"}},
+	"go":          {{"go"}},
+	"gdscript":    {{"go"}},
+	"lotusscript": {{"go"}},
+	"python":      {{"python", "python3"}},
+	"ruby":        {{"ruby"}},
+	"rust":        {{"cargo"}},
+	"typescript":  {{"node"}, {"npm", "npm.cmd"}},
 }
 
 func verifyStateRepository(path string) error {
@@ -122,7 +123,7 @@ func checkRuntime(adapterRoot, language string) error {
 }
 
 func packagedRuntimeAvailable(adapterRoot, language string) bool {
-	if language != "c-family" && language != "go" && language != "gdscript" && language != "rust" {
+	if language != "c-family" && language != "go" && language != "gdscript" && language != "lotusscript" && language != "rust" {
 		return false
 	}
 	base := filepath.Join(adapterRoot, language, "lexicon-"+language)

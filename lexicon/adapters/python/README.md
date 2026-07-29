@@ -70,7 +70,7 @@ Python files are scanned deterministically while excluding `.git/`, `.worktrees/
 
 ## Dependency semantics
 
-Literal `[project].dependencies` and `[project.optional-dependencies]` entries in `pyproject.toml` emit repository `depends-on` facts. When project dependencies are absent, literal entries in sorted `requirements*.txt` files are used; `requirements-dev*.txt` and `requirements-test*.txt` receive development/test categories, and editable local requirements receive `path: true`. Repository-local Python imports emit module-to-module local dependencies only when the target module is uniquely resolved. Synthetic targets are facts-v1 `module` nodes with `dependency:python:<normalized-target>` identity and `.lexicon/dependencies/python/...` paths.
+Literal `[project].dependencies` and `[project.optional-dependencies]` entries in `pyproject.toml` emit repository `depends-on` facts. When project dependencies are absent, literal entries in sorted `requirements*.txt` files are used; `requirements-dev*.txt` and `requirements-test*.txt` receive development/test categories, and editable local requirements receive `path: true`. Repository-local Python imports emit module-to-module local dependencies only when the target module is uniquely resolved. Synthetic targets are facts-v1 `module` nodes with `dependency:python:<normalized-target>` identity and `@dependencies/python/...` paths.
 
 Malformed requirement strings, dynamic/VCS/URL entries, dynamic imports, reflection, and package installation are unsupported and are omitted or left to the adapter's existing unresolved classifications. Manifests are parsed as data and never executed.
 ## Dataflow facts

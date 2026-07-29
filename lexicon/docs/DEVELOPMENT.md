@@ -6,7 +6,7 @@ This document defines the supported source-development workflow and the minimum 
 
 The complete repository uses several runtimes because each language adapter is self-contained:
 
-- Go 1.26 or newer plus a working CGO C compiler for the application, C/C++ adapter, Go adapter, GDScript adapter, and generic adapter;
+- Go 1.26 or newer plus a working CGO C compiler for the application, C/C++ adapter, Go adapter, GDScript adapter, LotusScript adapter, and generic adapter;
 - Python 3 with `pytest` for the Python adapter and evaluation tools;
 - Ruby for the Ruby adapter;
 - Rust and Cargo for the Rust adapter;
@@ -59,6 +59,13 @@ go test -race ./...
 
 ```text
 cd adapters/gdscript
+go test ./...
+```
+
+### LotusScript adapter
+
+```text
+cd adapters/lotusscript
 go test ./...
 ```
 

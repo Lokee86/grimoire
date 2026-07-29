@@ -1,6 +1,6 @@
 # Lexicon current status
 
-Status date: July 25, 2026.
+Status date: July 28, 2026.
 
 This document describes the implementation currently present on `main`. Dated validation reports record evidence from specific runs and should not be treated as permanent performance guarantees.
 
@@ -34,6 +34,7 @@ The primary execution model remains one-shot CLI operations. Watch mode invokes 
 | C / C++ | 0.5.0 | Shared C-family view, includer-aware parsing, include-closure translation units, bounded nested macro expansion with argument substitution and provenance, function-pointer flow, explainable call resolution, direct argument-to-parameter flow, arity and qualification pruning, direct receiver-type evidence, definite/possible calls, reads/writes | No full compiler/preprocessor replay, token pasting, stringification, variadic macro substitution, configuration-accurate branch evaluation, template instantiation, full overload ranking, ADL, virtual dispatch proof, generated headers, Objective-C, or CUDA semantics |
 | Go | 0.1.0 | Multi-module discovery, packages, types, calls, closures, interfaces, implementations, overrides, dataflow, dependencies, SSA/VTA possible dispatch | Reflection, plugins, cgo/assembly, generated runtime behavior, and exact call-site graph retention |
 | GDScript | 0.3.0 | Godot project scoping, classes, inheritance, autoloads, callbacks, bounded type flow, calls, possible calls, dataflow, dependencies | Scene-tree-only type evidence, engine internals, runtime script replacement, computed dispatch and resource paths |
+| LotusScript | 0.2.0 | `.ls`/`.lss` source discovery, Domino ODP `.lsa`/`.lsdb` handling, structured and base64 DXL agent extraction, script-library modules, declarations, `%REM` blocks, `Use`/`UseLSX`, inheritance, declared-type receiver calls, indexing suppression, and conservative unresolved targets | No generic `.txt`/`.bas`/`.vb` content detection, non-ASCII LMBCS raw-payload decoding, assignment-only type inference, Domino form/view design graph, or incremental narrowing |
 | Python | 0.3.0 | Imports, lexical scopes, inheritance, protocols, callbacks, callable flow, C3 lookup, dataflow, dependencies | Monkey patching, metaclasses, dynamic imports/reflection, framework injection without ordinary value-flow evidence |
 | Ruby | 0.3.0 | Reopened owners, inheritance, mixins, blocks, callbacks, bounded Rails-aware flow, dataflow, dependencies | Open runtime mutation, `send`/`eval`, refinements, dynamic constants, framework-generated behavior without declarations |
 | Rust | 0.3.0 | Cargo workspaces, modules, traits, implementations, UFCS, callbacks, dataflow, dependencies | Procedural macro expansion, build-script-generated behavior, unsafe aliasing, unconstrained runtime registration |

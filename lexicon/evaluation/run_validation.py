@@ -75,6 +75,10 @@ def build_adapters(root: Path, adapters: set[str]) -> None:
         output = bin_dir / ("lexicon-gdscript.exe" if os.name == "nt" else "lexicon-gdscript")
         go = executable("go.exe", Path("C:/Program Files/Go/bin/go.exe"))
         run([go, "build", "-o", str(output), "."], root / "adapters" / "gdscript")
+    if "lotusscript" in adapters:
+        output = bin_dir / ("lexicon-lotusscript.exe" if os.name == "nt" else "lexicon-lotusscript")
+        go = executable("go.exe", Path("C:/Program Files/Go/bin/go.exe"))
+        run([go, "build", "-o", str(output), "."], root / "adapters" / "lotusscript")
     if "rust" in adapters:
         cargo = executable("cargo.exe", Path.home() / ".cargo" / "bin" / "cargo.exe")
         run(
@@ -99,6 +103,9 @@ def adapter_command(root: Path, adapter: str, repository: Path, output: Path) ->
         return [node, str(root / "adapters" / "typescript" / "dist" / "cli.js"), "--repo", str(repository), "--output", str(output)], env
     if adapter == "gdscript":
         binary = root / "evaluation" / "bin" / ("lexicon-gdscript.exe" if os.name == "nt" else "lexicon-gdscript")
+        return [str(binary), "--repo", str(repository), "--output", str(output)], env
+    if adapter == "lotusscript":
+        binary = root / "evaluation" / "bin" / ("lexicon-lotusscript.exe" if os.name == "nt" else "lexicon-lotusscript")
         return [str(binary), "--repo", str(repository), "--output", str(output)], env
     if adapter == "rust":
         cargo = Path(executable("cargo.exe", Path.home() / ".cargo" / "bin" / "cargo.exe"))
@@ -171,7 +178,7 @@ def validate_case(root: Path, workspace: Path, output_root: Path, case: dict[str
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--adapter", action="append", choices=("c-family", "python", "ruby", "typescript", "gdscript", "rust"))
+    parser.add_argument("--adapter", action="append", choices=("c-family", "python", "ruby", "typescript", "gdscript", "lotusscript", "rust"))
     parser.add_argument("--case", action="append")
     parser.add_argument("--jobs", type=int, default=3)
     args = parser.parse_args()

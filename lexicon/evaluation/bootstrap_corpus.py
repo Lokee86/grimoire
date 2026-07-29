@@ -18,6 +18,12 @@ CATCH2_URL = "https://github.com/catchorg/Catch2.git"
 CATCH2_COMMIT = "191fa38c9b1596cd2576ab531d4ab4d5e8e05190"
 NLOHMANN_JSON_URL = "https://github.com/nlohmann/json.git"
 NLOHMANN_JSON_COMMIT = "55f93686c01528224f448c19128836e7df245f72"
+DUNIT_URL = "https://github.com/MrArtemAA/DUnit.git"
+DUNIT_COMMIT = "e013a21cc511fcadc93afa1e9095ac9da0b50984"
+JSONPARSER_LS_URL = "https://github.com/dpastov/jsonparser-ls.git"
+JSONPARSER_LS_COMMIT = "2406bc4431225ef83276700bda853ae247bd9cfd"
+VOLT_MX_LS_TOOLKIT_URL = "https://github.com/HCL-TECH-SOFTWARE/volt-mx-ls-toolkit.git"
+VOLT_MX_LS_TOOLKIT_COMMIT = "48d0c5b14cef215dabeefa3c182caa11036c0ad8"
 
 
 def run(*args: str, cwd: Path | None = None) -> str:
@@ -104,6 +110,21 @@ def main() -> None:
             corpus_root / "nlohmann-json",
             NLOHMANN_JSON_URL,
             NLOHMANN_JSON_COMMIT,
+        ),
+        "dunit-lotusscript": ensure_clone(
+            corpus_root / "dunit-lotusscript",
+            DUNIT_URL,
+            DUNIT_COMMIT,
+        ),
+        "jsonparser-ls": ensure_clone(
+            corpus_root / "jsonparser-ls",
+            JSONPARSER_LS_URL,
+            JSONPARSER_LS_COMMIT,
+        ),
+        "volt-mx-ls-toolkit": ensure_clone(
+            corpus_root / "volt-mx-ls-toolkit",
+            VOLT_MX_LS_TOOLKIT_URL,
+            VOLT_MX_LS_TOOLKIT_COMMIT,
         ),
     }
     state = {

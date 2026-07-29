@@ -196,6 +196,60 @@
       "expected_zero_relations": ["calls", "possible-calls"]
     },
     {
+      "id": "lotusscript-dunit",
+      "adapter": "lotusscript",
+      "split": "calibration",
+      "repository": "corpus/dunit-lotusscript",
+      "revision": "e013a21cc511fcadc93afa1e9095ac9da0b50984",
+      "required_relations": ["calls", "imports", "extends"],
+      "required_nodes": [
+        {"kind": "type", "name": "AbstractTestRunner", "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"},
+        {"kind": "type", "name": "TestRunner", "path": "ODP/Code/Agents/TestRunner.lsa"},
+        {"kind": "function", "name": "Initialize", "path": "ODP/Code/Agents/TestRunner.lsa"}
+      ],
+      "required_edges": [
+        {"relation": "extends", "source": {"kind": "type", "name": "TestRunner", "path": "ODP/Code/Agents/TestRunner.lsa"}, "target": {"kind": "type", "name": "AbstractTestRunner", "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"}},
+        {"relation": "imports", "source": {"kind": "import", "name": "ru.livescripts.dunit.core", "path": "ODP/Code/Agents/TestRunner.lsa"}, "target": {"kind": "module", "name": "ru.livescripts.dunit.core", "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"}},
+        {"relation": "calls", "source": {"kind": "function", "name": "Initialize", "path": "ODP/Code/Agents/TestRunner.lsa"}, "target": {"kind": "method", "name": "Run", "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"}}
+      ]
+    },
+    {
+      "id": "lotusscript-jsonparser",
+      "adapter": "lotusscript",
+      "split": "validation",
+      "repository": "corpus/jsonparser-ls",
+      "revision": "2406bc4431225ef83276700bda853ae247bd9cfd",
+      "required_relations": ["calls"],
+      "required_nodes": [
+        {"kind": "type", "name": "JSONParser", "path": "json.ls"},
+        {"kind": "type", "name": "JSONObject", "path": "json.ls"},
+        {"kind": "type", "name": "JSONArray", "path": "json.ls"}
+      ],
+      "required_edges": [
+        {"relation": "calls", "source": {"kind": "method", "name": "parseObject", "path": "json.ls"}, "target": {"kind": "constructor", "name": "New", "path": "json.ls"}},
+        {"relation": "calls", "source": {"kind": "method", "name": "parseObject", "path": "json.ls"}, "target": {"kind": "method", "name": "AddItem", "path": "json.ls"}},
+        {"relation": "calls", "source": {"kind": "method", "name": "parseArray", "path": "json.ls"}, "target": {"kind": "method", "name": "AddItem", "path": "json.ls"}}
+      ]
+    },
+    {
+      "id": "lotusscript-volt-mx-toolkit",
+      "adapter": "lotusscript",
+      "split": "holdout",
+      "repository": "corpus/volt-mx-ls-toolkit",
+      "revision": "48d0c5b14cef215dabeefa3c182caa11036c0ad8",
+      "required_relations": ["calls", "imports", "extends"],
+      "required_nodes": [
+        {"kind": "function", "name": "Initialize", "path": "notes/Code/Agents/(TestAgent).lsa"},
+        {"kind": "type", "name": "NotesAgent_JsonHTTPHelper", "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"},
+        {"kind": "type", "name": "NotesAgent_VoltMXHttpHelper", "path": "notes/Code/ScriptLibraries/VoltMXHttpHelper.lss"}
+      ],
+      "required_edges": [
+        {"relation": "imports", "source": {"kind": "import", "name": "NotesHttpJsonRequestHelper", "path": "notes/Code/Agents/(TestAgent).lsa"}, "target": {"kind": "module", "name": "NotesHttpJsonRequestHelper", "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"}},
+        {"relation": "calls", "source": {"kind": "function", "name": "Initialize", "path": "notes/Code/Agents/(TestAgent).lsa"}, "target": {"kind": "method", "name": "SetLogErrorOnBadPointer", "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"}},
+        {"relation": "extends", "source": {"kind": "type", "name": "NotesAgent_VoltMXHttpHelper", "path": "notes/Code/ScriptLibraries/VoltMXHttpHelper.lss"}, "target": {"kind": "type", "name": "NotesAgent_JsonHTTPHelper", "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"}}
+      ]
+    },
+    {
       "id": "rust-grimoire-vector",
       "adapter": "rust",
       "split": "calibration",

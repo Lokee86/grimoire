@@ -7,12 +7,16 @@ import (
 
 func TestDedicatedAdaptersTakePrecedence(t *testing.T) {
 	for path, want := range map[string][]string{
-		"include/api.hpp": {"c-family"},
-		"src/App.svelte":  {"typescript"},
-		"src/main.c":      {"c-family"},
-		"src/main.cpp":    {"c-family"},
-		"src/main.go":     {"go"},
-		"src/main.py":     {"python"},
+		"include/api.hpp":   {"c-family"},
+		"src/App.svelte":    {"typescript"},
+		"src/main.c":        {"c-family"},
+		"src/main.cpp":      {"c-family"},
+		"src/main.go":       {"go"},
+		"src/Agent.lsa":     {"lotusscript"},
+		"src/Database.lsdb": {"lotusscript"},
+		"src/Library.ls":    {"lotusscript"},
+		"src/Library.lss":   {"lotusscript"},
+		"src/main.py":       {"python"},
 	} {
 		if got := ForPath(path); !reflect.DeepEqual(got, want) {
 			t.Fatalf("ForPath(%s) = %v, want %v", path, got, want)

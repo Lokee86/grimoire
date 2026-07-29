@@ -20,7 +20,7 @@ func addGodotDependencyTarget(facts *factSet, targetPath string) string {
 		return id
 	}
 	id := nodeID("module", "dependency:gdscript:"+targetPath)
-	facts.addNode(node("module", filepath.Base(filepath.FromSlash(targetPath)), ".lexicon/dependencies/godot/"+targetPath, "dependency:gdscript:"+targetPath, id, nil, "", map[string]any{"dependency": true, "ecosystem": "godot"}))
+	facts.addNode(node("module", filepath.Base(filepath.FromSlash(targetPath)), "@dependencies/godot/"+targetPath, "dependency:gdscript:"+targetPath, id, nil, "", map[string]any{"dependency": true, "ecosystem": "godot"}))
 	return id
 }
 

@@ -166,7 +166,7 @@ fn indexes_rust_declarations_imports_traits_and_local_macros() {
                 .is_some_and(|name| name.starts_with("dependency:rust:"))
     }) {
         let path = node["path"].as_str().unwrap();
-        assert!(path.starts_with(".lexicon/dependencies/rust/"));
+        assert!(path.starts_with("@dependencies/rust/"));
         assert!(!path.contains('\\'));
         assert!(!std::path::Path::new(path).is_absolute());
     }

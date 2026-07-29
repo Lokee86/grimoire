@@ -6,7 +6,7 @@ All adapters emit dependency targets as facts-v1 `module` nodes. Synthetic targe
 dependency:<ecosystem>:<normalized-target>
 ```
 
-Their paths are deterministic `.lexicon/dependencies/<ecosystem>/...` paths unless the target is a repository-local path. Manifest or module nodes emit `depends-on` edges. Existing `imports` edges remain unchanged; a local `depends-on` edge is added only when the local target resolves uniquely to a scanned module/file.
+Their paths are deterministic `@dependencies/<ecosystem>/...` paths unless the target is a repository-local path. Manifest or module nodes emit `depends-on` edges. Existing `imports` edges remain unchanged; a local `depends-on` edge is added only when the local target resolves uniquely to a scanned module/file.
 
 Dependency edge attributes are deterministic and always use these scalar fields:
 
