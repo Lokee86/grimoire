@@ -10,7 +10,7 @@ import (
 
 const (
 	Language       = "interstack"
-	AdapterVersion = "0.1.1"
+	AdapterVersion = "0.2.0"
 )
 
 func AdapterFingerprint() string {
@@ -73,6 +73,14 @@ type Summary struct {
 	MessageChannels int
 	MessageLinks    int
 	ConfigKeys      int
+	Processes       int
+	ProcessLinks    int
+	Commands        int
+	CommandLinks    int
+	Protocols       int
+	ProtocolLinks   int
+	StatePaths      int
+	StateLinks      int
 }
 
 type sourceIndex struct {

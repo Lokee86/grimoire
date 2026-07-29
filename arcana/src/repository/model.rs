@@ -70,6 +70,10 @@ pub enum NodeKind {
     HttpEndpoint,
     MessageChannel,
     ConfigKey,
+    Process,
+    CliCommand,
+    Protocol,
+    StatePath,
 }
 
 impl NodeKind {
@@ -98,6 +102,10 @@ impl NodeKind {
             Self::HttpEndpoint => "http-endpoint",
             Self::MessageChannel => "message-channel",
             Self::ConfigKey => "config-key",
+            Self::Process => "process",
+            Self::CliCommand => "cli-command",
+            Self::Protocol => "protocol",
+            Self::StatePath => "state-path",
         }
     }
 
@@ -126,6 +134,10 @@ impl NodeKind {
             "http-endpoint" => Self::HttpEndpoint,
             "message-channel" => Self::MessageChannel,
             "config-key" => Self::ConfigKey,
+            "process" => Self::Process,
+            "cli-command" => Self::CliCommand,
+            "protocol" => Self::Protocol,
+            "state-path" => Self::StatePath,
             _ => return None,
         })
     }
@@ -163,6 +175,9 @@ pub enum RelationKind {
     Publishes,
     Consumes,
     ReadsConfig,
+    InvokesProcess,
+    ProducesMessage,
+    ConsumesMessage,
 }
 
 impl RelationKind {
@@ -197,6 +212,9 @@ impl RelationKind {
             Self::Publishes => "publishes",
             Self::Consumes => "consumes",
             Self::ReadsConfig => "reads-config",
+            Self::InvokesProcess => "invokes-process",
+            Self::ProducesMessage => "produces-message",
+            Self::ConsumesMessage => "consumes-message",
         }
     }
 
@@ -231,6 +249,9 @@ impl RelationKind {
             "publishes" => Self::Publishes,
             "consumes" => Self::Consumes,
             "reads-config" => Self::ReadsConfig,
+            "invokes-process" => Self::InvokesProcess,
+            "produces-message" => Self::ProducesMessage,
+            "consumes-message" => Self::ConsumesMessage,
             _ => return None,
         })
     }

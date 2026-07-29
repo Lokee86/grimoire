@@ -10,7 +10,7 @@ const MAX_INCOMING: usize = 12;
 const MAX_UNRESOLVED: usize = 8;
 const MAX_DOCUMENT_BYTES: usize = 6_000;
 const DOCUMENT_TRUNCATED_SUFFIX: &str = "\ndocument truncated\n";
-pub const SEMANTIC_ELIGIBILITY_POLICY_VERSION: u64 = 5;
+pub const SEMANTIC_ELIGIBILITY_POLICY_VERSION: u64 = 6;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GraphDocument {
@@ -46,7 +46,11 @@ pub fn semantic_eligible(kind: &NodeKind) -> bool {
         | NodeKind::Signal
         | NodeKind::HttpEndpoint
         | NodeKind::MessageChannel
-        | NodeKind::ConfigKey => true,
+        | NodeKind::ConfigKey
+        | NodeKind::Process
+        | NodeKind::CliCommand
+        | NodeKind::Protocol
+        | NodeKind::StatePath => true,
     }
 }
 
@@ -259,7 +263,10 @@ fn relation_priority(relation: &RelationKind) -> u8 {
         | RelationKind::HandledBy
         | RelationKind::Publishes
         | RelationKind::Consumes
-        | RelationKind::CommunicatesWith => 0,
+        | RelationKind::CommunicatesWith
+        | RelationKind::InvokesProcess
+        | RelationKind::ProducesMessage
+        | RelationKind::ConsumesMessage => 0,
         RelationKind::PossibleCalls | RelationKind::PassesTo => 1,
         RelationKind::Implements
         | RelationKind::Extends

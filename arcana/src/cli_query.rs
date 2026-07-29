@@ -102,5 +102,8 @@ fn relation_name(relation: &RelationKind) -> &'static str {
         RelationKind::Publishes => "publishes",
         RelationKind::Consumes => "consumes",
         RelationKind::ReadsConfig => "reads-config",
+        RelationKind::InvokesProcess => "invokes-process",
+        RelationKind::ProducesMessage => "produces-message",
+        RelationKind::ConsumesMessage => "consumes-message",
     }
 }

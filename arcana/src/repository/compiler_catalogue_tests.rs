@@ -65,6 +65,9 @@ fn compiler_assigns_dense_ids_and_stable_relation_codes() {
         (RelationKind::Publishes, 27),
         (RelationKind::Consumes, 28),
         (RelationKind::ReadsConfig, 29),
+        (RelationKind::InvokesProcess, 30),
+        (RelationKind::ProducesMessage, 31),
+        (RelationKind::ConsumesMessage, 32),
     ] {
         assert_eq!(relation_to_edge_kind(&relation), EdgeKind(code));
         assert_eq!(edge_kind_to_relation(EdgeKind(code)), Some(relation));
@@ -77,6 +80,10 @@ fn interstack_node_kinds_round_trip() {
         ("http-endpoint", NodeKind::HttpEndpoint),
         ("message-channel", NodeKind::MessageChannel),
         ("config-key", NodeKind::ConfigKey),
+        ("process", NodeKind::Process),
+        ("cli-command", NodeKind::CliCommand),
+        ("protocol", NodeKind::Protocol),
+        ("state-path", NodeKind::StatePath),
     ] {
         assert_eq!(NodeKind::parse(value), Some(kind.clone()));
         assert_eq!(kind.as_str(), value);

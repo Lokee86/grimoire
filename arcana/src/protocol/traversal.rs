@@ -43,7 +43,7 @@ impl RelationMask {
     }
 }
 
-const RELATION_ORDER: [RelationKind; 29] = [
+const RELATION_ORDER: [RelationKind; 32] = [
     RelationKind::Contains,
     RelationKind::Defines,
     RelationKind::References,
@@ -73,6 +73,9 @@ const RELATION_ORDER: [RelationKind; 29] = [
     RelationKind::Publishes,
     RelationKind::Consumes,
     RelationKind::ReadsConfig,
+    RelationKind::InvokesProcess,
+    RelationKind::ProducesMessage,
+    RelationKind::ConsumesMessage,
 ];
 
 pub(crate) fn bounded_depth(depth: Option<usize>) -> usize {
@@ -141,6 +144,9 @@ pub(crate) fn call_relations(include_possible: bool) -> RelationMask {
     relations.insert(&RelationKind::HandledBy);
     relations.insert(&RelationKind::Publishes);
     relations.insert(&RelationKind::Consumes);
+    relations.insert(&RelationKind::InvokesProcess);
+    relations.insert(&RelationKind::ProducesMessage);
+    relations.insert(&RelationKind::ConsumesMessage);
     if include_possible {
         relations.insert(&RelationKind::PossibleCalls);
     }
@@ -159,6 +165,9 @@ pub(crate) fn impact_relations() -> RelationMask {
     relations.insert(&RelationKind::Publishes);
     relations.insert(&RelationKind::Consumes);
     relations.insert(&RelationKind::ReadsConfig);
+    relations.insert(&RelationKind::InvokesProcess);
+    relations.insert(&RelationKind::ProducesMessage);
+    relations.insert(&RelationKind::ConsumesMessage);
     relations
 }
 
@@ -182,6 +191,9 @@ pub(crate) fn architecture_relations() -> RelationMask {
         RelationKind::Publishes,
         RelationKind::Consumes,
         RelationKind::ReadsConfig,
+        RelationKind::InvokesProcess,
+        RelationKind::ProducesMessage,
+        RelationKind::ConsumesMessage,
     ] {
         relations.insert(&relation);
     }
@@ -376,5 +388,8 @@ fn relation_bit(relation: &RelationKind) -> u32 {
         RelationKind::Publishes => 1 << 26,
         RelationKind::Consumes => 1 << 27,
         RelationKind::ReadsConfig => 1 << 28,
+        RelationKind::InvokesProcess => 1 << 29,
+        RelationKind::ProducesMessage => 1 << 30,
+        RelationKind::ConsumesMessage => 1 << 31,
     }
 }

@@ -68,6 +68,9 @@ func Resolve(sourceRoot string, libraries []Library) (Result, error) {
 		value.detectHTTPProducers(file)
 		value.detectMessageProducers(file)
 		value.detectConfigReads(file)
+		value.detectBoundaryConfig(file)
+		value.detectProcessContracts(file)
+		value.detectStateContracts(file)
 	}
 	value.resolveHTTPProducers()
 	value.finish()
@@ -178,7 +181,7 @@ func collectSourceFiles(root string, allowedLanguages map[string]struct{}) ([]so
 
 func ignoredDirectory(name string) bool {
 	switch name {
-	case ".git", ".lexicon", ".worktrees", ".workingtrees", ".ddocs", ".obsidian",
+	case ".git", ".lexicon", ".arcana", ".grimoire", ".warlock", ".worktrees", ".workingtrees", ".ddocs", ".obsidian",
 		"node_modules", "vendor", "target", "build", "dist", "coverage", ".bundle":
 		return true
 	default:
@@ -208,6 +211,8 @@ func sourceLanguage(extension string) string {
 		return "typescript"
 	case ".py":
 		return "python"
+	case ".rs":
+		return "rust"
 	default:
 		return ""
 	}

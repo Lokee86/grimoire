@@ -6,17 +6,26 @@ import (
 	"unicode"
 )
 
-var constantPattern = regexp.MustCompile(`\b([A-Za-z_][A-Za-z0-9_]*)\s*(?::=|=)\s*["']([^"']+)["']`)
+var constantPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`^\s*const\s+([A-Za-z_][A-Za-z0-9_]*)[^=]*=\s*["']([^"']+)["']`),
+	regexp.MustCompile(`^\s*(?:pub(?:\([^)]*\))?\s+)?const\s+([A-Za-z_][A-Za-z0-9_]*)[^=]*=\s*["']([^"']+)["']`),
+	regexp.MustCompile(`^\s*(?:export\s+)?const\s+([A-Za-z_][A-Za-z0-9_]*)[^=]*=\s*["']([^"']+)["']`),
+	regexp.MustCompile(`^\s*([A-Z][A-Z0-9_]*)\s*=\s*["']([^"']+)["']`),
+}
 var indexedTypeAssignmentPattern = regexp.MustCompile(`\[\s*(?:FIELD_TYPE|["']type["'])\s*\]\s*=\s*([A-Za-z_][A-Za-z0-9_\.:]*|["'][^"']+["'])`)
 var structTypeAssignmentPattern = regexp.MustCompile(`\bType\s*:\s*([A-Za-z_][A-Za-z0-9_\.:]*|["'][^"']+["'])`)
 var mapTypeAssignmentPattern = regexp.MustCompile(`["']type["']\s*:\s*([A-Za-z_][A-Za-z0-9_\.:]*|["'][^"']+["'])`)
 var switchCasePattern = regexp.MustCompile(`^\s*case\s+(.+?)\s*:`)
 var gdscriptMatchBranchPattern = regexp.MustCompile(`^\s*(TYPE_[A-Z0-9_]+)\s*:`)
-var registrationPattern = regexp.MustCompile(`(?i)\b(?:register_handler|register|subscribe|on|handle)\s*\(\s*([A-Za-z_][A-Za-z0-9_\.:]*|["'][^"']+["'])`)
+var registrationPattern = regexp.MustCompile(`(?i)\b(?:register_(?:handler|message|packet)|subscribe_(?:message|packet)|on_(?:message|packet)|handle_(?:message|packet))\s*\(\s*([A-Za-z_][A-Za-z0-9_\.:]*|["'][^"']+["'])`)
 
 func (r *resolver) collectConstants(file sourceFile) {
 	for _, line := range file.Lines {
-		for _, match := range constantPattern.FindAllStringSubmatch(line, -1) {
+		for _, pattern := range constantPatterns {
+			match := pattern.FindStringSubmatch(line)
+			if len(match) != 3 {
+				continue
+			}
 			name := match[1]
 			value := match[2]
 			values := r.constants[name]
@@ -55,17 +64,25 @@ func (r *resolver) detectMessageProducers(file sourceFile) {
 }
 
 func (r *resolver) detectMessageConsumers(file sourceFile) {
+	packetDispatchUntil := -1
 	for index, line := range file.Lines {
+		trimmed := strings.ToLower(strings.TrimSpace(line))
+		if (strings.Contains(trimmed, "switch ") || strings.Contains(trimmed, "match ")) &&
+			(strings.Contains(trimmed, ".type") || strings.Contains(trimmed, `["type"]`) || strings.Contains(trimmed, "packet")) {
+			packetDispatchUntil = index + 120
+		}
 		owner, ok := r.index.ownerAt(file.Path, uint32(index+1))
 		if !ok {
 			continue
 		}
 		tokens := make([]string, 0)
-		if match := switchCasePattern.FindStringSubmatch(line); len(match) == 2 {
-			tokens = append(tokens, strings.Split(match[1], ",")...)
-		}
-		if match := gdscriptMatchBranchPattern.FindStringSubmatch(line); len(match) == 2 {
-			tokens = append(tokens, match[1])
+		if index <= packetDispatchUntil {
+			if match := switchCasePattern.FindStringSubmatch(line); len(match) == 2 {
+				tokens = append(tokens, strings.Split(match[1], ",")...)
+			}
+			if match := gdscriptMatchBranchPattern.FindStringSubmatch(line); len(match) == 2 {
+				tokens = append(tokens, match[1])
+			}
 		}
 		if match := registrationPattern.FindStringSubmatch(line); len(match) == 2 {
 			tokens = append(tokens, match[1])
@@ -134,14 +151,20 @@ func looksLikeMessageValue(value string) bool {
 	if value == "" || len(value) > 160 || strings.ContainsAny(value, "/ \\:") {
 		return false
 	}
-	hasSeparator := strings.Contains(value, "_") || strings.Contains(value, "-") || strings.Contains(value, ".")
-	if !hasSeparator {
-		return false
-	}
 	for _, character := range value {
 		if unicode.IsUpper(character) {
 			return false
 		}
 	}
-	return true
+	value = strings.ToLower(value)
+	for _, suffix := range []string{
+		"_request", "-request", ".request", "_response", "-response", ".response",
+		"_event", "-event", ".event", "_command", "-command", ".command",
+		"_message", "-message", ".message", "_packet", "-packet", ".packet",
+	} {
+		if strings.HasSuffix(value, suffix) {
+			return true
+		}
+	}
+	return false
 }

@@ -197,6 +197,9 @@ pub fn relation_to_edge_kind(relation: &RelationKind) -> EdgeKind {
         RelationKind::Publishes => 27,
         RelationKind::Consumes => 28,
         RelationKind::ReadsConfig => 29,
+        RelationKind::InvokesProcess => 30,
+        RelationKind::ProducesMessage => 31,
+        RelationKind::ConsumesMessage => 32,
     })
 }
 
@@ -232,6 +235,9 @@ pub fn edge_kind_to_relation(kind: EdgeKind) -> Option<RelationKind> {
         27 => RelationKind::Publishes,
         28 => RelationKind::Consumes,
         29 => RelationKind::ReadsConfig,
+        30 => RelationKind::InvokesProcess,
+        31 => RelationKind::ProducesMessage,
+        32 => RelationKind::ConsumesMessage,
         _ => return None,
     })
 }
