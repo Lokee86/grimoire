@@ -88,6 +88,55 @@ func TestSearchKeepsDocumentationOutOfSourceLanes(t *testing.T) {
 			}
 		}
 	}
+	for _, result := range response.SymbolMatches {
+		if result.Node.Kind == "http-endpoint" && result.Node.Name == "POST /session/start" {
+			return
+		}
+	}
+	t.Fatalf("short direct query lost the global interstack symbol: %+v", response.SymbolMatches)
+}
+
+func TestSearchScopesSymbolsToLexicalOwnershipRanges(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, filepath.Join(root, "internal", "repostate", "fingerprint.go"), strings.Join([]string{
+		"package repostate",
+		"",
+		"// repository freshness source fingerprint refresh lock process tree",
+		"func RepositoryFingerprint() {}",
+	}, "\n")+"\n")
+	writeFixture(t, filepath.Join(root, "noise", "generic.go"), "package noise\n\nfunc helper() {}\n")
+
+	snapshot, _, err := index.Build(root, nil, index.BuildOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := index.Save(filepath.Join(root, ".grimoire"), snapshot); err != nil {
+		t.Fatal(err)
+	}
+	facts := filepath.Join(root, "facts")
+	writeFixture(t, filepath.Join(facts, "facts.jsonl"), strings.Join([]string{
+		`{"record":"lexicon","language":"go","repository":"fixture"}`,
+		`{"record":"node","id":"owner","kind":"function","name":"RepositoryFingerprint","path":"internal/repostate/fingerprint.go","qualified_name":"repostate.RepositoryFingerprint","span":{"path":"internal/repostate/fingerprint.go","start_line":4,"end_line":4}}`,
+		`{"record":"node","id":"noise-repository","kind":"function","name":"Repository","path":"noise/generic.go","qualified_name":"noise.Repository","span":{"path":"noise/generic.go","start_line":3,"end_line":3}}`,
+		`{"record":"node","id":"noise-process","kind":"function","name":"Process","path":"noise/generic.go","qualified_name":"noise.Process","span":{"path":"noise/generic.go","start_line":3,"end_line":3}}`,
+	}, "\n")+"\n")
+
+	response, err := Execute(context.Background(), Request{
+		Schema: SchemaVersion, Mode: "search", Root: root,
+		Query:        "repository freshness source fingerprint refresh lock process tree",
+		LexiconFacts: facts, Limit: 6, CodeOnly: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(response.SymbolMatches) == 0 || response.SymbolMatches[0].Node.Name != "RepositoryFingerprint" {
+		t.Fatalf("source owner was not the first scoped symbol: %+v", response.SymbolMatches)
+	}
+	for _, result := range response.SymbolMatches {
+		if result.Node.Path == "noise/generic.go" {
+			t.Fatalf("global one-word symbol escaped lexical ownership scopes: %+v", result)
+		}
+	}
 }
 
 func TestSearchKeepsLaneLocalRankingsAndDefersGraphExpansion(t *testing.T) {

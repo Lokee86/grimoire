@@ -97,6 +97,45 @@ func TestFinalizeTraceDropsDirectRuntimeIntrinsicPaths(t *testing.T) {
 	}
 }
 
+func TestFinalizeTracePrefersProductionPathsOverTestCallers(t *testing.T) {
+	production := Path{
+		Nodes: []Node{
+			{Name: "Ensure", Path: "internal/repostate/ensure.go"},
+			{Name: "failStatus", Path: "internal/repostate/ensure.go"},
+		},
+		Steps: []PathStep{{Relation: "calls"}},
+	}
+	testCaller := Path{
+		Nodes: []Node{
+			{Name: "Ensure", Path: "internal/repostate/ensure.go"},
+			{Name: "TestEnsureFailure", Path: "internal/repostate/repostate_test.go"},
+			{Name: "writeSource", Path: "internal/repostate/repostate_test.go"},
+		},
+		Steps: []PathStep{{Relation: "calls"}, {Relation: "calls"}},
+	}
+	response := Response{Paths: []Path{testCaller, production}}
+	finalizeTraceResponse(Request{Mode: "trace", Detail: "full", Anchor: "Ensure"}, &response, 8)
+	if len(response.Paths) != 1 || response.Paths[0].Nodes[1].Name != "failStatus" {
+		t.Fatalf("test caller displaced production trace: %+v", response.Paths)
+	}
+}
+
+func TestFinalizeTraceRetainsTestPathsWhenExplicitlyRequested(t *testing.T) {
+	production := Path{
+		Nodes: []Node{{Name: "Ensure", Path: "internal/repostate/ensure.go"}, {Name: "failStatus", Path: "internal/repostate/ensure.go"}},
+		Steps: []PathStep{{Relation: "calls"}},
+	}
+	testCaller := Path{
+		Nodes: []Node{{Name: "Ensure", Path: "internal/repostate/ensure.go"}, {Name: "TestEnsureFailure", Path: "internal/repostate/repostate_test.go"}},
+		Steps: []PathStep{{Relation: "calls"}},
+	}
+	response := Response{Paths: []Path{testCaller, production}}
+	finalizeTraceResponse(Request{Mode: "trace", Detail: "full", Query: "Ensure test callers"}, &response, 8)
+	if len(response.Paths) != 2 {
+		t.Fatalf("explicit test trace lost test paths: %+v", response.Paths)
+	}
+}
+
 func TestNormalizeTraceDefaultsToBehavioralTraversal(t *testing.T) {
 	request := normalizeRequest(Request{Mode: "trace", Anchor: "target"})
 	if request.Direction != "both" {

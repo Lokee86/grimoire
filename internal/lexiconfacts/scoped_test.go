@@ -18,6 +18,11 @@ func TestSearchDetailedScopedCannotSelectOutsideLexicalRanges(t *testing.T) {
 				ID: "distractor", Kind: "function", Name: "ReconnectRecovery", Path: "internal/distractor.go",
 				Span: &Span{Path: "internal/distractor.go", StartLine: 1, EndLine: 8},
 			},
+			"closure": {
+				ID: "closure", Kind: "function", Name: "closure@12:4", Path: "internal/recovery.go",
+				QualifiedName: "internal/recovery.go::RecoverChannel::closure@12:4",
+				Span:          &Span{Path: "internal/recovery.go", StartLine: 12, EndLine: 12},
+			},
 		},
 	}}
 	snapshot := index.Snapshot{Files: []index.FileRecord{
@@ -38,5 +43,9 @@ func TestSearchDetailedScopedCannotSelectOutsideLexicalRanges(t *testing.T) {
 	}
 	if len(result.Candidates) != 1 || result.Candidates[0].Chunk.Path != "internal/recovery.go" {
 		t.Fatalf("scoped candidates escaped lexical range: %+v", result.Candidates)
+	}
+	matches := corpus.FindScoped("reconnect recovery", scopes, 8)
+	if len(matches) != 1 || matches[0].Node.Identity != "owner" {
+		t.Fatalf("scoped matches escaped lexical range: %+v", matches)
 	}
 }

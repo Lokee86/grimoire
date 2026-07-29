@@ -53,8 +53,11 @@ func scoreNode(node Node, query string, terms []string) (float64, []string) {
 	normalizedQuery := strings.TrimSpace(query)
 	var score float64
 	var reasons []string
+	nameTerms := identifierTerms(node.Name)
 	exactName := len(name) >= 2 && normalizedQuery == name
-	explicitName := len(name) >= 2 && strings.Contains(normalizedQuery, name) && (!lowSignalKind(node.Kind) || exactName)
+	explicitName := len(name) >= 2 && strings.Contains(normalizedQuery, name) &&
+		(exactName || len(terms) <= 3 || len(nameTerms) >= 2) &&
+		(!genericSymbolName(name) || exactName) && (!lowSignalKind(node.Kind) || exactName)
 	if explicitName {
 		score += 32
 		reasons = append(reasons, "query names Lexicon symbol "+node.Name)
@@ -67,8 +70,8 @@ func scoreNode(node Node, query string, terms []string) (float64, []string) {
 		score += 48
 		reasons = append(reasons, "query names Lexicon source path")
 	}
-	nameTerms := identifierTerms(node.Name)
 	matchedTerms := 0
+	matchedContextTerms := 0
 	for _, term := range terms {
 		matched := true
 		switch {
@@ -80,9 +83,11 @@ func scoreNode(node Node, query string, terms []string) (float64, []string) {
 			reasons = append(reasons, "symbol name contains "+term)
 		case strings.Contains(qualified, term):
 			score += 3
+			matchedContextTerms++
 			reasons = append(reasons, "qualified symbol matches "+term)
 		case strings.Contains(path, term):
 			score += 2
+			matchedContextTerms++
 			reasons = append(reasons, "symbol path matches "+term)
 		default:
 			matched = false
@@ -98,11 +103,22 @@ func scoreNode(node Node, query string, terms []string) (float64, []string) {
 		score += float64((matchedTerms - 1) * 4)
 		reasons = append(reasons, "matches multiple query terms")
 	}
+	if len(terms) > 1 {
+		coverage := float64(matchedTerms) / float64(len(terms))
+		score += coverage * 18
+		if coverage >= 0.5 {
+			reasons = append(reasons, "covers query intent")
+		}
+	}
+	if genericSymbolName(name) && !exactName && len(terms) >= 4 && matchedContextTerms < 2 {
+		score -= 24
+		reasons = append(reasons, "isolated generic-name penalty")
+	}
 	score += symbolKindWeight(node.Kind)
 	if symbolKindWeight(node.Kind) > 0 {
 		reasons = append(reasons, "implementation-level "+node.Kind)
 	}
-	if strings.Contains(path, "/test") || strings.Contains(path, "_test.") || strings.Contains(path, "/spec") {
+	if testSymbolPath(path) {
 		score -= 8
 		reasons = append(reasons, "test-path penalty")
 	}
@@ -137,6 +153,20 @@ func symbolKindWeight(kind string) float64 {
 func lowSignalKind(kind string) bool {
 	switch strings.ToLower(kind) {
 	case "parameter", "local", "variable", "field", "property":
+		return true
+	default:
+		return false
+	}
+}
+
+func testSymbolPath(path string) bool {
+	path = strings.ToLower(strings.TrimSpace(path))
+	return strings.Contains(path, "/test") || strings.Contains(path, "_test.") || strings.Contains(path, "/spec")
+}
+
+func genericSymbolName(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "data", "error", "handle", "request", "response", "result", "source", "value":
 		return true
 	default:
 		return false

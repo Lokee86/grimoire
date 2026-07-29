@@ -43,3 +43,70 @@ func TestScoreNodeRetainsExactParameterLookup(t *testing.T) {
 		t.Fatalf("exact parameter lookup score = %v", score)
 	}
 }
+
+func TestScoreNodeRejectsIsolatedGenericNameInBroadQuery(t *testing.T) {
+	query := "repository freshness source fingerprint refresh lock process tree"
+	terms := queryTerms(query)
+	genericScore, _ := scoreNode(Node{
+		Kind:          "method",
+		Name:          "source",
+		Path:          "arcana/src/repository/compiler.rs",
+		QualifiedName: "RepositoryCompileError::std::error::Error::source",
+	}, query, terms)
+	ownerScore, reasons := scoreNode(Node{
+		Kind:          "function",
+		Name:          "RepositoryFingerprint",
+		Path:          "internal/repostate/fingerprint.go",
+		QualifiedName: "repostate.RepositoryFingerprint",
+	}, query, terms)
+	if genericScore != 0 {
+		t.Fatalf("isolated generic source method score = %v, want 0", genericScore)
+	}
+	if ownerScore <= 0 || len(reasons) == 0 {
+		t.Fatalf("ownership symbol score/reasons = %v/%#v", ownerScore, reasons)
+	}
+}
+
+func TestScoreNodeRetainsExactGenericNameLookup(t *testing.T) {
+	score, _ := scoreNode(Node{
+		Kind: "method", Name: "source", Path: "internal/errors.go",
+	}, "source", queryTerms("source"))
+	if score <= 0 {
+		t.Fatalf("exact generic symbol lookup score = %v", score)
+	}
+}
+
+func TestScoreNodeRetainsGenericNameWithStrongContext(t *testing.T) {
+	query := "agent query response schema contract"
+	score, reasons := scoreNode(Node{
+		Kind:          "type",
+		Name:          "Response",
+		Path:          "internal/agentquery/schema.go",
+		QualifiedName: "internal/agentquery/schema.go::Response",
+	}, query, queryTerms(query))
+	if score <= 0 || len(reasons) == 0 {
+		t.Fatalf("contextual generic symbol score/reasons = %v/%#v", score, reasons)
+	}
+}
+
+func TestRankNodesBroadQueryPrefersMultiTermOwnershipSymbol(t *testing.T) {
+	query := "repository freshness source fingerprint refresh lock process tree"
+	facts := library{nodes: map[string]Node{
+		"repository": {
+			ID: "repository", Kind: "module", Name: "repository", Path: "arcana/src/lib.rs",
+		},
+		"process": {
+			ID: "process", Kind: "function", Name: "process", Path: "lexicon/adapters/rust/process.go",
+		},
+		"fingerprint": {
+			ID: "fingerprint", Kind: "function", Name: "Fingerprint", Path: "lexicon/internal/registry.go",
+		},
+		"owner": {
+			ID: "owner", Kind: "function", Name: "RepositoryFingerprint", Path: "internal/repostate/fingerprint.go",
+		},
+	}}
+	ranked := rankNodes(facts, query, queryTerms(query))
+	if len(ranked) == 0 || ranked[0].node.ID != "owner" {
+		t.Fatalf("broad query ranking = %#v", ranked)
+	}
+}

@@ -45,13 +45,21 @@ func finalizeTraceResponse(request Request, response *Response, limit int) {
 	})
 
 	hasBehavior := false
+	hasProductionBehavior := false
 	for _, path := range response.Paths {
-		hasBehavior = hasBehavior || tracePathHasBehavior(path)
+		behavior := tracePathHasBehavior(path)
+		hasBehavior = hasBehavior || behavior
+		hasProductionBehavior = hasProductionBehavior || (behavior && !tracePathContainsTest(path))
 	}
+	includeTests := traceRequestIncludesTests(request)
 	seen := make(map[string]bool, len(response.Paths))
 	entryCounts := make(map[string]int)
 	uniquePaths := make([]Path, 0, len(response.Paths))
 	for _, path := range response.Paths {
+		if hasProductionBehavior && !includeTests && tracePathContainsTest(path) && !tracePathStartsInTest(path) {
+			response.Truncated = true
+			continue
+		}
 		if directRuntimeIntrinsicPath(path) {
 			response.Truncated = true
 			continue
@@ -210,6 +218,9 @@ func tracePathScore(path Path, query string) float64 {
 	if tracePathEntersDiagnostics(path, start) {
 		score -= 60
 	}
+	if tracePathEntersTests(path, start) {
+		score -= 160
+	}
 	if tracePathEndsInLowValueRead(path) {
 		score -= 70
 	}
@@ -231,6 +242,55 @@ func tracePathEntersDiagnostics(path Path, start int) bool {
 	return false
 }
 
+func tracePathEntersTests(path Path, start int) bool {
+	if tracePathStartsInTest(path) {
+		return false
+	}
+	for index := start + 1; index < len(path.Nodes); index++ {
+		if traceTestPath(path.Nodes[index].Path) {
+			return true
+		}
+	}
+	return false
+}
+
+func tracePathContainsTest(path Path) bool {
+	for _, node := range path.Nodes {
+		if traceTestPath(node.Path) {
+			return true
+		}
+	}
+	return false
+}
+
+func tracePathStartsInTest(path Path) bool {
+	if len(path.Nodes) == 0 {
+		return false
+	}
+	start := traceBehaviorStartIndex(path)
+	if start >= len(path.Nodes) {
+		start = 0
+	}
+	return traceTestPath(path.Nodes[start].Path)
+}
+
+func traceRequestIncludesTests(request Request) bool {
+	value := strings.ToLower(strings.Join([]string{request.Query, request.Anchor, request.Target}, " "))
+	for _, term := range []string{"test", "tests", "spec", "fixture", "benchmark"} {
+		if strings.Contains(value, term) {
+			return true
+		}
+	}
+	return false
+}
+
+func traceTestPath(path string) bool {
+	path = strings.ToLower(strings.ReplaceAll(strings.TrimSpace(path), "\\", "/"))
+	return strings.Contains(path, "/test/") || strings.Contains(path, "/tests/") ||
+		strings.Contains(path, "_test.") || strings.Contains(path, "_tests.") ||
+		strings.Contains(path, "/spec/") || strings.Contains(path, "_spec.")
+}
+
 func tracePathEndsInLowValueRead(path Path) bool {
 	if len(path.Steps) == 0 || len(path.Nodes) == 0 {
 		return false
@@ -250,7 +310,7 @@ func tracePathEndsInLowValueRead(path Path) bool {
 
 func traceAgentNodeScore(node Node, terms []string) float64 {
 	value := strings.ToLower(strings.Join([]string{node.Name, node.QualifiedName, node.Path, node.Kind}, " "))
-	return traceTextScore(value, terms) + tracePathLocationScore(node.Path)
+	return traceTextScore(value, terms) + tracePathLocationScore(node.Path) + traceTestLocationScore(node.Path)
 }
 
 func directRuntimeIntrinsicPath(path Path) bool {
@@ -278,7 +338,14 @@ func traceNodeScore(node structure.Node, terms []string) float64 {
 }
 
 func traceNodeLocationScore(node structure.Node) float64 {
-	return tracePathLocationScore(node.Path)
+	return tracePathLocationScore(node.Path) + traceTestLocationScore(node.Path)
+}
+
+func traceTestLocationScore(path string) float64 {
+	if traceTestPath(path) {
+		return -120
+	}
+	return 0
 }
 
 func traceTextScore(value string, terms []string) float64 {

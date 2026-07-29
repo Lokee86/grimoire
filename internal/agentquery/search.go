@@ -2,6 +2,8 @@ package agentquery
 
 import (
 	"context"
+	"strconv"
+	"strings"
 
 	"github.com/Lokee86/grimoire/internal/retrieve"
 )
@@ -40,6 +42,12 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 	symbolAvailable := 0
 	if engine.lexicon != nil {
 		matches := engine.lexicon.Find(request.Query, candidateLimit)
+		if len(strings.Fields(request.Query)) > 3 {
+			scopes := searchSymbolScopes(exactCandidates, sourceCandidates, request.Limit)
+			if scoped := engine.lexicon.FindScoped(request.Query, scopes, candidateLimit); len(scoped) > 0 {
+				matches = scoped
+			}
+		}
 		candidates := make([]Result, 0, len(matches))
 		seen := make(map[string]bool)
 		for _, match := range matches {
@@ -142,6 +150,39 @@ func (engine *Engine) sourceResults(
 		})
 	}
 	return selectDiverseResults(eligibleResults, limit), eligible, suppressed
+}
+
+func searchSymbolScopes(exactCandidates, sourceCandidates []retrieve.Candidate, limit int) []retrieve.Candidate {
+	if limit <= 0 {
+		return nil
+	}
+	result := make([]retrieve.Candidate, 0, limit*3)
+	seen := make(map[string]bool)
+	appendLane := func(candidates []retrieve.Candidate, laneLimit int) {
+		added := 0
+		for _, candidate := range candidates {
+			if added >= laneLimit {
+				break
+			}
+			chunk := candidate.Chunk
+			if isDocumentationPath(chunk.Path) {
+				continue
+			}
+			key := chunk.ID
+			if key == "" {
+				key = chunk.Path + "\x00" + strconv.Itoa(chunk.StartLine) + "\x00" + strconv.Itoa(chunk.EndLine)
+			}
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			result = append(result, candidate)
+			added++
+		}
+	}
+	appendLane(exactCandidates, limit)
+	appendLane(sourceCandidates, limit*2)
+	return result
 }
 
 func searchExpansionCandidateCount(response *Response) int {
