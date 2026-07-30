@@ -17,7 +17,7 @@ grimoire inspect --root . --handle "<handle>" --adjacent-context 3
 `grimoire query <mode>` remains a compatibility spelling for the same interface.
 
 - `orient` returns compact source and symbol anchors plus suggested expansions.
-- `search` returns independent exact, source, document, symbol, and relationship lanes.
+- `search` returns ranked discovery evidence. Balanced search preserves independent exact, source, document, and symbol budgets; narrow search applies one combined code-evidence budget and defers expansion.
 - `trace` expands one stable structural handle through bounded paths.
 - `impact` performs bounded incoming, outgoing, or bidirectional traversal.
 - `inspect` reads exact source or document evidence by stable handle. Supplied handles are never fuzzily rediscovered.
@@ -34,7 +34,9 @@ A search response may contain:
 | `symbol_matches` | Lexicon-grounded declarations and definitions |
 | `relationship_matches` | Direct Arcana graph relationships, with Lexicon relationship fallback |
 
-`limit` applies independently to each lane. A full exact lane does not suppress source, symbol, relationship, or document results. `truncated_lanes` identifies lanes whose per-lane cap was reached. When an exact and lexical result identify the same source range, both lane entries remain, but the lexical entry may omit its repeated excerpt and set `duplicate_of` to the exact handle.
+With `breadth: "balanced"`, `limit` applies independently to each lane. A full exact lane does not suppress source, symbol, relationship, or document results. With `breadth: "narrow"`, one combined limit is round-robin allocated across exact, symbol, and source evidence while overlapping cross-lane representations are suppressed. Narrow search defaults to four combined results.
+
+Narrow search also defaults to `detail: "handles"`: results retain stable inspectable handles, paths, names, kinds, ranks, and reasons while inline excerpts and duplicated node spans are deferred to `inspect`. `truncated_lanes` identifies ranked evidence that remains available beyond the returned budget.
 
 Documentation never appears in `exact_matches`, `source_matches`, or `symbol_matches`. Use `--code-only` or `include_documents: false` to omit the document lane entirely.
 
@@ -72,11 +74,11 @@ Common fields:
 - `mode`, `root`, `state`, and `state_mode`;
 - `query`, `anchor`, `target`, and `handles`;
 - `limit`, `depth`, `direction`, and `relations`;
-- `adjacent_context` and `detail`;
+- `adjacent_context`, `detail`, and search `breadth`;
 - `code_only`, `include_documents`, and `use_document_vectors`;
 - optional repository-provider state or executable overrides.
 
-`search` and `orient` default to six results per lane. `trace`, `impact`, and other bounded expansion modes default to eight. `limit` is bounded to 200, `depth` to 16, and adjacent inspection context to 200 lines.
+Public CLI and MCP search default to 12 results per lane in balanced mode and four combined results in narrow mode. Trace defaults to eight. `detail` accepts `handles`, `summary`, or `full`; narrow search defaults to `handles`. `limit` is bounded to 200, `depth` to 16, and adjacent inspection context to 200 lines.
 
 ## Handles
 
@@ -97,6 +99,8 @@ All responses include `schema`, `mode`, and `snapshot`. Depending on mode they m
 - `dependents` for impact;
 - `inspections` for source inspection;
 - `document_matches` for document inspection;
-- `suggestions`, `warnings`, `preparation`, and investigation-session `delta` metadata.
+- `assessment`, `coverage`, `deferred_expansions`, `suggestions`, `warnings`, `preparation`, and investigation-session `delta` metadata.
+
+`assessment` is conservative workflow guidance. It reports observed and missing `owner`, `control_flow`, `public_boundary`, and `tests` dimensions plus a `status` and `next_action`. It does not claim exhaustive correctness. Narrow session-backed search records discovery nodes and retrieval hits but does not materialize source ranges until `inspect`.
 
 Provider degradation is reported in `warnings`; remaining lanes still return when possible.

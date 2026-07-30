@@ -48,12 +48,12 @@ Start a new agent session after installation or update so the host can discover 
 
 The skill teaches agents to:
 
-- combine Grimoire with normal shell, Git, search, and direct file inspection;
-- begin a concrete task with narrow `search`, not broad `orient`;
+- use direct search and file reads first when exact paths or symbols are known;
+- escalate localized uncertainty to `breadth: "narrow"` and distributed investigations to `breadth: "balanced"`;
 - reuse one investigation `session`;
-- request small per-lane limits;
+- treat narrow search as handle-only discovery;
 - disable documents for implementation-only work;
-- follow stable handles with `inspect`, `trace`, and `impact`;
+- follow stable handles with `inspect`, and use `trace` or `impact` only for a named unresolved relationship;
 - avoid unnecessary state refreshes;
 - verify material conclusions against exact source;
 - stop querying Grimoire when direct inspection becomes cheaper.
@@ -74,12 +74,13 @@ This is important for both correctness and efficiency. Grimoire should reduce br
 
 ## Normal workflow
 
-1. Ask one concrete repository question with `search`.
-2. Review the independent exact, source, document, symbol, and relationship lanes.
-3. Follow returned handles with `inspect`, `trace`, or `impact`.
-4. Reuse one short `session` name for the investigation.
-5. Switch to direct source reads and shell search whenever they are cheaper.
-6. Check `warnings`, `preparation`, and `truncated_lanes` before completeness or negative claims.
+1. Use direct search and file reads when the task already names an exact path or symbol.
+2. Use one `breadth: "narrow"` search for localized uncertainty, or `breadth: "balanced"` for distributed context.
+3. Review `assessment`; inspect selected handles when it reports `ready-for-targeted-inspection`.
+4. Use `trace` or `impact` only for a named unresolved relationship.
+5. Reuse one short `session` name for the investigation.
+6. Stop when `assessment` reports `ready-to-synthesize` or the task's required dimensions are grounded.
+7. Check `warnings`, `preparation`, and `truncated_lanes` before completeness or negative claims.
 
 Use `orient` only when the repository is unfamiliar and the task has no useful search terms.
 
@@ -91,6 +92,7 @@ Use `orient` only when the repository is unfamiliar and the task has no useful s
   "mode": "search",
   "root": "/absolute/path/to/repository",
   "query": "camera visibility network interest realtime snapshot",
+  "breadth": "balanced",
   "limit": 6,
   "code_only": true,
   "state_mode": "refresh-if-needed",
@@ -98,7 +100,7 @@ Use `orient` only when the repository is unfamiliar and the task has no useful s
 }
 ```
 
-Use `limit: 4` to `8` for most first requests. `limit` applies independently to every lane.
+Balanced search uses independent per-lane limits. Narrow search uses one combined code-evidence limit and defaults to four handle-only results. Do not raise the narrow limit until the default set demonstrably misses a required dimension.
 
 Set either:
 
@@ -180,7 +182,7 @@ The tool accepts the `grimoire.discovery.v1` fields documented in [Unified disco
 - `mode`, `root`, `state`, and `state_mode`;
 - `query`, `anchor`, `target`, and `handles`;
 - `limit`, `depth`, `direction`, and `relations`;
-- `adjacent_context` and `detail`;
+- `adjacent_context`, `detail`, and search `breadth`;
 - `code_only`, `include_documents`, and `use_document_vectors`;
 - `session`;
 - controlled provider state or executable overrides.
@@ -197,9 +199,9 @@ The response uses the same flattened schema as the CLI:
 - `symbol_matches`;
 - `relationship_matches`;
 - mode-specific `paths`, `dependents`, or `inspections`;
-- `snapshot`, `preparation`, `warnings`, and `truncated_lanes`.
+- `snapshot`, `assessment`, `coverage`, `preparation`, `warnings`, and `truncated_lanes`.
 
-When `session` is supplied, newly discovered evidence is returned through `delta`; repeated evidence is represented by prior handles rather than replayed in full.
+When `session` is supplied, newly discovered evidence is returned through `delta`; repeated evidence is represented by prior handles rather than replayed in full. Narrow search deltas contain discovery nodes and retrieval hits but defer source ranges until `inspect`.
 
 ## Evidence semantics
 
@@ -237,6 +239,6 @@ Start with direct shell inspection when the task is a literal path, exact identi
 
 Start with Grimoire when the task requires architectural ownership, cross-language discovery, generated contracts, source-plus-document reasoning, impact analysis, or broad implementation planning.
 
-Do not force a minimum number of Grimoire calls. An agent that uses one or two high-value discovery requests and then verifies source directly is operating correctly.
+Do not force a minimum number of Grimoire calls. For narrow work, a third call requires a named unresolved behavior, boundary, test seam, or relationship. An agent that uses one search, one targeted inspection, and then synthesizes is operating correctly.
 
 See [Agent benchmark findings](../development/agent-benchmark-findings.md) for measured examples.

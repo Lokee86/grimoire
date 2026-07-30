@@ -12,8 +12,10 @@
 - Keep source and documentation separate in the public response and prevent either lane from consuming the other's result limit.
 - Bind optional investigation sessions to repository and provider snapshots.
 - Replace repeated nodes, source ranges, graph paths, and document sections with compact prior handles.
+- Keep narrow search deltas handle-only so source ranges are materialized by `inspect`, while preserving the evidence-rich balanced path.
 - Apply serialized byte and evidence ceilings only as emergency safeguards after structural deduplication and progressive expansion.
 - Return one `grimoire.discovery.v1` response rather than nesting provider-specific responses.
+- Surface conservative evidence assessment and next-action guidance without claiming exhaustive correctness.
 
 ## Boundary
 

@@ -28,6 +28,19 @@ func TestAgentToolInputSchemaExplainsInspectAndTraceArguments(t *testing.T) {
 	if handles["minItems"] != 1 {
 		t.Fatalf("handles minItems = %#v", handles["minItems"])
 	}
+	breadth := properties["breadth"].(map[string]any)
+	values, ok := breadth["enum"].([]string)
+	if !ok || len(values) != 2 || values[0] != "narrow" || values[1] != "balanced" {
+		t.Fatalf("breadth enum = %#v", breadth["enum"])
+	}
+	if description, _ := breadth["description"].(string); !strings.Contains(description, "combined") {
+		t.Fatalf("breadth description = %q", description)
+	}
+	detail := properties["detail"].(map[string]any)
+	detailValues, ok := detail["enum"].([]string)
+	if !ok || len(detailValues) != 3 || detailValues[0] != "handles" {
+		t.Fatalf("detail enum = %#v", detail["enum"])
+	}
 }
 
 func assertSchemaRule(t *testing.T, rules []any, modes, alternatives []string) {

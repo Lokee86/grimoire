@@ -26,7 +26,7 @@ The response uses schema `grimoire.discovery.v1` and may include:
 - `symbol_matches`
 - `relationship_matches`
 
-`--limit` applies to each lane independently. Search and orient default to 6 results per lane; trace and other bounded expansion modes default to 8. The maximum is 200.
+`--breadth balanced` preserves independent lane limits and defaults to 12 results per lane. `--breadth narrow` applies one combined exact/source/symbol budget, defaults to four results, and returns handle-only discovery unless another detail level is requested. Trace defaults to eight results. The maximum limit is 200.
 
 Useful flags:
 
@@ -35,7 +35,9 @@ Useful flags:
 --state <path>                Grimoire state directory
 --state-mode <mode>           current-only, refresh-if-needed, or force-refresh
 --query <text>                Literal, symbol, behavior, or documentation query
---limit <n>                   Maximum results per lane
+--limit <n>                   Per-lane balanced limit or combined narrow limit
+--breadth <mode>              balanced or narrow search budgeting
+--detail <mode>               handles, summary, or full evidence
 --code-only                   Omit the documentation lane
 --include-documents=<bool>    Include separately ranked documentation
 --document-vectors            Use current documentation vectors when available
@@ -43,7 +45,7 @@ Useful flags:
 --timeout <duration>          Complete operation timeout
 ```
 
-Provider-state and executable overrides exist for controlled environments, but normal callers should allow Grimoire to discover and route Lexicon and Arcana internally.
+Provider-state and executable overrides exist for controlled environments, but normal callers should allow Grimoire to discover and route Lexicon and Arcana internally. Search responses include an `assessment` with observed and missing evidence dimensions plus the smallest justified next action.
 
 ### `grimoire orient`
 
@@ -114,7 +116,7 @@ Serve the same discovery interface over stdio:
 grimoire mcp --root .
 ```
 
-The exposed tool is `grimoire_discover`. The MCP server adds automatic repository preparation and optional investigation-session deduplication but does not change the evidence-lane contract.
+The exposed tool is `grimoire_discover`. The MCP server adds automatic repository preparation and optional investigation-session deduplication. Narrow session-backed search returns handle nodes and retrieval hits while deferring source ranges until inspection.
 
 `--audit-log <path>` writes one JSONL record per tool call using schema `grimoire.mcp.audit.v1`. Each record contains the decoded request, exact structured response, and any execution error. This is intended for benchmark grounding and controlled diagnostics; it is disabled by default.
 

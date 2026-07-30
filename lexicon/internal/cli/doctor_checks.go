@@ -16,6 +16,7 @@ var doctorRuntimeExecutables = map[string][][]string{
 	"c-family":    {{"go"}},
 	"go":          {{"go"}},
 	"gdscript":    {{"go"}},
+	"generic":     {{"go"}},
 	"lotusscript": {{"go"}},
 	"python":      {{"python", "python3"}},
 	"ruby":        {{"ruby"}},
@@ -83,9 +84,10 @@ func checkAdapterDirectory(root, language string) error {
 
 func manifestLanguages(manifest objectstore.Manifest) []string {
 	set := make(map[string]struct{}, len(manifest.Languages))
-	for _, language := range manifest.Languages {
-		if language.Language != "" {
-			set[language.Language] = struct{}{}
+	for _, entry := range manifest.Languages {
+		language := doctorAdapterLanguage(entry.Language)
+		if language != "" {
+			set[language] = struct{}{}
 		}
 	}
 	languages := make([]string, 0, len(set))
@@ -94,6 +96,17 @@ func manifestLanguages(manifest objectstore.Manifest) []string {
 	}
 	sort.Strings(languages)
 	return languages
+}
+
+func doctorAdapterLanguage(language string) string {
+	switch {
+	case language == "interstack":
+		return ""
+	case strings.HasPrefix(language, "generic-"):
+		return "generic"
+	default:
+		return language
+	}
 }
 
 func checkRuntime(adapterRoot, language string) error {
@@ -123,7 +136,7 @@ func checkRuntime(adapterRoot, language string) error {
 }
 
 func packagedRuntimeAvailable(adapterRoot, language string) bool {
-	if language != "c-family" && language != "go" && language != "gdscript" && language != "lotusscript" && language != "rust" {
+	if language != "c-family" && language != "go" && language != "gdscript" && language != "generic" && language != "lotusscript" && language != "rust" {
 		return false
 	}
 	base := filepath.Join(adapterRoot, language, "lexicon-"+language)

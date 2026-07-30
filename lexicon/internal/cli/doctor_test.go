@@ -64,6 +64,25 @@ func TestDoctorUsesDiscoveryAndReportsPassingChecks(t *testing.T) {
 	}
 }
 
+func TestManifestLanguagesMapsSyntheticLibrariesToAdapters(t *testing.T) {
+	manifest := objectstore.Manifest{Languages: []objectstore.LanguageEntry{
+		{Language: "generic-sh"},
+		{Language: "generic-sql"},
+		{Language: "interstack"},
+		{Language: "go"},
+	}}
+	got := manifestLanguages(manifest)
+	want := []string{"generic", "go"}
+	if len(got) != len(want) {
+		t.Fatalf("manifestLanguages() = %v, want %v", got, want)
+	}
+	for index := range want {
+		if got[index] != want[index] {
+			t.Fatalf("manifestLanguages() = %v, want %v", got, want)
+		}
+	}
+}
+
 func TestDoctorReportsAllFailuresWithoutExecutingConsumers(t *testing.T) {
 	repository, store, objectIDs := doctorFixture(t)
 	if err := os.RemoveAll(filepath.Join(repository, "adapters", "go")); err != nil {

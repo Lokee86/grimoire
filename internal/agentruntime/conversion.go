@@ -132,8 +132,22 @@ func investigationResponse(query agentquery.Response, documents []knowledge.Resu
 	}}
 	builder := newInvestigationBuilder(&response)
 
+	narrowDiscovery := query.Mode == "search" && query.Breadth == "narrow"
 	addResults := func(lane string, results []agentquery.Result) {
 		for _, result := range results {
+			if narrowDiscovery {
+				nodeRef, ok := builder.addNode(result.Node)
+				if !ok {
+					continue
+				}
+				builder.addHit(investigation.RetrievalHit{
+					Evidence: nodeRef,
+					Lane:     lane, Provider: result.Provider,
+					Rank: result.Rank, Score: result.Score, Reasons: append([]string(nil), result.Reasons...),
+					DuplicateOf: result.DuplicateOf,
+				})
+				continue
+			}
 			nodeRef, evidence, ok := builder.addNodeEvidence(result.Node, result.Excerpt)
 			if !ok {
 				continue

@@ -243,6 +243,10 @@ func TestDiscoveryDefaultsUseIndependentLaneLimit(t *testing.T) {
 	if search.Limit != 12 {
 		t.Fatalf("search default limit = %d, want 12", search.Limit)
 	}
+	narrow := normalizeRequest(Request{Request: agentquery.Request{Mode: "search", Breadth: "narrow"}}, Options{})
+	if narrow.Limit != 4 || narrow.Detail != "handles" {
+		t.Fatalf("narrow search defaults = limit %d detail %q, want 4/handles", narrow.Limit, narrow.Detail)
+	}
 	trace := normalizeRequest(Request{Request: agentquery.Request{Mode: "trace"}}, Options{})
 	if trace.Limit != 8 {
 		t.Fatalf("trace default limit = %d, want 8", trace.Limit)
@@ -306,6 +310,33 @@ func TestCompactKnowledgeResultsBoundsAgentPayload(t *testing.T) {
 	}
 	if len(result.CodeLinks) != 12 || len(result.Reasons) != 5 {
 		t.Fatal("compaction mutated caller-owned result")
+	}
+}
+
+func TestNarrowSearchSessionDeltaDefersSourceRangesUntilInspection(t *testing.T) {
+	span := agentquery.Range{
+		Path: "db/db_impl.cc", StartLine: 10, EndLine: 20,
+		Handle: agentquery.Handle{Value: "source-range", Provider: "source", Path: "db/db_impl.cc", StartLine: 10, EndLine: 20},
+	}
+	converted := investigationResponse(agentquery.Response{
+		Mode: "search", Breadth: "narrow",
+		Snapshot: agentquery.Snapshot{Source: "source-1"},
+		ExactMatches: []agentquery.Result{{
+			Rank: 1, Provider: "exact", Excerpt: "implementation body",
+			Node: agentquery.Node{
+				Handle: span.Handle, Kind: "method", Name: "BackgroundCompaction",
+				Path: span.Path, Span: &span,
+			},
+		}},
+	}, nil)
+	if len(converted.Nodes) != 1 || len(converted.RetrievalHits) != 1 {
+		t.Fatalf("narrow discovery did not retain handle evidence: %#v", converted)
+	}
+	if len(converted.SourceRanges) != 0 {
+		t.Fatalf("narrow discovery expanded source ranges before inspect: %#v", converted.SourceRanges)
+	}
+	if converted.RetrievalHits[0].Evidence.Kind != "node" {
+		t.Fatalf("narrow discovery hit did not reference the handle node: %#v", converted.RetrievalHits[0])
 	}
 }
 
@@ -410,6 +441,10 @@ func TestKnowledgePreviewsKeepLowerRanksInspectable(t *testing.T) {
 		if document.Handle == "" || document.Text != "" || len(document.CodeLinks) != 0 {
 			t.Fatalf("lower-ranked document was dropped instead of becoming handle-only: %+v", document)
 		}
+	}
+	handles := applyKnowledgePreviews([]knowledge.Result{{Handle: "doc", Text: "hidden", CodeLinks: []knowledge.CodeLink{{Value: "symbol"}}}}, 0, "handles")
+	if handles[0].Text != "" || len(handles[0].CodeLinks) != 0 {
+		t.Fatalf("handle-only detail expanded document evidence: %+v", handles)
 	}
 	full := applyKnowledgePreviews([]knowledge.Result{{Handle: "doc", Text: "full"}}, 0, "full")
 	if full[0].Text != "full" {

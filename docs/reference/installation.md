@@ -105,10 +105,12 @@ Then run a narrow code-first search:
 grimoire search \
   --root . \
   --query "Where is session creation handled?" \
+  --breadth narrow \
   --code-only \
-  --limit 6 \
   --session session-flow
 ```
+
+Narrow search defaults to four handle-only results. Inspect selected handles to retrieve exact source.
 
 The first preparation can cost more than later queries because Grimoire may need to align source, Lexicon, Arcana, and documentation state. Normal discovery uses `refresh-if-needed`; do not use `force-refresh` as a routine first step.
 
@@ -147,7 +149,7 @@ Do not restrict an agent to Grimoire alone. The intended operating model is Grim
 
 ## First MCP request
 
-Use a concrete question, a small per-lane limit, and one investigation session:
+Use a concrete question, choose narrow or balanced breadth deliberately, and reuse one investigation session:
 
 ```json
 {
@@ -155,6 +157,7 @@ Use a concrete question, a small per-lane limit, and one investigation session:
   "mode": "search",
   "root": "/absolute/path/to/repository",
   "query": "camera visibility network interest realtime snapshot",
+  "breadth": "balanced",
   "limit": 6,
   "code_only": true,
   "state_mode": "refresh-if-needed",
@@ -265,7 +268,7 @@ Inspect `preparation` and `warnings` in the response. Initial source, Lexicon, A
 
 ### Results are too large
 
-Use `limit: 4` to `8`, set `code_only: true` for implementation work, reuse one `session`, and follow handles rather than repeating broad searches.
+Use `breadth: "narrow"` for localized work, keep its default four-result combined budget, set `code_only: true`, reuse one `session`, and inspect handles instead of requesting inline evidence or repeating searches.
 
 ### Missing evidence or negative claims
 

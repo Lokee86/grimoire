@@ -139,6 +139,54 @@ func TestSearchScopesSymbolsToLexicalOwnershipRanges(t *testing.T) {
 	}
 }
 
+func TestNarrowSearchCapsCombinedEvidence(t *testing.T) {
+	root, facts := queryFixture(t)
+	response, err := Execute(context.Background(), Request{
+		Schema: SchemaVersion, Mode: "search", Root: root,
+		Query: "SubmitLogin session start", LexiconFacts: facts,
+		Breadth: "narrow", Limit: 4,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	lanes := [][]Result{response.ExactMatches, response.SymbolMatches, response.SourceMatches}
+	total := 0
+	selected := make([]Result, 0, 4)
+	for _, lane := range lanes {
+		for _, result := range lane {
+			if narrowDuplicate(result, selected) {
+				t.Fatalf("narrow search returned overlapping cross-lane evidence: %+v", result)
+			}
+			selected = append(selected, result)
+			total++
+		}
+	}
+	if total == 0 || total > 4 {
+		t.Fatalf("narrow combined result count = %d, want 1..4: %+v", total, response)
+	}
+	for _, lane := range lanes {
+		for _, result := range lane {
+			if result.Excerpt != "" || result.Node.Span != nil {
+				t.Fatalf("default narrow search expanded evidence instead of returning handles: %+v", result)
+			}
+		}
+	}
+	if response.Breadth != "narrow" || response.Assessment == nil ||
+		response.Assessment.NextAction != "inspect-selected-handles" {
+		t.Fatalf("narrow workflow metadata = breadth %q assessment %+v", response.Breadth, response.Assessment)
+	}
+	returned := 0
+	for _, coverage := range response.Coverage {
+		returned += coverage.Returned
+	}
+	if returned != total {
+		t.Fatalf("coverage returned total = %d, results = %d: %+v", returned, total, response.Coverage)
+	}
+	if len(response.DeferredExpansions) != 1 || response.DeferredExpansions[0].CandidateCount > 4 {
+		t.Fatalf("narrow relationship expansion count escaped combined budget: %+v", response.DeferredExpansions)
+	}
+}
+
 func TestSearchKeepsLaneLocalRankingsAndDefersGraphExpansion(t *testing.T) {
 	root, facts := queryFixture(t)
 	response, err := Execute(context.Background(), Request{

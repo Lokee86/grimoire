@@ -38,7 +38,7 @@ func Execute(ctx context.Context, request Request) (Response, error) {
 
 func executeWithEngine(ctx context.Context, request Request, engine *Engine) (Response, error) {
 	response := Response{
-		Schema: SchemaVersion, Mode: request.Mode,
+		Schema: SchemaVersion, Mode: request.Mode, Breadth: request.Breadth,
 		Snapshot: Snapshot{
 			Source:    engine.source.Identity(),
 			Providers: make(map[string]string),
@@ -66,6 +66,9 @@ func executeWithEngine(ctx context.Context, request Request, engine *Engine) (Re
 		err = engine.impact(ctx, request, &response)
 	case "inspect":
 		err = engine.inspect(ctx, request, &response)
+	}
+	if err == nil {
+		assessEvidence(request, &response)
 	}
 	return response, err
 }
@@ -126,12 +129,18 @@ func normalizeRequest(request Request) Request {
 		request.Schema = SchemaVersion
 	}
 	request.Mode = strings.ToLower(strings.TrimSpace(request.Mode))
+	request.Breadth = strings.ToLower(strings.TrimSpace(request.Breadth))
+	if request.Mode == "search" && request.Breadth == "" {
+		request.Breadth = "balanced"
+	}
 	if request.Root == "" {
 		request.Root = "."
 	}
 	if request.Limit == 0 {
-		switch request.Mode {
-		case "search", "orient":
+		switch {
+		case request.Mode == "search" && request.Breadth == "narrow":
+			request.Limit = 4
+		case request.Mode == "search" || request.Mode == "orient":
 			request.Limit = 6
 		default:
 			request.Limit = 8
@@ -161,6 +170,9 @@ func normalizeRequest(request Request) Request {
 		request.ArcanaCmd = "arcana"
 	}
 	request.Detail = strings.ToLower(strings.TrimSpace(request.Detail))
+	if request.Mode == "search" && request.Breadth == "narrow" && request.Detail == "" {
+		request.Detail = "handles"
+	}
 	if request.Mode == "trace" && request.Detail == "" {
 		request.Detail = "summary"
 	}
@@ -197,8 +209,14 @@ func validateRequest(request Request) error {
 	if request.Adjacent < 0 || request.Adjacent > 200 {
 		return errors.New("adjacent_context must be between 0 and 200")
 	}
-	if request.Detail != "" && request.Detail != "summary" && request.Detail != "full" {
-		return errors.New("detail must be summary or full")
+	if request.Detail != "" && request.Detail != "handles" && request.Detail != "summary" && request.Detail != "full" {
+		return errors.New("detail must be handles, summary, or full")
+	}
+	if request.Breadth != "" && request.Mode != "search" {
+		return errors.New("breadth is only supported for search")
+	}
+	if request.Mode == "search" && request.Breadth != "balanced" && request.Breadth != "narrow" {
+		return errors.New("breadth must be balanced or narrow")
 	}
 	switch request.Direction {
 	case "incoming", "outgoing", "both":

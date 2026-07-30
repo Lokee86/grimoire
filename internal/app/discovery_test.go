@@ -49,6 +49,43 @@ func TestSearchUsesDefaultLimitPerLane(t *testing.T) {
 	}
 }
 
+func TestNarrowSearchUsesCombinedCLIBudget(t *testing.T) {
+	root := t.TempDir()
+	content := "package damage\n\nfunc ResolveDamage() int { return 10 }\nfunc ApplyDamage() int { return ResolveDamage() }\n"
+	if err := os.WriteFile(filepath.Join(root, "damage.go"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Run([]string{"index", "--root", root}, &bytes.Buffer{}, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+
+	var output bytes.Buffer
+	if err := Run([]string{
+		"search", "--root", root, "--query", "ResolveDamage ApplyDamage",
+		"--breadth", "narrow", "--code-only",
+	}, &output, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	var response agentruntime.Response
+	if err := json.Unmarshal(output.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	total := len(response.ExactMatches) + len(response.SourceMatches) + len(response.SymbolMatches)
+	if total == 0 || total > 4 {
+		t.Fatalf("narrow CLI result total = %d, want 1..4: %+v", total, response)
+	}
+	for _, lane := range [][]agentquery.Result{response.ExactMatches, response.SourceMatches, response.SymbolMatches} {
+		for _, result := range lane {
+			if result.Excerpt != "" || result.Node.Span != nil {
+				t.Fatalf("narrow CLI expanded evidence before inspect: %+v", result)
+			}
+		}
+	}
+	if response.Assessment == nil || response.Assessment.NextAction != "inspect-selected-handles" {
+		t.Fatalf("narrow CLI assessment = %+v", response.Assessment)
+	}
+}
+
 func TestSearchDoesNotSpendBudgetOnDuplicateLexicalEvidence(t *testing.T) {
 	root := t.TempDir()
 	content := "package damage\n\nfunc ResolveDamage() int { return 10 }\n"

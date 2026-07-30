@@ -43,7 +43,7 @@ func Execute(ctx context.Context, request Request, options Options) (Response, e
 		LexiconCommand: request.LexiconCmd, ArcanaCommand: request.ArcanaCmd,
 		GrimoireCommand: grimoireCommand,
 	})
-	response := Response{Schema: SchemaVersion, Mode: request.Mode}
+	response := Response{Schema: SchemaVersion, Mode: request.Mode, Breadth: request.Breadth}
 	if len(preparation.Actions) > 0 || len(preparation.Warnings) > 0 || preparation.Error != "" {
 		copy := preparation
 		response.Preparation = &copy
@@ -95,7 +95,9 @@ func Execute(ctx context.Context, request Request, options Options) (Response, e
 		}
 	}
 	response.Snapshot = queryResponse.Snapshot
+	response.Breadth = queryResponse.Breadth
 	response.Suggestions = queryResponse.Suggestions
+	response.Assessment = queryResponse.Assessment
 	response.Warnings = append(response.Warnings, preparation.Warnings...)
 	response.Warnings = append(response.Warnings, queryResponse.Warnings...)
 	response.Coverage = append([]agentquery.LaneCoverage(nil), queryResponse.Coverage...)
@@ -170,10 +172,16 @@ func normalizeRequest(request Request, options Options) Request {
 	if request.StateMode == "" {
 		request.StateMode = repostate.RefreshIfNeeded
 	}
+	if request.Mode == "search" && strings.EqualFold(strings.TrimSpace(request.Breadth), "narrow") && strings.TrimSpace(request.Detail) == "" {
+		request.Detail = "handles"
+	}
 	if request.Limit == 0 {
-		if request.Mode == "trace" {
+		switch {
+		case request.Mode == "search" && strings.EqualFold(strings.TrimSpace(request.Breadth), "narrow"):
+			request.Limit = 4
+		case request.Mode == "trace":
 			request.Limit = 8
-		} else {
+		default:
 			request.Limit = 12
 		}
 	}

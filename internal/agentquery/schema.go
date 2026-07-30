@@ -20,6 +20,7 @@ type Request struct {
 	Adjacent     int      `json:"adjacent_context,omitempty"`
 	CodeOnly     bool     `json:"code_only,omitempty"`
 	Detail       string   `json:"detail,omitempty"`
+	Breadth      string   `json:"breadth,omitempty"`
 	LexiconFacts string   `json:"lexicon_facts,omitempty"`
 	LexiconState string   `json:"lexicon_state,omitempty"`
 	LexiconCmd   string   `json:"lexicon_command,omitempty"`
@@ -32,6 +33,7 @@ type Request struct {
 type Response struct {
 	Schema              string              `json:"schema"`
 	Mode                string              `json:"mode"`
+	Breadth             string              `json:"breadth,omitempty"`
 	Snapshot            Snapshot            `json:"snapshot"`
 	ExactMatches        []Result            `json:"exact_matches,omitempty"`
 	SourceMatches       []Result            `json:"source_matches,omitempty"`
@@ -44,9 +46,22 @@ type Response struct {
 	Unresolved          []Unresolved        `json:"unresolved,omitempty"`
 	Warnings            []string            `json:"warnings,omitempty"`
 	Coverage            []LaneCoverage      `json:"coverage,omitempty"`
+	Assessment          *EvidenceAssessment `json:"assessment,omitempty"`
 	DeferredExpansions  []DeferredExpansion `json:"deferred_expansions,omitempty"`
 	TruncatedLanes      []string            `json:"truncated_lanes,omitempty"`
 	Truncated           bool                `json:"truncated,omitempty"`
+}
+
+type EvidenceAssessment struct {
+	Stage              string   `json:"stage"`
+	Scope              string   `json:"scope,omitempty"`
+	Status             string   `json:"status"`
+	NextAction         string   `json:"next_action"`
+	ObservedDimensions []string `json:"observed_dimensions,omitempty"`
+	MissingDimensions  []string `json:"missing_dimensions,omitempty"`
+	EvidenceItems      int      `json:"evidence_items,omitempty"`
+	DistinctPaths      int      `json:"distinct_paths,omitempty"`
+	Reason             string   `json:"reason"`
 }
 
 type LaneCoverage struct {

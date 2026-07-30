@@ -22,6 +22,7 @@ type Request struct {
 type Response struct {
 	Schema              string                         `json:"schema"`
 	Mode                string                         `json:"mode"`
+	Breadth             string                         `json:"breadth,omitempty"`
 	Snapshot            agentquery.Snapshot            `json:"snapshot"`
 	Preparation         *repostate.Status              `json:"preparation,omitempty"`
 	ExactMatches        []agentquery.Result            `json:"exact_matches,omitempty"`
@@ -37,6 +38,7 @@ type Response struct {
 	Unresolved          []agentquery.Unresolved        `json:"unresolved,omitempty"`
 	Warnings            []string                       `json:"warnings,omitempty"`
 	Coverage            []agentquery.LaneCoverage      `json:"coverage,omitempty"`
+	Assessment          *agentquery.EvidenceAssessment `json:"assessment,omitempty"`
 	DeferredExpansions  []agentquery.DeferredExpansion `json:"deferred_expansions,omitempty"`
 	TruncatedLanes      []string                       `json:"truncated_lanes,omitempty"`
 	Truncated           bool                           `json:"truncated,omitempty"`

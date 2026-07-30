@@ -1,0 +1,115 @@
+{
+  "schema": "grimoire.leveldb-post-mitigation-comparison.v1",
+  "accepted_run": {
+    "directory": "rerun4",
+    "service_tier": "priority",
+    "reasoning_effort": "high",
+    "grounding_valid": true,
+    "manual_quality": {
+      "score": 7,
+      "maximum": 8,
+      "deduction": "verification plan omitted an explicit close-or-destroy-while-paused test"
+    },
+    "usage": {
+      "api_calls": 13,
+      "input_tokens": 126997,
+      "cache_read_tokens": 625152,
+      "output_tokens": 14876,
+      "reasoning_tokens": 8690,
+      "total_tokens": 767025
+    },
+    "timing": {
+      "model_seconds": 388.91,
+      "prewarm_seconds": 8.9,
+      "model_plus_prewarm_seconds": 397.81,
+      "one_time_build_seconds": 94.513
+    },
+    "retrieval": {
+      "calls": 2,
+      "search_calls": 1,
+      "inspect_calls": 1,
+      "response_bytes": 9722,
+      "tool_errors": 0
+    }
+  },
+  "primary_grimoire": {
+    "api_calls": 18,
+    "input_tokens": 100796,
+    "cache_read_tokens": 1084928,
+    "output_tokens": 17509,
+    "reasoning_tokens": 11204,
+    "total_tokens": 1203233,
+    "model_seconds": 422.042,
+    "retrieval_calls": 2,
+    "retrieval_response_bytes": 28917,
+    "manual_quality": "8/8"
+  },
+  "second_grimoire_rerun": {
+    "api_calls": 19,
+    "input_tokens": 151660,
+    "cache_read_tokens": 1536000,
+    "output_tokens": 15611,
+    "reasoning_tokens": 7775,
+    "total_tokens": 1703271,
+    "retrieval_calls": 3,
+    "retrieval_response_bytes": 53024,
+    "manual_quality": null
+  },
+  "plain_primary": {
+    "api_calls": 13,
+    "total_tokens": 788781,
+    "model_seconds": 399.127,
+    "manual_quality": "8/8"
+  },
+  "cbm_primary": {
+    "api_calls": 12,
+    "total_tokens": 699584,
+    "model_seconds": 387.554,
+    "prewarm_seconds": 0.9,
+    "manual_quality": "8/8"
+  },
+  "change_vs_primary_grimoire": {
+    "api_calls": -5,
+    "api_calls_percent": -27.8,
+    "total_tokens": -436208,
+    "total_tokens_percent": -36.3,
+    "cache_read_tokens": -459776,
+    "cache_read_tokens_percent": -42.4,
+    "retrieval_response_bytes": -19195,
+    "retrieval_response_bytes_percent": -66.4,
+    "model_seconds": -33.132,
+    "model_seconds_percent": -7.9
+  },
+  "change_vs_second_grimoire_rerun": {
+    "api_calls": -6,
+    "total_tokens": -936246,
+    "total_tokens_percent": -55.0,
+    "retrieval_response_bytes": -43302,
+    "retrieval_response_bytes_percent": -81.7
+  },
+  "change_vs_plain": {
+    "api_calls": 0,
+    "total_tokens": -21756,
+    "total_tokens_percent": -2.8,
+    "model_seconds": -10.217,
+    "model_seconds_percent": -2.6,
+    "quality_points": -1
+  },
+  "change_vs_cbm": {
+    "api_calls": 1,
+    "total_tokens": 67441,
+    "total_tokens_percent": 9.6,
+    "model_seconds": 1.356,
+    "model_seconds_percent": 0.3,
+    "quality_points": -1
+  },
+  "rejected_non_priority_trial": {
+    "directory": "rerun3",
+    "rejection_reason": "Hermes usage reported service_tier null",
+    "api_calls": 16,
+    "total_tokens": 895854,
+    "retrieval_calls": 2,
+    "included_in_controlled_comparison": false
+  },
+  "conclusion": "The post-mitigation run matched Plain's 13-call trajectory and moved Grimoire token use into the Plain/CBM range. It demonstrates that the narrow path can correct the prior over-investigation pattern, but one seed is insufficient to establish reliability and the answer lost one verification point for omitting an explicit close-while-paused test."
+}

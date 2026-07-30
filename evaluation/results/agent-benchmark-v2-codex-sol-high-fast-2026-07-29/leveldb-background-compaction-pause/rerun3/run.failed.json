@@ -1,0 +1,27 @@
+{
+  "schema": "grimoire.leveldb-narrow-rerun.v1",
+  "started_at": "2026-07-30T02:07:47.154097+00:00",
+  "revision": "99b3c03b3284f5886f9ef9a4ef703d57373e61be",
+  "model": "gpt-5.6-sol",
+  "provider": "openai-codex",
+  "reasoning_effort": "high",
+  "service_tier_requested": "priority",
+  "profile": "bench-leveldb-narrow-rerun3",
+  "oneshot_original_sha256": "3c8b2233b803aa873538049e911d21bd12ca9a75c453744e54fff57a57e1244e",
+  "build_seconds": 100.167,
+  "prewarm_seconds": 9.272,
+  "build_artifacts": {
+    "grimoire_sha256": "18d5328c2a7c67200b7430256b2f132d7bfc889b722375651cd41a53e6e7ec0d",
+    "lexicon_sha256": "8e774d8f9c19481e1573bf7ee27511d9877bfc0082717f656fc9058d55682bad",
+    "arcana_sha256": "2cc954f3fb3f5c425299d0bee1e33ade7bad6372751ce5468f6fa0e504cd2d2b",
+    "skill_sha256": "98101513de9591a08051b7c38971472b325adfc677a9de2645642f0c80bc40cf"
+  },
+  "grimoire_head": "748977977bb66c51abfb3c98ea69328c791b03d6",
+  "grimoire_worktree_diff_sha256": "8ce7a02a591cb04f706c1b0fe413466077127c39ebe1a5511353b78f98fa2a8f",
+  "grimoire_worktree_dirty": true,
+  "oneshot_patched_sha256": "4a97f8ff63e38738ec9adcaa9130aff2b8243cdc6a19b9256b95d26941b70780",
+  "elapsed_seconds": 474.208,
+  "exit_code": 0,
+  "error": "RuntimeError('service tier mismatch: None')",
+  "failed_at": "2026-07-30T02:17:31.887135+00:00"
+}

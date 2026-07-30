@@ -46,7 +46,8 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 	query := flags.String("query", "", "literal, symbol, behavior, or documentation query")
 	anchor := flags.String("anchor", "", "name, query anchor, or stable returned handle")
 	target := flags.String("target", "", "optional trace target name or handle")
-	limit := flags.Int("limit", 0, "maximum results per discovery lane; defaults to 8 for trace and 12 otherwise")
+	limit := flags.Int("limit", 0, "maximum results; search defaults to 12 per lane or 4 combined with --breadth narrow")
+	breadth := flags.String("breadth", "", "search budgeting: balanced or narrow")
 	depth := flags.Int("depth", 3, "maximum graph traversal depth")
 	direction := flags.String("direction", "", "graph direction: incoming, outgoing, or both")
 	adjacent := flags.Int("adjacent-context", 0, "source lines adjacent to an inspected declaration")
@@ -54,7 +55,7 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 	includeDocumentsValue := true
 	flags.BoolVar(&includeDocumentsValue, "include-documents", true, "include separately ranked documentation matches")
 	documentVectors := flags.Bool("document-vectors", false, "use available documentation vectors in addition to BM25")
-	detail := flags.String("detail", "", "response detail: default previews or full inline evidence")
+	detail := flags.String("detail", "", "response detail: handles, summary previews, or full inline evidence")
 	requestJSON := flags.String("request", "", "complete "+agentquery.SchemaVersion+" JSON request object")
 	lexiconFacts := flags.String("lexicon-facts", "", "explicit directory containing exported Lexicon JSONL libraries")
 	lexiconState := flags.String("lexicon-state", "", "Lexicon state directory; defaults to <root>/.lexicon")
@@ -110,6 +111,7 @@ func runQuery(args []string, stdout, stderr io.Writer) error {
 				Adjacent:     *adjacent,
 				CodeOnly:     *codeOnly,
 				Detail:       *detail,
+				Breadth:      *breadth,
 				LexiconFacts: *lexiconFacts,
 				LexiconState: *lexiconState,
 				LexiconCmd:   *lexiconCommand,

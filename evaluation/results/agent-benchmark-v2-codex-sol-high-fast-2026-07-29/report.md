@@ -13,6 +13,8 @@ The benchmark supports Grimoire as a useful context-reduction and grounding syst
 
 The LevelDB task exposed an important boundary. It was a comparatively narrow investigation with ownership concentrated in a few `DBImpl` methods. Grimoire found the correct evidence with the least fresh input, but Hermes repeatedly continued investigating after the answer was effectively established. A second isolated Grimoire/Hermes run repeated and worsened that behavior. Grimoire may therefore provide little benefit, or become counterproductive, when direct repository inspection is already cheap and the task does not require broad context.
 
+After narrow-task mitigation, a controlled rerun matched Plain's 13-call trajectory and used 767,025 total tokens, demonstrating that the new path can correct the observed failure mode in at least one seed. It scored 7/8 because its test plan omitted an explicit close-while-paused case; repeatability remains unmeasured.
+
 This is not a contradiction. Retrieval quality, context reduction, answer judgment, and agent stopping behavior are separate concerns. Grimoire performed strongly at finding grounded evidence; the LevelDB inefficiency came from the interaction between structured retrieval and the model's investigation trajectory.
 
 ## Completion status
@@ -21,7 +23,7 @@ All five primary tasks are complete: **15 of 15 planned runs**.
 
 The first four tasks used Codex CLI. Codex then exhausted its account allowance, so the three LevelDB conditions were completed with Hermes one-shot using the same Sol/High/Fast configuration. Hermes initially exposed a one-shot routing defect that dropped High and Fast settings; those trial runs were archived and excluded. The accepted LevelDB runs all report `service_tier: priority` and nonzero reasoning-token usage.
 
-A supplemental second Grimoire/Hermes LevelDB run was performed after the primary benchmark. It is documented separately and is **not included** in the original 15-run totals or manual quality scores.
+Two supplemental Grimoire/Hermes LevelDB runs and one rejected service-tier trial were performed after the primary benchmark. They are documented separately and are **not included** in the original 15-run totals or primary manual-quality scores.
 
 ## Primary run results
 
@@ -202,10 +204,63 @@ The evidence suggests a task-sensitive operating model rather than forcing Grimo
 
 - Prefer Grimoire for broad ownership questions, cross-language or cross-service changes, unfamiliar repositories, impact analysis with many potential lanes, and investigations requiring source plus architectural rationale.
 - Prefer direct inspection or a lightweight lexical path for narrow symbol-local questions where the likely owner is already obvious.
-- Add a compact/narrow Grimoire response mode that deduplicates overlapping node, range, and retrieval-hit evidence.
-- Treat result limits as semantic budgets rather than allowing one requested limit to expand into multiple parallel representations of the same evidence.
-- Improve agent instructions or orchestration so discovery stops after the owner, relevant control flow, public boundary, and test seam are grounded.
+- Use the explicit narrow Grimoire response path for localized tasks; it deduplicates overlapping exact, symbol, and source evidence under one combined semantic budget.
+- Preserve balanced per-lane retrieval for broad investigations rather than weakening the behavior that produced the benchmark's large-context gains.
+- Apply the narrow-task stopping contract: conclude after the owner, relevant control flow, public boundary, and test seam are grounded; require a named unresolved question before a third Grimoire call.
 - Benchmark narrow and broad task classes separately and run multiple seeds before attributing an outlier solely to model variance.
+
+## Post-benchmark narrow-task mitigation
+
+The LevelDB findings were converted into an explicit product seam rather than changing Grimoire's broad-search behavior globally.
+
+Implemented after the benchmark:
+
+- The agent skill and MCP instructions now route exact paths and symbols to direct search or file reads before Grimoire.
+- `breadth: "balanced"` remains the default and preserves independent limits for exact, source, and symbol lanes.
+- `breadth: "narrow"` applies one combined result budget across those three lanes, round-robins evidence classes, and suppresses overlapping cross-lane representations.
+- Narrow search defaults to four combined **handle-only** results. Inline excerpts and duplicated node spans are deferred to `inspect`.
+- Narrow session deltas record discovery nodes and retrieval hits but do not materialize source ranges until inspection.
+- Responses include a conservative `assessment` identifying observed and missing owner, control-flow, public-boundary, and test dimensions plus the smallest justified next action.
+- The stopping contract requires a named unresolved behavior, boundary, test seam, or relationship before a third narrow Grimoire call.
+- CLI, MCP, runtime, session conversion, and public documentation expose the same behavior.
+
+A deterministic measurement used the same LevelDB query shape that produced the benchmark's initial 24-item search:
+
+| Search configuration | Returned evidence | Response bytes | Reduction vs balanced limit 8 |
+|---|---|---:|---:|
+| Balanced, limit 8, no session | 24 ranked results | 44,300 | baseline |
+| Narrow, default limit 4, no session | 4 handle-only results | 6,315 | **85.7%** |
+| Narrow, default limit 4, session | 4 nodes, 4 retrieval hits, **0 source ranges** | 4,575 | **89.7%** |
+
+The narrow assessment for this query reported owner, control flow, and tests as observed, identified the public boundary as the only missing dimension, and directed the caller to inspect selected handles. This verifies that payload amplification and discovery/expansion duplication are substantially reduced while balanced retrieval remains available.
+
+## Post-mitigation LevelDB agent rerun
+
+The revised path was then tested end to end with the same pinned LevelDB revision, task wording, read-only benchmark prompt, `gpt-5.6-sol`, High reasoning, and audited Fast/Priority service tier. The run used a fresh isolated checkout, build, profile, and repository state. It is supplemental and does not alter the original 15-run totals.
+
+| Condition | API calls | Fresh input | Cache reads | Output | Total tokens | Model time | Quality |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Plain primary | 13 | 113,789 | 657,408 | 17,584 | 788,781 | 399.1s | 8/8 |
+| CBM primary | 12 | 112,327 | 570,880 | 16,377 | 699,584 | 387.6s | 8/8 |
+| Grimoire primary | 18 | 100,796 | 1,084,928 | 17,509 | 1,203,233 | 422.0s | 8/8 |
+| Grimoire second rerun | 19 | 151,660 | 1,536,000 | 15,611 | 1,703,271 | capture-limited | unscored |
+| **Grimoire post-mitigation** | **13** | 126,997 | **625,152** | 14,876 | **767,025** | **388.9s** | **7/8** |
+
+The post-mitigation run matched Plain's 13-call trajectory. Relative to the primary Grimoire result it reduced total tokens by **36.3%**, cache reads by **42.4%**, Grimoire response bytes by **66.4%**, and model runtime by **7.9%**. It used 21,756 fewer total tokens than Plain and finished 10.2 seconds faster, while remaining 67,441 tokens above CBM and 1.4 seconds slower in model time.
+
+The retrieval trajectory followed the intended contract exactly:
+
+1. one four-result narrow handle-only search, 3,155 response bytes;
+2. one three-handle inspection, 6,567 response bytes;
+3. no third Grimoire call.
+
+The complete audit contained two calls, 9,722 response bytes, zero tool errors, and valid grounding. Fresh preparation took 8.9 seconds; excluding the one-time product build, preparation plus model execution took 397.8 seconds.
+
+Manual quality was **7/8**, not 8/8. The answer correctly covered the DBImpl scheduler seam, automatic-only gating, mandatory flush and manual-compaction preservation, write pressure, queued and in-flight races, ownership semantics, and deterministic tests. It lost the verification point because the test plan did not explicitly cover closing or destroying the database while compaction remained paused.
+
+A preceding 16-call, 895,854-token trial was rejected because Hermes reported `service_tier: null`. It is retained under `rerun3/`; the accepted audited result is `rerun4/`.
+
+This is direct evidence that the mitigation can correct the observed over-investigation pattern, not proof that every seed or every narrow task will do so. Repeated post-change seeds and additional narrow tasks are still needed to measure reliability.
 
 ## Benchmark limitations
 
@@ -224,4 +279,7 @@ The evidence suggests a task-sensitive operating model rather than forcing Grimo
 - Per-task directories: final answers, grounding reports, preparation output, usage reports, and Grimoire audit logs.
 - `leveldb-background-compaction-pause/rerun2/README.md`: supplemental-run methodology, capture limitation, metrics, and cleanup record.
 - `leveldb-background-compaction-pause/rerun2/recovered-result.json`: recovered audited usage and first-versus-second comparison.
+- `leveldb-background-compaction-pause/rerun3/README.md`: rejected non-priority post-mitigation trial.
+- `leveldb-background-compaction-pause/rerun4/README.md`: accepted post-mitigation methodology, result, quality review, and interpretation.
+- `leveldb-background-compaction-pause/rerun4/comparison.json`: machine-readable comparison against primary Grimoire, the second rerun, Plain, and CBM.
 - Rejected Codex-limit and unconfigured-Hermes trials are retained with explicit archival filename suffixes and are not included in scoring.

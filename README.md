@@ -63,10 +63,10 @@ From the repository you want to inspect:
 
 ```bash
 grimoire status --root . --refresh
-grimoire search --root . --query "Where is session creation handled?" --code-only --limit 6 --session session-flow
+grimoire search --root . --query "Where is session creation handled?" --breadth narrow --code-only --session session-flow
 ```
 
-Follow the returned stable handles instead of repeating broad searches:
+Narrow search returns handle-only discovery by default. Follow the returned stable handles instead of repeating searches or requesting inline source:
 
 ```bash
 grimoire inspect --root . --handle '<handle>' --session session-flow
@@ -112,10 +112,11 @@ The installer places the canonical skill at:
 
 Start a new agent session after installation so the host can discover the skill. The skill teaches agents to:
 
-- begin concrete tasks with a narrow `search` request;
+- use direct search and file reads first when exact paths or symbols are known;
+- escalate localized uncertainty to `breadth: "narrow"` and distributed investigations to `breadth: "balanced"`;
 - reuse one investigation `session`;
-- use small per-lane limits and omit documents for code-only work;
-- use returned handles with `inspect`, `trace`, and `impact`;
+- treat narrow search as handle-only discovery and use `inspect` for exact evidence;
+- use `trace` or `impact` only for a named unresolved relationship;
 - avoid unnecessary `force-refresh` operations;
 - verify material conclusions against exact source;
 - switch back to shell search or direct reads when they are cheaper.
@@ -128,6 +129,7 @@ A good first MCP request is:
   "mode": "search",
   "root": "/absolute/path/to/repository",
   "query": "camera visibility network interest realtime snapshot",
+  "breadth": "balanced",
   "limit": 6,
   "code_only": true,
   "state_mode": "refresh-if-needed",
@@ -171,7 +173,9 @@ These are task-specific measurements, not universal performance guarantees. See 
 | `symbol_matches` | Lexicon-grounded declarations and definitions |
 | `relationship_matches` | Direct Arcana relationships, with Lexicon fallback when Arcana is unavailable |
 
-Each result carries provenance and a stable handle. Lane limits are independent, so one evidence class cannot consume another class's result budget.
+Each result carries provenance and a stable handle. `breadth: "balanced"` preserves independent lane limits so one evidence class cannot consume another. `breadth: "narrow"` uses one combined code-evidence budget, defaults to four handle-only results, and defers exact source ranges until `inspect`.
+
+Responses also include a conservative `assessment` describing observed and missing owner, control-flow, public-boundary, and test dimensions plus the smallest justified next action. It is workflow guidance, not proof of correctness.
 
 Source and documentation remain deliberately separate:
 
@@ -225,7 +229,9 @@ See [Component architecture](docs/architecture/components.md).
 - Lexicon-grounded symbol discovery.
 - Arcana-backed relationships, trace, paths, and impact analysis.
 - Stable snapshot-qualified handles for exact follow-up inspection.
-- Independent per-lane limits.
+- Balanced independent per-lane limits plus a four-result combined narrow mode.
+- Handle-only narrow discovery with source expansion deferred to inspection.
+- Conservative evidence assessment and next-action guidance.
 - One stdio MCP tool for search, orient, trace, impact, and inspect.
 - Automatic repository-state preparation and alignment across Grimoire, Lexicon, Arcana, and documentation state.
 - Persistent investigation sessions that replace repeated evidence with compact prior handles.

@@ -9,7 +9,11 @@ import (
 )
 
 func (engine *Engine) search(ctx context.Context, request Request, response *Response) error {
-	candidateLimit := min(200, max(request.Limit*8, request.Limit))
+	candidateMultiplier := 8
+	if request.Breadth == "narrow" {
+		candidateMultiplier = 4
+	}
+	candidateLimit := min(200, max(request.Limit*candidateMultiplier, request.Limit))
 
 	exactCandidates := retrieve.Exact(engine.source, request.Query, candidateLimit)
 	exactMatches, exactAvailable, _ := engine.sourceResults(
@@ -19,9 +23,7 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 		"literal source match",
 		nil,
 	)
-	exactPreviewed := applyResultPreviews(exactMatches, request.Detail)
 	response.ExactMatches = exactMatches
-	recordLaneCoverage(response, "exact_matches", exactAvailable, len(exactMatches), exactPreviewed, 0)
 
 	exactHandles := make(map[string]string, len(exactMatches))
 	for _, result := range exactMatches {
@@ -35,9 +37,7 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 		"prepared source BM25 match",
 		exactHandles,
 	)
-	sourcePreviewed := applyResultPreviews(sourceMatches, request.Detail)
 	response.SourceMatches = sourceMatches
-	recordLaneCoverage(response, "source_matches", sourceAvailable, len(sourceMatches), sourcePreviewed, suppressedDuplicates)
 
 	symbolAvailable := 0
 	if engine.lexicon != nil {
@@ -107,8 +107,38 @@ func (engine *Engine) search(ctx context.Context, request Request, response *Res
 			}
 		}
 	}
+	narrowSuppressed := map[string]int{}
+	if request.Breadth == "narrow" {
+		narrowSuppressed = applyNarrowSearchBudget(response, request.Limit)
+	}
+
+	exactPreviewed := applyResultPreviews(response.ExactMatches, request.Detail)
+	sourcePreviewed := applyResultPreviews(response.SourceMatches, request.Detail)
 	symbolPreviewed := applyResultPreviews(response.SymbolMatches, request.Detail)
-	recordLaneCoverage(response, "symbol_matches", symbolAvailable, len(response.SymbolMatches), symbolPreviewed, 0)
+	recordLaneCoverage(
+		response,
+		"exact_matches",
+		exactAvailable-narrowSuppressed["exact_matches"],
+		len(response.ExactMatches),
+		exactPreviewed,
+		narrowSuppressed["exact_matches"],
+	)
+	recordLaneCoverage(
+		response,
+		"source_matches",
+		sourceAvailable-narrowSuppressed["source_matches"],
+		len(response.SourceMatches),
+		sourcePreviewed,
+		suppressedDuplicates+narrowSuppressed["source_matches"],
+	)
+	recordLaneCoverage(
+		response,
+		"symbol_matches",
+		symbolAvailable-narrowSuppressed["symbol_matches"],
+		len(response.SymbolMatches),
+		symbolPreviewed,
+		narrowSuppressed["symbol_matches"],
+	)
 
 	deferRelationshipExpansion(response, searchExpansionCandidateCount(response))
 	return nil

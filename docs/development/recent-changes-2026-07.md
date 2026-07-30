@@ -83,14 +83,14 @@ Installers support repeated `--skills-dir` destinations and `--skip-skills`.
 
 The skill encodes the measured efficient workflow:
 
-- use Grimoire alongside normal shell and file inspection;
-- start concrete tasks with narrow search;
+- use direct search and file reads first when exact paths or symbols are known;
+- escalate localized uncertainty to narrow search and distributed context to balanced search;
 - reuse one investigation session;
-- keep result limits small;
+- keep narrow discovery handle-only and inspect selected evidence;
 - omit documentation for code-only work;
-- follow handles instead of repeating broad searches;
-- avoid unnecessary refreshes;
-- verify source and stop querying when direct inspection is cheaper.
+- require a named unresolved relationship before trace or impact;
+- use response assessment as a stopping aid;
+- avoid unnecessary refreshes and stop when the required evidence dimensions are grounded.
 
 ## Agent benchmark results
 
@@ -121,7 +121,7 @@ Benchmark grounding is now automatic. Every inline and structured path/range is 
 
 Repository preparation status now separates initial inspection, lock wait, reinspection, Lexicon, Arcana, source indexing, documentation indexing, marker writes, final source verification, and total time. The refresh path reuses one post-lock source fingerprint through provider preparation instead of repeatedly walking the repository after each action, then performs one final fingerprint check before marking state current.
 
-Search and orient default to six results per lane, discovery excerpts are capped at 700 bytes, and duplicate exact/lexical source ranges preserve both independent lane entries while replacing the repeated lexical excerpt with a `duplicate_of` handle reference.
+Balanced public search preserves independent lane budgets and defaults to 12 results per lane. Narrow search defaults to four combined handle-only results, suppresses overlapping exact/source/symbol representations, and defers session source ranges until inspection. Responses now include conservative assessment of owner, control-flow, public-boundary, and test coverage plus the smallest justified next action.
 
 The first version 2 architecture run produced grounded implementation-grade answers in all three conditions. Grimoire completed in 6m 36s with 16 calls and 1.05M total tokens, versus CBM at 11m 33s/25 calls/3.30M tokens and plain at 12m 27s/18 calls/1.84M tokens. Grimoire cold preparation took 95.2 seconds, dominated by 69.3 seconds of Lexicon work. The run also exposed and fixed validator support for noncontiguous structured ranges; saved outputs can now be revalidated without rerunning agents.
 

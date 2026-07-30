@@ -1,0 +1,79 @@
+{
+  "schema": "grimoire.leveldb-narrow-rerun.v1",
+  "started_at": "2026-07-30T02:35:18.067622+00:00",
+  "revision": "99b3c03b3284f5886f9ef9a4ef703d57373e61be",
+  "model": "gpt-5.6-sol",
+  "provider": "openai-codex",
+  "reasoning_effort": "high",
+  "service_tier_requested": "priority",
+  "profile": "bench-leveldb-narrow-rerun4",
+  "oneshot_original_sha256": "3c8b2233b803aa873538049e911d21bd12ca9a75c453744e54fff57a57e1244e",
+  "build_seconds": 94.513,
+  "prewarm_seconds": 8.9,
+  "build_artifacts": {
+    "grimoire_sha256": "e36a24ad13218aad2aeb274e7bbeccdbeb766f83bc4a2bd6e09f70957e79bfa6",
+    "lexicon_sha256": "f415e13f1d182ba706508db3619ec9325b9ea19a077fffb1848e7422a1c78e01",
+    "arcana_sha256": "03c5fec5c392c47619e1db6376592e325196a4589f0a044c7c6b25def9b66490",
+    "skill_sha256": "98101513de9591a08051b7c38971472b325adfc677a9de2645642f0c80bc40cf"
+  },
+  "grimoire_head": "748977977bb66c51abfb3c98ea69328c791b03d6",
+  "grimoire_worktree_diff_sha256": "8ce7a02a591cb04f706c1b0fe413466077127c39ebe1a5511353b78f98fa2a8f",
+  "grimoire_worktree_dirty": true,
+  "oneshot_patched_sha256": "d907a78b03cf276e66749fed6f600d0e5761fe45afe121a10dea8cd20b564a5d",
+  "elapsed_seconds": 388.91,
+  "exit_code": 0,
+  "usage": {
+    "estimated_cost_usd": 0.0,
+    "cost_status": "included",
+    "cost_source": "none",
+    "input_tokens": 126997,
+    "output_tokens": 14876,
+    "cache_read_tokens": 625152,
+    "cache_write_tokens": 0,
+    "reasoning_tokens": 8690,
+    "total_tokens": 767025,
+    "api_calls": 13,
+    "model": "gpt-5.6-sol",
+    "provider": "openai-codex",
+    "session_id": "20260729_193705_0b9cd5",
+    "completed": true,
+    "failed": false,
+    "service_tier": "priority"
+  },
+  "grounding": {
+    "valid": true,
+    "process_completed": true,
+    "refusal_detected": false,
+    "evidence_json_found": true,
+    "evidence_json_valid": true,
+    "inline_citations": 46,
+    "structured_items": 11,
+    "handle_items": 2,
+    "canonical_handle_items": 2,
+    "required_prefixes_found": [
+      "db/db_impl",
+      "include/leveldb",
+      "db"
+    ],
+    "missing_required_prefixes": [],
+    "findings": []
+  },
+  "discovery_output": {
+    "calls": 2,
+    "response_bytes": 9722,
+    "modes": {
+      "search": 1,
+      "inspect": 1
+    },
+    "new_nodes": 4,
+    "new_source_ranges": 6,
+    "new_documents": 0,
+    "new_relationships": 0,
+    "new_graph_paths": 0,
+    "tool_errors": 0,
+    "invalid_records": 0
+  },
+  "answer_bytes": 15793,
+  "completed_at": "2026-07-30T02:43:31.073106+00:00",
+  "total_wall_seconds": 493.044
+}

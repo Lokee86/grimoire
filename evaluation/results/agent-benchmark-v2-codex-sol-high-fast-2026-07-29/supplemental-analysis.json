@@ -9,9 +9,22 @@
     "reasoning_effort": "high",
     "service_tier": "priority",
     "manual_quality": {
-      "plain": {"score": 40, "maximum": 40, "grounded_runs": 5},
-      "cbm": {"score": 32, "maximum": 32, "grounded_runs": 4, "disqualified_runs": 1},
-      "grimoire": {"score": 39, "maximum": 40, "grounded_runs": 5}
+      "plain": {
+        "score": 40,
+        "maximum": 40,
+        "grounded_runs": 5
+      },
+      "cbm": {
+        "score": 32,
+        "maximum": 32,
+        "grounded_runs": 4,
+        "disqualified_runs": 1
+      },
+      "grimoire": {
+        "score": 39,
+        "maximum": 40,
+        "grounded_runs": 5
+      }
     }
   },
   "codex_four_task_token_analysis": {
@@ -22,30 +35,121 @@
     },
     "tasks": {
       "grimoire-state-maintenance-ownership": {
-        "plain": {"processed_input": 3514755, "fresh_input": 200323, "cached_input": 3314432, "output": 11584, "reasoning": 4671},
-        "cbm": {"processed_input": 4417439, "fresh_input": 184479, "cached_input": 4232960, "output": 15793, "reasoning": 8335},
-        "grimoire": {"processed_input": 2340752, "fresh_input": 160656, "cached_input": 2180096, "output": 12062, "reasoning": 6019}
+        "plain": {
+          "processed_input": 3514755,
+          "fresh_input": 200323,
+          "cached_input": 3314432,
+          "output": 11584,
+          "reasoning": 4671
+        },
+        "cbm": {
+          "processed_input": 4417439,
+          "fresh_input": 184479,
+          "cached_input": 4232960,
+          "output": 15793,
+          "reasoning": 8335
+        },
+        "grimoire": {
+          "processed_input": 2340752,
+          "fresh_input": 160656,
+          "cached_input": 2180096,
+          "output": 12062,
+          "reasoning": 6019
+        }
       },
       "space-rocks-room-scale-architecture": {
-        "plain": {"processed_input": 10942309, "fresh_input": 255845, "cached_input": 10686464, "output": 19895, "reasoning": 10977},
-        "cbm": {"processed_input": 7821228, "fresh_input": 298668, "cached_input": 7522560, "output": 15714, "reasoning": 6014, "answer_disqualified": true},
-        "grimoire": {"processed_input": 6492845, "fresh_input": 276141, "cached_input": 6216704, "output": 18898, "reasoning": 8439}
+        "plain": {
+          "processed_input": 10942309,
+          "fresh_input": 255845,
+          "cached_input": 10686464,
+          "output": 19895,
+          "reasoning": 10977
+        },
+        "cbm": {
+          "processed_input": 7821228,
+          "fresh_input": 298668,
+          "cached_input": 7522560,
+          "output": 15714,
+          "reasoning": 6014,
+          "answer_disqualified": true
+        },
+        "grimoire": {
+          "processed_input": 6492845,
+          "fresh_input": 276141,
+          "cached_input": 6216704,
+          "output": 18898,
+          "reasoning": 8439
+        }
       },
       "detekt-cli-gradle-plugin-divergence": {
-        "plain": {"processed_input": 2844203, "fresh_input": 171563, "cached_input": 2672640, "output": 14614, "reasoning": 8443},
-        "cbm": {"processed_input": 2396967, "fresh_input": 160551, "cached_input": 2236416, "output": 14843, "reasoning": 6538},
-        "grimoire": {"processed_input": 2205915, "fresh_input": 164827, "cached_input": 2041088, "output": 15334, "reasoning": 8546}
+        "plain": {
+          "processed_input": 2844203,
+          "fresh_input": 171563,
+          "cached_input": 2672640,
+          "output": 14614,
+          "reasoning": 8443
+        },
+        "cbm": {
+          "processed_input": 2396967,
+          "fresh_input": 160551,
+          "cached_input": 2236416,
+          "output": 14843,
+          "reasoning": 6538
+        },
+        "grimoire": {
+          "processed_input": 2205915,
+          "fresh_input": 164827,
+          "cached_input": 2041088,
+          "output": 15334,
+          "reasoning": 8546
+        }
       },
       "space-rocks-distant-player-locator": {
-        "plain": {"processed_input": 8801965, "fresh_input": 262317, "cached_input": 8539648, "output": 18128, "reasoning": 8522},
-        "cbm": {"processed_input": 7763069, "fresh_input": 245885, "cached_input": 7517184, "output": 24891, "reasoning": 14934},
-        "grimoire": {"processed_input": 6612396, "fresh_input": 241068, "cached_input": 6371328, "output": 19693, "reasoning": 10895}
+        "plain": {
+          "processed_input": 8801965,
+          "fresh_input": 262317,
+          "cached_input": 8539648,
+          "output": 18128,
+          "reasoning": 8522
+        },
+        "cbm": {
+          "processed_input": 7763069,
+          "fresh_input": 245885,
+          "cached_input": 7517184,
+          "output": 24891,
+          "reasoning": 14934
+        },
+        "grimoire": {
+          "processed_input": 6612396,
+          "fresh_input": 241068,
+          "cached_input": 6371328,
+          "output": 19693,
+          "reasoning": 10895
+        }
       }
     },
     "totals": {
-      "plain": {"processed_input": 26103232, "fresh_input": 890048, "cached_input": 25213184, "output": 64221, "reasoning": 32613},
-      "cbm": {"processed_input": 22398703, "fresh_input": 889583, "cached_input": 21509120, "output": 71241, "reasoning": 35821},
-      "grimoire": {"processed_input": 17651908, "fresh_input": 842692, "cached_input": 16809216, "output": 65987, "reasoning": 33899}
+      "plain": {
+        "processed_input": 26103232,
+        "fresh_input": 890048,
+        "cached_input": 25213184,
+        "output": 64221,
+        "reasoning": 32613
+      },
+      "cbm": {
+        "processed_input": 22398703,
+        "fresh_input": 889583,
+        "cached_input": 21509120,
+        "output": 71241,
+        "reasoning": 35821
+      },
+      "grimoire": {
+        "processed_input": 17651908,
+        "fresh_input": 842692,
+        "cached_input": 16809216,
+        "output": 65987,
+        "reasoning": 33899
+      }
     },
     "grimoire_reductions": {
       "processed_input_vs_plain_percent": 32.4,
@@ -55,9 +159,29 @@
   },
   "leveldb_primary": {
     "task_characterization": "comparatively narrow small-repository impact analysis with ownership concentrated in DBImpl",
-    "quality": {"plain": "8/8", "cbm": "8/8", "grimoire": "8/8"},
-    "plain": {"elapsed_seconds": 399.127, "input_tokens": 113789, "cache_read_tokens": 657408, "output_tokens": 17584, "reasoning_tokens": 10692, "total_tokens": 788781, "api_calls": 13},
-    "cbm": {"elapsed_seconds": 387.554, "input_tokens": 112327, "cache_read_tokens": 570880, "output_tokens": 16377, "reasoning_tokens": 9819, "total_tokens": 699584, "api_calls": 12},
+    "quality": {
+      "plain": "8/8",
+      "cbm": "8/8",
+      "grimoire": "8/8"
+    },
+    "plain": {
+      "elapsed_seconds": 399.127,
+      "input_tokens": 113789,
+      "cache_read_tokens": 657408,
+      "output_tokens": 17584,
+      "reasoning_tokens": 10692,
+      "total_tokens": 788781,
+      "api_calls": 13
+    },
+    "cbm": {
+      "elapsed_seconds": 387.554,
+      "input_tokens": 112327,
+      "cache_read_tokens": 570880,
+      "output_tokens": 16377,
+      "reasoning_tokens": 9819,
+      "total_tokens": 699584,
+      "api_calls": 12
+    },
     "grimoire": {
       "elapsed_seconds": 422.042,
       "input_tokens": 100796,
@@ -79,7 +203,10 @@
       "calls_13_total_tokens": 638543,
       "method": "scale fresh input and output linearly and scale cache reads by an approximately triangular accumulated-history factor"
     },
-    "defensible_total_token_range": {"minimum": 547000, "maximum": 836000},
+    "defensible_total_token_range": {
+      "minimum": 547000,
+      "maximum": 836000
+    },
     "caveat": "per-call token records were unavailable, so this is a counterfactual estimate rather than a reconstructed measurement"
   },
   "leveldb_supplemental_grimoire_rerun": {
@@ -98,8 +225,19 @@
       "completed": true,
       "failed": false
     },
-    "retrieval": {"calls": 3, "search_calls": 2, "inspect_calls": 1, "response_bytes": 53024, "tool_errors": 0},
-    "change_from_primary_grimoire": {"total_tokens": 500038, "total_percent": 41.6, "api_calls": 1, "retrieval_calls": 1},
+    "retrieval": {
+      "calls": 3,
+      "search_calls": 2,
+      "inspect_calls": 1,
+      "response_bytes": 53024,
+      "tool_errors": 0
+    },
+    "change_from_primary_grimoire": {
+      "total_tokens": 500038,
+      "total_percent": 41.6,
+      "api_calls": 1,
+      "retrieval_calls": 1
+    },
     "quality_scored": false,
     "quality_limitation": "the model run completed, but a Windows CP1252 decode error prevented the wrapper from preserving the final answer text",
     "cleanup": {
@@ -117,6 +255,191 @@
     "Retrieval quality and agent stopping behavior must be measured separately.",
     "The primary LevelDB Grimoire run found correct evidence early and used the least fresh input; the end-to-end inefficiency came from repeated post-retrieval processing.",
     "Plain remained fastest overall and perfect in quality; Grimoire provided the best broad-task context efficiency and matched Plain grounding reliability; CBM prepared cheaply but produced the only invalid grounded answer.",
-    "Future evaluation should stratify narrow and broad tasks and use repeated seeds before attributing results solely to model variance."
-  ]
+    "Future evaluation should stratify narrow and broad tasks and use repeated seeds before attributing results solely to model variance.",
+    "The completed narrow-task path reduced the deterministic session-backed LevelDB discovery response by 89.7%, returned four nodes and four retrieval hits with zero source ranges, and added explicit assessment/stopping guidance; agent-trajectory improvement remains to be measured.",
+    "The accepted post-mitigation LevelDB rerun matched Plain at 13 API calls, used 767,025 total tokens, and reduced the primary Grimoire result by 36.3%; it lost one quality point because its test plan omitted an explicit close-while-paused case."
+  ],
+  "post_benchmark_narrow_mitigation": {
+    "included_in_primary_totals": false,
+    "implementation": {
+      "cheap_first_routing": "direct search and file reads precede Grimoire when exact paths or symbols are already known",
+      "balanced_behavior": "independent exact, source, and symbol lane limits preserved",
+      "narrow_behavior": "one combined result budget round-robin across exact, symbol, and source lanes with overlapping cross-lane evidence suppressed",
+      "narrow_default_limit": 4,
+      "narrow_default_detail": "handles",
+      "discovery_expansion_boundary": "narrow search returns handles and defers excerpts, duplicated node spans, and session source ranges until inspect",
+      "assessment_dimensions": [
+        "owner",
+        "control_flow",
+        "public_boundary",
+        "tests"
+      ],
+      "assessment_contract": "returns conservative status, observed and missing dimensions, and smallest justified next action without claiming exhaustive correctness",
+      "stopping_contract": "after required dimensions are grounded, a third narrow Grimoire call requires a named unresolved behavior, boundary, test seam, or relationship",
+      "surfaces": [
+        "agentquery request and response",
+        "CLI --breadth and --detail",
+        "MCP input schema and server instructions",
+        "investigation session conversion",
+        "Grimoire skill",
+        "public reference documentation"
+      ]
+    },
+    "leveldb_deterministic_payload_measurement": {
+      "query": "automatic background compaction manual CompactRange DBImpl MaybeScheduleCompaction BackgroundCompaction",
+      "balanced_limit_8_no_session": {
+        "exact_matches": 8,
+        "source_matches": 8,
+        "symbol_matches": 8,
+        "combined_search_matches": 24,
+        "response_bytes": 44300
+      },
+      "narrow_default_limit_4_no_session": {
+        "exact_matches": 2,
+        "source_matches": 1,
+        "symbol_matches": 1,
+        "combined_search_matches": 4,
+        "response_bytes": 6315,
+        "byte_reduction_vs_balanced_percent": 85.7
+      },
+      "narrow_default_limit_4_session": {
+        "new_nodes": 4,
+        "new_source_ranges": 0,
+        "retrieval_hits": 4,
+        "response_bytes": 4575,
+        "byte_reduction_vs_balanced_percent": 89.7
+      },
+      "assessment": {
+        "status": "ready-for-targeted-inspection",
+        "next_action": "inspect-selected-handles",
+        "observed_dimensions": [
+          "owner",
+          "control_flow",
+          "tests"
+        ],
+        "missing_dimensions": [
+          "public_boundary"
+        ],
+        "evidence_items": 4,
+        "distinct_paths": 2
+      },
+      "warnings": []
+    },
+    "verified_conclusions": [
+      "the narrow path substantially reduces the LevelDB discovery payload without removing balanced retrieval",
+      "handle-only discovery and session conversion prevent source ranges from being materialized before inspect",
+      "assessment identifies the remaining public-boundary gap instead of encouraging another broad search"
+    ],
+    "unverified_conclusion": "Reliability across repeated post-change seeds and additional narrow tasks remains unmeasured.",
+    "agent_rerun_verified": true,
+    "agent_rerun_result": {
+      "api_calls": 13,
+      "total_tokens": 767025,
+      "model_seconds": 388.91,
+      "retrieval_calls": 2,
+      "retrieval_response_bytes": 9722,
+      "grounding_valid": true,
+      "manual_quality": "7/8"
+    }
+  },
+  "leveldb_post_mitigation_grimoire_rerun": {
+    "included_in_primary_totals": false,
+    "directory": "leveldb-background-compaction-pause/rerun4",
+    "revision": "99b3c03b3284f5886f9ef9a4ef703d57373e61be",
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "service_tier": "priority",
+    "usage": {
+      "input_tokens": 126997,
+      "cache_read_tokens": 625152,
+      "output_tokens": 14876,
+      "reasoning_tokens": 8690,
+      "total_tokens": 767025,
+      "api_calls": 13,
+      "completed": true,
+      "failed": false
+    },
+    "timing": {
+      "model_seconds": 388.91,
+      "prewarm_seconds": 8.9,
+      "model_plus_prewarm_seconds": 397.81,
+      "one_time_build_seconds": 94.513
+    },
+    "retrieval": {
+      "calls": 2,
+      "search_calls": 1,
+      "inspect_calls": 1,
+      "response_bytes": 9722,
+      "tool_errors": 0,
+      "trajectory": [
+        {
+          "mode": "search",
+          "breadth": "narrow",
+          "detail": "handles",
+          "combined_results": 4,
+          "response_bytes": 3155
+        },
+        {
+          "mode": "inspect",
+          "handles": 3,
+          "response_bytes": 6567
+        }
+      ]
+    },
+    "grounding": {
+      "valid": true,
+      "inline_citations": 46,
+      "structured_items": 11,
+      "handle_items": 2,
+      "canonical_handle_items": 2,
+      "missing_required_prefixes": [],
+      "findings": []
+    },
+    "manual_quality": {
+      "score": 7,
+      "maximum": 8,
+      "deduction": "The verification plan omitted an explicit close-or-destroy-while-paused test."
+    },
+    "change_from_primary_grimoire": {
+      "api_calls": -5,
+      "api_calls_percent": -27.8,
+      "total_tokens": -436208,
+      "total_tokens_percent": -36.3,
+      "cache_read_tokens": -459776,
+      "cache_read_tokens_percent": -42.4,
+      "retrieval_response_bytes": -19195,
+      "retrieval_response_bytes_percent": -66.4,
+      "model_seconds": -33.132,
+      "model_seconds_percent": -7.9
+    },
+    "comparison": {
+      "vs_plain": {
+        "api_calls": 0,
+        "total_tokens": -21756,
+        "total_tokens_percent": -2.8,
+        "model_seconds": -10.217,
+        "quality_points": -1
+      },
+      "vs_cbm": {
+        "api_calls": 1,
+        "total_tokens": 67441,
+        "total_tokens_percent": 9.6,
+        "model_seconds": 1.356,
+        "quality_points": -1
+      },
+      "vs_second_grimoire_rerun": {
+        "api_calls": -6,
+        "total_tokens": -936246,
+        "total_tokens_percent": -55.0
+      }
+    },
+    "rejected_preceding_trial": {
+      "directory": "leveldb-background-compaction-pause/rerun3",
+      "api_calls": 16,
+      "total_tokens": 895854,
+      "service_tier": null,
+      "rejection_reason": "Fast/Priority service tier was not routed and usage reported service_tier null."
+    },
+    "conclusion": "The revised narrow path matched Plain at 13 calls and moved Grimoire into the Plain/CBM token range. It demonstrates that the mitigation can correct the prior 18-to-19-call trajectory, but one post-change seed does not establish reliability."
+  }
 }

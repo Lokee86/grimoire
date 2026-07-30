@@ -10,7 +10,15 @@ import (
 const defaultDocumentPreviewCount = 1
 
 func applyKnowledgePreviews(documents []knowledge.Result, explicitCount int, detail string) []knowledge.Result {
-	if strings.EqualFold(strings.TrimSpace(detail), "full") {
+	detail = strings.ToLower(strings.TrimSpace(detail))
+	if detail == "full" {
+		return documents
+	}
+	if detail == "handles" {
+		for index := explicitCount; index < len(documents); index++ {
+			documents[index].Text = ""
+			documents[index].CodeLinks = nil
+		}
 		return documents
 	}
 	previewEnd := min(len(documents), explicitCount+defaultDocumentPreviewCount)
