@@ -8,7 +8,7 @@ Detailed contracts:
 - [Repository snapshots and incremental updates](repository-snapshots.md)
 - [Semantic graph index](vector-index.md)
 - [Application and operations reference](APPLICATION.md)
-- [Source codemap](CODEMAP.md)
+- [Maintainer map](MAINTAINER_MAP.md)
 
 ## Scope and dependency direction
 
@@ -188,3 +188,19 @@ Evidence: [`lexicon/records.rs`](../src/lexicon/records.rs), [`repository/increm
 6. **Readers observe one published generation.** Managed graph publication replaces `CURRENT` only after generation assembly; protocol pins one opened snapshot; vector work checks `CURRENT` for races.
 7. **Exact graph behavior is embedding-independent.** Vectors can supply entry points but do not create, replace, or reinterpret graph relationships.
 8. **Degradation is explicit.** Accepted Lexicon vocabulary loss produces persisted warnings; structural corruption and unsafe semantic guesses fail or are skipped according to the documented boundary.
+
+## Code map
+
+| Architecture boundary | Primary implementation | Related tests |
+| --- | --- | --- |
+| Library and executable boundaries | `src/lib.rs`, `src/main.rs`, `src/cli.rs` | CLI tests |
+| Lexicon ingestion | `src/lexicon/` | Lexicon module tests and sync tests |
+| Repository facts and dense compilation | `src/repository/` | repository module tests |
+| Packed graph format and reader/writer | `src/storage/` | storage round-trip and corruption tests |
+| Graph manifests, overlays, and compaction | `src/snapshot/` | graph, overlay, manifest, and compaction tests |
+| Repository snapshot publication | repository snapshot modules under `src/repository/` | repository snapshot tests |
+| Deterministic query protocol | `src/protocol/` | `src/protocol/tests.rs` |
+| Optional vectors | `src/vector/` | vector index and document tests |
+| Synthetic workloads and benchmarks | `src/synthetic/`, `src/benchmark/` | module-local tests |
+
+Arcana does not own language adapters, Grimoire's evidence assembly, or the embedding service process.

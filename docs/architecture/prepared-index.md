@@ -130,6 +130,17 @@ Successful saves also remove the former `.grimoire/index.json` file when present
 | `internal/index/lexical.go` | Chunk-to-lexical identity mapping and sidecar validation |
 | `internal/lexical/` | Identifier-aware analysis, compact document records, postings, and sidecar codec |
 
+## Tests
+
+```text
+internal/index/*_test.go
+internal/lexical/*_test.go
+internal/app/index_exclude_test.go
+internal/app/index_spans_test.go
+```
+
+Lexicon owns semantic source facts used as optional chunk boundaries. The prepared index owns Grimoire's source chunks, lexical sidecar, immutable object layout, and publication only.
+
 ## Related documentation
 
 - [System overview](system-overview.md)

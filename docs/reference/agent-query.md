@@ -104,3 +104,17 @@ All responses include `schema`, `mode`, and `snapshot`. Depending on mode they m
 `assessment` is conservative workflow guidance. It reports observed and missing `owner`, `control_flow`, `public_boundary`, and `tests` dimensions plus a `status` and `next_action`. It does not claim exhaustive correctness. Narrow session-backed search records discovery nodes and retrieval hits but does not materialize source ranges until `inspect`.
 
 Provider degradation is reported in `warnings`; remaining lanes still return when possible.
+
+## Code map
+
+| Contract area | Primary implementation | Related tests |
+| --- | --- | --- |
+| Public request and response schema | `internal/agentquery/schema.go`, `model.go` | `internal/agentquery/query_test.go` |
+| Orientation and search modes | `internal/agentquery/orient.go`, `search.go`, `search_budget.go`, `search_seeds.go`, `search_relationships.go` | `internal/agentquery/query_test.go`, response-shaping tests |
+| Handle creation and inspection | `internal/agentquery/handle.go`, `inspect.go`, `resolve.go` | query and runtime tests |
+| Trace and impact expansion | `internal/agentquery/trace.go`, `impact.go`, `trace_shape.go` | `internal/agentquery/trace_shape_test.go` |
+| Evidence diversity, excerpts, and assessment | `internal/agentquery/diversity.go`, `excerpt.go`, `assessment.go` | corresponding `*_test.go` files |
+| Lane assembly and budget enforcement | `internal/agentruntime/`, `internal/evidence/` | package-local `*_test.go` files |
+| Lexicon and Arcana adapters | `internal/lexiconfacts/`, `internal/arcanagraph/` | provider package tests |
+
+Source, documentation, symbol, and relationship lanes remain separate. This contract does not make Arcana vectors or any single ranking lane authoritative for the final answer.

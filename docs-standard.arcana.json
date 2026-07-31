@@ -10,7 +10,7 @@
     "arcana/docs/README.md",
     "arcana/docs/APPLICATION.md",
     "arcana/docs/ARCHITECTURE.md",
-    "arcana/docs/CODEMAP.md",
+    "arcana/docs/MAINTAINER_MAP.md",
     "arcana/docs/DEVELOPMENT.md",
     "arcana/docs/STATUS.md"
   ],
@@ -21,7 +21,7 @@
   "coverage": [
     {
       "paths": ["arcana/src/**"],
-      "docs": ["arcana/docs/ARCHITECTURE.md", "arcana/docs/CODEMAP.md"]
+      "docs": ["arcana/docs/APPLICATION.md", "arcana/docs/ARCHITECTURE.md", "arcana/docs/DEVELOPMENT.md"]
     }
   ],
   "change_rules": [

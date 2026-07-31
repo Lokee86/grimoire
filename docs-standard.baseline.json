@@ -23,26 +23,6 @@
     {
       "code": "missing-section",
       "message": "missing section: Notes",
-      "path": "docs/architecture/codemap.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Overview",
-      "path": "docs/architecture/codemap.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Purpose",
-      "path": "docs/architecture/codemap.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Related docs",
-      "path": "docs/architecture/codemap.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Notes",
       "path": "docs/architecture/components.md"
     },
     {
@@ -277,22 +257,12 @@
     },
     {
       "code": "missing-section",
-      "message": "missing section: Notes",
-      "path": "docs/reference/arcana.md"
-    },
-    {
-      "code": "missing-section",
       "message": "missing section: Overview",
       "path": "docs/reference/arcana.md"
     },
     {
       "code": "missing-section",
       "message": "missing section: Purpose",
-      "path": "docs/reference/arcana.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Related docs",
       "path": "docs/reference/arcana.md"
     },
     {
@@ -414,11 +384,6 @@
       "code": "missing-section",
       "message": "missing section: Related docs",
       "path": "docs/reference/knowledge.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Notes",
-      "path": "docs/reference/lexicon.md"
     },
     {
       "code": "missing-section",
@@ -428,11 +393,6 @@
     {
       "code": "missing-section",
       "message": "missing section: Purpose",
-      "path": "docs/reference/lexicon.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Related docs",
       "path": "docs/reference/lexicon.md"
     },
     {

@@ -146,3 +146,16 @@ Semantic query performs cheap manifest and file-size checks when opening the pin
 Process integrations can pass `--expected-snapshot sha256:<digest>` to `semantic-query`. Arcana then rejects the query if `.arcana/CURRENT` no longer matches the graph snapshot that the caller already resolved. This prevents semantic seeds from one graph snapshot being expanded through another.
 
 The active Grimoire discovery interface does not automatically query or build the Arcana semantic index. It resolves symbols through Lexicon and uses deterministic Arcana neighbors, paths, impact, and inspection operations. The semantic index remains available to Arcana's standalone CLI and paired graph-retrieval evaluation.
+
+## Code map
+
+| Vector concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Eligible graph documents and policy identity | `src/vector/documents.rs` | `src/vector/documents_tests.rs` |
+| Embedding client and transport | `src/vector/client.rs`, `http.rs` | inline/client tests |
+| Content-addressed cache | `src/vector/cache.rs` | cache and index tests |
+| Build, reuse, and publication | `src/vector/build.rs`, `index.rs` | `src/vector/index_tests.rs` |
+| Query scoring | `src/vector/search.rs` | vector index/search tests |
+| CLI integration | `src/cli_vectors.rs` | CLI tests |
+
+The vector index is optional and supplies semantic entry points. Exact graph traversal and snapshot validity remain independent and authoritative.

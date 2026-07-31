@@ -154,3 +154,16 @@ Before external publication:
 6. Confirm a fresh agent session discovers the installed skill and MCP tool.
 
 See [Installation and agent setup](../reference/installation.md) for the consumer workflow.
+
+## Code map
+
+| Release concern | Primary implementation | Related tests or gates |
+| --- | --- | --- |
+| Root workflow orchestration | `scripts/workflow.py` | `scripts/test_workflow.py` |
+| Local installation and layout | `scripts/install.py` | `scripts/test_installed_mcp.py` and smoke checks |
+| GitHub release automation | `.github/workflows/release.yml` | workflow build/test/package jobs |
+| Documentation gate | `.github/workflows/documentation-standard.yml`, `scripts/check_docs.py` | root and component documentation checks |
+| Lexicon packaging | `lexicon/tools/package_release.py` | `lexicon/tools/test_package_release.py`, installer smoke tests |
+| Arcana build artifact | `arcana/Cargo.toml`, `arcana/src/main.rs` | Cargo format/check/test gates |
+
+Release automation composes independently owned components; it does not redefine their runtime contracts.

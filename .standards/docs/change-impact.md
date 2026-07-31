@@ -15,7 +15,7 @@ Documentation impact is determined by changed responsibility, not by file extens
 | Change | Required documentation impact |
 | --- | --- |
 | CLI, API, packet, schema, config, default, diagnostic, or exit behavior | Update exact reference and affected guide |
-| Ownership, dependency, process, lifecycle, or data flow | Update architecture and codemap |
+| Ownership, dependency, process, lifecycle, or data flow | Update architecture, maintainer map, and affected focused code maps |
 | Persistent state, storage format, transaction, mutation, or migration | Update architecture, reference, operations, recovery, and coverage |
 | Concurrency, scheduling, watch, daemon, or subprocess behavior | Update lifecycle/operations, failure recovery, and behavioral contracts |
 | Build, test, fixture, CI, packaging, or release process | Update development or release documentation |
@@ -24,7 +24,7 @@ Documentation impact is determined by changed responsibility, not by file extens
 | New defect, blocker, or transitional gap | Update limits |
 | Future proposal or unresolved decision | Update planning only; do not present it as current |
 | Research result or benchmark | Update research and any product/planning decision it changes |
-| Package, component, or command added, removed, renamed, or reassigned | Update coverage map, ownership index, and codemap |
+| Package, component, or command added, removed, renamed, or reassigned | Update maintainer map, coverage map, ownership index, and affected focused code maps |
 | Critical invariant or protecting test changes | Update behavioral-contract matrix |
 
 ## No-impact claims
@@ -41,7 +41,7 @@ no time
 README still looks fine
 ```
 
-A behavior-preserving refactor may still require codemap or ownership updates when files, packages, or seams moved.
+A behavior-preserving refactor may still require maintainer-map, focused-code-map, or ownership updates when files, packages, components, or seams moved.
 
 ## Configuration
 

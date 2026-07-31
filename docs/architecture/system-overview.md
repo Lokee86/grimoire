@@ -115,3 +115,17 @@ Each format remains independently versioned and owned. Integration occurs throug
 ## Retired context-package path
 
 The former package compiler attempted to merge and token-fit source and structural evidence before an agent could investigate it. The command and its assembly, compiler, curation, query-shape, diff-context, graph-ranking, and source-evaluation code have been removed. Historical reports remain calibration records only.
+
+## Code map
+
+| Runtime stage | Primary implementation | Related tests |
+| --- | --- | --- |
+| CLI/MCP entry and dispatch | `cmd/grimoire/main.go`, `internal/app/run.go`, `internal/app/query.go`, `internal/app/mcp.go` | `internal/app/run_test.go`, `internal/app/discovery_test.go`, `internal/app/mcp_test.go` |
+| Repository preparation | `internal/repostate/`, `internal/app/discovery_prepare.go` | `internal/repostate/*_test.go`, `internal/app/discovery_test.go` |
+| Source indexing and retrieval | `internal/index/`, `internal/lexical/`, `internal/retrieve/` | package-local `*_test.go` files |
+| Documentation retrieval | `internal/knowledge/`, `internal/knowledgevector/` | package-local `*_test.go` files |
+| Symbol and relationship providers | `internal/lexiconfacts/`, `internal/arcanagraph/`, `internal/structure/` | provider package tests |
+| Unified discovery response | `internal/agentruntime/`, `internal/agentquery/`, `internal/evidence/` | package-local `*_test.go` files |
+| Session persistence | `internal/investigation/` | `internal/investigation/*_test.go` |
+
+The retired context-package assembly path is documentation history only; it is not an active implementation owner.

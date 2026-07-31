@@ -8,7 +8,7 @@ This directory is the authoritative documentation set for Arcana's current appli
 | --- | --- | --- |
 | [Application and operations](APPLICATION.md) | Users and operators | CLI commands, state layout, synchronization, publication, consumer registration, locking, failures, and diagnostics |
 | [Architecture](ARCHITECTURE.md) | Developers and integrators | Ownership boundaries, dependency direction, ingestion, compilation, storage, snapshots, protocol, vectors, and invariants |
-| [Codemap](CODEMAP.md) | Maintainers and agents | File-level ownership, runtime flows, tests, and starting points for common changes |
+| [Maintainer map](MAINTAINER_MAP.md) | Maintainers and agents | Short routing from common changes to canonical documents and implementation boundaries |
 | [Development and verification](DEVELOPMENT.md) | Contributors | Prerequisites, builds, focused tests, complete verification, benchmarks, and documentation requirements |
 | [Current status and limitations](STATUS.md) | Users and maintainers | Implemented capabilities, explicit limits, non-claims, and optional boundaries |
 
@@ -36,6 +36,6 @@ Current-state documents must not describe a future possibility as implemented. F
 
 ## Placement rules
 
-Place application behavior and operator procedures in `APPLICATION.md`. Place ownership and invariants in `ARCHITECTURE.md`. Place file navigation in `CODEMAP.md`. Place build and verification procedure in `DEVELOPMENT.md`. Place capability summaries and unresolved constraints in `STATUS.md`.
+Place application behavior and operator procedures in `APPLICATION.md`. Place ownership and invariants in `ARCHITECTURE.md`. Place cross-document ownership routing in `MAINTAINER_MAP.md`; keep focused code maps in the owning documents. Place build and verification procedure in `DEVELOPMENT.md`. Place capability summaries and unresolved constraints in `STATUS.md`.
 
 Normative focused contracts remain in their owning documents. Benchmark results are evidence for their exact options and execution environment, not permanent product guarantees.

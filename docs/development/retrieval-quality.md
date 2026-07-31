@@ -90,3 +90,16 @@ Include exact literals, local symbol ownership, cross-file call paths, configura
 ## Historical package evaluation
 
 The repository contains older retrieval and package-fitting corpora and reports. They remain historical calibration artifacts for the retired context pipeline. They must not be presented as current unified-discovery benchmarks.
+
+## Code map
+
+| Evaluation area | Primary implementation or corpus | Related tests/reports |
+| --- | --- | --- |
+| Source exact and BM25 retrieval | `internal/retrieve/` | retrieve package tests and benchmarks |
+| Documentation retrieval | `internal/knowledge/`, `internal/knowledgeevaluation/` | `evaluation/knowledge/` reports |
+| Lexicon symbol evidence | `internal/lexiconfacts/` | provider tests and retrieval-quality cases |
+| Arcana structural evidence | `internal/arcanagraph/`, `internal/arcanaevaluation/` | `evaluation/arcana/` reports |
+| Small deterministic corpus | `internal/app/testdata/retrieval-quality/` | app evaluation tests |
+| End-to-end agent discovery | `evaluation/agent_discovery/`, `evaluation/agent_benchmark_tasks.v2.json` | retained benchmark runs and findings |
+
+Evaluation code measures bounded corpora and tasks. It does not establish universal answer quality or replace correctness tests.

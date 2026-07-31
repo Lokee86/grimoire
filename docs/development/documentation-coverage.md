@@ -45,6 +45,18 @@ Coverage includes commands, packages, component boundaries, stateful flows, mach
 | Arcana graph snapshot, overlay, and compaction lifecycle | [Arcana architecture](../../arcana/docs/ARCHITECTURE.md), [Repository snapshots](../../arcana/docs/repository-snapshots.md) |
 | Document-vector and graph-vector storage through Lodestone | [Vector store](../reference/vector-store.md), [Arcana vector index](../../arcana/docs/vector-index.md) |
 
+## Code map
+
+| Concern | Primary implementation | Related verification |
+| --- | --- | --- |
+| Shared documentation policy engine | `.standards/docs_policy/` | configured checks for root, Lexicon, and Arcana trees |
+| Repository documentation configuration | `docs-standard.json`, `docs-standard.lexicon.json`, `docs-standard.arcana.json` | corresponding baseline files |
+| Grimoire-specific required documents and links | `scripts/check_docs.py` | `python scripts/check_docs.py` through the root workflow |
+| Workflow integration | `scripts/workflow.py` | `scripts/test_workflow.py` |
+| CI enforcement | `.github/workflows/documentation-standard.yml` | pull-request documentation gate |
+
+Coverage tables identify canonical owners. They do not substitute for prose, state/lifecycle explanation, focused code maps, or tests in those owners.
+
 ## Related docs
 
 - [Behavioral contract matrix](behavioral-contract-matrix.md)

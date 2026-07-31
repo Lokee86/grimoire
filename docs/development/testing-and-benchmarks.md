@@ -157,3 +157,19 @@ Do not compare source-lane scores directly with document, symbol, or relationshi
 Historical context-package reports remain useful for measuring the retired pipeline but must be labeled historical.
 
 Current end-to-end results and task-shape interpretation are summarized in [Agent benchmark findings](agent-benchmark-findings.md). The checked-in raw reports include the version 2 architecture, ownership, cross-language, and impact-analysis tasks under `evaluation/results/agent-benchmark-v2/`, the final [Space Rocks network-interest benchmark](../../evaluation/results/network-interest-agent-benchmark-2026-07-27-v4/report.md), and the completed [HikariCP/Detekt/Now in Android unfamiliar-repository benchmark](../../evaluation/results/multi-repo-agent-benchmark-2026-07-27-v1/report.md). Raw reports remain authoritative for exact conditions.
+
+## Code map
+
+| Verification surface | Primary implementation or command owner | Related artifacts |
+| --- | --- | --- |
+| Root bounded workflow | `scripts/workflow.py` | `scripts/test_workflow.py` |
+| Go package tests | `internal/**`, `cmd/**` | package-local `*_test.go` files |
+| Lexicon full matrix | `lexicon/evaluation/run_tests.py` | adapter and application test suites |
+| Lexicon corpus validation | `lexicon/evaluation/run_validation.py` | `lexicon/evaluation/validation/` |
+| Arcana correctness | `arcana/Cargo.toml`, `arcana/src/**` | Rust module tests and fixtures |
+| Documentation retrieval evaluation | `internal/knowledgeevaluation/`, `evaluation/knowledge/` | judged corpus and reports |
+| Arcana structural evaluation | `internal/arcanaevaluation/`, `evaluation/arcana/` | judged corpus and reports |
+| Agent discovery benchmark | `evaluation/agent_discovery/` | task definitions, run artifacts, and findings |
+| Documentation validation | `scripts/check_docs.py`, `.standards/docs_policy/` | root and component documentation gates |
+
+Benchmarks provide measured evidence; they do not replace deterministic correctness tests or component contracts.

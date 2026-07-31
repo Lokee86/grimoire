@@ -14,6 +14,7 @@ The standard governs documentation ownership, document types, structure, impleme
 
 - [Documentation standard](documentation-standard.md) — Normative rules for documentation ownership, taxonomy, shape, coverage, and lifecycle.
 - [Documentation procedure](documentation-procedure.md) — Required workflow for creating, changing, moving, graduating, and removing documentation.
+- [Maintainer map](maintainer-map.md) — Navigation from common standards changes to their canonical documents and implementation boundaries.
 - [Repository profiles](profiles.md) — Required document surfaces for libraries, CLIs, services, applications, games, and umbrella products.
 - [Change-impact rules](change-impact.md) — How implementation changes trigger documentation changes in the same work.
 - [Completeness and status claims](completeness.md) — Evidence required before calling documentation complete, current, or compliant.

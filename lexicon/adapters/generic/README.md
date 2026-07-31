@@ -28,3 +28,13 @@ lexicon-generic --repo <repository> --language generic-java --output facts.jsonl
 ```
 
 Incremental invocations may repeat `--changed-file` and `--removed-file`. Output follows the shared [facts-v1 contract](../../spec/facts-v1.md) and is byte-deterministic for identical input.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Entry and file selection | `main.go`, `files.go` | `adapter_test.go` |
+| Masking and conservative parsing | `mask.go`, `parse.go` | calibration tests |
+| Analysis and emitted facts | `analyze.go`, `facts.go` | adapter and calibration tests |
+
+The generic adapter is a fallback and does not claim language-specific semantic resolution.

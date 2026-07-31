@@ -20,13 +20,20 @@ AGENTS.md
 docs root index
 documentation policy
 documentation procedure
+maintainer map
 planning owner
 limits owner
 implementation coverage map
 docs-standard.json
 ```
 
-Small archived experiments may use the `minimal` profile and explicitly omit coverage, planning, or limits.
+Small archived experiments may use the `minimal` profile and explicitly omit a maintainer map, coverage, planning, or limits.
+
+## Maintainer-map requirement
+
+Every non-minimal profile requires one repository-level maintainer map. Monorepos, umbrella products, and repositories with independently maintained engines or applications add component-local maps when the repository-level map would otherwise become vague or excessively large.
+
+The map routes a change area to its canonical documentation and primary implementation boundary. It does not replace implementation coverage, architecture ownership, focused code maps, or behavioral-contract mapping.
 
 ## Minimal profile
 

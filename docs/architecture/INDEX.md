@@ -4,7 +4,7 @@ Architecture documentation describes implemented ownership, data flow, state tra
 
 - [Component architecture](components.md) — monorepo layout, independent-use contract, dependency direction, state ownership, and release boundaries.
 - [Analysis stack](analysis-stack.md) — the implemented Lexicon publication, Arcana synchronization, Grimoire preparation, snapshot alignment, and degradation lifecycle.
-- [Grimoire codemap](codemap.md) — file-level ownership for CLI/MCP, indexing, retrieval, documents, providers, sessions, and evaluation.
+- [Grimoire maintainer map](maintainer-map.md) — short ownership routing for common Grimoire changes.
 - [System overview](system-overview.md) — unified discovery lanes, provider routing, progressive expansion, and fallback boundaries.
 - [Prepared index](prepared-index.md) — immutable source identities, incremental rebuilds, and publication.
 

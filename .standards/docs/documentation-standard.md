@@ -18,14 +18,15 @@ The standard separates facts by what they are and who owns them. Repository prof
 2. Current behavior, planning, research, limitations, and agent guidance remain visibly separate.
 3. Root `README.md` is a product entry point, not the complete manual.
 4. Architecture documentation explains ownership and behavior in prose; a file list or code map is supporting evidence, not a substitute.
-5. Public commands, APIs, schemas, configuration, defaults, diagnostics, and compatibility behavior have exact reference owners.
-6. Stateful flows, mutation boundaries, persistence models, concurrency boundaries, recovery seams, and critical invariants have explicit current owners.
-7. Implemented facts must not live only in planning or research.
-8. Every documentation folder is indexed according to the repository's configured index convention.
-9. Internal links must resolve.
-10. Documentation and affected coverage maps change in the same implementation change.
-11. Exceptions are explicit, narrow, and justified in `docs-standard.json`.
-12. Documentation status claims must follow [Completeness and status claims](completeness.md).
+5. Every non-minimal repository has a maintainer map that routes common change areas to canonical documentation and primary implementation boundaries.
+6. Public commands, APIs, schemas, configuration, defaults, diagnostics, and compatibility behavior have exact reference owners.
+7. Stateful flows, mutation boundaries, persistence models, concurrency boundaries, recovery seams, and critical invariants have explicit current owners.
+8. Implemented facts must not live only in planning or research.
+9. Every documentation folder is indexed according to the repository's configured index convention.
+10. Internal links must resolve.
+11. Documentation, maintainer maps, and affected coverage maps change in the same implementation change when ownership or navigation changes.
+12. Exceptions are explicit, narrow, and justified in `docs-standard.json`.
+13. Documentation status claims must follow [Completeness and status claims](completeness.md).
 
 ## Canonical document classes
 
@@ -38,6 +39,12 @@ Task-oriented instructions for accomplishing a user or operator goal. Guides sta
 ### Reference
 
 Exact public contracts: commands, flags, APIs, packets, schemas, configuration, defaults, precedence, diagnostics, exit behavior, compatibility, and machine-readable formats.
+
+### Maintainer map
+
+A repository-navigation artifact that routes common change intents to their canonical documentation, primary implementation boundary, and relevant verification surface. A maintainer map is not a repository inventory, package catalogue, generated dependency graph, or substitute for focused architecture and code maps.
+
+The conventional repository-level location is `docs/architecture/maintainer-map.md` or `docs/maintainer-map.md`. Independently maintained components in a monorepo or umbrella product may use component-local `MAINTAINER_MAP.md` files linked from the repository-level map.
 
 ### Architecture
 
@@ -115,6 +122,17 @@ Diagnostics or failure behavior
 Examples
 ```
 
+### Maintainer map
+
+```text
+Scope and intended use
+Change-area routing table
+Canonical documentation owner for each route
+Primary implementation boundary for each route
+Relevant verification or test owner when useful
+Cross-component boundaries and links to component maps
+```
+
 ### Architecture
 
 ```text
@@ -181,6 +199,10 @@ Small utility packages may share the owner of the subsystem they concretely serv
 A coverage-table entry is not sufficient by itself. The linked owner must actually explain responsibility, flow, state, non-ownership, invariants, failure or recovery, extension seams, and relevant tests or public contracts.
 
 Critical behavioral invariants should map to focused tests and release gates through a behavioral-contract matrix for complex or stateful products.
+
+Every non-minimal repository has one repository-level maintainer map. It must route by maintainer intent or change area rather than merely repeat the directory tree. Multi-component repositories add component maps when one top-level table cannot route maintainers to a sufficiently precise implementation boundary.
+
+Maintainer maps point to canonical owners; they do not become duplicate owners. Focused code maps remain inside the architecture, reference, operations, or development documents that own the behavior.
 
 ## Index and link requirements
 

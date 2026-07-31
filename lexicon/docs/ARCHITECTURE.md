@@ -185,3 +185,18 @@ Consumers resolve `CURRENT` once and then read immutable data. They observe eith
 The public compatibility surfaces are the versioned contracts under `spec/`, the CLI behavior documented in `docs/APPLICATION.md`, and the consumer definition format.
 
 Internal package structure, temporary adapter JSONL paths, private mirror implementation, scheduling heuristics, and binary storage implementation details outside the versioned object contract may change without becoming public application APIs.
+
+## Code map
+
+| Architecture boundary | Primary implementation | Related tests |
+| --- | --- | --- |
+| Scan lifecycle and planning | `internal/scan/` | `internal/scan/*_test.go` |
+| Adapter registry, fingerprinting, and execution | `internal/adapters/`, `internal/languages/` | package-local tests |
+| Scoped repositories and dependency expansion | `internal/scope/`, `internal/objectstore/dependencies.go`, `internal/scan/plan.go` | scope, dependency, and plan tests |
+| Immutable objects, manifests, and recovery | `internal/objectstore/` | `internal/objectstore/*_test.go` |
+| Private mirror and Git-backed change detection | `internal/state/`, `internal/files/` | state and files tests |
+| Interstack contracts | `internal/interstack/`, `internal/scan/interstack.go` | interstack and scan integration tests |
+| Consumer publication boundary | `internal/consumer/` | consumer tests |
+| Concurrency and writer safety | `internal/scan/resource_scheduler.go`, `parallel_plan.go`, `internal/lock/` | scheduler, parallel-plan, and lock tests |
+
+Adapters own parsing and semantic resolution. Arcana owns graph compilation and queries. Lexicon architecture ends at normalized immutable facts and consumer publication.

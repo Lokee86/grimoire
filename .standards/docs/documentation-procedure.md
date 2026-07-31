@@ -13,18 +13,20 @@ Use this procedure whenever implementation, public behavior, ownership, state, o
 ## Procedure
 
 1. **Identify the changed responsibility.** Determine the public surface, runtime owner, state owner, flow, invariant, or operational behavior affected.
-2. **Classify each fact.** Separate guide, reference, architecture, operations, domain/design, data/protocol, development, research, planning, limits, and agent material.
-3. **Find the canonical owner.** Reuse an existing document before creating another. Place information where it is owned, not merely where it is consumed.
-4. **Decide whether a new boundary is justified.** Create a file only for a durable independently discoverable concern. Create a folder only for a durable boundary expected to contain several documents.
-5. **Update indexes with the change.** Add, move, or remove every affected direct-file and direct-folder entry.
-6. **Write the required shape.** Explain behavior and ownership in prose; use tables, code maps, commands, schemas, and examples as supporting evidence.
-7. **Update implementation coverage.** Add or revise coverage-map entries for packages, commands, stateful flows, persistence, concurrency, machine-readable contracts, and recovery seams.
-8. **Update behavioral contracts.** When a critical invariant or protecting test changes, update the behavioral-contract matrix.
-9. **Graduate shipped work.** Move implemented facts out of planning. Retain research evidence but update the current or planning owner with the resulting decision.
-10. **Record unresolved reality.** Put active defects and transitional gaps in limits; do not hide them in notes or leave them implied.
-11. **Remove stale material.** Delete replaced legacy docs, stale duplicate claims, graduated stubs, obsolete links, and empty non-stub folders.
-12. **Run compliance checks.** Run the repository's Demon Docs checks, shared documentation checker, Pitlord policy, and normal test gate as configured.
-13. **Report documentation impact.** State what was inspected, updated, unaffected, checked, and still missing.
+2. **Use the maintainer map when the owner is unclear.** Route from the change area to the canonical document and primary implementation boundary; do not treat the maintainer map as the detailed owner.
+3. **Classify each fact.** Separate guide, reference, maintainer-map, architecture, operations, domain/design, data/protocol, development, research, planning, limits, and agent material.
+4. **Find the canonical owner.** Reuse an existing document before creating another. Place information where it is owned, not merely where it is consumed.
+5. **Decide whether a new boundary is justified.** Create a file only for a durable independently discoverable concern. Create a folder only for a durable boundary expected to contain several documents.
+6. **Update indexes with the change.** Add, move, or remove every affected direct-file and direct-folder entry.
+7. **Write the required shape.** Explain behavior and ownership in prose; use tables, code maps, commands, schemas, and examples as supporting evidence.
+8. **Update the maintainer map.** Revise routes when a change area, canonical owner, component boundary, implementation root, or verification surface is added, removed, renamed, or reassigned.
+9. **Update implementation coverage.** Add or revise coverage-map entries for packages, commands, stateful flows, persistence, concurrency, machine-readable contracts, and recovery seams.
+10. **Update behavioral contracts.** When a critical invariant or protecting test changes, update the behavioral-contract matrix.
+11. **Graduate shipped work.** Move implemented facts out of planning. Retain research evidence but update the current or planning owner with the resulting decision.
+12. **Record unresolved reality.** Put active defects and transitional gaps in limits; do not hide them in notes or leave them implied.
+13. **Remove stale material.** Delete replaced legacy docs, stale duplicate claims, graduated stubs, obsolete links, and empty non-stub folders.
+14. **Run compliance checks.** Run the repository's Demon Docs checks, shared documentation checker, Pitlord policy, and normal test gate as configured.
+15. **Report documentation impact.** State what was inspected, updated, unaffected, checked, and still missing.
 
 ## Reuse before creation
 
@@ -63,6 +65,7 @@ Before completion, verify:
 
 ```text
 The type and owner are correct.
+The maintainer map routes common changes to the correct canonical owners and implementation boundaries.
 Every direct file and folder is indexed.
 Relative links resolve.
 Current behavior is not owned only by planning or research.

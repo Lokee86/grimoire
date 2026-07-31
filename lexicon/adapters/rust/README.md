@@ -58,3 +58,16 @@ Malformed or dynamically generated Cargo metadata, procedural-macro-generated de
 ## Dataflow facts
 
 The adapter emits conservative `reads` and `writes` edges from functions and closures to repository-local parameters, locals, constants/statics, and resolved fields. Assignments write, compound assignments read and write, and initializer, argument, and return expressions contribute reads. Block shadowing is respected. Rust has no increment/decrement operators. Deref/alias analysis, unsafe mutation, external values, macro-generated bodies that are not parsed, and unresolved receiver fields are omitted rather than guessed.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Entry and orchestration | `src/main.rs`, `cli.rs`, `orchestrator.rs` | `src/tests.rs` |
+| Discovery, parsing, and extraction | `discovery.rs`, `parser.rs`, `extractor.rs`, `items.rs` | module tests and fixtures |
+| Declarations and type resolution | `declarations.rs`, `semantic.rs`, `type_resolution.rs`, `resolve.rs` | module tests |
+| Calls, relationships, and implementations | `call_*.rs`, `relationships.rs`, `implementations.rs` | module tests |
+| Dataflow and dependencies | `dataflow.rs`, `flow.rs`, `dependencies.rs`, `imports.rs` | module tests and fixtures |
+| Contract and output | `model.rs`, `contract.rs`, `emit.rs` | contract coverage in module tests |
+
+Macro expansion and runtime dispatch remain conservative where source analysis cannot establish a unique target.

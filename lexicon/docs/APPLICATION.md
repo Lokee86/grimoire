@@ -145,3 +145,18 @@ Additions, deletions, renames, copies, language configuration changes, missing p
 The demon ignores Git metadata, Lexicon state, linked worktrees, dependency directories, and build outputs. An optional repository-root `.lexiconignore` adds gitignore-compatible patterns, including comments, globs, `**`, path hierarchy, and `!` negation, on top of those permanent exclusions. Ignored files are omitted from complete mirror scans, path syncs, and demon watch filtering. Permanent exclusions cannot be re-included by `.lexiconignore`; they include `.git/`, `.worktrees/`, `.workingtrees/`, the Warlock state directories, `node_modules/`, `vendor/`, `target/`, `dist/`, `build/`, `.venv/`, `venv/`, `__pycache__/`, and `.pytest_cache/`.
 
 The demon keeps the loaded ignore policy in memory while processing filesystem events. A change to `.lexiconignore` reloads the policy, refreshes recursive watches, and triggers a complete scan. New directories are watched recursively. Deletes and renames remove their mirrored paths. Watcher errors trigger an immediate full reconciliation, and the configured reconciliation interval provides an additional recovery path.
+
+## Code map
+
+| Application area | Primary implementation | Related tests |
+| --- | --- | --- |
+| Executable entry and command dispatch | `cmd/lexicon/main.go`, `internal/cli/cli.go` | `internal/cli/*_test.go` |
+| Repository and configuration selection | `internal/cli/repository.go`, `internal/config/` | CLI and config tests |
+| Initialization, scans, and rebuilds | `internal/scan/scanner_open.go`, `scanner.go`, `rebuild.go` | `internal/scan/*_test.go` |
+| Transaction, recovery, and publication | `internal/scan/transaction.go`, `internal/objectstore/store.go`, `pending.go` | scan and object-store tests |
+| Watch mode and writer locking | `internal/watch/`, `internal/lock/` | package-local tests |
+| Consumers | `internal/consumer/`, `internal/cli/consumers.go` | consumer and CLI tests |
+| Export and garbage collection | `internal/objectstore/export*.go`, `gc*.go`, `internal/cli/storage.go` | object-store and CLI operation tests |
+| Status and diagnostics | `internal/cli/status.go`, `doctor.go`, `doctor_checks.go` | CLI diagnostic tests |
+
+Language parsing belongs to the owning adapter. The application coordinates adapters and immutable state but does not define language semantics.

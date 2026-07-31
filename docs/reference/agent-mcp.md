@@ -242,3 +242,16 @@ Start with Grimoire when the task requires architectural ownership, cross-langua
 Do not force a minimum number of Grimoire calls. For narrow work, a third call requires a named unresolved behavior, boundary, test seam, or relationship. An agent that uses one search, one targeted inspection, and then synthesizes is operating correctly.
 
 See [Agent benchmark findings](../development/agent-benchmark-findings.md) for measured examples.
+
+## Code map
+
+| Surface | Primary implementation | Related tests |
+| --- | --- | --- |
+| MCP command startup and tool registration | `internal/app/mcp.go` | `internal/app/mcp_test.go`, `internal/app/mcp_audit_test.go` |
+| JSON-RPC framing and stdio server | `internal/mcpserver/framing.go`, `model.go`, `server.go` | `internal/mcpserver/server_test.go` |
+| Discovery request execution | `internal/agentruntime/`, `internal/agentquery/` | package-local `*_test.go` files |
+| Stable handles and session reuse | `internal/investigation/`, `internal/agentruntime/session_handles.go` | `internal/investigation/*_test.go`, `internal/agentruntime/*_test.go` |
+| Repository preparation and state modes | `internal/repostate/`, `internal/app/discovery_prepare.go` | `internal/repostate/*_test.go`, `internal/app/discovery_test.go` |
+| Installed agent-skill packaging | `scripts/install.py`, packaged skill assets | installation and MCP smoke tests |
+
+The MCP layer exposes Grimoire's provider-neutral discovery surface. It does not expose Lexicon or Arcana internals as direct wire contracts.

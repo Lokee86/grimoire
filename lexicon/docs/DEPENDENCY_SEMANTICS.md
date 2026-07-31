@@ -28,3 +28,17 @@ The parsers read manifest text or JSON/TOML data only. They never execute manife
 - Rust: Cargo normal/development/build/target/path dependencies through Cargo metadata, plus resolved local Rust module imports.
 
 Unsupported forms include dynamic manifest construction, dependency execution, unresolved package-manager aliases, non-literal Ruby dependency calls, computed Godot paths, and unresolved Rust/Cargo metadata entries. These are not treated as proven dependency edges.
+
+## Code map
+
+| Language or boundary | Primary implementation | Related tests |
+| --- | --- | --- |
+| Go dependencies | `adapters/go/dependencies.go`, semantic package loading in `adapter.go` and `modules.go` | Go adapter semantic and package tests |
+| GDScript dependencies | `adapters/gdscript/dependencies.go`, `project_config.go` | GDScript adapter tests |
+| Python dependencies | `adapters/python/lexicon_python/dependencies.py`, import extraction files | `adapters/python/tests/test_adapter.py` |
+| Ruby dependencies | `adapters/ruby/dependencies.rb`, Ripper import/call extraction | `adapters/ruby/test/test_adapter.rb` |
+| Rust dependencies | `adapters/rust/src/dependencies.rs`, `imports.rs`, `paths.rs` | Rust adapter tests and fixtures |
+| JavaScript/TypeScript/Svelte dependencies | `adapters/typescript/src/dependencies.ts`, `ast-imports.ts`, `svelte.ts` | TypeScript adapter tests |
+| Incremental dependency use | `internal/objectstore/dependencies.go`, `internal/scan/plan.go`, `internal/scope/repository.go` | object-store, scan-plan, and scope tests |
+
+Dependency emitters describe evidence available to Lexicon's incremental planner. They do not claim runtime-complete dynamic dependency recovery.

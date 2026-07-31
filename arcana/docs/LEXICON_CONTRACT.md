@@ -43,3 +43,15 @@ When node identities remain unchanged, Arcana emits one cumulative overlay again
 `arcana sync --register` writes a versioned command definition under `.lexicon/consumers/`. Lexicon invokes that one-shot command after every successful manual or daemon-triggered scan. The event only reduces latency: immutable snapshots remain the durable handoff, so Arcana can also catch up later through an explicit `arcana sync`.
 
 Scoped Lexicon `mode=incremental` JSONL streams remain invalid as complete import input. Arcana derives incremental scope from verified snapshot manifests rather than accepting a partial stream without its surrounding snapshot state.
+
+## Code map
+
+| Contract concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Snapshot and object loading | `src/lexicon/snapshot.rs`, `format.rs`, `binary.rs`, `object.rs` | Lexicon module tests and binary/format tests |
+| Record and identity conversion | `src/lexicon/records.rs`, `src/repository/model.rs` | record conversion and compiler tests |
+| Compatibility warnings | `src/lexicon/mod.rs`, `records.rs`, `src/cli_sync.rs` | Lexicon and sync tests |
+| Snapshot comparison and update choice | `src/lexicon/mod.rs`, `src/cli_sync.rs`, `src/repository/incremental.rs` | sync and incremental tests |
+| Normative producer contract | `lexicon/spec/` | owned and verified by Lexicon; consumed here |
+
+Arcana reads immutable Lexicon state. It does not invoke adapters or reinterpret source-language semantics.

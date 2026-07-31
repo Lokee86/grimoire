@@ -97,3 +97,17 @@ The pinned C++ corpus adds LevelDB `99b3c03b3284f5886f9ef9a4ef703d57373e61be` an
 On the accepted Git scan, 88,511 direct and expanded call-expression sites were observed. Of the 66,314 sites with repository-callable evidence, 64,456 had definite targets, 1,858 had possible targets only, and 3 retained both definite and possible evidence: 97.2% definite and 100% definite-or-possible. No call remained classified as a missing repository target. The remaining unresolved sites were external APIs, genuine dynamic dispatch, explicit ambiguity, or explicitly unsupported macro forms.
 
 The C++ calibration raised definite call sites from 6,088 to 7,079 in fmt, 4,623 to 4,855 in LevelDB, and 1,890 to 2,184 in Catch2. The untouched nlohmann/json holdout improved from 1,737 to 1,857 definite sites. fmt's 90th-percentile possible-target fanout remains 13 after adding 1,106 macro-mediated call occurrences and 2,801 direct argument-flow occurrences. All four C++ cases require zero unresolved call `missing-target` records; remaining uncertainty is explicit overload, template, dynamic-dispatch, unsupported macro, or external-library evidence.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Entry and repository discovery | `main.go`, `discovery.go` | `main_test.go`, `adapter_test.go` |
+| Parsing and syntax model | `parser.go`, `syntax.go`, `model.go` | calibration and parser-facing tests |
+| Declarations and facts | `declarations.go`, `declaration_*.go`, `facts.go`, `emission.go` | contract and calibration tests |
+| Includes and macros | `include_resolution.go`, `macros.go`, `macro_*.go` | macro semantic and expansion tests |
+| Calls and argument resolution | `call*.go`, `argument_resolution.go`, `resolution.go` | call and argument-resolution tests |
+| Pointers and indirect calls | `pointer_*.go`, `indirect_calls.go` | pointer and call-resolution tests |
+| Relationship policy | `relationship_resolution.go`, `visibility.go`, `header_inference.go` | member and qualified-call tests |
+
+The adapter emits conservative static facts. Build-system truth and runtime dispatch remain outside its authority.

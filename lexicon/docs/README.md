@@ -22,7 +22,7 @@ Lexicon documentation follows these rules:
 | --- | --- |
 | [APPLICATION.md](APPLICATION.md) | CLI flags, repository discovery, state layout, scan behavior, watch mode, consumers, export, garbage collection, and recovery |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System ownership, components, analysis lifecycle, incremental boundaries, concurrency, storage, and consumer integration |
-| [CODEMAP.md](CODEMAP.md) | Implementation-grounded map of CLI entry points, scan orchestration, adapters, storage and state, consumers, interstack resolution, configuration, runtime flows, and tests |
+| [MAINTAINER_MAP.md](MAINTAINER_MAP.md) | Short routing map from common changes to canonical documents and implementation boundaries |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Prerequisites, build steps, focused tests, full verification, corpus validation, packaging, and documentation checks |
 | [STATUS.md](STATUS.md) | Current implementation state, adapter coverage, validated behavior, and explicit limitations |
 | [DEPENDENCY_SEMANTICS.md](DEPENDENCY_SEMANTICS.md) | Cross-language `depends-on` model and adapter-specific manifest coverage |

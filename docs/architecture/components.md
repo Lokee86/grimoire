@@ -90,3 +90,18 @@ Each component may still be built and used independently from its owning source 
 ## Product boundary
 
 The active investigation path is Grimoire's progressive discovery interface. Direct Lexicon and Arcana commands remain available as namespaced specialist operations, not competing repository-discovery interfaces. The former context-package compiler is not part of the CLI or MCP contract. Historical package evaluators and reports do not define current architecture.
+
+## Code map
+
+| Component boundary | Primary implementation | Related tests |
+| --- | --- | --- |
+| Grimoire executable and command dispatch | `cmd/grimoire/main.go`, `internal/app/run.go` | `internal/app/run_test.go` |
+| Grimoire provider forwarding | `internal/app/engine_commands.go`, `internal/app/engine_specs.go` | `internal/app/engine_commands_test.go` |
+| Grimoire state alignment | `internal/repostate/`, `internal/app/discovery_prepare.go` | `internal/repostate/*_test.go`, `internal/app/discovery_test.go` |
+| Lexicon executable and application boundary | `lexicon/cmd/lexicon/main.go`, `lexicon/internal/cli/` | `lexicon/internal/cli/*_test.go` |
+| Lexicon publication boundary | `lexicon/internal/scan/`, `lexicon/internal/objectstore/` | package-local `*_test.go` files |
+| Arcana executable and command boundary | `arcana/src/main.rs`, `arcana/src/cli.rs`, `arcana/src/cli_*.rs` | `arcana/src/cli*_tests.rs` |
+| Arcana graph and protocol boundary | `arcana/src/repository/`, `arcana/src/storage/`, `arcana/src/snapshot/`, `arcana/src/protocol/` | module-local Rust test files |
+| Release composition | `scripts/workflow.py`, `scripts/install.py`, `.github/workflows/release.yml` | `scripts/test_workflow.py`, installation smoke tests |
+
+Grimoire must not absorb Lexicon's parsers or Arcana's storage internals. Cross-component changes should update the owning component document and the integration document together.

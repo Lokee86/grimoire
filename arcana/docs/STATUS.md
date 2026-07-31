@@ -6,7 +6,7 @@ Detailed references:
 
 - [Application and operations](APPLICATION.md)
 - [Implementation architecture](ARCHITECTURE.md)
-- [Source codemap](CODEMAP.md)
+- [Maintainer map](MAINTAINER_MAP.md)
 - [Development and verification](DEVELOPMENT.md)
 - [Lexicon ingestion contract](LEXICON_CONTRACT.md)
 - [Repository snapshot contract](repository-snapshots.md)

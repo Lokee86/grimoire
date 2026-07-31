@@ -43,26 +43,6 @@
     {
       "code": "missing-section",
       "message": "missing section: Notes",
-      "path": "arcana/docs/CODEMAP.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Overview",
-      "path": "arcana/docs/CODEMAP.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Purpose",
-      "path": "arcana/docs/CODEMAP.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Related docs",
-      "path": "arcana/docs/CODEMAP.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Notes",
       "path": "arcana/docs/DEVELOPMENT.md"
     },
     {

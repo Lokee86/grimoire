@@ -76,3 +76,15 @@ Dynamic gem declarations, non-literal `require`/`require_relative`/`load`, VCS o
 ## Dataflow facts
 
 The adapter emits conservative `reads` and `writes` edges from methods and blocks to repository-local parameters, locals, constants, instance variables, and resolved fields. Assignments write, compound updates read and write, and initializer, argument, and return expressions contribute reads. Scope shadowing is preserved. Metaprogramming, dynamic sends, open-class mutation, external constants, and unresolved accessors are omitted rather than guessed.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Entry and CLI | `lexicon_ruby.rb`, `cli.rb` | `test/test_adapter.rb` |
+| Repository loading and Ripper extraction | `repository.rb`, `ripper_*.rb` | adapter tests and fixtures |
+| Calls and flow | `call_*.rb` | adapter tests |
+| Relationships and dependencies | `relationships.rb`, `dependencies.rb` | adapter tests |
+| Semantic model and output | `model.rb`, `semantic_model.rb`, `contract.rb`, `emitter.rb` | adapter tests |
+
+Metaprogramming and runtime method mutation remain unresolved unless static evidence is explicit.

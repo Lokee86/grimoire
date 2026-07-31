@@ -20,8 +20,8 @@ Grimoire uses the shared CLI-product profile with stateful and research capabili
 | Tests, benchmarks, release workflow, retrieval quality, coverage, and behavioral contracts | `docs/development/` |
 | Current product limitations | `docs/limits/` |
 | Future and unresolved product work | `docs/planning/` |
-| Lexicon application, architecture, adapters, semantics, development, packaging, status, and codemap | `lexicon/docs/` |
-| Arcana application, architecture, graph/storage contracts, development, status, and codemap | `arcana/docs/` |
+| Lexicon application, architecture, adapters, semantics, development, packaging, status, and maintainer routing | `lexicon/docs/` |
+| Arcana application, architecture, graph/storage contracts, development, status, and maintainer routing | `arcana/docs/` |
 | Stable agent operating rules | `AGENTS.md` |
 
 ## Rules
@@ -35,6 +35,19 @@ Grimoire uses the shared CLI-product profile with stateful and research capabili
 - Limitations remain explicit until resolved.
 - Every production package, command family, component boundary, stateful flow, and machine-readable contract maps to canonical current documentation.
 - Every documentation tree is independently indexed and checked.
+
+## Code map policy
+
+Implementation-facing architecture, reference, development, contract, pipeline, and adapter documents include a focused `## Code map` section.
+
+A focused code map identifies:
+
+- the primary implementation files or folders for the document's subject;
+- related generated or source artifacts when applicable;
+- the tests or verification surface protecting that behavior; and
+- important non-ownership boundaries.
+
+The Grimoire, Lexicon, and Arcana maintainer maps are routing aids only. They help select the canonical subject document and must not replace subject-specific code maps or explanatory prose.
 
 ## Required change impact
 

@@ -4,7 +4,7 @@ This directory documents Grimoire's unified discovery interface, component owner
 
 ## Sections
 
-- [Architecture](architecture/INDEX.md) — component boundaries, the Lexicon–Arcana–Grimoire lifecycle, codemaps, state ownership, and prepared-index design.
+- [Architecture](architecture/INDEX.md) — component boundaries, the Lexicon–Arcana–Grimoire lifecycle, maintainer routing, focused code maps, state ownership, and prepared-index design.
 - [Reference](reference/INDEX.md) — installation, agent setup, discovery commands, Lexicon and Arcana operations, JSON/MCP contracts, source and document semantics, vectors, and state.
 - [Development](development/INDEX.md) — tests, judged corpora, benchmark procedure, implementation coverage, behavioral contracts, and outcome interpretation.
 - [Limits](limits/INDEX.md) — current constraints and failure modes.
@@ -12,8 +12,8 @@ This directory documents Grimoire's unified discovery interface, component owner
 - [Documentation policy](documentation-policy.md) — canonical ownership, product/component boundaries, coverage, and status rules.
 - [Documentation procedure](documentation-procedure.md) — required update, graduation, indexing, and verification workflow.
 - [Investigation ledger](../internal/investigation/README.md) — persistent agent-facing discovery state.
-- [Lexicon reference](reference/lexicon.md) and [Lexicon documentation](../lexicon/docs/README.md) — language analysis, adapters, snapshots, contracts, operations, and codemap.
-- [Arcana reference](reference/arcana.md) and [Arcana documentation](../arcana/docs/README.md) — graph ingestion, packed storage, snapshots, protocol operations, vectors, and codemap.
+- [Lexicon reference](reference/lexicon.md) and [Lexicon documentation](../lexicon/docs/README.md) — language analysis, adapters, snapshots, contracts, operations, maintainer routing, and focused code maps.
+- [Arcana reference](reference/arcana.md) and [Arcana documentation](../arcana/docs/README.md) — graph ingestion, packed storage, snapshots, protocol operations, vectors, maintainer routing, and focused code maps.
 
 ## Component ownership
 

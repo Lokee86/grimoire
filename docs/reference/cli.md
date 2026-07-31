@@ -323,6 +323,21 @@ Provider and embedding configuration is documented with the owning component. Co
 - Missing or stale documentation vectors fall back to BM25.
 - A repository that cannot produce current source state fails discovery instead of returning stale implementation evidence.
 
+## Code map
+
+| Command family | Primary implementation | Related tests |
+| --- | --- | --- |
+| Executable entry and top-level dispatch | `cmd/grimoire/main.go`, `internal/app/run.go` | `internal/app/run_test.go` |
+| Discovery commands | `internal/app/query.go`, `internal/app/discovery_prepare.go` | `internal/app/discovery_test.go` |
+| MCP command | `internal/app/mcp.go`, `internal/mcpserver/` | MCP and server tests |
+| Lexicon and Arcana forwarding | `internal/app/engine_commands.go`, `internal/app/engine_specs.go` | `internal/app/engine_commands_test.go` |
+| Index and status commands | `internal/app/status.go`, `internal/index/`, `internal/repostate/` | app, index, and repostate tests |
+| Knowledge and vector commands | `internal/app/knowledge.go`, `knowledge_vectors.go`, `model.go`, `model_runtime.go` | `internal/app/vector_test.go`, model tests |
+| Evaluation commands | `internal/app/eval_knowledge.go`, `eval_arcana.go`, `evaluation_helpers.go` | corresponding app tests |
+| Investigation commands | `internal/app/investigation.go`, `internal/investigation/` | investigation package tests |
+
+Forwarded Lexicon and Arcana commands retain their component ownership; Grimoire does not reinterpret their flags or output.
+
 ## Related documentation
 
 - [Unified discovery contract](agent-query.md)

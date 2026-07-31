@@ -19,9 +19,16 @@ Documentation changes accompany implementation changes and are applied to the na
 5. Update `docs/development/behavioral-contract-matrix.md` when an invariant or focused protecting test changes.
 6. Update benchmarks or research only when the method, corpus, result, or interpretation changes; do not generalize measured outcomes into universal claims.
 7. Move implemented work out of planning and record unresolved gaps in limits.
-8. Update every affected root or component index and relative link.
-9. Run the root, Lexicon, and Arcana documentation checks plus affected implementation tests.
-10. Report documentation impact and known gaps explicitly.
+8. Add or update the focused `## Code map` in each affected implementation-facing document. Update a maintainer map only when ownership routing changes.
+9. Update every affected root or component index and relative link.
+10. Run the root, Lexicon, and Arcana documentation checks plus affected implementation tests.
+11. Report documentation impact and known gaps explicitly.
+
+## Code maps and maintainer maps
+
+Code maps stay with the subject they map. They identify implementation, tests, related artifacts, and non-ownership boundaries for that document.
+
+Maintainer maps are short routing documents. Do not expand them into repository inventories, and do not use them as substitutes for focused maps.
 
 ## Verification
 

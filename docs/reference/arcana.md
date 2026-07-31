@@ -155,16 +155,27 @@ Inspect the catalogue and confirm the symbol exists in the consumed Lexicon snap
 
 The optional index must be built explicitly and must match the current graph and embedding identities. Deterministic protocol queries remain available without it.
 
-## Source map
+## Code map
 
-- CLI and forwarding commands: `arcana/src/cli*.rs`
-- Lexicon object decoding: `arcana/src/lexicon/`
-- Repository fact compilation: `arcana/src/repository/`
-- Packed graph storage: `arcana/src/storage/`
-- Snapshot manifests, overlays, compaction: `arcana/src/snapshot/`
-- Query protocol: `arcana/src/protocol/`
-- Optional vectors: `arcana/src/vector/`
-- Synthetic workloads and mutations: `arcana/src/synthetic/`
-- Benchmark harness: `arcana/src/benchmark/`
+| Documented concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Grimoire process/protocol integration | `internal/arcanagraph/` | `internal/arcanagraph/*_test.go` |
+| Arcana command surface | `arcana/src/cli.rs`, `arcana/src/cli_*.rs`, `arcana/src/main.rs` | Arcana CLI tests |
+| Lexicon snapshot ingestion | `arcana/src/lexicon/` | Arcana Lexicon and sync tests |
+| Repository compilation and catalogue | `arcana/src/repository/` | repository module tests |
+| Packed graph and snapshots | `arcana/src/storage/`, `arcana/src/snapshot/` | storage and snapshot tests |
+| Query protocol | `arcana/src/protocol/` | protocol tests |
+| Optional vectors | `arcana/src/vector/` | vector tests |
 
-See [`arcana/docs/CODEMAP.md`](../../arcana/docs/CODEMAP.md) for file-level change guidance and [`arcana/README.md`](../../arcana/README.md) for the component overview.
+Grimoire consumes Arcana through `arcana.query.v1`; it does not read packed graph bytes directly.
+
+## Related docs
+
+- [Arcana application](../../arcana/docs/APPLICATION.md)
+- [Arcana architecture](../../arcana/docs/ARCHITECTURE.md)
+- [Arcana maintainer map](../../arcana/docs/MAINTAINER_MAP.md)
+- [Analysis stack](../architecture/analysis-stack.md)
+
+## Notes
+
+Use the subject document's code map for the narrow implementation path. Use the maintainer map only when ownership is unclear.

@@ -41,3 +41,17 @@ grimoire eval knowledge --root . --cases evaluation/knowledge/grimoire.json --ve
 ```
 
 The report keeps corpus order and records required-section recall, recall@k, MRR, irrelevant selections, vector usage/error, latency, and every returned section for each case. Enable vectors for a supplemental comparison; missing or failed vectors are reported without replacing BM25 results.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Document discovery and section extraction | `internal/knowledge/discover.go`, `sections.go`, `types.go` | `internal/knowledge/knowledge_test.go` |
+| Persistent document state and identity | `internal/knowledge/store.go`, `identity.go` | identity and knowledge tests |
+| Lexical document search | `internal/knowledge/search.go` | knowledge tests and evaluation corpus |
+| Explicit documentation-to-code links | `internal/knowledge/links.go` | `internal/knowledge/links_test.go` |
+| Optional document vectors | `internal/knowledgevector/` | package-local `*_test.go` files |
+| CLI preparation and vector commands | `internal/app/knowledge.go`, `knowledge_vectors.go` | app vector tests |
+| Judged evaluation | `internal/knowledgeevaluation/`, `evaluation/knowledge/` | `internal/knowledgeevaluation/score_test.go` |
+
+Documentation evidence remains a distinct lane and does not override contradictory source or graph evidence.

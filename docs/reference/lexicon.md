@@ -137,15 +137,26 @@ Inspect `consumer list`, the Arcana consumer definition, and its consumer-state 
 
 Both operations validate immutable manifests and objects. Malformed consumer pins, missing referenced snapshots, checksum failures, or a changing `CURRENT` abort the operation rather than deleting or exporting uncertain state.
 
-## Source map
+## Code map
 
-- CLI: `lexicon/internal/cli/`
-- Scan planning and transactions: `lexicon/internal/scan/`
-- Adapter discovery/execution: `lexicon/internal/adapters/`
-- Immutable objects and snapshots: `lexicon/internal/objectstore/`
-- Post-publication consumers: `lexicon/internal/consumer/`
-- Repository mirroring and Git change state: `lexicon/internal/state/`
-- Interstack resolution: `lexicon/internal/interstack/`
-- Language implementations: `lexicon/adapters/`
+| Documented concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Grimoire snapshot/fact integration | `internal/lexiconfacts/`, `internal/structure/` | `internal/lexiconfacts/*_test.go` |
+| Lexicon command surface | `lexicon/cmd/lexicon/main.go`, `lexicon/internal/cli/` | Lexicon CLI tests |
+| Scan and publication lifecycle | `lexicon/internal/scan/`, `lexicon/internal/objectstore/` | scan and object-store tests |
+| Adapter execution | `lexicon/internal/adapters/`, `lexicon/internal/languages/` | adapter runner/registry tests |
+| Language semantics | `lexicon/adapters/<language>/` | owning adapter test suite |
+| Consumers and Arcana handoff | `lexicon/internal/consumer/`, `lexicon/internal/scan/interstack.go` | consumer and integration tests |
 
-See [`lexicon/docs/CODEMAP.md`](../../lexicon/docs/CODEMAP.md) for file-level change guidance and [`lexicon/docs/README.md`](../../lexicon/docs/README.md) for the authoritative component documentation index.
+Grimoire consumes immutable Lexicon facts. It does not invoke parsers or mutate Lexicon's private state directly.
+
+## Related docs
+
+- [Lexicon application](../../lexicon/docs/APPLICATION.md)
+- [Lexicon architecture](../../lexicon/docs/ARCHITECTURE.md)
+- [Lexicon maintainer map](../../lexicon/docs/MAINTAINER_MAP.md)
+- [Analysis stack](../architecture/analysis-stack.md)
+
+## Notes
+
+Use the owning adapter README for language-specific code maps and semantic limits.

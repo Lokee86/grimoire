@@ -101,3 +101,15 @@ Malformed package JSON, computed or runtime-generated dependency entries, unreso
 ## Dataflow facts
 
 The TypeScript adapter, including JavaScript and Svelte script blocks, emits conservative `reads` and `writes` edges from callables to repository-local parameters, variables, constants, and resolved class fields. Assignments write, compound/update expressions read and write, and initializer, argument, and return expressions contribute reads. Destructured bindings and lexical shadowing are tracked. Dynamic properties, computed members without a sound target, globals, framework runtime injection, and external values are omitted.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Entry and orchestration | `src/cli.ts`, `orchestration.ts` | `tests/adapter.test.js` |
+| Discovery and ASTs | `src/discovery.ts`, `ast.ts`, `ast-imports.ts`, `svelte.ts` | adapter, JavaScript, and Svelte tests |
+| Calls and resolution | `src/call-*.ts`, `resolution.ts` | adapter and JavaScript tests |
+| Dataflow and dependencies | `src/dataflow.ts`, `dependencies.ts` | adapter tests |
+| Model, contract, and output | `src/model.ts`, `contract.ts`, `emission.ts` | all adapter tests |
+
+Runtime JavaScript mutation and framework behavior without static evidence remain unresolved.

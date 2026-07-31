@@ -4,7 +4,7 @@ This document describes the current `arcana` executable and its on-disk operatin
 
 Use the narrower documents for detailed contracts:
 
-- [CODEMAP.md](CODEMAP.md) maps implementation ownership and runtime flows.
+- [MAINTAINER_MAP.md](MAINTAINER_MAP.md) routes unfamiliar changes to the owning document and implementation boundary.
 - [LEXICON_CONTRACT.md](LEXICON_CONTRACT.md) defines the Lexicon ingestion and incremental synchronization boundary.
 - [repository-snapshots.md](repository-snapshots.md) defines standalone repository snapshot artifacts and changed-file updates.
 - [vector-index.md](vector-index.md) describes semantic document, cache, and index behavior.
@@ -195,7 +195,7 @@ neighbors, paths, reachability, impact, shortest_call_chain, dead_symbols,
 operational_role, architecture_summary, unresolved, stats, diff
 ```
 
-The request shapes, owning query modules, limits, and graph-export behavior are mapped in [CODEMAP.md](CODEMAP.md). The protocol is overlay-aware and deterministic; it is the machine boundary for repeated exact graph work, not an HTTP service or semantic-vector endpoint.
+The request shapes, owning query modules, limits, and graph-export behavior are mapped in this document's code map and the protocol implementation. The protocol is overlay-aware and deterministic; it is the machine boundary for repeated exact graph work, not an HTTP service or semantic-vector endpoint.
 
 ## `vectorize`
 
@@ -349,3 +349,18 @@ The operational behavior above is covered by focused tests rather than inferred 
 - `arcana/src/protocol/tests.rs`: snapshot/diff operations, graph export, visible overlays, request-error continuation, bounded analysis/traversal, and runtime/architecture evidence.
 - `arcana/src/vector/index_tests.rs`: build/reuse/search, cache reuse and repair, resumability, concurrency bounds, batch splitting, and publication rollback.
 - `arcana/src/benchmark/cli_tests.rs` and `arcana/src/benchmark/mutation_runner_tests.rs`: command options, valid presets, backend equivalence, and cleanup.
+
+## Code map
+
+| Command surface | Primary implementation | Related tests |
+| --- | --- | --- |
+| Parsing and dispatch | `src/cli.rs`, `src/main.rs` | `src/cli_tests.rs` |
+| `import-facts` | `src/cli_commands.rs`, repository compiler and storage writer | repository and storage tests |
+| `update-facts` | `src/cli_update.rs` | `src/cli_update_tests.rs` |
+| `sync` and managed state | `src/cli_sync.rs`, `src/cli_sync_state.rs`, `src/lexicon/` | `src/cli_sync_tests.rs`, Lexicon module tests |
+| Direct `query` | `src/cli_query.rs` | CLI and storage tests |
+| JSONL protocol | `src/cli_protocol.rs`, `src/protocol/` | `src/protocol/tests.rs` |
+| Vector commands | `src/cli_vectors.rs`, `src/vector/` | vector module tests |
+| Benchmark command | `src/benchmark/`, `src/synthetic/` | benchmark and synthetic tests |
+
+The direct `query` command is not the overlay-aware repository protocol. Language parsing remains outside Arcana.

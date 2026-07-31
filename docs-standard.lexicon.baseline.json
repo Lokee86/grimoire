@@ -43,26 +43,6 @@
     {
       "code": "missing-section",
       "message": "missing section: Notes",
-      "path": "lexicon/docs/CODEMAP.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Overview",
-      "path": "lexicon/docs/CODEMAP.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Purpose",
-      "path": "lexicon/docs/CODEMAP.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Related docs",
-      "path": "lexicon/docs/CODEMAP.md"
-    },
-    {
-      "code": "missing-section",
-      "message": "missing section: Notes",
       "path": "lexicon/docs/DEPENDENCY_SEMANTICS.md"
     },
     {

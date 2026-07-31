@@ -10,7 +10,7 @@
     "lexicon/docs/README.md",
     "lexicon/docs/APPLICATION.md",
     "lexicon/docs/ARCHITECTURE.md",
-    "lexicon/docs/CODEMAP.md",
+    "lexicon/docs/MAINTAINER_MAP.md",
     "lexicon/docs/DEVELOPMENT.md",
     "lexicon/docs/STATUS.md"
   ],
@@ -21,7 +21,7 @@
   "coverage": [
     {
       "paths": ["lexicon/cmd/**", "lexicon/internal/**", "lexicon/adapters/**"],
-      "docs": ["lexicon/docs/ARCHITECTURE.md", "lexicon/docs/CODEMAP.md"]
+      "docs": ["lexicon/docs/APPLICATION.md", "lexicon/docs/ARCHITECTURE.md", "lexicon/docs/DEVELOPMENT.md", "lexicon/adapters/README.md"]
     }
   ],
   "change_rules": [

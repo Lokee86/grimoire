@@ -36,6 +36,19 @@ python .standards/docs_policy/check.py --repo . --config docs-standard.lexicon.j
 python .standards/docs_policy/check.py --repo . --config docs-standard.arcana.json
 ```
 
+## Code map
+
+| Matrix concern | Primary implementation or artifact | Protecting tests/gates |
+| --- | --- | --- |
+| Discovery contracts | `internal/agentquery/`, `internal/agentruntime/` | package tests and agent benchmark corpus |
+| Prepared-state publication | `internal/index/`, `internal/repostate/` | index/repostate tests and workflow test gate |
+| Lexicon snapshot semantics | `lexicon/internal/scan/`, `lexicon/internal/objectstore/` | Lexicon complete test matrix |
+| Arcana graph publication and traversal | `arcana/src/repository/`, `storage/`, `snapshot/`, `protocol/` | Arcana Cargo test suite |
+| Documentation and change-impact contracts | `.standards/docs_policy/`, `scripts/check_docs.py` | documentation-standard workflow |
+| Release packaging | `scripts/workflow.py`, `scripts/install.py`, `.github/workflows/release.yml` | workflow unit tests and smoke checks |
+
+The matrix maps invariants to protection. It does not replace the focused implementation documents that explain each invariant.
+
 ## Related docs
 
 - [Documentation coverage](documentation-coverage.md)

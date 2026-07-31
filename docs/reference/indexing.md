@@ -136,3 +136,17 @@ A documentation change can make the vector snapshot stale without affecting the 
 Run `grimoire index` after relevant source or source-indexing changes. Run `grimoire knowledge index` after documentation changes and `grimoire vector build` when semantic documentation ranking is desired. Use `grimoire vector info` to inspect snapshot freshness.
 
 The `.grimoire/` directory is generated state and must not be treated as authored repository content.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Repository walk and prepared source build | `internal/index/build.go`, `repository.go` | `internal/index/build_test.go` |
+| Chunking and semantic boundaries | `internal/index/chunk.go`, `semantic.go` | `chunk_test.go`, `semantic_test.go` |
+| Immutable object formats and publication | `internal/index/objects.go`, `codec.go`, `file_codec.go`, `store.go` | codec, object, and store tests |
+| Generated-file and exclusion policy | `internal/index/generated.go`, `exclusions.go`, `internal/ignore/` | generated and app exclusion tests |
+| Lexical sidecar | `internal/index/lexical.go`, `internal/lexical/` | lexical package tests |
+| Repository freshness coordination | `internal/repostate/`, `internal/app/discovery_prepare.go` | repostate and discovery tests |
+| Source retrieval consumers | `internal/retrieve/` | retrieve package tests and benchmarks |
+
+Lexicon owns language facts used to improve chunk boundaries; the prepared index does not become a second language-analysis engine.

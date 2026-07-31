@@ -56,3 +56,15 @@ Canonical identities are based on repository-relative file paths and case-normal
 ```text
 go test ./...
 ```
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Entry and repository discovery | `main.go`, `discovery.go`, `dxl.go` | `main_test.go` |
+| Parsing and syntax | `parser.go`, `syntax.go`, `model.go` | calibration tests |
+| Declarations and types | `declaration_helpers.go`, `types.go` | adapter tests |
+| Calls and semantic analysis | `calls.go`, `analysis.go` | calibration tests |
+| Fact emission | `facts.go` | main and calibration tests |
+
+The adapter preserves unresolved evidence when LotusScript or DXL behavior cannot be established statically.

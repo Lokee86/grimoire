@@ -66,3 +66,17 @@ Malformed directives, dynamic module construction, and unresolved external packa
 ## Dataflow facts
 
 The adapter emits conservative `reads` and `writes` edges from the containing callable to repository-local parameters, variables, constants, and fields. Assignments write, compound assignments and increment/decrement read and write, and initializer, argument, and return expressions contribute reads. Lexical shadowing is respected. Unresolved selectors, built-ins, external package values, reflection, and unsafe aliasing are omitted rather than guessed.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Entry, modules, and package loading | `main.go`, `adapter.go`, `modules.go` | adapter, build-variant, and package tests |
+| AST declarations and base facts | `ast_*.go`, `facts.go`, `facts_json.go` | adapter and contract tests |
+| Typed semantic model | `semantic.go`, `semantic_*.go`, `semantic_ssa.go` | semantic, invariant, and advanced-resolution tests |
+| Calls and dataflow | `semantic_calls.go`, `semantic_dataflow.go` | call and dataflow tests |
+| Dependencies | `dependencies.go` | package/dependency coverage |
+| Parallel execution | `parallel.go`, `semantic_parallel.go` | `semantic_parallel_test.go` |
+| Synthetic nodes and identities | `synthetic_nodes.go`, `semantic_nodes.go`, `semantic_symbols.go` | semantic identity tests |
+
+The adapter models source-visible Go semantics; runtime reflection and unscanned external implementation remain outside its authority.

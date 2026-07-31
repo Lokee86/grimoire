@@ -65,3 +65,16 @@ Missing, stale, incompatible, or unavailable documentation vectors leave the doc
 ## Ownership boundary
 
 Lodestone owns immutable objects, packed snapshots, validation, exact vector search, the stable C ABI, and the shared Go loader. `internal/vectorstore` preserves Grimoire's internal package boundary. `internal/knowledgevector` owns documentation manifests, freshness, build orchestration, and ranking integration. Embedding and BM25 ranking remain outside Lodestone.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Grimoire vector-storage boundary | `internal/vectorstore/types.go` | `internal/vectorstore/integration_windows_test.go` |
+| Document-vector build and state | `internal/knowledgevector/build.go`, `state.go`, `manifest.go` | knowledge-vector state and embedding tests |
+| Query ranking | `internal/knowledgevector/ranker.go` | package-local tests |
+| Embedding input | `internal/embedding/` | embedding package tests |
+| CLI orchestration | `internal/app/knowledge_vectors.go` | `internal/app/vector_test.go`, `vector_resume_test.go` |
+| Native engine implementation | sibling Lodestone repository | verified through the compatibility/integration boundary, not owned here |
+
+Grimoire owns the compatibility boundary and publication workflow, not Lodestone's internal storage engine.

@@ -115,3 +115,16 @@ Computed `res://` paths, dynamic project values, runtime script replacement, sce
 ## Dataflow facts
 
 The adapter emits conservative `reads` and `writes` edges from functions to repository-local parameters, locals, constants, properties, and resolved members. Assignments write, compound assignments read and write, and initializer, argument, and return expressions contribute reads. Lexical shadowing is respected. Dynamic properties, dictionary-style access, engine-provided values, reflection, and unresolved members are omitted rather than guessed.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Entry and project discovery | `main.go`, `repository.go`, `project_config.go` | `main_test.go`, audit tests |
+| Lexing and declarations | `lexer.go`, `declaration*.go`, `expressions.go` | parser and audit tests |
+| Inheritance and bindings | `extends.go`, `semantic_*.go`, `resolution_bindings.go` | adapter tests |
+| Calls and relationships | `call*.go`, `relationships.go` | `call_parser_test.go` and resolution tests |
+| Dependencies and dataflow | `dependencies.go`, `dataflow.go` | `dataflow_test.go` |
+| Facts and output | `model.go`, `jsonl.go` | contract coverage through main/adapter tests |
+
+Scene/runtime behavior that cannot be proven statically remains unresolved rather than guessed.

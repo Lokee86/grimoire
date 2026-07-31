@@ -1,12 +1,13 @@
 {
   "files": {
-    "docs/INDEX.md": "d26859c5f7a03225e4d1a67a99c64cbd9362bd654589db944091c6ed35a8f522",
+    "docs/INDEX.md": "b22d9ea110e83137d7ee307ef4fb7d6289715bec7be6f28d8800fe7f23d1386e",
     "docs/adoption.md": "85c61eb2360752139e4ea1b26b839a9cba261b7038ae31e069cae334feff2d8b",
-    "docs/change-impact.md": "9b519b1fb5b73f53f05c3c28b2787f085dd01f417cc51cf7325c523025e52bca",
+    "docs/change-impact.md": "b93b88279827e76446f40a225937f1c1842ef8e1b5d912c13c63afa2c461377c",
     "docs/completeness.md": "db403c9a7c7a7df3c85964f49d4a864bb10787aa4e548c0f6a4f67af6709c5d9",
-    "docs/documentation-procedure.md": "36efa7913b69d4342f9b144ca78ff1e76ce07905c5eed1110f82dfbe47f98a85",
-    "docs/documentation-standard.md": "55fc7d8f53db359b3962c5b23c27d95e6d9b59e256759a28becd3e397435cade",
-    "docs/profiles.md": "331c4c8fce9764e446b1ca4cec794dbfb4feb7b37e7a591c48435676787b5674",
+    "docs/documentation-procedure.md": "76bfae52c950f8ad104103a86cdb473f4114ffe2f199a299d3e79e962cfafd7b",
+    "docs/documentation-standard.md": "b22642e8a00686f17b6cf042bc07629c5cef67b5fcb044c4d93bf5b181a24d0d",
+    "docs/maintainer-map.md": "2c5f1f44d5292c1dd568490fcd03e60898db3ef6f4a3ab9ae44ff6f7d032ef7f",
+    "docs/profiles.md": "b7827a78ea9b144e46618fc1de8b925b3401e990a411643e8ad7a1fc6b35f228",
     "docs_policy/audit.py": "38828169a25c154be652e2c9e07007cd62cac1d7f909611f21d093dfff7ac7bb",
     "docs_policy/baseline.py": "6a8503f8158c16e93a71d3e1fffb9312e17e69ec007236b77305fa6a7d7240d2",
     "docs_policy/check.py": "0e92681e69e6236504675494daa79f08221b7fe87949132cceff1c24750ca60a",

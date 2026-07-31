@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Grimoire's documentation surface and local links."""
+"""Validate Grimoire's documentation surface, focused code maps, and local links."""
 
 from __future__ import annotations
 
@@ -32,19 +32,70 @@ REQUIRED_DOCUMENTS = (
     "README.md",
     "docs/INDEX.md",
     "docs/architecture/analysis-stack.md",
-    "docs/architecture/codemap.md",
+    "docs/architecture/maintainer-map.md",
     "docs/reference/lexicon.md",
     "docs/reference/arcana.md",
     "internal/evidence/README.md",
     "internal/lexical/README.md",
     "lexicon/docs/README.md",
-    "lexicon/docs/CODEMAP.md",
+    "lexicon/docs/MAINTAINER_MAP.md",
     "arcana/docs/README.md",
     "arcana/docs/APPLICATION.md",
     "arcana/docs/ARCHITECTURE.md",
-    "arcana/docs/CODEMAP.md",
+    "arcana/docs/MAINTAINER_MAP.md",
     "arcana/docs/DEVELOPMENT.md",
     "arcana/docs/STATUS.md",
+)
+RETIRED_CENTRAL_CODEMAPS = (
+    "docs/architecture/codemap.md",
+    "lexicon/docs/CODEMAP.md",
+    "arcana/docs/CODEMAP.md",
+)
+MAINTAINER_MAPS = (
+    "docs/architecture/maintainer-map.md",
+    "lexicon/docs/MAINTAINER_MAP.md",
+    "arcana/docs/MAINTAINER_MAP.md",
+)
+CODE_MAP_DOCUMENTS = (
+    "docs/architecture/analysis-stack.md",
+    "docs/architecture/components.md",
+    "docs/architecture/prepared-index.md",
+    "docs/architecture/system-overview.md",
+    "docs/reference/agent-mcp.md",
+    "docs/reference/agent-query.md",
+    "docs/reference/arcana.md",
+    "docs/reference/cli.md",
+    "docs/reference/embedding-model.md",
+    "docs/reference/indexing.md",
+    "docs/reference/knowledge.md",
+    "docs/reference/lexicon.md",
+    "docs/reference/vector-store.md",
+    "docs/development/behavioral-contract-matrix.md",
+    "docs/development/documentation-coverage.md",
+    "docs/development/release-workflow.md",
+    "docs/development/retrieval-quality.md",
+    "docs/development/testing-and-benchmarks.md",
+    "lexicon/docs/APPLICATION.md",
+    "lexicon/docs/ARCHITECTURE.md",
+    "lexicon/docs/DEPENDENCY_SEMANTICS.md",
+    "lexicon/docs/DEVELOPMENT.md",
+    "lexicon/docs/RELEASE_PACKAGING.md",
+    "lexicon/adapters/README.md",
+    "lexicon/adapters/c-family/README.md",
+    "lexicon/adapters/gdscript/README.md",
+    "lexicon/adapters/generic/README.md",
+    "lexicon/adapters/go/README.md",
+    "lexicon/adapters/lotusscript/README.md",
+    "lexicon/adapters/python/README.md",
+    "lexicon/adapters/ruby/README.md",
+    "lexicon/adapters/rust/README.md",
+    "lexicon/adapters/typescript/README.md",
+    "arcana/docs/APPLICATION.md",
+    "arcana/docs/ARCHITECTURE.md",
+    "arcana/docs/DEVELOPMENT.md",
+    "arcana/docs/LEXICON_CONTRACT.md",
+    "arcana/docs/repository-snapshots.md",
+    "arcana/docs/vector-index.md",
 )
 
 
@@ -74,7 +125,44 @@ def local_link_target(raw: str) -> str | None:
 
 
 def validate_required_documents() -> list[str]:
-    return [f"missing required documentation: {relative}" for relative in REQUIRED_DOCUMENTS if not (ROOT / relative).is_file()]
+    failures = [
+        f"missing required documentation: {relative}"
+        for relative in REQUIRED_DOCUMENTS
+        if not (ROOT / relative).is_file()
+    ]
+    failures.extend(
+        f"retired centralized codemap still exists: {relative}"
+        for relative in RETIRED_CENTRAL_CODEMAPS
+        if (ROOT / relative).exists()
+    )
+    return failures
+
+
+def validate_code_maps() -> list[str]:
+    failures: list[str] = []
+    for relative in CODE_MAP_DOCUMENTS:
+        document = ROOT / relative
+        if not document.is_file():
+            failures.append(f"missing code-map document: {relative}")
+            continue
+        text = document.read_text(encoding="utf-8")
+        if re.search(r"(?m)^## Code map\s*$", text) is None:
+            failures.append(f"{relative}: missing focused '## Code map' section")
+    for relative in MAINTAINER_MAPS:
+        document = ROOT / relative
+        if not document.is_file():
+            continue
+        text = document.read_text(encoding="utf-8")
+        if re.search(r"(?m)^## Code map\s*$", text) is not None:
+            failures.append(
+                f"{relative}: maintainer map must route to focused code maps, not contain one"
+            )
+        line_count = len(text.splitlines())
+        if line_count > 120:
+            failures.append(
+                f"{relative}: maintainer map is too large ({line_count} lines; maximum 120)"
+            )
+    return failures
 
 
 def validate_local_links() -> list[str]:
@@ -99,15 +187,15 @@ def validate_index_visibility() -> list[str]:
     failures: list[str] = []
     required_links = {
         ROOT / "README.md": (
-            "docs/architecture/codemap.md",
+            "docs/architecture/maintainer-map.md",
             "docs/reference/lexicon.md",
             "docs/reference/arcana.md",
         ),
-        ROOT / "lexicon" / "docs" / "README.md": ("CODEMAP.md",),
+        ROOT / "lexicon" / "docs" / "README.md": ("MAINTAINER_MAP.md",),
         ROOT / "arcana" / "docs" / "README.md": (
             "APPLICATION.md",
             "ARCHITECTURE.md",
-            "CODEMAP.md",
+            "MAINTAINER_MAP.md",
             "DEVELOPMENT.md",
             "STATUS.md",
         ),
@@ -125,7 +213,12 @@ def validate_index_visibility() -> list[str]:
 
 
 def validate_repository() -> list[str]:
-    return validate_required_documents() + validate_local_links() + validate_index_visibility()
+    return (
+        validate_required_documents()
+        + validate_code_maps()
+        + validate_local_links()
+        + validate_index_visibility()
+    )
 
 
 def main() -> int:

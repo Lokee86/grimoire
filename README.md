@@ -327,7 +327,7 @@ docs/                   Architecture, reference, development, limits, and plans
 - [System overview](docs/architecture/system-overview.md)
 - [Component architecture](docs/architecture/components.md)
 - [Lexicon–Arcana–Grimoire analysis stack](docs/architecture/analysis-stack.md)
-- [Grimoire codemap](docs/architecture/codemap.md)
+- [Grimoire maintainer map](docs/architecture/maintainer-map.md)
 - [Discovery CLI](docs/reference/cli.md)
 - [Lexicon reference](docs/reference/lexicon.md)
 - [Arcana reference](docs/reference/arcana.md)

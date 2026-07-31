@@ -229,7 +229,7 @@ graph checksums and query fingerprints.
 - [Documentation index](docs/README.md)
 - [Application and operations](docs/APPLICATION.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [Implementation codemap](docs/CODEMAP.md)
+- [Maintainer map](docs/MAINTAINER_MAP.md)
 - [Development and verification](docs/DEVELOPMENT.md)
 - [Current status and limitations](docs/STATUS.md)
 - [Lexicon integration contract](docs/LEXICON_CONTRACT.md)

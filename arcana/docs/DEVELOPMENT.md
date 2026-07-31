@@ -2,7 +2,7 @@
 
 This guide covers the current Arcana crate under `arcana/`: how to build it, choose focused correctness tests, complete verification, and collect performance evidence. Commands are shown from the `arcana/` directory unless a command explicitly starts at the repository root.
 
-Arcana is independently buildable, but it is not an independent owner of language parsing or Grimoire discovery. Read [ARCHITECTURE.md](ARCHITECTURE.md) for dependency direction and [CODEMAP.md](CODEMAP.md) before changing an unfamiliar seam.
+Arcana is independently buildable, but it is not an independent owner of language parsing or Grimoire discovery. Read [ARCHITECTURE.md](ARCHITECTURE.md) for dependency direction and [MAINTAINER_MAP.md](MAINTAINER_MAP.md) when ownership of an unfamiliar seam is unclear.
 
 ## Prerequisites
 
@@ -203,7 +203,7 @@ Documentation is part of the owning seam. Update it in the same change when curr
 
 - Update [APPLICATION.md](APPLICATION.md) for CLI syntax, state layout, synchronization, publication, locking, operational failures, or diagnostics.
 - Update [ARCHITECTURE.md](ARCHITECTURE.md) for ownership, dependency direction, runtime flows, failure boundaries, or cross-component invariants.
-- Update [CODEMAP.md](CODEMAP.md) when file ownership, source entry points, test locations, or the starting point for a common change moves.
+- Update the owning document's code map when implementation or test paths move. Update [MAINTAINER_MAP.md](MAINTAINER_MAP.md) only when cross-document routing changes.
 - Update this guide when prerequisites, Cargo targets, verification commands, focused test ownership, synthetic tiers/topologies, benchmark options, measured boundaries, or reporting requirements change.
 - Update [LEXICON_CONTRACT.md](LEXICON_CONTRACT.md), [repository-snapshots.md](repository-snapshots.md), or [vector-index.md](vector-index.md) with changes to their focused contracts. Source constants and tests remain authoritative for versioned formats and protocol behavior.
 - Update [`../README.md`](../README.md) when product-level commands, supported topology/tier lists, or end-to-end examples change.
@@ -215,3 +215,19 @@ python scripts/check_docs.py
 ```
 
 If documentation changes because Rust behavior changed, also run the owning focused tests and the complete Arcana verification sequence. Keep benchmark results labeled as evidence for their exact recorded conditions; do not rewrite them as timeless guarantees.
+
+## Code map
+
+| Development concern | Primary implementation or artifact | Related verification |
+| --- | --- | --- |
+| Crate configuration and build identity | `Cargo.toml`, `Cargo.lock`, `build.rs` | Cargo check and locked builds |
+| Library and CLI tests | `src/**` | module-local Rust tests |
+| Packed-storage correctness | `src/storage/` | round-trip and corruption tests |
+| Snapshot/update correctness | `src/snapshot/`, repository snapshot modules, `src/cli_*` | snapshot and CLI update/sync tests |
+| Protocol correctness | `src/protocol/` | protocol tests |
+| Semantic-vector correctness | `src/vector/` | vector index/document tests |
+| Synthetic generation | `src/synthetic/` | synthetic spec and mutation tests |
+| Benchmark methodology | `src/benchmark/` | mutation-runner and report tests |
+| Documentation | `docs/`, root documentation checker | Arcana documentation gate |
+
+Benchmark results are performance evidence. They are not substitutes for storage, snapshot, or protocol correctness tests.

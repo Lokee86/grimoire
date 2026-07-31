@@ -48,3 +48,17 @@ Packed node IDs are dense and immutable within a base generation. An overlay can
 `update-facts` therefore succeeds when the stable node-key set is unchanged. If declarations are added, removed, or renamed, Arcana returns an explicit rebuild-required error. A later generation should then be produced with `import-facts` or compaction/rebuild tooling.
 
 This rule preserves fast packed traversal and prevents an incremental update from silently invalidating node identities used by consumers.
+
+## Code map
+
+| Snapshot concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Repository manifest and publication | `src/repository/repository_snapshot.rs`, `repository_snapshot_format.rs`, `repository_snapshot_validation.rs` | `repository_snapshot_tests.rs` |
+| Packed graph manifest | `src/snapshot/graph.rs`, `manifest.rs`, `manifest_io.rs` | graph and manifest tests |
+| Overlay format and visible reads | `src/snapshot/overlay_*.rs`, `overlay.rs` | overlay and graph tests |
+| Initial import | `src/cli_commands.rs`, repository compiler, storage writer | CLI, repository, and storage tests |
+| Changed-file update | `src/cli_update.rs`, `src/repository/ownership.rs`, `incremental.rs` | update, ownership, and incremental tests |
+| Managed Lexicon synchronization | `src/cli_sync.rs`, `src/cli_sync_state.rs` | sync tests |
+| Compaction | `src/snapshot/compaction.rs` | compaction tests |
+
+Overlays may change edges only. Node-set changes require a packed rebuild.

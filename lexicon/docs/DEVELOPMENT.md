@@ -238,3 +238,18 @@ python tools/package_release.py --output release --version <version>
 ```
 
 Omit `--version` only for local packaging tests where `lexicon version` may report `dev`. Then run the packaged smoke path against a temporary repository before publishing. Distribution contents and runtime requirements are documented in [RELEASE_PACKAGING.md](RELEASE_PACKAGING.md).
+
+## Code map
+
+| Development concern | Primary implementation or artifact | Related verification |
+| --- | --- | --- |
+| Application build and tests | root `go.mod`, `cmd/`, `internal/` | package-local Go tests |
+| Adapter test matrix | `evaluation/run_tests.py` | all language adapter suites |
+| Real-repository corpus validation | `evaluation/run_validation.py`, `corpus.json`, `validation/` | repeat-run summaries and baselines |
+| Smoke tests and operations | `tools/smoke_app.py`, `smoke_operations.py`, `smoke_installers.py` | packaged application checks |
+| Semantic report tooling | `tools/semantic_report.py`, `semantic_depth.py`, `call_resolution_metrics.py` | corresponding tool tests |
+| Release packaging | `tools/package_release.py` | `tools/test_package_release.py` |
+| Adapter contracts | `spec/`, `internal/objectstore/analysis.go`, `ingest_parse.go`, `records.go` | contract and object-store tests |
+| Documentation | `docs/`, adapter READMEs, root documentation checker | root and component documentation gates |
+
+Generated validation output and packaged binaries are evidence or build products, not source owners.

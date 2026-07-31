@@ -76,3 +76,16 @@ Malformed requirement strings, dynamic/VCS/URL entries, dynamic imports, reflect
 ## Dataflow facts
 
 The adapter emits conservative `reads` and `writes` edges from functions and lambdas to repository-local parameters, locals, class/module values, and resolved attributes. Assignments write, augmented assignments read and write, and initializer, argument, and return expressions contribute reads. Nested scopes and lexical shadowing are preserved. Dynamic attributes, `getattr`/`setattr`, monkey patching, imports, and built-ins are omitted when no sound local target exists.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Entry and orchestration | `lexicon_python/__main__.py`, `adapter.py` | `tests/test_adapter.py` |
+| Discovery and AST extraction | `discovery.py`, `extraction*.py` | adapter tests |
+| Bindings and resolution | `bindings.py`, `resolution.py` | adapter tests |
+| Calls and dispatch | `callgraph*.py` | adapter tests |
+| Dependencies and dataflow | `dependencies.py`, `extraction_flow.py` | adapter tests |
+| Contract and output | `model.py`, `contract.py`, `emission.py` | adapter tests |
+
+Dynamic imports, monkey-patching, and runtime-only dispatch remain conservative unresolved boundaries.

@@ -118,3 +118,16 @@ The probe embeds one instructed query and one raw document, validates the dimens
 ## Operational boundaries
 
 The embedding package owns model identity, runtime setup and discovery, backend selection and verification, detached lifecycle supervision, runtime state, log rotation, context-limit enforcement, request shaping, truncation, normalization, and optional NVIDIA telemetry. It does not own chunking, vector persistence, retrieval ranking, discovery lane assembly, or agent policy.
+
+## Code map
+
+| Concern | Primary implementation | Related tests |
+| --- | --- | --- |
+| Model identity and endpoint contract | `internal/embedding/spec.go`, `client.go` | `internal/embedding/client_test.go` |
+| Query embedding and batching | `internal/embedding/query.go`, `query_batch.go` | query and batch tests |
+| Managed runtime configuration and discovery | `internal/embedding/runtime_config.go`, `runtime_candidates.go`, `runtime_state.go` | corresponding runtime tests |
+| Process supervision and telemetry | `internal/embedding/runtime_manager.go`, `runtime_supervisor.go`, `runtime_telemetry.go`, platform process files | `internal/embedding/runtime_test.go`, telemetry/log tests |
+| Setup and backend verification | `internal/embedding/setup*.go`, `runtime_backend_verify.go` | setup and backend-verification tests |
+| CLI integration | `internal/app/model.go`, `model_runtime.go` | `internal/app/model_test.go`, `model_runtime_test.go` |
+
+The embedding process is an external runtime dependency. Deterministic source and graph correctness do not depend on it.

@@ -100,3 +100,17 @@ The smoke utilities in `tools/` cover application operations, but the final pack
 The adapter runner prefers packaged binaries and the compiled TypeScript entry point. When those packaged paths are absent in a source checkout, it can use source-development execution paths such as `go run`, `cargo run`, Python module execution, Ruby source execution, and the locally built TypeScript output.
 
 This fallback is for development. Releases should contain the packaged forms described above.
+
+## Code map
+
+| Packaging concern | Primary implementation | Related verification |
+| --- | --- | --- |
+| Release assembly | `tools/package_release.py` | `tools/test_package_release.py` |
+| Runtime reconciliation | `tools/reconcile_runtime.py` | `tools/test_reconcile_runtime.py` |
+| Application smoke test | `tools/smoke_app.py` | packaged executable checks |
+| Operations smoke test | `tools/smoke_operations.py` | init/scan/export/consumer/GC checks |
+| Installer smoke test | `tools/smoke_installers.py` | release-layout installation checks |
+| Adapter executables and runtime lookup | `internal/adapters/runner_packaged.go`, `runner.go` | adapter runner tests and smoke checks |
+| Version/build identity | `internal/cli/version.go`, build metadata | CLI tests and release workflow |
+
+The package contains runtime artifacts; adapter source directories and generated validation output remain development inputs rather than installed authority.

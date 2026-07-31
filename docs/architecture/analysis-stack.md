@@ -152,4 +152,19 @@ The namespaced commands forward to the owning executable and preserve its stdin,
 | Provider freshness and coordinated preparation | Grimoire `internal/repostate` |
 | Product-facing discovery response and progressive workflow | Grimoire `internal/agentquery` and `internal/agentruntime` |
 
-See the [Grimoire codemap](codemap.md), [Lexicon codemap](../../lexicon/docs/CODEMAP.md), and [Arcana codemap](../../arcana/docs/CODEMAP.md) for file-level ownership.
+See the [Grimoire maintainer map](maintainer-map.md), [Lexicon maintainer map](../../lexicon/docs/MAINTAINER_MAP.md), and [Arcana maintainer map](../../arcana/docs/MAINTAINER_MAP.md) for cross-document ownership routing.
+
+## Code map
+
+| Boundary | Primary implementation | Related tests |
+| --- | --- | --- |
+| Repository identity, freshness, locking, and provider coordination | `internal/repostate/` | `internal/repostate/*_test.go` |
+| Prepared source and lexical state | `internal/index/`, `internal/lexical/`, `internal/retrieve/` | `internal/index/*_test.go`, `internal/lexical/*_test.go`, `internal/retrieve/*_test.go` |
+| Lexicon snapshot loading and symbol evidence | `internal/lexiconfacts/`, `internal/structure/` | `internal/lexiconfacts/*_test.go` |
+| Arcana protocol sessions and graph evidence | `internal/arcanagraph/`, `internal/structure/` | `internal/arcanagraph/*_test.go` |
+| Documentation state and optional vectors | `internal/knowledge/`, `internal/knowledgevector/`, `internal/embedding/` | package-local `*_test.go` files |
+| Discovery assembly and response shaping | `internal/agentruntime/`, `internal/agentquery/`, `internal/evidence/` | package-local `*_test.go` files |
+| Persistent investigation state | `internal/investigation/` | `internal/investigation/*_test.go` |
+| Command-level preparation | `internal/app/discovery_prepare.go`, `internal/app/query.go`, `internal/app/mcp.go` | `internal/app/discovery_test.go`, `internal/app/mcp_test.go` |
+
+Lexicon adapters own language semantics, and Arcana owns graph compilation and storage. This document maps only Grimoire's coordination of those providers.

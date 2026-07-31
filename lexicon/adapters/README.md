@@ -97,3 +97,22 @@ See [Development and verification](../docs/DEVELOPMENT.md) and [Semantic accepta
 Language-specific parser, resolver, model, emitter, fixtures, and tests belong inside the owning adapter folder.
 
 Cross-language record meaning belongs in `spec/`. Application orchestration belongs in `internal/scan` and `internal/adapters`. Do not create a cross-runtime helper dependency merely to share implementation convenience; share behavior through the versioned contract and acceptance fixtures.
+
+## Code map
+
+| Adapter boundary | Primary implementation | Related tests |
+| --- | --- | --- |
+| Supported language registry | `internal/languages/registry.go` | language registry tests |
+| Adapter discovery, fingerprints, and execution | `internal/adapters/registry.go`, `runner.go`, `runner_packaged.go` | adapter runner/registry tests |
+| Shared facts contract | `spec/facts-v1.md` | object-store contract tests |
+| C/C++ | `adapters/c-family/` | package-local Go tests |
+| Go | `adapters/go/` | package-local Go tests |
+| GDScript | `adapters/gdscript/` | package-local Go tests |
+| Generic fallback | `adapters/generic/` | package-local Go tests |
+| LotusScript | `adapters/lotusscript/` | package-local Go tests |
+| Python | `adapters/python/lexicon_python/` | `adapters/python/tests/` |
+| Ruby | `adapters/ruby/` | `adapters/ruby/test/` |
+| Rust | `adapters/rust/src/` | Rust module tests and fixtures |
+| JavaScript/TypeScript/Svelte | `adapters/typescript/src/` | `adapters/typescript/tests/` |
+
+Adapters own language discovery and semantics only. Snapshot publication, cross-language interstack resolution, and graph storage belong elsewhere.
