@@ -106,11 +106,12 @@ class WorkflowSmokeTests(unittest.TestCase):
                 mock.patch.object(workflow, "run", side_effect=record):
             workflow.test()
 
-        self.assertEqual(len(calls), 3)
-        self.assertEqual(calls[0][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
+        self.assertEqual(len(calls), 4)
+        self.assertEqual(calls[0][0], [str(workflow.sys.executable), "scripts/check_docs.py"])
         self.assertEqual(calls[1][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
+        self.assertEqual(calls[2][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
         self.assertEqual(
-            calls[2][0],
+            calls[3][0],
             [
                 "cargo", "test", "--jobs", "1", "--all-targets", "--locked",
                 "--manifest-path", str(workflow.ROOT / "arcana" / "Cargo.toml"),

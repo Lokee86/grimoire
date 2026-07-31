@@ -1,0 +1,20 @@
+{
+  "files": {
+    "docs/INDEX.md": "d26859c5f7a03225e4d1a67a99c64cbd9362bd654589db944091c6ed35a8f522",
+    "docs/adoption.md": "85c61eb2360752139e4ea1b26b839a9cba261b7038ae31e069cae334feff2d8b",
+    "docs/change-impact.md": "9b519b1fb5b73f53f05c3c28b2787f085dd01f417cc51cf7325c523025e52bca",
+    "docs/completeness.md": "db403c9a7c7a7df3c85964f49d4a864bb10787aa4e548c0f6a4f67af6709c5d9",
+    "docs/documentation-procedure.md": "36efa7913b69d4342f9b144ca78ff1e76ce07905c5eed1110f82dfbe47f98a85",
+    "docs/documentation-standard.md": "55fc7d8f53db359b3962c5b23c27d95e6d9b59e256759a28becd3e397435cade",
+    "docs/profiles.md": "331c4c8fce9764e446b1ca4cec794dbfb4feb7b37e7a591c48435676787b5674",
+    "docs_policy/audit.py": "38828169a25c154be652e2c9e07007cd62cac1d7f909611f21d093dfff7ac7bb",
+    "docs_policy/baseline.py": "6a8503f8158c16e93a71d3e1fffb9312e17e69ec007236b77305fa6a7d7240d2",
+    "docs_policy/check.py": "0e92681e69e6236504675494daa79f08221b7fe87949132cceff1c24750ca60a",
+    "docs_policy/markdown.py": "3688dc9acb72139c70107942e4b3c77a40001f538309726300a6bc0ebefcb722",
+    "docs_policy/model.py": "427f68e95e1eb1463488e87989c02bdb3dfc9dde322961348631d299c0b6f351",
+    "policies/documentation-core.json": "e56ec8e96cd4c678c2eec5ee8317386974d21a1c0848caf8c40939f26a2a58b4"
+  },
+  "schema": "laughing-skull.documentation-standard-snapshot.v1",
+  "source": "engineering-standards",
+  "standard": "documentation-v1"
+}

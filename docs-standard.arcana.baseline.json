@@ -1,0 +1,165 @@
+{
+  "findings": [
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "arcana/docs/APPLICATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "arcana/docs/APPLICATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "arcana/docs/APPLICATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "arcana/docs/APPLICATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "arcana/docs/ARCHITECTURE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "arcana/docs/ARCHITECTURE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "arcana/docs/ARCHITECTURE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "arcana/docs/ARCHITECTURE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "arcana/docs/CODEMAP.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "arcana/docs/CODEMAP.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "arcana/docs/CODEMAP.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "arcana/docs/CODEMAP.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "arcana/docs/DEVELOPMENT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "arcana/docs/DEVELOPMENT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "arcana/docs/DEVELOPMENT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "arcana/docs/DEVELOPMENT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "arcana/docs/LEXICON_CONTRACT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "arcana/docs/LEXICON_CONTRACT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "arcana/docs/LEXICON_CONTRACT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "arcana/docs/LEXICON_CONTRACT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "arcana/docs/STATUS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "arcana/docs/STATUS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "arcana/docs/STATUS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "arcana/docs/STATUS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "arcana/docs/repository-snapshots.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "arcana/docs/repository-snapshots.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "arcana/docs/repository-snapshots.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "arcana/docs/repository-snapshots.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "arcana/docs/vector-index.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "arcana/docs/vector-index.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "arcana/docs/vector-index.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "arcana/docs/vector-index.md"
+    }
+  ],
+  "version": 1
+}

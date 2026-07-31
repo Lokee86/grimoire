@@ -1,0 +1,225 @@
+{
+  "findings": [
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/APPLICATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/APPLICATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/APPLICATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/APPLICATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/ARCHITECTURE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/ARCHITECTURE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/ARCHITECTURE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/ARCHITECTURE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/CODEMAP.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/CODEMAP.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/CODEMAP.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/CODEMAP.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/DEPENDENCY_SEMANTICS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/DEPENDENCY_SEMANTICS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/DEPENDENCY_SEMANTICS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/DEPENDENCY_SEMANTICS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/DEVELOPMENT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/DEVELOPMENT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/DEVELOPMENT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/DEVELOPMENT.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/GO_ADAPTER_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/GO_ADAPTER_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/GO_ADAPTER_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/GO_ADAPTER_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/LOTUSSCRIPT_ADAPTER_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/LOTUSSCRIPT_ADAPTER_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/LOTUSSCRIPT_ADAPTER_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/LOTUSSCRIPT_ADAPTER_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/RELEASE_PACKAGING.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/RELEASE_PACKAGING.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/RELEASE_PACKAGING.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/RELEASE_PACKAGING.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/SEMANTIC_ACCEPTANCE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/SEMANTIC_ACCEPTANCE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/SEMANTIC_ACCEPTANCE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/SEMANTIC_ACCEPTANCE.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/SEMANTIC_CORPUS_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/SEMANTIC_CORPUS_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/SEMANTIC_CORPUS_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/SEMANTIC_CORPUS_VALIDATION.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Notes",
+      "path": "lexicon/docs/STATUS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Overview",
+      "path": "lexicon/docs/STATUS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Purpose",
+      "path": "lexicon/docs/STATUS.md"
+    },
+    {
+      "code": "missing-section",
+      "message": "missing section: Related docs",
+      "path": "lexicon/docs/STATUS.md"
+    }
+  ],
+  "version": 1
+}

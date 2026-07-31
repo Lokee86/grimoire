@@ -1,0 +1,217 @@
+# Arcana development and verification
+
+This guide covers the current Arcana crate under `arcana/`: how to build it, choose focused correctness tests, complete verification, and collect performance evidence. Commands are shown from the `arcana/` directory unless a command explicitly starts at the repository root.
+
+Arcana is independently buildable, but it is not an independent owner of language parsing or Grimoire discovery. Read [ARCHITECTURE.md](ARCHITECTURE.md) for dependency direction and [CODEMAP.md](CODEMAP.md) before changing an unfamiliar seam.
+
+## Prerequisites
+
+- Use a stable Rust toolchain with Cargo and `rustfmt` that supports Rust edition 2024. The crate declares edition 2024 in [`Cargo.toml`](../Cargo.toml), and the release workflow installs the stable toolchain.
+- Keep the checked-in `Cargo.lock` authoritative. Build, check, test, and benchmark commands below use `--locked` so dependency resolution cannot silently rewrite it.
+- Use Python when running the repository documentation checker or the root workflow. Python is not part of Arcana's Rust library or binary build.
+- Run direct Cargo commands from `arcana/`. From the repository root, use `--manifest-path arcana/Cargo.toml` instead.
+
+[`build.rs`](../build.rs) reads `GRIMOIRE_RELEASE_VERSION` when the root release workflow supplies it. Ordinary standalone builds do not need that variable; the build script falls back to the package version from `Cargo.toml`.
+
+## Build boundaries
+
+[`Cargo.toml`](../Cargo.toml) defines one Rust package with two build boundaries:
+
+- the reusable `arcana` library at [`src/lib.rs`](../src/lib.rs); and
+- the `arcana` executable at [`src/main.rs`](../src/main.rs).
+
+The library exports the benchmark, Lexicon-consumer, protocol, repository, snapshot, storage, synthetic, and vector modules. The binary owns command parsing and orchestration around those library owners. Keep reusable behavior in the narrow library owner rather than moving it into `main.rs`.
+
+Use a debug build while developing and a release build when validating release behavior or collecting timings:
+
+```text
+cargo build --jobs 1 --locked
+cargo build --jobs 1 --release --locked
+```
+
+These commands build Arcana only. They do not build the root Go application, the Lexicon Go component and adapters, or release bundles. The repository workflow in [`scripts/workflow.py`](../../scripts/workflow.py) owns those cross-component paths. Its Arcana release step builds `arcana/Cargo.toml` with `--release --locked` and the release version environment.
+
+Source co-location does not change component ownership:
+
+- Lexicon owns language adapters, parsing, and publication of immutable language facts.
+- Arcana owns consuming those facts, repository compilation, graph storage and snapshots, exact graph queries, optional graph vectors, synthetic graph workloads, and storage-representation benchmarks.
+- Grimoire owns provider-neutral discovery and repository-state orchestration.
+
+A change crossing those boundaries needs the owning component's tests in addition to Arcana verification. Direct Arcana Cargo verification does not prove the root application or release bundle.
+
+## Correctness verification
+
+Correctness tests are Rust tests run by `cargo test`. Start with the narrow owner affected by the change, then run the complete Arcana suite before handoff.
+
+### Focused test ownership
+
+Cargo's test-name filter follows the module paths shown by `cargo test --all-targets --locked -- --list`.
+
+| Change area | Owning source and tests | Focused command |
+| --- | --- | --- |
+| Library metadata and exports | `src/lib.rs` | `cargo test --locked --lib tests::exposes_stable_project_metadata` |
+| Synthetic specifications, topologies, sampling, and mutation invariants | `src/synthetic/` and its inline, `spec_tests.rs`, and `mutation/tests.rs` tests | `cargo test --locked --lib synthetic::` |
+| Packed graph format, validation, writing, reading, and oracle equivalence | `src/storage/`, including `tests.rs` and `corruption_tests.rs` | `cargo test --locked --lib storage::` |
+| Graph manifests, overlays, visible reads, and compaction | `src/snapshot/`, including graph, overlay, manifest, and compaction tests | `cargo test --locked --lib snapshot::` |
+| Fact models, compilation, catalogue, ownership, incremental planning, and repository publication | `src/repository/` and its responsibility-named test files | `cargo test --locked --lib repository::` |
+| Lexicon snapshot/object verification and conversion | `src/lexicon/`, including format, binary, record, and snapshot tests | `cargo test --locked --lib lexicon::` |
+| JSONL requests, routing, traversal, analysis, export, and response behavior | `src/protocol/` and `src/protocol/tests.rs` | `cargo test --locked --lib protocol::` |
+| Optional document rendering, cache, index build/publication, and search | `src/vector/`, `documents_tests.rs`, and `index_tests.rs` | `cargo test --locked --lib vector::` |
+| Benchmark parsing, workload construction, report output, and overlay/rebuild equivalence | `src/benchmark/` and its focused tests | `cargo test --locked --lib benchmark::` |
+| Binary CLI parsing, import/query, changed-file update, sync, locking, and publication | `src/cli*_tests.rs` and inline tests in `cli_sync_state.rs` | `cargo test --locked --bin arcana cli_` |
+
+Use a more specific fully qualified filter when one test owns the seam. For example:
+
+```text
+cargo test --locked --lib snapshot::overlay_tests::overlay_round_trips_and_merges_both_directions
+cargo test --locked --bin arcana cli_sync_tests::sync_builds_reuses_and_registers_a_lexicon_snapshot
+```
+
+Tests that use generated graphs or a small benchmark configuration remain correctness tests: they assert determinism, validation, cleanup, or backend equivalence. Their elapsed time is not performance evidence.
+
+### Complete Arcana verification
+
+Run this sequence before handing off an Arcana code change:
+
+```text
+cargo fmt -- --check
+cargo check --jobs 1 --all-targets --locked
+cargo test --jobs 1 --all-targets --locked -- --test-threads 1
+cargo run --locked -- --help
+cargo run --locked -- --version
+```
+
+The bounded job and test-thread counts match the repository's default CPU-bounded workflow. `--all-targets` covers the library, binary, and their test harnesses. The help and version commands exercise the executable boundary after compilation.
+
+For repository-wide verification, start at the repository root:
+
+```text
+python scripts/check_docs.py
+python scripts/workflow.py test
+```
+
+The root test workflow runs the documentation checker, root Go tests, Lexicon Go tests, and the bounded Arcana `cargo test --all-targets --locked` suite. It is broader than direct Arcana verification.
+
+### Explicit ignored tests
+
+The complete suite intentionally leaves two manual tests ignored:
+
+```text
+cargo test --locked --lib storage::tests::medium_scale_packed_smoke -- --ignored --exact
+cargo test --release --locked --lib lexicon::binary_tests::benchmark_binary_and_json_ingestion -- --ignored --exact --nocapture
+```
+
+The medium-scale storage smoke is a larger correctness exercise over 100,000 nodes and 1,000,000 edges; it is not a timing claim. The Lexicon binary-versus-JSON ingestion test prints elapsed time for 50,000 rounds and has no performance threshold. Treat its output as performance evidence for that exact release build and environment, not as part of the default correctness gate.
+
+## Formatting and check expectations
+
+- Run `cargo fmt -- --check` as a non-mutating gate. Use `cargo fmt` to apply required Rust formatting, then rerun the check.
+- Run `cargo check --all-targets --locked`, not only a library check, because Arcana has both library and binary owners and test-only modules in each target.
+- Do not omit `--locked`; `Cargo.lock` is checked in and is part of reproducible verification.
+- The explicit Rust lint policy in `Cargo.toml` is `unsafe_code = "forbid"`. The current crate metadata and root workflow do not define a separate Clippy gate, so Clippy output is supplemental rather than a substitute for format, check, and test verification.
+- Markdown is validated by [`scripts/check_docs.py`](../../scripts/check_docs.py). It checks required documentation, local link targets, and index visibility across the repository; it is not a Rust formatter or test runner.
+
+## Correctness tests versus performance evidence
+
+Keep the two claims separate in change reports and reviews.
+
+| Evidence | Command path | What it supports | What it does not support |
+| --- | --- | --- | --- |
+| Correctness | Focused `cargo test` filters, then `cargo test --all-targets` | Determinism, invariants, parsing, validation, corruption rejection, publication, query behavior, and overlay/rebuilt result equivalence | Throughput, latency, memory, or scaling claims |
+| Compile and command checks | `cargo fmt -- --check`, `cargo check --all-targets`, `cargo run -- --help`, and `--version` | Formatting, compilation of every target, and basic executable dispatch | Behavioral completeness or performance |
+| Performance evidence | `cargo run --release -- benchmark ...` | Timings, throughput, file sizes, and backend comparisons for the exact graph, seed, query count, sample count, revision, toolchain, and machine used | Permanent product guarantees or correctness outside the benchmark's checked equivalence |
+
+A benchmark run includes correctness guards: overlay and rebuilt-packed visible dataset checksums must match, and every paired query workload must return the same item count and fingerprint. Those guards protect the comparison; they do not turn measured durations into a correctness suite or make one run a general performance guarantee.
+
+## Benchmark usage
+
+Arcana's graph-storage benchmark is a custom release-mode CLI harness, not a Cargo `#[bench]` target. Run it from `arcana/`:
+
+```text
+cargo run --release --locked -- benchmark \
+  --tier small \
+  --topology modular \
+  --queries 10000 \
+  --samples 3 \
+  --seed 0 \
+  --csv target/benchmarks/small-modular-mutations.csv
+```
+
+Use `cargo run --release --locked -- benchmark --help` for the current option surface. The implemented options are:
+
+- `--tier <small|medium|large|stress>`;
+- `--topology <modular|entangled|hub-heavy|layered|dense-subsystem>`;
+- `--queries <COUNT>`;
+- `--samples <COUNT>`;
+- `--seed <NUMBER>`;
+- `--csv <PATH>`;
+- `--work-dir <PATH>`; and
+- `--keep-files`.
+
+Without overrides, the command uses the small modular preset, 1,000 queries, three samples, seed zero, `target/arcana-benchmark` as its work directory, no CSV, and cleanup of generated files.
+
+The harness in [`src/benchmark/mutation_runner.rs`](../src/benchmark/mutation_runner.rs):
+
+1. validates the configuration;
+2. generates one synthetic dataset, writes one shared packed base, and opens it before measured samples;
+3. creates the five standard mutation plans and shared deterministic query workloads outside the measured sample windows;
+4. measures overlay creation against writing a rebuilt packed graph, alternating which backend runs first by sample;
+5. verifies visible dataset checksum equality;
+6. measures fully validated overlay-snapshot and packed-graph reopen;
+7. warms both query backends before timing six forward/reverse random, sequential, and hot-node workloads, alternating query order; and
+8. rejects an item-count or query-fingerprint mismatch.
+
+The report emits human-readable median timings, query throughput, speedup, and file sizes. Its overlay file-size sample is the incremental overlay artifact; its rebuilt-packed sample is the complete replacement packed file. The shared packed base is setup state and is not added to the overlay sample's file size. `--csv` writes every raw sample with graph, backend, metric, workload, sample number, duration in nanoseconds, operation and item counts, file size, and fingerprint. The CSV does not contain the repository revision, Rust version, operating system, hardware, or ambient machine load; record those alongside retained results.
+
+Use `small` for routine harness exercises. The tier sizes are fixed by [`src/synthetic/spec.rs`](../src/synthetic/spec.rs):
+
+| Tier | Nodes | Edges |
+| --- | ---: | ---: |
+| `small` | 10,000 | 100,000 |
+| `medium` | 100,000 | 1,000,000 |
+| `large` | 1,000,000 | 10,000,000 |
+| `stress` | 5,000,000 | 50,000,000 |
+
+Large and stress runs are performance experiments, not routine correctness gates. Report the exact tier, topology, query count, sample count, seed, release mode, CSV artifact, revision, toolchain, operating system, and hardware with any result. Compare runs only when those conditions and the benchmark methodology are compatible.
+
+## Synthetic workload ownership
+
+[`src/synthetic/`](../src/synthetic/) owns deterministic graph inputs shared by storage/snapshot tests and the benchmark harness. It is not part of the Lexicon-to-repository production ingestion path.
+
+- `spec.rs` owns `GraphSpec`, scale tiers, topology parameters, and request validation.
+- `generator.rs` dispatches to the modular, entangled, hub-heavy, layered, and dense-subsystem generators.
+- `sampling.rs` owns deterministic sampling primitives used by generators.
+- `mutation/` owns deterministic mutation selection, replacement, application, and mutation invariants.
+- `synthetic::NodeId`, `EdgeKind`, `Edge`, and `GraphDataset` are also the current dense graph primitives reused by repository compilation, storage, and snapshots.
+
+Synthetic tests require exact requested edge counts, stable output for a specification and seed, canonical ordering, unique directed non-self edges, distinct topology outputs, and validation of invalid specifications. Mutation tests require deterministic plans, equal removed and added counts, preserved edge-kind counts, unchanged node/edge totals after application, and canonical unique output.
+
+[`src/benchmark/`](../src/benchmark/) owns how those datasets become performance evidence:
+
+- `cli.rs` owns presets and benchmark options;
+- `common.rs` owns configuration and shared query workload setup;
+- `mutation_plan.rs` owns the single-node, local-range, scattered, hub, and one-percent mutation set;
+- `mutation_runner.rs` owns setup, measured boundaries, backend ordering, reopen measurement, and checksum comparison;
+- `mutation_query.rs` owns warmup, timed query execution, ordering, and fingerprint comparison; and
+- `report.rs` owns human summaries and raw CSV serialization.
+
+When adding or changing a topology, update the synthetic specification/dispatcher and owning topology tests, then update benchmark CLI presets/help/tests and user-facing topology lists. When changing mutation or measurement methodology, update the narrow benchmark owner, its focused tests, this guide, and any retained report description. Do not describe a synthetic test fixture as a repository-ingestion workload or a benchmark timing as production behavior.
+
+## Documentation update requirements
+
+Documentation is part of the owning seam. Update it in the same change when current behavior changes:
+
+- Update [APPLICATION.md](APPLICATION.md) for CLI syntax, state layout, synchronization, publication, locking, operational failures, or diagnostics.
+- Update [ARCHITECTURE.md](ARCHITECTURE.md) for ownership, dependency direction, runtime flows, failure boundaries, or cross-component invariants.
+- Update [CODEMAP.md](CODEMAP.md) when file ownership, source entry points, test locations, or the starting point for a common change moves.
+- Update this guide when prerequisites, Cargo targets, verification commands, focused test ownership, synthetic tiers/topologies, benchmark options, measured boundaries, or reporting requirements change.
+- Update [LEXICON_CONTRACT.md](LEXICON_CONTRACT.md), [repository-snapshots.md](repository-snapshots.md), or [vector-index.md](vector-index.md) with changes to their focused contracts. Source constants and tests remain authoritative for versioned formats and protocol behavior.
+- Update [`../README.md`](../README.md) when product-level commands, supported topology/tier lists, or end-to-end examples change.
+
+For every documentation change, run from the repository root:
+
+```text
+python scripts/check_docs.py
+```
+
+If documentation changes because Rust behavior changed, also run the owning focused tests and the complete Arcana verification sequence. Keep benchmark results labeled as evidence for their exact recorded conditions; do not rewrite them as timeless guarantees.

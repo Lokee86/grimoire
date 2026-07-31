@@ -48,7 +48,7 @@ Build validation covers the manifest, semantic-eligibility policy, fixed data fi
 
 ## Indexed objects
 
-Arcana constructs the complete repository graph, then applies semantic-eligibility policy version 5 only while generating index documents. The policy excludes `variable`, `parameter`, `field`, `import`, `export`, `constant`, `test`, `directory`, and `repository` nodes. It also excludes synthetic external or built-in paths beginning with `@` and anonymous closure or lambda declarations. It includes named `function`, `method`, `constructor`, `file`, `type`, `interface`, `module`, `namespace`, `message-channel`, `http-endpoint`, `config-key`, and `signal` nodes. Existing `trait` and generic `symbol` declarations are also included because they are type-like or adapter-neutral declaration entry points. Every current node kind is matched explicitly, so adding a kind requires a deliberate policy decision.
+Arcana constructs the complete repository graph, then applies semantic-eligibility policy version 6 only while generating index documents. The policy excludes `variable`, `parameter`, `field`, `import`, `export`, `constant`, `test`, `directory`, and `repository` nodes. It also excludes synthetic external or built-in paths beginning with `@` and anonymous closure or lambda declarations. It includes named `function`, `method`, `constructor`, `file`, `type`, `interface`, `trait`, generic `symbol`, `module`, `namespace`, `message-channel`, `http-endpoint`, `config-key`, `signal`, `process`, `cli-command`, `protocol`, and `state-path` nodes. Every current node kind is matched explicitly, so adding a kind requires a deliberate policy decision.
 
 These exclusions remove high-volume implementation detail and low-value semantic hubs that are usually reached more precisely by traversing from a declaration-level match. They do not remove nodes or edges from Arcana snapshots, so exact traversal can still reach variables, parameters, fields, imports, exports, constants, tests, synthetic nodes, directories, and the repository root.
 
@@ -95,7 +95,7 @@ The cache key is SHA-256 over a domain separator, rendered graph-document bytes,
 
 `vectors.f32` contains normalized little-endian `f32` vectors materialized in deterministic node order. `nodes.jsonl` maps vector positions back to Arcana node keys, kinds, paths, and names. A snapshot manifest also records the unique-vector count when produced by the incremental builder.
 
-The current index format is version 3 and semantic-eligibility policy version is 5. Its composite identity is `<embedding-identity>-arcana-semantic-v5`, while the containing directory remains keyed by embedding identity. Earlier manifests lack the current checksums, entry-point policy, or bounded document-rendering contract and are rebuilt rather than reused.
+The current index format is version 3 and semantic-eligibility policy version is 6. Its composite identity is `<embedding-identity>-arcana-semantic-v6`, while the containing directory remains keyed by embedding identity. Earlier manifests lack the current checksums, entry-point policy, operational node coverage, or bounded document-rendering contract and are rebuilt rather than reused.
 
 ## Expected scope reduction
 

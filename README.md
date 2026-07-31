@@ -326,7 +326,11 @@ docs/                   Architecture, reference, development, limits, and plans
 - [Installation and agent setup](docs/reference/installation.md)
 - [System overview](docs/architecture/system-overview.md)
 - [Component architecture](docs/architecture/components.md)
+- [Lexicon–Arcana–Grimoire analysis stack](docs/architecture/analysis-stack.md)
+- [Grimoire codemap](docs/architecture/codemap.md)
 - [Discovery CLI](docs/reference/cli.md)
+- [Lexicon reference](docs/reference/lexicon.md)
+- [Arcana reference](docs/reference/arcana.md)
 - [Unified discovery contract](docs/reference/agent-query.md)
 - [Agent and MCP guide](docs/reference/agent-mcp.md)
 - [Testing and benchmarks](docs/development/testing-and-benchmarks.md)
@@ -334,8 +338,8 @@ docs/                   Architecture, reference, development, limits, and plans
 - [Recent changes — July 2026](docs/development/recent-changes-2026-07.md)
 - [Current limitations](docs/limits/current-limitations.md)
 - [Roadmap](docs/planning/roadmap.md)
-- [Lexicon documentation](lexicon/docs/README.md)
-- [Arcana documentation](arcana/docs/)
+- [Lexicon documentation and codemap](lexicon/docs/README.md)
+- [Arcana documentation and codemap](arcana/docs/README.md)
 
 Reference documentation describes implemented behavior. Unimplemented work belongs in the roadmap, and unresolved constraints belong in limitations.
 

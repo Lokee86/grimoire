@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "profile": "library-engine",
+  "capabilities": ["stateful"],
+  "docs_root": "arcana/docs",
+  "root_index": "arcana/docs/README.md",
+  "folder_index": "README.md",
+  "required_paths": [
+    "arcana/README.md",
+    "arcana/docs/README.md",
+    "arcana/docs/APPLICATION.md",
+    "arcana/docs/ARCHITECTURE.md",
+    "arcana/docs/CODEMAP.md",
+    "arcana/docs/DEVELOPMENT.md",
+    "arcana/docs/STATUS.md"
+  ],
+  "index_exempt_directories": ["stubs"],
+  "section_exemptions": ["arcana/docs/README.md"],
+  "required_sections": ["Purpose", "Overview", "Related docs", "Notes"],
+  "baseline": "docs-standard.arcana.baseline.json",
+  "coverage": [
+    {
+      "paths": ["arcana/src/**"],
+      "docs": ["arcana/docs/ARCHITECTURE.md", "arcana/docs/CODEMAP.md"]
+    }
+  ],
+  "change_rules": [
+    {
+      "paths": ["arcana/src/**"],
+      "docs": ["arcana/docs/**"]
+    }
+  ]
+}

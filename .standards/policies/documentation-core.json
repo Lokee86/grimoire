@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "documentation-readme-required",
+      "type": "require_path",
+      "path": "README.md",
+      "message": "active repositories require a root README.md"
+    },
+    {
+      "id": "documentation-agent-rules-required",
+      "type": "require_path",
+      "path": "AGENTS.md",
+      "message": "active repositories require stable agent operating rules"
+    },
+    {
+      "id": "documentation-standard-config-required",
+      "type": "require_path",
+      "path": "docs-standard.json",
+      "message": "repository must declare its shared documentation profile"
+    },
+    {
+      "id": "documentation-policy-required",
+      "type": "require_path",
+      "path": "docs/documentation-policy.md",
+      "message": "repository must own a local documentation policy"
+    },
+    {
+      "id": "documentation-procedure-required",
+      "type": "require_path",
+      "path": "docs/documentation-procedure.md",
+      "message": "repository must own a local documentation procedure"
+    },
+    {
+      "id": "documentation-agent-language-required",
+      "type": "require_content",
+      "include_paths": ["AGENTS.md"],
+      "literal": "Documentation is part of the implementation",
+      "message": "AGENTS.md must state that documentation is part of implementation"
+    }
+  ]
+}

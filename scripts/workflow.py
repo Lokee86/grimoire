@@ -229,10 +229,11 @@ def verify_versions(build_root: Path, version: str) -> None:
 
 
 def test(jobs: int = 1) -> None:
-    """Run component suites sequentially with bounded package and test parallelism."""
+    """Run documentation and component suites with bounded parallelism."""
     jobs = validate_jobs(jobs)
     environment = bounded_env(jobs)
     cargo = cargo_command()
+    run([sys.executable, "scripts/check_docs.py"], ROOT, environment)
     go_test = ["go", "test", "-p", str(jobs), "-parallel", str(jobs), "./..."]
     run(go_test, ROOT, environment)
     run(go_test, ROOT / "lexicon", environment)

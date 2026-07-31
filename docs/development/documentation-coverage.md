@@ -1,0 +1,56 @@
+# Documentation Coverage
+
+Parent index: [Development Documentation](INDEX.md)
+
+## Purpose
+
+This document maps Grimoire, Lexicon, and Arcana production ownership to canonical current documentation.
+
+## Overview
+
+Coverage includes commands, packages, component boundaries, stateful flows, machine-readable contracts, and independently usable component surfaces.
+
+## Product commands and packages
+
+| Boundary | Implementation | Canonical current owner |
+| --- | --- | --- |
+| Unified CLI and MCP orchestration | `cmd/grimoire/`, `internal/app/` | [CLI](../reference/cli.md), [Agent MCP](../reference/agent-mcp.md), [System overview](../architecture/system-overview.md) |
+| Progressive discovery and sessions | `internal/agentruntime/`, `internal/agentquery/` | [Unified discovery contract](../reference/agent-query.md), [Analysis stack](../architecture/analysis-stack.md) |
+| Prepared source state and retrieval | `internal/index/`, `internal/retrieve/` | [Indexing](../reference/indexing.md), [Prepared index](../architecture/prepared-index.md) |
+| Documentation indexing and retrieval | `internal/knowledge/`, `internal/knowledgevector/` | [Knowledge](../reference/knowledge.md), [Embedding model](../reference/embedding-model.md) |
+| Lexicon fact integration | `internal/lexiconfacts/`, `internal/structure/` | [Lexicon reference](../reference/lexicon.md), [Component architecture](../architecture/components.md) |
+| Arcana graph integration | `internal/arcanagraph/`, `internal/structure/` | [Arcana reference](../reference/arcana.md), [Component architecture](../architecture/components.md) |
+| Repository identity and aligned state | `internal/repostate/` | [Analysis stack](../architecture/analysis-stack.md), [System overview](../architecture/system-overview.md) |
+| Persistent investigation evidence | `internal/investigation/` | [Agent MCP](../reference/agent-mcp.md), package README |
+| Embedding runtime and vector boundary | `internal/embedding/`, `internal/vectorstore/` | [Embedding model](../reference/embedding-model.md), [Vector store](../reference/vector-store.md) |
+| Retrieval and agent outcome evaluation | `internal/knowledgeevaluation/`, `evaluation/agent_discovery/` | [Testing and benchmarks](testing-and-benchmarks.md), [Agent benchmark findings](agent-benchmark-findings.md) |
+
+## Component coverage
+
+| Component | Code root | Canonical current owner |
+| --- | --- | --- |
+| Lexicon language-analysis engine | `lexicon/` | [Lexicon documentation](../../lexicon/docs/README.md), [Root Lexicon reference](../reference/lexicon.md) |
+| Arcana graph engine | `arcana/` | [Arcana documentation](../../arcana/docs/README.md), [Root Arcana reference](../reference/arcana.md) |
+| Lodestone vector engine integration | sibling `../lodestone` and Grimoire vector boundary | [Vector store](../reference/vector-store.md), [Component architecture](../architecture/components.md) |
+
+## Stateful flows
+
+| Flow | Canonical current owner |
+| --- | --- |
+| Repository preparation and snapshot alignment across Grimoire, Lexicon, Arcana, and documentation | [Analysis stack](../architecture/analysis-stack.md) |
+| Exact, BM25, document, symbol, and relationship lane assembly | [Unified discovery contract](../reference/agent-query.md) |
+| Stable snapshot-qualified handles and inspection | [Agent MCP](../reference/agent-mcp.md) |
+| Investigation session reuse and prior-evidence compaction | [Agent MCP](../reference/agent-mcp.md) |
+| Lexicon immutable object and snapshot lifecycle | [Lexicon architecture](../../lexicon/docs/ARCHITECTURE.md) |
+| Arcana graph snapshot, overlay, and compaction lifecycle | [Arcana architecture](../../arcana/docs/ARCHITECTURE.md), [Repository snapshots](../../arcana/docs/repository-snapshots.md) |
+| Document-vector and graph-vector storage through Lodestone | [Vector store](../reference/vector-store.md), [Arcana vector index](../../arcana/docs/vector-index.md) |
+
+## Related docs
+
+- [Behavioral contract matrix](behavioral-contract-matrix.md)
+- [Component architecture](../architecture/components.md)
+- [Analysis stack](../architecture/analysis-stack.md)
+
+## Notes
+
+Update this map whenever an independent production flow, public command, machine-readable contract, package responsibility, or component boundary changes.

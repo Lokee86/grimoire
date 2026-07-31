@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "profile": "library-engine",
+  "capabilities": ["stateful", "data-pipeline"],
+  "docs_root": "lexicon/docs",
+  "root_index": "lexicon/docs/README.md",
+  "folder_index": "README.md",
+  "required_paths": [
+    "lexicon/README.md",
+    "lexicon/docs/README.md",
+    "lexicon/docs/APPLICATION.md",
+    "lexicon/docs/ARCHITECTURE.md",
+    "lexicon/docs/CODEMAP.md",
+    "lexicon/docs/DEVELOPMENT.md",
+    "lexicon/docs/STATUS.md"
+  ],
+  "index_exempt_directories": ["stubs"],
+  "section_exemptions": ["lexicon/docs/README.md"],
+  "required_sections": ["Purpose", "Overview", "Related docs", "Notes"],
+  "baseline": "docs-standard.lexicon.baseline.json",
+  "coverage": [
+    {
+      "paths": ["lexicon/cmd/**", "lexicon/internal/**", "lexicon/adapters/**"],
+      "docs": ["lexicon/docs/ARCHITECTURE.md", "lexicon/docs/CODEMAP.md"]
+    }
+  ],
+  "change_rules": [
+    {
+      "paths": ["lexicon/**"],
+      "docs": ["lexicon/docs/**"]
+    }
+  ]
+}

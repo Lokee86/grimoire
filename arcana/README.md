@@ -224,6 +224,18 @@ creation, fully validated reopen, warm forward/reverse queries, and incremental
 file size. Overlay and rebuilt-packed results must produce identical visible
 graph checksums and query fingerprints.
 
+## Documentation
+
+- [Documentation index](docs/README.md)
+- [Application and operations](docs/APPLICATION.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Implementation codemap](docs/CODEMAP.md)
+- [Development and verification](docs/DEVELOPMENT.md)
+- [Current status and limitations](docs/STATUS.md)
+- [Lexicon integration contract](docs/LEXICON_CONTRACT.md)
+- [Repository snapshot contract](docs/repository-snapshots.md)
+- [Optional semantic vector index](docs/vector-index.md)
+
 ## Development
 
 The package uses Rust edition 2024.

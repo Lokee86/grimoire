@@ -4,9 +4,10 @@ Verification is split by owning component and by discovery outcome.
 
 ## CPU-bounded root workflow
 
-The root workflow defaults to one worker:
+The root workflow validates the complete Markdown surface and then runs component tests. It defaults to one worker:
 
 ```bash
+python scripts/check_docs.py
 python scripts/workflow.py test
 python scripts/workflow.py build --version dev
 python scripts/workflow.py release --version 0.1.0
@@ -67,6 +68,7 @@ The active Grimoire contract is covered by:
 | Session deduplication for nodes, documents, relationships, and paths | `internal/agentruntime/*_test.go` and `internal/investigation/*_test.go` |
 | Direct CLI commands and retired context command | `internal/app/run_test.go`, `internal/app/exact_context_test.go` |
 | MCP schema and state preparation | `internal/app/*_test.go`, `internal/repostate/*_test.go` |
+| Documentation presence, index visibility, and local links | `scripts/check_docs.py` |
 | Release concurrency bounds and bundled adapter installation | `scripts/test_workflow.py` |
 | Selected-run summary retention and compatibility checks | `evaluation/test_benchmark_summary.py` |
 | Installed release MCP, managed provider state, opaque inspect/trace handles | `scripts/test_installed_mcp.py` |

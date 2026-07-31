@@ -131,6 +131,7 @@ Lexicon does not own:
 - [Documentation index and rules](docs/README.md)
 - [Application and operations](docs/APPLICATION.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Implementation codemap](docs/CODEMAP.md): source ownership, runtime and data flows, and starting points for common changes.
 - [Development and verification](docs/DEVELOPMENT.md)
 - [Current status and limits](docs/STATUS.md)
 - [Semantic acceptance gates](docs/SEMANTIC_ACCEPTANCE.md)
