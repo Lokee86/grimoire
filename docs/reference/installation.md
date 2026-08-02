@@ -1,5 +1,19 @@
 # Installation and agent setup
 
+Parent index: [Reference](INDEX.md)
+
+## Purpose
+
+This guide defines release installation, source builds, command verification, agent-skill setup, MCP configuration, first-run preparation, and recovery from common setup failures.
+
+## Overview
+
+The combined bundle installs Grimoire, Lexicon, Arcana, Lexicon adapters, the Lodestone native library, and the canonical Grimoire skill while preserving independent component executables and state.
+
+## Prerequisites
+
+Release installation requires Python 3.12 or newer to run the installer, a writable destination for the executables, and permission to add that destination to the user's `PATH`. Source builds additionally require the toolchain listed under [Build from source](#build-from-source).
+
 This page covers release installation, source builds, command verification, agent skill installation, MCP configuration, first-run state preparation, and common setup failures.
 
 ## Recommended release installation
@@ -90,6 +104,10 @@ Expected behavior:
 - `grimoire help` lists direct discovery, MCP, state, vector, model, investigation, and engine namespace commands.
 
 When provider discovery fails, verify that all bundle executables were installed together or use the explicit environment overrides documented in [CLI environment variables](cli.md#environment-variables).
+
+## Expected result
+
+A successful installation reports matching Grimoire, Lexicon, and Arcana versions, lists the unified command surface, prepares a representative repository without contract errors, and allows a narrow search or MCP request to return inspectable evidence handles.
 
 ## Prepare a repository
 
@@ -237,7 +255,7 @@ grimoire search --root . --query "Why is match state authoritative?" --document-
 
 `model setup` currently manages Windows x64 artifacts. Other platforms require an externally configured compatible endpoint. See [Embedding model](embedding-model.md) and [Current limitations](../limits/current-limitations.md).
 
-## Troubleshooting
+## Failure and recovery
 
 ### Command not found
 
@@ -274,7 +292,7 @@ Use `breadth: "narrow"` for localized work, keep its default four-result combine
 
 Check `warnings`, `preparation`, and `truncated_lanes`. Expand only the relevant lane or verify the bounded claim with ordinary repository search and exact source reads.
 
-## Related documentation
+## Related docs
 
 - [Agent and MCP guide](agent-mcp.md)
 - [Unified discovery contract](agent-query.md)
@@ -282,3 +300,6 @@ Check `warnings`, `preparation`, and `truncated_lanes`. Expand only the relevant
 - [Release workflow](../development/release-workflow.md)
 - [Current limitations](../limits/current-limitations.md)
 
+## Notes
+
+Installation success requires both executable verification and a representative repository-preparation or MCP smoke test.

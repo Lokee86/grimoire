@@ -5,7 +5,7 @@ go 1.26.5
 replace github.com/Lokee86/lodestone/bindings/go => ../lodestone/bindings/go
 
 require (
-	github.com/Lokee86/lodestone/bindings/go v0.0.0
+	github.com/Lokee86/lodestone/bindings/go v0.0.0-20260727052216-372abb7b9d5c
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/tiktoken-go/tokenizer v0.8.0
 	golang.org/x/sys v0.43.0

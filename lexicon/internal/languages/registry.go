@@ -19,6 +19,9 @@ var definitions = []Definition{
 	{Language: "c-family", Directory: "c-family", Extensions: []string{".c", ".cc", ".cp", ".cpp", ".cxx", ".c++", ".h", ".hh", ".hpp", ".hxx", ".h++", ".inc", ".inl", ".ipp", ".tpp"}, ConfigFiles: []string{"compile_commands.json", "CMakeLists.txt"}},
 	{Language: "gdscript", Directory: "gdscript", Extensions: []string{".gd"}, ConfigFiles: []string{"project.godot"}},
 	{Language: "go", Directory: "go", Extensions: []string{".go"}, ConfigFiles: []string{"go.mod", "go.sum"}},
+	{Language: "csharp", Directory: "csharp", Extensions: []string{".cs"}, ConfigFiles: []string{".sln", ".csproj", "Directory.Build.props", "Directory.Build.targets", "global.json"}},
+	{Language: "java", Directory: "java", Extensions: []string{".java"}, ConfigFiles: []string{"pom.xml", "build.gradle", "settings.gradle", "gradlew", "gradlew.bat", "mvnw", "mvnw.cmd"}},
+	{Language: "kotlin", Directory: "kotlin", Extensions: []string{".kt", ".kts"}, ConfigFiles: []string{"build.gradle.kts", "settings.gradle.kts"}},
 	{Language: "lotusscript", Directory: "lotusscript", Extensions: []string{".ls", ".lsa", ".lsdb", ".lss"}},
 	{Language: "python", Directory: "python", Extensions: []string{".py"}, ConfigFiles: []string{"pyproject.toml", "setup.cfg", "requirements.txt"}},
 	{Language: "ruby", Directory: "ruby", Extensions: []string{".rb", ".gemspec"}, ConfigFiles: []string{"Gemfile", "Gemfile.lock"}},
@@ -29,10 +32,10 @@ var definitions = []Definition{
 
 var genericSourceExtensions = map[string]struct{}{
 	".asm": {}, ".bash": {}, ".bat": {}, ".clj": {}, ".cljs": {},
-	".cmd": {}, ".cr": {}, ".cs": {}, ".dart": {}, ".elm": {}, ".erl": {},
+	".cmd": {}, ".cr": {}, ".dart": {}, ".elm": {}, ".erl": {},
 	".ex": {}, ".exs": {}, ".f03": {}, ".f90": {}, ".f95": {}, ".fish": {}, ".fs": {},
-	".fsx": {}, ".groovy": {}, ".hs": {}, ".java": {},
-	".jl": {}, ".kt": {}, ".kts": {}, ".lhs": {}, ".lua": {}, ".m": {}, ".ml": {},
+	".fsx": {}, ".groovy": {}, ".hs": {},
+	".jl": {}, ".lhs": {}, ".lua": {}, ".m": {}, ".ml": {},
 	".mli": {}, ".mm": {}, ".nim": {}, ".nims": {}, ".pas": {}, ".php": {}, ".pl": {},
 	".pm": {}, ".proto": {}, ".ps1": {}, ".r": {}, ".scala": {}, ".sc": {}, ".s": {},
 	".sh": {}, ".sol": {}, ".sql": {}, ".swift": {}, ".sv": {}, ".v": {}, ".vb": {},
@@ -76,7 +79,7 @@ func ForPath(path string) []string {
 		if definition.Language == "generic" {
 			continue
 		}
-		if contains(definition.ConfigFiles, name) || contains(definition.Extensions, extension) {
+		if matchesConfigFile(definition.ConfigFiles, name, extension) || contains(definition.Extensions, extension) {
 			result = append(result, definition.Language)
 		}
 	}
@@ -128,6 +131,15 @@ func clone(definition Definition) Definition {
 func contains(values []string, target string) bool {
 	for _, value := range values {
 		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
+func matchesConfigFile(configFiles []string, name, extension string) bool {
+	for _, configFile := range configFiles {
+		if configFile == name || (strings.HasPrefix(configFile, ".") && configFile == extension) {
 			return true
 		}
 	}

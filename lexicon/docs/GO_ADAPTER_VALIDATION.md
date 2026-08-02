@@ -1,5 +1,31 @@
 # Go adapter real-repository validation
 
+Parent index: [Lexicon Documentation](README.md)
+
+## Purpose
+
+This document records real-repository validation evidence for the Lexicon Go adapter and its Arcana-consumable output.
+
+## Overview
+
+The validation measures declaration, relationship, call-resolution, packed-graph, and query behavior on recorded repository revisions. It is evidence for those inputs, not a universal semantic guarantee.
+
+## Research status
+
+Retained dated validation evidence for the current Go adapter design. Results may be superseded by later runs but remain historical records.
+
+## Question
+
+Does the Go adapter produce deterministic, useful, and conservatively resolved facts on representative real repositories?
+
+## Method
+
+Run the adapter and downstream Arcana ingestion on pinned repositories, inspect semantic metrics and unresolved categories, and execute representative graph queries.
+
+## Corpus or inputs
+
+The exact repositories, revisions, commands, and measured outputs are recorded in the result sections below.
+
 This is a dated validation record, not a current performance benchmark. It captures the Go semantic adapter validation performed on July 22, 2026 before the later multi-module repository and adaptive semantic-parallelism changes were merged into `main`. The semantic categories and limitations remain relevant; counts, file totals, packed sizes, and elapsed behavior may differ on the current implementation.
 
 Validated on July 22, 2026 against two existing Go modules without modifying
@@ -105,3 +131,26 @@ call records:
   separate repositories;
 - packed graph edges are deduplicated relationships, so exact call-site coverage
   requires a future call-site fact layer rather than reconstruction from edges.
+
+## Limitations
+
+The corpus is finite, repository selection is not statistically representative, and static analysis cannot establish reflection, runtime registration, generated code, or unscanned external implementations.
+
+## Interpretation
+
+Passing results support the adapter's documented conservative semantics on the recorded revisions. They do not establish complete Go program behavior.
+
+## Retained artifacts
+
+Commands, repository revisions, measurement tables, unresolved classifications, and query checks are retained in this document and the referenced validation outputs.
+
+## Related docs
+
+- [Go adapter README](../adapters/go/README.md)
+- [Semantic acceptance gates](SEMANTIC_ACCEPTANCE.md)
+- [Semantic corpus validation](SEMANTIC_CORPUS_VALIDATION.md)
+- [Development and verification](DEVELOPMENT.md)
+
+## Notes
+
+Repository revisions, adapter versions, commands, and accepted unresolved categories must remain attached to any quoted result.

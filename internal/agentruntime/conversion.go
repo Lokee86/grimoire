@@ -257,6 +257,7 @@ func investigationResponse(query agentquery.Response, documents []knowledge.Resu
 		builder.addHit(investigation.RetrievalHit{
 			Evidence: evidence, RelatedEvidence: relatedEvidence(evidence, related...),
 			Lane: "dependents", Provider: dependent.Node.Handle.Provider,
+			Rank: dependent.Rank, Score: dependent.Score, Reasons: append([]string(nil), dependent.Reasons...),
 			Depth: dependent.Depth, Direction: dependent.Direction, Relation: dependent.Relation,
 			Certainty: dependent.Certainty, Support: append([]string(nil), dependent.Evidence...),
 		})

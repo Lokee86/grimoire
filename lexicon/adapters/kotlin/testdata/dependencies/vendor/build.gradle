@@ -1,0 +1,3 @@
+dependencies {
+    implementation 'ignored:vendor:1.0'
+}

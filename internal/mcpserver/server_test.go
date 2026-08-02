@@ -50,8 +50,73 @@ func TestServerHandshakeListsAndCallsQueryTool(t *testing.T) {
 	if !strings.Contains(string(received), `"trace respawn"`) {
 		t.Fatalf("handler arguments = %s", received)
 	}
-	if !strings.Contains(lines[2], `"structuredContent":{"handles":["node:test"],"version":1}`) {
-		t.Fatalf("missing structured tool result: %s", lines[2])
+	if !strings.Contains(output.String(), `"structuredContent":{"handles":["node:test"],"version":1}`) {
+		t.Fatalf("missing structured tool result: %s", output.String())
+	}
+}
+
+func TestServerRejectsUnsupportedInitializeProtocol(t *testing.T) {
+	server, err := New(Options{}, HandlerFunc(func(context.Context, json.RawMessage) (any, error) {
+		return nil, nil
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := `{"jsonrpc":"2.0","id":"init","method":"initialize","params":{"protocolVersion":"2099-01-01"}}` + "\n"
+	var output bytes.Buffer
+	if err := server.Serve(context.Background(), strings.NewReader(input), &output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), `"code":-32602`) ||
+		!strings.Contains(output.String(), `"supported_protocol_version":"2025-11-25"`) {
+		t.Fatalf("unexpected initialize response: %s", output.String())
+	}
+}
+
+func TestServerCancellationCancelsActiveToolCall(t *testing.T) {
+	server, err := New(Options{}, HandlerFunc(func(ctx context.Context, _ json.RawMessage) (any, error) {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := strings.Join([]string{
+		`{"jsonrpc":"2.0","id":"slow","method":"tools/call","params":{"name":"grimoire_discover","arguments":{"mode":"orient"}}}`,
+		`{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"slow","reason":"no longer needed"}}`,
+	}, "\n") + "\n"
+	var output bytes.Buffer
+	if err := server.Serve(context.Background(), strings.NewReader(input), &output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), `"id":"slow"`) ||
+		!strings.Contains(output.String(), `"isError":true`) ||
+		!strings.Contains(output.String(), `context canceled`) {
+		t.Fatalf("unexpected cancellation response: %s", output.String())
+	}
+}
+
+func TestServerBoundsConcurrentToolCalls(t *testing.T) {
+	server, err := New(Options{MaxInFlight: 1}, HandlerFunc(func(ctx context.Context, _ json.RawMessage) (any, error) {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := strings.Join([]string{
+		`{"jsonrpc":"2.0","id":"first","method":"tools/call","params":{"name":"grimoire_discover","arguments":{"mode":"orient"}}}`,
+		`{"jsonrpc":"2.0","id":"second","method":"tools/call","params":{"name":"grimoire_discover","arguments":{"mode":"orient"}}}`,
+		`{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"first"}}`,
+	}, "\n") + "\n"
+	var output bytes.Buffer
+	if err := server.Serve(context.Background(), strings.NewReader(input), &output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), `"id":"second"`) ||
+		!strings.Contains(output.String(), `"code":-32001`) ||
+		!strings.Contains(output.String(), `"max_in_flight":1`) {
+		t.Fatalf("missing bounded-admission response: %s", output.String())
 	}
 }
 

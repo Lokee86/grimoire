@@ -1,6 +1,16 @@
 # Lexicon current status
 
-Status date: July 28, 2026.
+Parent index: [Lexicon Documentation](README.md)
+
+## Purpose
+
+This document records Lexicon's current implemented capabilities, adapter coverage, incremental and parallel behavior, validation evidence, explicit limits, and documentation status.
+
+## Overview
+
+Status claims distinguish implemented behavior, measured evidence, and explicit non-claims. Future possibilities remain outside this document until implementation exists.
+
+Status date: August 1, 2026.
 
 This document describes the implementation currently present on `main`. Dated validation reports record evidence from specific runs and should not be treated as permanent performance guarantees.
 
@@ -33,8 +43,11 @@ The primary execution model remains one-shot CLI operations. Watch mode invokes 
 | --- | ---: | --- | --- |
 | C / C++ | 0.5.0 | Shared C-family view, includer-aware parsing, include-closure translation units, bounded nested macro expansion with argument substitution and provenance, function-pointer flow, explainable call resolution, direct argument-to-parameter flow, arity and qualification pruning, direct receiver-type evidence, definite/possible calls, reads/writes | No full compiler/preprocessor replay, token pasting, stringification, variadic macro substitution, configuration-accurate branch evaluation, template instantiation, full overload ranking, ADL, virtual dispatch proof, generated headers, Objective-C, or CUDA semantics |
 | Go | 0.1.0 | Multi-module discovery, packages, types, calls, closures, interfaces, implementations, overrides, dataflow, dependencies, SSA/VTA possible dispatch | Reflection, plugins, cgo/assembly, generated runtime behavior, and exact call-site graph retention |
+| C# | 0.2.0 | Roslyn declarations and semantic relationships, optional restored MSBuild project graphs, project/package references, calls and candidate calls, inheritance, implementations, overrides, reads, writes, and deterministic full or scoped output | Project mode requires compatible restore assets; source generators, runtime reflection, application behavior, and exhaustive conditional configurations are not modeled |
+| Java | 0.4.0 | Deterministic source and manifest analysis plus `jdk.compiler` attribution for repository-local calls, overrides, references, reads, and writes; bounded parallel source-root compilation; Maven and Gradle dependency evidence | External classpath/module-path symbols, annotation processing, generated-code expansion, complete build evaluation, reflection, and runtime dispatch remain unresolved |
+| Kotlin | 0.4.0 | Deterministic source discovery, packages/imports, classes, interfaces, objects, companions, enums, members, properties, repository-local supertypes, extension calls, possible calls, overrides, dataflow, and literal Gradle/Maven dependency evidence | No Kotlin compiler or Gradle model, full inferred/safe/chained extension binding, source-set/plugin/generated-code semantics, delegated-property execution, reflection, or runtime dispatch |
 | GDScript | 0.3.0 | Godot project scoping, classes, inheritance, autoloads, callbacks, bounded type flow, calls, possible calls, dataflow, dependencies | Scene-tree-only type evidence, engine internals, runtime script replacement, computed dispatch and resource paths |
-| LotusScript | 0.2.0 | `.ls`/`.lss` source discovery, Domino ODP `.lsa`/`.lsdb` handling, structured and base64 DXL agent extraction, script-library modules, declarations, `%REM` blocks, `Use`/`UseLSX`, inheritance, declared-type receiver calls, indexing suppression, and conservative unresolved targets | No generic `.txt`/`.bas`/`.vb` content detection, non-ASCII LMBCS raw-payload decoding, assignment-only type inference, Domino form/view design graph, or incremental narrowing |
+| LotusScript | 0.3.0 | `.ls`/`.lss` discovery, Domino ODP `.lsa`/`.lsdb` extraction, script-library modules, transitive `Use` scope, visibility, classes and `Type` members, inheritance, definite typed calls, colon and `With` syntax, conservative reads/writes, and explicit unresolved targets | No generic `.txt`/`.bas`/`.vb` content detection, non-ASCII LMBCS raw-payload decoding, assignment-only type inference, implicit-variable modeling, alias/interprocedural flow, Domino design graph, complete runtime dispatch, or incremental narrowing |
 | Python | 0.3.0 | Imports, lexical scopes, inheritance, protocols, callbacks, callable flow, C3 lookup, dataflow, dependencies | Monkey patching, metaclasses, dynamic imports/reflection, framework injection without ordinary value-flow evidence |
 | Ruby | 0.3.0 | Reopened owners, inheritance, mixins, blocks, callbacks, bounded Rails-aware flow, dataflow, dependencies | Open runtime mutation, `send`/`eval`, refinements, dynamic constants, framework-generated behavior without declarations |
 | Rust | 0.3.0 | Cargo workspaces, modules, traits, implementations, UFCS, callbacks, dataflow, dependencies | Procedural macro expansion, build-script-generated behavior, unsafe aliasing, unconstrained runtime registration |
@@ -103,7 +116,10 @@ Current acceptance mechanisms include:
 - semantic relation reports;
 - byte-for-byte repeat-run comparison;
 - positive and expected-negative relation gates;
-- real-repository corpus cases across C, GDScript, Python, Ruby, Rust, TypeScript, JavaScript, and Svelte;
+- real-repository corpus cases across C, C#, GDScript, Java, Kotlin, Python, Ruby, Rust, TypeScript, JavaScript, and Svelte;
+- C# smoke, incremental, determinism, and restored MSBuild project-graph checks;
+- Java compiler-backed fixture coverage plus HikariCP and Apache Maven repository scans;
+- Kotlin fixture, dependency, extension-call, runtime-semantics, and determinism checks;
 - pinned Git, Codebase Memory, LevelDB, fmt, Catch2, and nlohmann/json judgments for the C/C++ shared adapter;
 - call-site, possible-target-fanout, resolution-provenance, macro-expansion-depth, and direct argument-flow reporting for C-family corpus outputs;
 - fixture and application smoke coverage for the C/C++ shared adapter;
@@ -133,3 +149,14 @@ High unresolved counts are expected where the language or framework permits runt
 ## Documentation status
 
 The root README is the entry point. `docs/README.md`, `adapters/README.md`, `spec/README.md`, `evaluation/README.md`, and `tools/README.md` index their owning documentation surfaces. Current behavior, normative contracts, adapter-specific semantics, and dated validation evidence are intentionally separated.
+
+## Related docs
+
+- [Application and operations](APPLICATION.md)
+- [Lexicon architecture](ARCHITECTURE.md)
+- [Semantic acceptance gates](SEMANTIC_ACCEPTANCE.md)
+- [Semantic corpus validation](SEMANTIC_CORPUS_VALIDATION.md)
+
+## Notes
+
+Update this document in the same change whenever a capability, adapter, limit, or validation status materially changes.

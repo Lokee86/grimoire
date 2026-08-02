@@ -103,15 +103,32 @@ class WorkflowSmokeTests(unittest.TestCase):
             calls.append((list(command), cwd, env))
 
         with mock.patch.object(workflow, "cargo_command", return_value="cargo"), \
+                mock.patch.object(workflow, "pitlord_command", return_value="pitlord"), \
+                mock.patch.object(workflow, "verify_lodestone_checkout", return_value=workflow.DEFAULT_LODESTONE_ROOT), \
                 mock.patch.object(workflow, "run", side_effect=record):
             workflow.test()
 
-        self.assertEqual(len(calls), 4)
-        self.assertEqual(calls[0][0], [str(workflow.sys.executable), "scripts/check_docs.py"])
-        self.assertEqual(calls[1][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
-        self.assertEqual(calls[2][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
+        self.assertEqual(len(calls), 9)
+        self.assertEqual(calls[0][0], ["pitlord", "validate", "--policy", "tools/pitlord/policy.json"])
         self.assertEqual(
-            calls[3][0],
+            calls[1][0],
+            ["pitlord", "check", "--repo", ".", "--policy", "tools/pitlord/policy.json", "--timeout", "2m"],
+        )
+        self.assertEqual(calls[2][0], [str(workflow.sys.executable), "scripts/check_docs.py"])
+        self.assertEqual(calls[3][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
+        self.assertEqual(calls[4][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
+        self.assertEqual(calls[4][1], workflow.ROOT / "lexicon")
+        self.assertEqual(calls[5][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
+        self.assertEqual(calls[5][1], workflow.ROOT / "lexicon" / "adapters" / "java")
+        self.assertEqual(calls[6][0], ["go", "test", "-p", "1", "-parallel", "1", "./..."])
+        self.assertEqual(calls[6][1], workflow.ROOT / "lexicon" / "adapters" / "kotlin")
+        self.assertEqual(
+            calls[7][0],
+            [str(workflow.sys.executable), "lexicon/adapters/csharp/tests/test_adapter.py"],
+        )
+        self.assertEqual(calls[7][1], workflow.ROOT)
+        self.assertEqual(
+            calls[8][0],
             [
                 "cargo", "test", "--jobs", "1", "--all-targets", "--locked",
                 "--manifest-path", str(workflow.ROOT / "arcana" / "Cargo.toml"),

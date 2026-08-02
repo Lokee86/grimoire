@@ -12,6 +12,9 @@ func TestDefinitionsDescribeExistingAdapters(t *testing.T) {
 		{Language: "c-family", Directory: "c-family", Extensions: []string{".c", ".cc", ".cp", ".cpp", ".cxx", ".c++", ".h", ".hh", ".hpp", ".hxx", ".h++", ".inc", ".inl", ".ipp", ".tpp"}, ConfigFiles: []string{"compile_commands.json", "CMakeLists.txt"}},
 		{Language: "gdscript", Directory: "gdscript", Extensions: []string{".gd"}, ConfigFiles: []string{"project.godot"}},
 		{Language: "go", Directory: "go", Extensions: []string{".go"}, ConfigFiles: []string{"go.mod", "go.sum"}},
+		{Language: "csharp", Directory: "csharp", Extensions: []string{".cs"}, ConfigFiles: []string{".sln", ".csproj", "Directory.Build.props", "Directory.Build.targets", "global.json"}},
+		{Language: "java", Directory: "java", Extensions: []string{".java"}, ConfigFiles: []string{"pom.xml", "build.gradle", "settings.gradle", "gradlew", "gradlew.bat", "mvnw", "mvnw.cmd"}},
+		{Language: "kotlin", Directory: "kotlin", Extensions: []string{".kt", ".kts"}, ConfigFiles: []string{"build.gradle.kts", "settings.gradle.kts"}},
 		{Language: "lotusscript", Directory: "lotusscript", Extensions: []string{".ls", ".lsa", ".lsdb", ".lss"}},
 		{Language: "python", Directory: "python", Extensions: []string{".py"}, ConfigFiles: []string{"pyproject.toml", "setup.cfg", "requirements.txt"}},
 		{Language: "ruby", Directory: "ruby", Extensions: []string{".rb", ".gemspec"}, ConfigFiles: []string{"Gemfile", "Gemfile.lock"}},
@@ -142,7 +145,7 @@ func TestFingerprintIncludesSchemaAndConfigVersions(t *testing.T) {
 
 func TestFingerprintRejectsUnknownOrMissingAdapter(t *testing.T) {
 	root := t.TempDir()
-	if _, err := Fingerprint(root, "kotlin"); err == nil {
+	if _, err := Fingerprint(root, "unknown-language"); err == nil {
 		t.Fatal("Fingerprint accepted an unknown language")
 	}
 	if _, err := Fingerprint(root, "go"); err == nil {

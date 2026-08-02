@@ -32,7 +32,7 @@ The adapters are functional semantic analyzers, not merely syntax inventories. P
 | C / C++ | Go | Official Tree-sitter C and C++ grammars | Mixed repositories, headers, declarations, includes, inheritance, calls, and conservative dataflow |
 | Go | Go | `go/parser`, `go/types`, packages, SSA, and VTA | Multi-module repositories, typed calls, interfaces, dataflow, dependencies |
 | GDScript | Go | Dedicated parser and bounded type-flow model | Godot projects, inheritance, callbacks, autoloads, local dispatch |
-| LotusScript | Go | Dedicated parser, ODP/DXL extractor, and repository-local script-library resolver | Classes, script libraries, ODP agents, inheritance, typed receiver calls, declarations, and unresolved dynamic/external targets |
+| LotusScript | Go | Dedicated parser, ODP/DXL extractor, and import-scoped script-library resolver | Classes and `Type` members, visibility, inheritance, typed calls, conservative reads/writes, ODP agents, and unresolved runtime targets |
 | Python | Python | Standard-library `ast` | Imports, inheritance, protocols, higher-order flow, dataflow |
 | Ruby | Ruby | Standard-library `Ripper` | Reopened types, mixins, blocks, Rails-aware bounded flow |
 | Rust | Rust | `syn` and Cargo metadata | Workspaces, traits, implementations, callbacks, dependencies |

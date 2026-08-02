@@ -1,8 +1,34 @@
 # Cross-adapter semantic corpus validation
 
+Parent index: [Lexicon Documentation](README.md)
+
+## Purpose
+
+This document records the cross-adapter real-repository semantic validation corpus, measured results, exposed defects, and interpretation.
+
+## Overview
+
+The corpus provides repeatable dated evidence across supported adapters and holdouts. It measures current behavior on pinned inputs and does not establish universal semantic precision or recall.
+
+## Research status
+
+Active dated validation evidence and regression input for supported adapters. New corpus revisions must preserve historical results rather than silently replacing them.
+
+## Question
+
+Do Lexicon adapters produce deterministic, conservatively resolved, and downstream-usable semantic facts across representative real repositories?
+
+## Method
+
+Run the canonical validation harness on pinned calibration and holdout repositories, compare semantic metrics and unresolved evidence, and retain failures that expose adapter defects.
+
+## Corpus or inputs
+
+The corpus definitions, repository revisions, adapter configurations, and baselines are owned under `evaluation/validation/` and summarized below.
+
 Validated on July 23, 2026 from `C:\!bin\workspace` using the tracked corpus manifest and harness under `evaluation/`.
 
-## Result
+## Results
 
 All 12 non-Go corpus cases passed:
 
@@ -118,3 +144,22 @@ python evaluation/run_validation.py --jobs 3
 ```
 
 Generated per-case summaries and audit samples are written beneath `evaluation/validation/generated/`. The complete run updates the tracked baseline only when every gate passes.
+
+## Limitations
+
+The corpus is finite, language and framework coverage is incomplete, repositories are selected rather than randomly sampled, and static analysis cannot recover all dynamic behavior.
+
+## Retained artifacts
+
+Corpus configuration, baselines, generated summaries, defect records, and reproduction commands are retained under `evaluation/validation/` and referenced in this document.
+
+## Related docs
+
+- [Semantic acceptance gates](SEMANTIC_ACCEPTANCE.md)
+- [Development and verification](DEVELOPMENT.md)
+- [Current status](STATUS.md)
+- [Adapter documentation](../adapters/README.md)
+
+## Notes
+
+Any product claim derived from this corpus must retain the exact repository revisions, adapter versions, method, and limitations.

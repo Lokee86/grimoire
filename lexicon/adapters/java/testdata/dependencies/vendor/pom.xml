@@ -1,0 +1,5 @@
+<project>
+  <dependencies>
+    <dependency><groupId>ignored</groupId><artifactId>vendor</artifactId></dependency>
+  </dependencies>
+</project>

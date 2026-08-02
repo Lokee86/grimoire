@@ -114,6 +114,15 @@ func TestRunExecutesAllConsumersAggregatesFailuresAndPersistsSuccesses(t *testin
 	}
 }
 
+func TestConsumerWithoutTimeoutUsesBoundedDefault(t *testing.T) {
+	if timeout := timeoutFor(Definition{}); timeout != DefaultTimeout {
+		t.Fatalf("default timeout = %s", timeout)
+	}
+	if timeout := timeoutFor(Definition{Timeout: 2 * time.Second}); timeout != 2*time.Second {
+		t.Fatalf("explicit timeout = %s", timeout)
+	}
+}
+
 func TestConsumerTimeout(t *testing.T) {
 	t.Setenv("LEXICON_TEST_HELPER", "1")
 	definition := Definition{

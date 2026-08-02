@@ -1,5 +1,15 @@
 # Embedding model
 
+Parent index: [Reference](INDEX.md)
+
+## Purpose
+
+This document defines Grimoire's embedding identity, endpoint contract, managed runtime, request shaping, verification, and operational boundaries.
+
+## Overview
+
+Embeddings are optional supplemental retrieval inputs. Deterministic source, documentation BM25, and graph correctness remain available without the managed embedding process.
+
 Grimoire uses one fixed local embedding contract for indexing and querying.
 
 ## Identity
@@ -131,3 +141,14 @@ The embedding package owns model identity, runtime setup and discovery, backend 
 | CLI integration | `internal/app/model.go`, `model_runtime.go` | `internal/app/model_test.go`, `model_runtime_test.go` |
 
 The embedding process is an external runtime dependency. Deterministic source and graph correctness do not depend on it.
+
+## Related docs
+
+- [Vector store](vector-store.md)
+- [Knowledge retrieval](knowledge.md)
+- [Indexing](indexing.md)
+- [Current limitations](../limits/current-limitations.md)
+
+## Notes
+
+Changing model identity, dimensions, normalization, truncation, or endpoint semantics requires rebuilding incompatible vector state.

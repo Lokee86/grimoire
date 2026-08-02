@@ -175,7 +175,17 @@ func (session *Session) runLocked(requests []protocolRequest) (map[string]protoc
 	encoder := json.NewEncoder(session.writer)
 	for _, request := range requests {
 		if os.Getenv("GRIMOIRE_DEBUG_TIMINGS") != "" {
-			_, _ = fmt.Fprintf(os.Stderr, "grimoire arcana request id=%s op=%s node=%v direction=%s relations=%d limit=%d\n", request.ID, request.Op, request.NodeID, request.Direction, len(request.Relations), request.Limit)
+			_ = json.NewEncoder(os.Stderr).Encode(map[string]any{
+				"schema":         "grimoire.arcana.protocol.trace.v1",
+				"event":          "request",
+				"request_id":     request.ID,
+				"operation":      request.Op,
+				"snapshot":       session.snapshot,
+				"node_id":        request.NodeID,
+				"direction":      request.Direction,
+				"relation_count": len(request.Relations),
+				"limit":          request.Limit,
+			})
 		}
 		if err := encoder.Encode(request); err != nil {
 			return nil, fmt.Errorf("encode Arcana request: %w", err)
@@ -204,7 +214,14 @@ func (session *Session) runLocked(requests []protocolRequest) (map[string]protoc
 		}
 		responses[response.ID] = response
 		if os.Getenv("GRIMOIRE_DEBUG_TIMINGS") != "" {
-			_, _ = fmt.Fprintf(os.Stderr, "grimoire arcana response id=%s ok=%v bytes=%d\n", response.ID, response.OK, len(line))
+			_ = json.NewEncoder(os.Stderr).Encode(map[string]any{
+				"schema":     "grimoire.arcana.protocol.trace.v1",
+				"event":      "response",
+				"request_id": response.ID,
+				"snapshot":   session.snapshot,
+				"ok":         response.OK,
+				"bytes":      len(line),
+			})
 		}
 	}
 	if err := validateResponses(requests, responses); err != nil {

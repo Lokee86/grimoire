@@ -9,9 +9,12 @@
 **/.pytest_cache/
 **/.bundle/
 **/vendor/bundle/
+**/bin/
+**/obj/
 
 # Generated facts and temporary files
 .lexicon/
+.tools/
 /evaluation/bin/
 /evaluation/validation/generated/
 /evaluation/corpus_state.json

@@ -1,5 +1,15 @@
 # Grimoire agent and MCP guide
 
+Parent index: [Reference](INDEX.md)
+
+## Purpose
+
+This document defines how agent hosts install, configure, invoke, and safely use Grimoire's MCP discovery surface.
+
+## Overview
+
+`grimoire mcp` exposes the provider-neutral `grimoire_discover` tool over stdio, including preparation modes, stable handles, session reuse, evidence semantics, degradation, and efficient progressive investigation.
+
 `grimoire mcp` serves the unified discovery contract over stdio:
 
 ```bash
@@ -175,6 +185,14 @@ Do not repeat a broad natural-language search when a returned handle already ide
 
 Initial preparation may dominate the first request. Reuse prepared state across related investigations and report preparation separately in benchmarks.
 
+## Protocol lifecycle
+
+Grimoire supports exactly MCP protocol version `2025-11-25`. Initialization with another version is rejected with `-32602` and a `supported_protocol_version` value; the server does not infer compatibility from field shape.
+
+Tool calls execute with independent request contexts so the server can continue processing pings and cancellation notifications. `notifications/cancelled` cancels the matching request ID. The default maximum is eight accepted calls awaiting completion; `--max-in-flight` changes that bound, and excess calls receive server-busy error `-32001`.
+
+Discovery state itself remains serialized through one resident runtime and Arcana protocol session. Cancellation closes an interrupted Arcana stream before later work reuses it.
+
 ## Input
 
 The tool accepts the `grimoire.discovery.v1` fields documented in [Unified discovery contract](agent-query.md), including:
@@ -248,6 +266,7 @@ See [Agent benchmark findings](../development/agent-benchmark-findings.md) for m
 | Surface | Primary implementation | Related tests |
 | --- | --- | --- |
 | MCP command startup and tool registration | `internal/app/mcp.go` | `internal/app/mcp_test.go`, `internal/app/mcp_audit_test.go` |
+| Protocol negotiation, bounded admission, and cancellation | `internal/mcpserver/server.go`, `internal/mcpserver/model.go` | `internal/mcpserver/server_test.go` |
 | JSON-RPC framing and stdio server | `internal/mcpserver/framing.go`, `model.go`, `server.go` | `internal/mcpserver/server_test.go` |
 | Discovery request execution | `internal/agentruntime/`, `internal/agentquery/` | package-local `*_test.go` files |
 | Stable handles and session reuse | `internal/investigation/`, `internal/agentruntime/session_handles.go` | `internal/investigation/*_test.go`, `internal/agentruntime/*_test.go` |
@@ -255,3 +274,14 @@ See [Agent benchmark findings](../development/agent-benchmark-findings.md) for m
 | Installed agent-skill packaging | `scripts/install.py`, packaged skill assets | installation and MCP smoke tests |
 
 The MCP layer exposes Grimoire's provider-neutral discovery surface. It does not expose Lexicon or Arcana internals as direct wire contracts.
+
+## Related docs
+
+- [Installation and agent setup](installation.md)
+- [Unified discovery contract](agent-query.md)
+- [CLI reference](cli.md)
+- [Agent benchmark findings](../development/agent-benchmark-findings.md)
+
+## Notes
+
+The MCP boundary exposes Grimoire's public discovery contract, not Lexicon or Arcana internal wire types.

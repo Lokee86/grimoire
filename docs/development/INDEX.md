@@ -3,6 +3,7 @@
 Development documentation defines how Grimoire is verified and how retrieval claims are measured.
 
 - [Documentation coverage](documentation-coverage.md) — production commands, packages, components, stateful flows, and canonical current owners.
+- [Architecture verification](architecture-verification.md) — deterministic ownership, dependency, lifecycle, generated-state, and source-identity gates.
 - [Behavioral contract matrix](behavioral-contract-matrix.md) — critical cross-component invariants and their protecting tests or gates.
 - [Testing and benchmarks](testing-and-benchmarks.md) — documentation validation, component test suites, evaluation commands, benchmark controls, and report artifacts.
 - [Agent benchmark findings](agent-benchmark-findings.md) — current task-shape conclusions, Space Rocks comparisons, and the HikariCP/Detekt/Now in Android unfamiliar-repository suite.

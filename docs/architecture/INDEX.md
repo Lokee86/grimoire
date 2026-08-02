@@ -6,7 +6,9 @@ Architecture documentation describes implemented ownership, data flow, state tra
 - [Analysis stack](analysis-stack.md) — the implemented Lexicon publication, Arcana synchronization, Grimoire preparation, snapshot alignment, and degradation lifecycle.
 - [Grimoire maintainer map](maintainer-map.md) — short ownership routing for common Grimoire changes.
 - [System overview](system-overview.md) — unified discovery lanes, provider routing, progressive expansion, and fallback boundaries.
+- [Operations and trust boundaries](operations-and-trust.md) — process trust, MCP lifecycle, timeouts, diagnostics, recovery, and pinned cross-repository dependencies.
 - [Prepared index](prepared-index.md) — immutable source identities, incremental rebuilds, and publication.
+- [Architecture decisions](../decisions/INDEX.md) — accepted rationale, alternatives, consequences, and superseding conditions for consequential boundaries.
 
 Related contracts:
 

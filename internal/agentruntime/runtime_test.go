@@ -509,7 +509,7 @@ func TestInvestigationBudgetAppliesSemanticBoundsWithoutEmergencyTruncation(t *t
 	}
 }
 
-func TestNormalLimitEightInvestigationAvoidsEmergencyCompaction(t *testing.T) {
+func TestNormalLimitEightInvestigationUsesGlobalLanePreservingBudget(t *testing.T) {
 	snapshot := investigation.Snapshot{Repository: "repo:normal-limit-eight"}
 	ledger, err := investigation.Create(t.TempDir(), "normal-limit-eight", snapshot)
 	if err != nil {
@@ -563,16 +563,28 @@ func TestNormalLimitEightInvestigationAvoidsEmergencyCompaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if truncated {
-		delta, deltaErr := ledger.DeltaFor(bounded)
-		if deltaErr != nil {
-			t.Fatal(deltaErr)
-		}
-		payload, _ := json.Marshal(delta)
-		t.Fatalf("normal limit-eight working set triggered emergency compaction: bytes=%d hits=%d", len(payload), len(bounded.RetrievalHits))
+	if !truncated {
+		t.Fatal("limit-eight multi-lane working set did not report the global evidence budget")
 	}
-	if len(bounded.RetrievalHits) != 24 {
-		t.Fatalf("normal working set lost retrieval hits: %d", len(bounded.RetrievalHits))
+	if len(bounded.RetrievalHits) != investigationHitLimit(8) {
+		t.Fatalf("bounded hit count = %d, want %d", len(bounded.RetrievalHits), investigationHitLimit(8))
+	}
+	lanes := make(map[string]int)
+	for _, hit := range bounded.RetrievalHits {
+		lanes[hit.Lane]++
+	}
+	for _, lane := range []string{"source_matches", "symbol_matches", "document_matches"} {
+		if lanes[lane] == 0 {
+			t.Fatalf("global budget starved %s: %+v", lane, lanes)
+		}
+	}
+	delta, deltaErr := ledger.DeltaFor(bounded)
+	if deltaErr != nil {
+		t.Fatal(deltaErr)
+	}
+	payload, _ := json.Marshal(delta)
+	if len(payload) > maxInvestigationDeltaBytes {
+		t.Fatalf("globally bounded response exceeds byte budget: bytes=%d", len(payload))
 	}
 }
 

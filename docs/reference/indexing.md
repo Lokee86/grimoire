@@ -1,5 +1,15 @@
 # Indexing
 
+Parent index: [Reference](INDEX.md)
+
+## Purpose
+
+This document defines Grimoire's source preparation, documentation indexing, eligibility, exclusions, chunking, reuse, token accounting, and freshness behavior.
+
+## Overview
+
+Source and documentation preparation are independent deterministic pipelines. Optional documentation vectors are built separately and never become a prerequisite for exact or BM25 source retrieval.
+
 Grimoire separates source preparation from documentation indexing and optional documentation-vector construction. Source retrieval remains usable without an embedding service.
 
 ## Prepared source index
@@ -150,3 +160,14 @@ The `.grimoire/` directory is generated state and must not be treated as authore
 | Source retrieval consumers | `internal/retrieve/` | retrieve package tests and benchmarks |
 
 Lexicon owns language facts used to improve chunk boundaries; the prepared index does not become a second language-analysis engine.
+
+## Related docs
+
+- [Prepared index architecture](../architecture/prepared-index.md)
+- [Knowledge retrieval](knowledge.md)
+- [Embedding model](embedding-model.md)
+- [Current limitations](../limits/current-limitations.md)
+
+## Notes
+
+Generated `.grimoire/` state is never authored repository content and must remain excluded from indexing.

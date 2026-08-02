@@ -22,7 +22,9 @@ func runMCP(args []string, input io.Reader, output, stderr io.Writer) error {
 	state := flags.String("state", "", "default Grimoire state directory")
 	stateMode := flags.String("state-mode", string(repostate.RefreshIfNeeded), "current-only, refresh-if-needed, or force-refresh")
 	maxMessage := flags.Int("max-message", 10<<20, "maximum MCP request bytes")
-	auditLog := flags.String("audit-log", "", "optional JSONL log of MCP requests and structured responses")
+	maxInFlight := flags.Int("max-in-flight", 8, "maximum accepted MCP tool calls awaiting completion")
+	auditLog := flags.String("audit-log", "", "optional private JSONL log of MCP requests and structured responses")
+	auditIncludeContent := flags.Bool("audit-include-content", false, "include source excerpts in the MCP audit log")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -38,8 +40,14 @@ func runMCP(args []string, input io.Reader, output, stderr io.Writer) error {
 	if *maxMessage <= 0 {
 		return errors.New("positive --max-message is required")
 	}
+	if *maxInFlight <= 0 {
+		return errors.New("positive --max-in-flight is required")
+	}
+	if *auditIncludeContent && strings.TrimSpace(*auditLog) == "" {
+		return errors.New("--audit-include-content requires --audit-log")
+	}
 
-	audit := newMCPAuditLogger(*auditLog)
+	audit := newMCPAuditLogger(*auditLog, *auditIncludeContent)
 	queryRuntime := agentquery.NewRuntime()
 	defer queryRuntime.Close()
 	handler := mcpserver.HandlerFunc(func(ctx context.Context, arguments json.RawMessage) (any, error) {
@@ -64,6 +72,7 @@ func runMCP(args []string, input io.Reader, output, stderr io.Writer) error {
 		Instructions: "Before calling Grimoire, use direct search and file reads when an exact path or symbol is already known. Use breadth=narrow for localized ownership or impact questions; it returns handle-only discovery by default, so inspect selected handles before expanding. Use balanced only for distributed or unclear context. Stop once the owner, controlling behavior, public boundary, and relevant tests are established. Follow trace or impact only for a named unresolved relationship. Reuse one session name to deduplicate repeated evidence.",
 		InputSchema:  agentToolInputSchema(),
 		MaxMessage:   *maxMessage,
+		MaxInFlight:  *maxInFlight,
 	}, handler)
 	if err != nil {
 		return err

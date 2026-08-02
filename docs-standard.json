@@ -1,7 +1,12 @@
 {
   "version": 1,
   "profile": "cli-product",
-  "capabilities": ["stateful", "research"],
+  "capabilities": [
+    "stateful",
+    "protocol",
+    "data-pipeline",
+    "research"
+  ],
   "docs_root": "docs",
   "root_index": "docs/INDEX.md",
   "folder_index": "INDEX.md",
@@ -12,6 +17,9 @@
     "docs/documentation-policy.md",
     "docs/documentation-procedure.md",
     "docs/architecture/maintainer-map.md",
+    "docs/architecture/operations-and-trust.md",
+    "docs/decisions/INDEX.md",
+    "docs/development/architecture-verification.md",
     "docs/planning/roadmap.md",
     "docs/limits/current-limitations.md",
     "docs/development/documentation-coverage.md",
@@ -19,28 +27,261 @@
     "lexicon/docs/README.md",
     "arcana/docs/README.md"
   ],
-  "index_exempt_directories": ["stubs"],
-  "section_exemptions": ["docs/INDEX.md", "docs/**/INDEX.md", "docs/development/recent-changes-2026-07.md"],
-  "required_sections": ["Purpose", "Overview", "Related docs", "Notes"],
-  "baseline": "docs-standard.baseline.json",
+  "index_exempt_directories": [
+    "stubs"
+  ],
+  "section_exemptions": [
+    "docs/INDEX.md",
+    "docs/**/INDEX.md",
+    "docs/development/recent-changes-2026-07.md"
+  ],
+  "required_sections": [
+    "Purpose",
+    "Overview",
+    "Related docs",
+    "Notes"
+  ],
   "coverage": [
     {
-      "paths": ["cmd/**", "internal/**", "evaluation/**", "lexicon/**", "arcana/**"],
-      "docs": ["docs/development/documentation-coverage.md"]
+      "paths": [
+        "cmd/**",
+        "internal/app/**",
+        "internal/mcpserver/**"
+      ],
+      "docs": [
+        "docs/reference/cli.md",
+        "docs/reference/agent-mcp.md",
+        "docs/architecture/operations-and-trust.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "internal/agentquery/**",
+        "internal/agentruntime/**",
+        "internal/evidence/**",
+        "internal/investigation/**"
+      ],
+      "docs": [
+        "docs/reference/agent-query.md",
+        "docs/architecture/system-overview.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "internal/index/**",
+        "internal/lexical/**",
+        "internal/retrieve/**",
+        "internal/repostate/**",
+        "internal/ignore/**"
+      ],
+      "docs": [
+        "docs/architecture/prepared-index.md",
+        "docs/reference/indexing.md",
+        "docs/architecture/operations-and-trust.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "internal/knowledge/**",
+        "internal/knowledgevector/**",
+        "internal/embedding/**",
+        "internal/vectorstore/**"
+      ],
+      "docs": [
+        "docs/reference/knowledge.md",
+        "docs/reference/embedding-model.md",
+        "docs/reference/vector-store.md",
+        "docs/architecture/operations-and-trust.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "internal/lexiconfacts/**",
+        "internal/structure/**"
+      ],
+      "docs": [
+        "docs/reference/lexicon.md",
+        "docs/architecture/analysis-stack.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "internal/arcanagraph/**",
+        "internal/arcanaevaluation/**"
+      ],
+      "docs": [
+        "docs/reference/arcana.md",
+        "docs/architecture/analysis-stack.md",
+        "docs/architecture/operations-and-trust.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "evaluation/**",
+        "internal/knowledgeevaluation/**"
+      ],
+      "docs": [
+        "docs/development/testing-and-benchmarks.md",
+        "docs/development/retrieval-quality.md",
+        "docs/development/agent-benchmark-findings.md"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/**",
+        ".github/workflows/**"
+      ],
+      "docs": [
+        "docs/development/release-workflow.md",
+        "docs/development/testing-and-benchmarks.md",
+        "docs/development/architecture-verification.md",
+        "docs/architecture/operations-and-trust.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/**"
+      ],
+      "docs": [
+        "lexicon/docs/README.md",
+        "docs/reference/lexicon.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/**"
+      ],
+      "docs": [
+        "arcana/docs/README.md",
+        "docs/reference/arcana.md",
+        "docs/development/documentation-coverage.md"
+      ]
     }
   ],
   "change_rules": [
     {
-      "paths": ["cmd/**", "internal/**"],
-      "docs": ["docs/architecture/**", "docs/reference/**", "docs/development/documentation-coverage.md"]
+      "paths": [
+        "cmd/**",
+        "internal/app/**",
+        "internal/mcpserver/**"
+      ],
+      "docs": [
+        "docs/reference/cli.md",
+        "docs/reference/agent-mcp.md",
+        "docs/architecture/operations-and-trust.md",
+        "docs/development/documentation-coverage.md"
+      ]
     },
     {
-      "paths": ["lexicon/**"],
-      "docs": ["lexicon/docs/**", "docs/reference/lexicon.md", "docs/development/behavioral-contract-matrix.md"]
+      "paths": [
+        "internal/agentquery/**",
+        "internal/agentruntime/**",
+        "internal/evidence/**",
+        "internal/investigation/**"
+      ],
+      "docs": [
+        "docs/reference/agent-query.md",
+        "docs/reference/agent-mcp.md",
+        "docs/architecture/system-overview.md",
+        "docs/development/documentation-coverage.md"
+      ]
     },
     {
-      "paths": ["arcana/**"],
-      "docs": ["arcana/docs/**", "docs/reference/arcana.md", "docs/development/behavioral-contract-matrix.md"]
+      "paths": [
+        "internal/index/**",
+        "internal/lexical/**",
+        "internal/retrieve/**",
+        "internal/repostate/**",
+        "internal/ignore/**"
+      ],
+      "docs": [
+        "docs/architecture/prepared-index.md",
+        "docs/reference/indexing.md",
+        "docs/architecture/analysis-stack.md",
+        "docs/architecture/operations-and-trust.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "internal/knowledge/**",
+        "internal/knowledgevector/**"
+      ],
+      "docs": [
+        "docs/reference/knowledge.md",
+        "docs/reference/indexing.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "internal/embedding/**",
+        "internal/vectorstore/**"
+      ],
+      "docs": [
+        "docs/reference/embedding-model.md",
+        "docs/reference/vector-store.md",
+        "docs/architecture/operations-and-trust.md",
+        "docs/limits/current-limitations.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "internal/lexiconfacts/**",
+        "internal/structure/**"
+      ],
+      "docs": [
+        "docs/reference/lexicon.md",
+        "docs/architecture/analysis-stack.md",
+        "docs/architecture/components.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "internal/arcanagraph/**",
+        "internal/arcanaevaluation/**"
+      ],
+      "docs": [
+        "docs/reference/arcana.md",
+        "docs/architecture/analysis-stack.md",
+        "docs/architecture/components.md",
+        "docs/architecture/operations-and-trust.md",
+        "docs/development/documentation-coverage.md"
+      ]
+    },
+    {
+      "paths": [
+        "evaluation/**",
+        "internal/knowledgeevaluation/**"
+      ],
+      "docs": [
+        "docs/development/testing-and-benchmarks.md",
+        "docs/development/retrieval-quality.md",
+        "docs/development/agent-benchmark-findings.md"
+      ]
+    },
+    {
+      "paths": [
+        "scripts/**",
+        ".github/workflows/**"
+      ],
+      "docs": [
+        "docs/development/release-workflow.md",
+        "docs/development/testing-and-benchmarks.md",
+        "docs/development/architecture-verification.md",
+        "docs/architecture/operations-and-trust.md",
+        "docs/development/documentation-coverage.md"
+      ]
     }
   ]
 }

@@ -1,5 +1,15 @@
 # Lexicon reference
 
+Parent index: [Reference](INDEX.md)
+
+## Purpose
+
+This document defines Lexicon's product-facing commands, state, scan lifecycle, adapters, normalized contracts, consumers, diagnostics, and Grimoire integration boundary.
+
+## Overview
+
+Lexicon converts repository source into immutable normalized facts. Grimoire normally prepares and consumes those snapshots automatically, while direct commands remain available for operation, debugging, export, and adapter development.
+
 Lexicon is the language-analysis component in the Grimoire bundle. It converts repository source into normalized, immutable symbols, relationships, unresolved references, source spans, and dependency evidence.
 
 Grimoire normally prepares and consumes Lexicon automatically. Direct Lexicon commands are for operators, adapter developers, debugging, export, garbage collection, and consumer management.

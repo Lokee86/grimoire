@@ -1,5 +1,15 @@
 # Arcana implementation architecture
 
+Parent index: [Arcana Documentation](README.md)
+
+## Purpose
+
+This document defines Arcana's ownership, dependency direction, ingestion, compilation, packed storage, immutable snapshots, protocol, vectors, concurrency, failure boundaries, and invariants.
+
+## Overview
+
+Arcana consumes language-neutral facts and owns deterministic repository-graph state. It does not parse source languages or own Grimoire's provider-neutral discovery response.
+
 This document describes the architecture implemented by the current Arcana source and covered by its focused tests. It is an ownership and dependency map, not a roadmap or a file-format specification.
 
 Detailed contracts:
@@ -204,3 +214,18 @@ Evidence: [`lexicon/records.rs`](../src/lexicon/records.rs), [`repository/increm
 | Synthetic workloads and benchmarks | `src/synthetic/`, `src/benchmark/` | module-local tests |
 
 Arcana does not own language adapters, Grimoire's evidence assembly, or the embedding service process.
+
+## Tests
+
+Architecture invariants are protected by repository compiler and snapshot tests, packed-storage round-trip and corruption tests, overlay and compaction tests, protocol tests, Lexicon ingestion tests, vector tests, and CLI synchronization/update tests.
+
+## Related docs
+
+- [Application and operations](APPLICATION.md)
+- [Lexicon ingestion contract](LEXICON_CONTRACT.md)
+- [Repository snapshots](repository-snapshots.md)
+- [Maintainer map](MAINTAINER_MAP.md)
+
+## Notes
+
+Exact graph behavior remains embedding-independent; optional vectors supply entry points rather than graph truth.

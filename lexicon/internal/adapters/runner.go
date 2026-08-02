@@ -54,7 +54,7 @@ func (r Runner) command(ctx context.Context, request Request) (*exec.Cmd, error)
 	switch request.Language {
 	case "generic":
 		return nil, fmt.Errorf("generic adapter requires an extension-qualified language")
-	case "c-family", "go", "gdscript", "lotusscript":
+	case "c-family", "go", "gdscript", "java", "kotlin", "lotusscript":
 		if executable, ok := packagedExecutable(r.Root, request.Language); ok {
 			return exec.CommandContext(ctx, executable, arguments...), nil
 		}
@@ -66,6 +66,17 @@ func (r Runner) command(ctx context.Context, request Request) (*exec.Cmd, error)
 		command := exec.CommandContext(ctx, executable, append([]string{"run", "."}, arguments...)...)
 		command.Dir = directory
 		return command, nil
+	case "csharp":
+		if executable, ok := packagedExecutable(r.Root, request.Language); ok {
+			return exec.CommandContext(ctx, executable, arguments...), nil
+		}
+		executable, err := findExecutable("dotnet")
+		if err != nil {
+			return nil, err
+		}
+		project := filepath.Join(r.Root, "csharp", "Lexicon.CSharp.csproj")
+		prefix := []string{"run", "--project", project, "--"}
+		return exec.CommandContext(ctx, executable, append(prefix, arguments...)...), nil
 	case "python":
 		executable, err := findExecutable("python", "python3")
 		if err != nil {

@@ -73,6 +73,30 @@ impl ProtocolSnapshot {
 
     fn execute(&self, command: RequestCommand) -> Result<Value, RequestFailure> {
         match command {
+            RequestCommand::Capabilities => Ok(serde_json::json!({
+                "protocol": "arcana.query.v1",
+                "version": 1,
+                "implementation_version": env!("CARGO_PKG_VERSION"),
+                "operations": [
+                    "capabilities",
+                    "search_nodes",
+                    "resolve_symbol",
+                    "resolve_file",
+                    "list_nodes",
+                    "export_graph",
+                    "neighbors",
+                    "paths",
+                    "reachability",
+                    "impact",
+                    "shortest_call_chain",
+                    "dead_symbols",
+                    "operational_role",
+                    "architecture_summary",
+                    "unresolved",
+                    "stats",
+                    "diff"
+                ]
+            })),
             RequestCommand::SearchNodes { query, limit } => self.search_nodes(&query, limit),
             RequestCommand::ResolveSymbol {
                 name,

@@ -1,7 +1,7 @@
 package main
 
 const (
-	adapterVersion = "0.2.0"
+	adapterVersion = "0.3.0"
 	language       = "lotusscript"
 )
 
@@ -19,15 +19,18 @@ type logicalLine struct {
 }
 
 type declaration struct {
-	className     string
-	external      bool
-	id            string
-	kind          string
-	name          string
-	ownerID       string
-	ownerPath     string
-	qualifiedName string
-	span          *span
+	classID           string
+	className         string
+	external          bool
+	id                string
+	kind              string
+	name              string
+	ownerID           string
+	ownerPath         string
+	public            bool
+	qualifiedName     string
+	typeMembersPublic bool
+	span              *span
 }
 
 type useEvidence struct {
@@ -42,7 +45,7 @@ type useEvidence struct {
 
 type callEvidence struct {
 	candidate  string
-	className  string
+	classID    string
 	expression string
 	ownerID    string
 	ownerPath  string
@@ -56,6 +59,21 @@ type extendsEvidence struct {
 	span      *span
 }
 
+type accessEvidence struct {
+	classID   string
+	ownerID   string
+	ownerPath string
+	span      *span
+	text      string
+}
+
+type variableSymbol struct {
+	dataType  string
+	id        string
+	ownerPath string
+	public    bool
+}
+
 type parsedFile struct {
 	content     []byte
 	contentHash string
@@ -65,17 +83,25 @@ type parsedFile struct {
 }
 
 type analysisState struct {
-	basesByClass    map[string][]string
-	callablesByName map[string][]declaration
-	classesByName   map[string][]declaration
-	extends         []extendsEvidence
-	facts           *factSet
-	fieldsByClass   map[string]map[string]string
-	globalsByName   map[string][]declaration
-	methodsByClass  map[string]map[string][]declaration
-	modulesByName   map[string][]string
-	moduleVariables map[string]map[string]string
-	typesByCallable map[string]map[string]string
-	uses            []useEvidence
-	calls           []callEvidence
+	accesses          []accessEvidence
+	basesByClass      map[string][]string
+	callablesByName   map[string][]declaration
+	classesByName     map[string][]declaration
+	extends           []extendsEvidence
+	facts             *factSet
+	fieldSymbols      map[string]map[string]variableSymbol
+	fieldsByClass     map[string]map[string]string
+	globalsByName     map[string][]declaration
+	importsByPath     map[string][]string
+	methodsByClass    map[string]map[string][]declaration
+	moduleIDByPath    map[string]string
+	modulePathsByName map[string][]string
+	modulePublic      map[string]bool
+	modulesByName     map[string][]string
+	moduleSymbols     map[string]map[string]variableSymbol
+	moduleVariables   map[string]map[string]string
+	typesByCallable   map[string]map[string]string
+	variableSymbols   map[string]map[string]variableSymbol
+	uses              []useEvidence
+	calls             []callEvidence
 }

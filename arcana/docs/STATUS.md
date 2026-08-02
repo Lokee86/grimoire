@@ -1,5 +1,15 @@
 # Arcana current implementation status and limitations
 
+Parent index: [Arcana Documentation](README.md)
+
+## Purpose
+
+This document records Arcana's current implementation status, supported capabilities, responsibility boundaries, explicit limitations, and non-implemented possibilities.
+
+## Overview
+
+Status distinguishes deterministic graph functionality, optional vector behavior, standalone operation, Grimoire integration, and future ideas that are not current commitments.
+
 This document summarizes behavior implemented in the current Arcana source and covered by focused tests. It is a status boundary, not a roadmap, performance guarantee, or substitute for the focused contracts linked below.
 
 Detailed references:
@@ -152,3 +162,14 @@ Evidence: [analysis-stack.md](../../docs/architecture/analysis-stack.md), [`inte
 Focused documents mention or leave room for direct adapter-produced file-scoped fact batches, a provenance sidecar, and later unresolved-reference resolver passes. The source does not currently implement those boundaries. A compaction CLI, automatic vector construction during sync, automatic use of semantic graph vectors in every Grimoire query, approximate-nearest-neighbour indexing, and a network protocol service are likewise not current capabilities or commitments.
 
 Treat any such change as future work until it has an owning source path, focused tests, and updated contracts. Current source constants and request enums remain authoritative when older focused documents or evaluation reports describe an earlier policy or integration state.
+
+## Related docs
+
+- [Application and operations](APPLICATION.md)
+- [Arcana architecture](ARCHITECTURE.md)
+- [Repository snapshots](repository-snapshots.md)
+- [Vector index](vector-index.md)
+
+## Notes
+
+Update this page when an implemented capability, limit, format policy, or responsibility boundary changes.

@@ -1,5 +1,15 @@
 # Arcana reference
 
+Parent index: [Reference](INDEX.md)
+
+## Purpose
+
+This document defines Arcana's product-facing commands, state, synchronization, graph, protocol, vector, degradation, and diagnostic contracts inside the Grimoire bundle.
+
+## Overview
+
+Arcana consumes an immutable Lexicon snapshot and publishes verified graph state for deterministic structural queries. Grimoire normally coordinates it automatically, while direct commands remain available for specialist operation and development.
+
 Arcana is the repository-graph component in the Grimoire bundle. It consumes one immutable Lexicon snapshot and publishes a verified graph snapshot optimized for deterministic traversal, impact analysis, paths, call chains, architecture summaries, and structural inspection.
 
 Grimoire normally synchronizes and queries Arcana automatically. Direct Arcana commands are for graph operators, protocol integrators, storage developers, benchmark work, and semantic-index diagnostics.
@@ -86,8 +96,11 @@ Forward and reverse queries merge base adjacency with overlay indexes. Compactio
 
 ## Query protocol
 
-The stable protocol identifier is `arcana.query.v1`. Implemented operations include:
+The stable protocol identifier is `arcana.query.v1`. Consumers begin with `capabilities`, which returns protocol version `1`, the Arcana implementation version, and the supported operation names. Consumers must reject unsupported protocol versions or missing required operations rather than inferring compatibility from response shape.
 
+Implemented operations include:
+
+- capability and operation discovery;
 - symbol and file resolution;
 - forward and reverse neighbors;
 - bounded multi-hop paths;

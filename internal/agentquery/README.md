@@ -7,7 +7,7 @@
 - `orient` returns compact source and symbol anchors.
 - `search` defaults to balanced, independently limited exact, source, and symbol lanes; `breadth: narrow` applies one combined evidence budget across those lanes. Both report coverage and defer graph expansion.
 - `trace` expands one stable structural handle through bounded paths.
-- `impact` returns bounded dependents and affected source evidence.
+- `impact` merges bounded Lexicon and Arcana candidates, deduplicates semantic dependents, and returns query-ranked affected evidence.
 - `inspect` resolves exact source and structural handles without repeating broad discovery.
 
 Documentation is intentionally not owned here. `internal/agentruntime` adds the separate document lane from `internal/knowledge`.
@@ -23,7 +23,8 @@ Documentation is intentionally not owned here. `internal/agentruntime` adds the 
 - Resolve source ranges against prepared chunks and structural nodes against provider snapshots.
 - Preserve provider provenance, certainty, relationship direction, evidence sites, and lane-specific truncation.
 - Defer graph traversal from broad search; callers use a selected stable handle with `trace` or `impact`.
-- Use Arcana for explicit graph traversal and Lexicon as the structural fallback.
+- Rank trace paths and impact dependents by query relevance, relation value, depth, certainty, production-versus-test location, and deterministic tie-breaking.
+- Merge Lexicon and Arcana impact candidates instead of allowing provider execution order to define the public result order.
 - Report returned, deferred, and duplicate-suppression counts so compact discovery does not silently hide coverage.
 - Keep discovery progressive so callers expand returned evidence rather than receiving a preassembled package.
 - Preserve balanced search behavior for broad investigations while allowing narrow session deltas to defer source ranges until inspection.

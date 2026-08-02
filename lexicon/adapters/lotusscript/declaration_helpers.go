@@ -18,6 +18,18 @@ func visibilityAttributes(value string) map[string]any {
 	return attributes
 }
 
+func declarationPublic(modifiers string, defaultPublic bool) bool {
+	for _, word := range strings.Fields(strings.ToLower(modifiers)) {
+		switch word {
+		case "public":
+			return true
+		case "private", "protected":
+			return false
+		}
+	}
+	return defaultPublic
+}
+
 func parameterName(value string) string {
 	fields := strings.Fields(value)
 	for _, field := range fields {
@@ -48,11 +60,30 @@ func declaredType(value string) string {
 
 func isVariableModifier(value string) bool {
 	switch strings.ToLower(value) {
-	case "dim", "public", "private", "protected", "static":
+	case "dim", "global", "public", "private", "protected", "static":
 		return true
 	default:
 		return false
 	}
+}
+
+func looksLikeMemberDeclaration(value string) bool {
+	return identifierPrefix(strings.TrimSpace(value)) != ""
+}
+
+func redimVariableBody(value string) (string, bool) {
+	fields := strings.Fields(value)
+	if len(fields) < 2 || !strings.EqualFold(fields[0], "ReDim") {
+		return "", false
+	}
+	index := 1
+	if index < len(fields) && strings.EqualFold(fields[index], "Preserve") {
+		index++
+	}
+	if index >= len(fields) {
+		return "", false
+	}
+	return strings.TrimSpace(strings.Join(fields[index:], " ")), true
 }
 
 func containsWord(value, word string) bool {

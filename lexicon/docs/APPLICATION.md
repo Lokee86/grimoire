@@ -1,5 +1,15 @@
 # Lexicon application
 
+Parent index: [Lexicon Documentation](README.md)
+
+## Purpose
+
+This document defines Lexicon's executable behavior, command surface, runtime model, private state, publication transactions, consumers, recovery, garbage collection, export, and watch operation.
+
+## Overview
+
+Lexicon coordinates language adapters and publishes immutable normalized snapshots under one writer lock. It preserves component ownership by keeping language semantics inside adapters and graph behavior outside Lexicon.
+
 Lexicon keeps the most recently observed relevant repository state. It does not follow the source repository's commits, index, staging area, or branches.
 
 ## Runtime model
@@ -31,7 +41,7 @@ Lexicon can invoke deterministic one-shot consumers after a successful scan has 
 }
 ```
 
-Commands execute directly without a shell, in lexical filename order, with the repository as their working directory. `timeout` is optional; existing definitions without it remain unlimited. Lexicon provides `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID`. Lexicon attempts every registered consumer, aggregates failures, and retries failed consumers on a later scan. After a successful invocation, its state file contains deterministic JSON such as `{"version":1,"snapshot_id":"sha256:..."}` and is replaced atomically; failed invocations leave their previous state unchanged. The already-published Lexicon snapshot remains valid.
+Commands execute directly without a shell, in lexical filename order, with the repository as their working directory. `timeout` is optional; definitions without it use Lexicon's owned 30-minute default. Lexicon provides `LEXICON_REPOSITORY`, `LEXICON_STATE_ROOT`, and `LEXICON_SNAPSHOT_ID`. Lexicon attempts every registered consumer, aggregates failures, and retries failed consumers on a later scan. After a successful invocation, its state file contains deterministic JSON such as `{"version":1,"snapshot_id":"sha256:..."}` and is replaced atomically; failed or timed-out invocations leave their previous state unchanged. The already-published Lexicon snapshot remains valid.
 
 The `lexicon consumer` commands and `internal/consumer` package expose list, add, remove, and one-shot execution operations. Definition names are simple `.json` filenames; path traversal and other extensions are rejected. Listing is lexical, adding replaces an existing definition atomically, removal deletes both the definition and its consumer state, and one-shot execution validates the requested immutable snapshot before invoking the selected consumer.
 
@@ -160,3 +170,14 @@ The demon keeps the loaded ignore policy in memory while processing filesystem e
 | Status and diagnostics | `internal/cli/status.go`, `doctor.go`, `doctor_checks.go` | CLI diagnostic tests |
 
 Language parsing belongs to the owning adapter. The application coordinates adapters and immutable state but does not define language semantics.
+
+## Related docs
+
+- [Lexicon architecture](ARCHITECTURE.md)
+- [Development and verification](DEVELOPMENT.md)
+- [Current status](STATUS.md)
+- [Root Lexicon reference](../../docs/reference/lexicon.md)
+
+## Notes
+
+Application commands coordinate adapters and state; they do not redefine the facts contracts under `spec/`.

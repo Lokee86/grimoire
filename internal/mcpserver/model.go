@@ -28,6 +28,7 @@ type Options struct {
 	Description  string
 	InputSchema  map[string]any
 	MaxMessage   int
+	MaxInFlight  int
 }
 
 func (options Options) normalized() Options {
@@ -62,6 +63,9 @@ func (options Options) normalized() Options {
 	}
 	if options.MaxMessage <= 0 {
 		options.MaxMessage = 10 << 20
+	}
+	if options.MaxInFlight <= 0 {
+		options.MaxInFlight = 8
 	}
 	return options
 }

@@ -34,8 +34,11 @@ Those boundaries keep one language implementation reusable by every Warlock cons
 | [c-family/](c-family/README.md) | C and C++ | Go | Official Tree-sitter C and C++ grammars |
 | [go/](go/README.md) | Go | Go | `go/parser`, `go/types`, packages, SSA, and VTA |
 | [gdscript/](gdscript/README.md) | GDScript | Go | Dedicated parser and bounded type-flow model |
+| [csharp/](csharp/README.md) | C# | C# | Roslyn compiler APIs with optional MSBuild project loading |
+| [java/](java/README.md) | Java | Go + Java | Deterministic parser plus compiler-backed `jdk.compiler` attribution |
+| [kotlin/](kotlin/README.md) | Kotlin | Go | Dedicated structural and bounded semantic resolver |
 | [generic/](generic/README.md) | Curated unsupported source extensions | Go | Conservative line-oriented fallback |
-| [lotusscript/](lotusscript/README.md) | LotusScript | Go | Dedicated parser, ODP/DXL extractor, and repository-local script-library resolver |
+| [lotusscript/](lotusscript/README.md) | LotusScript | Go | Dedicated parser, ODP/DXL extractor, import-scoped resolution, and conservative dataflow |
 | [python/](python/README.md) | Python | Python | Standard-library `ast` |
 | [ruby/](ruby/README.md) | Ruby | Ruby | Standard-library `Ripper` |
 | [rust/](rust/README.md) | Rust | Rust | `syn` and Cargo metadata |
@@ -108,6 +111,9 @@ Cross-language record meaning belongs in `spec/`. Application orchestration belo
 | C/C++ | `adapters/c-family/` | package-local Go tests |
 | Go | `adapters/go/` | package-local Go tests |
 | GDScript | `adapters/gdscript/` | package-local Go tests |
+| C# | `adapters/csharp/` | .NET adapter tests |
+| Java | `adapters/java/` | package-local Go tests plus embedded compiler fixtures |
+| Kotlin | `adapters/kotlin/` | package-local Go tests |
 | Generic fallback | `adapters/generic/` | package-local Go tests |
 | LotusScript | `adapters/lotusscript/` | package-local Go tests |
 | Python | `adapters/python/lexicon_python/` | `adapters/python/tests/` |

@@ -1,5 +1,15 @@
 # Vector store
 
+Parent index: [Reference](INDEX.md)
+
+## Purpose
+
+This document defines Grimoire's Lodestone-backed documentation-vector storage boundary, state identities, build and publication behavior, ABI expectations, and degradation semantics.
+
+## Overview
+
+Lodestone owns immutable vector objects and exact search. Grimoire owns document-vector manifests, freshness, build orchestration, ranking integration, and the Go compatibility facade.
+
 Grimoire stores normalized documentation embeddings through Lodestone, exposed to Go by Lodestone's shared binding and Grimoire's `internal/vectorstore` compatibility facade. Arcana separately owns graph-neighbourhood vector indexes under `.arcana/`.
 
 Repository-wide source-code embeddings are not part of production source retrieval.
@@ -78,3 +88,14 @@ Lodestone owns immutable objects, packed snapshots, validation, exact vector sea
 | Native engine implementation | sibling Lodestone repository | verified through the compatibility/integration boundary, not owned here |
 
 Grimoire owns the compatibility boundary and publication workflow, not Lodestone's internal storage engine.
+
+## Related docs
+
+- [Embedding model](embedding-model.md)
+- [Knowledge retrieval](knowledge.md)
+- [Indexing](indexing.md)
+- [Component architecture](../architecture/components.md)
+
+## Notes
+
+Arcana's graph-vector index is a separate component-owned facility under `.arcana/`.

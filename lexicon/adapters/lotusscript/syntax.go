@@ -44,14 +44,12 @@ func logicalLines(path, source string) []logicalLine {
 		}
 		text := strings.TrimSpace(strings.Join(parts, " "))
 		if text != "" {
-			result = append(result, logicalLine{
-				span: span{
-					EndColumn: utf8.RuneCountInString(raw) + 1,
-					EndLine:   lineNumber, Path: path,
-					StartColumn: 1, StartLine: startLine,
-				},
-				text: text,
-			})
+			lineSpan := span{
+				EndColumn: utf8.RuneCountInString(raw) + 1,
+				EndLine:   lineNumber, Path: path,
+				StartColumn: 1, StartLine: startLine,
+			}
+			result = append(result, splitStatements(lineSpan, text)...)
 		}
 		parts = nil
 		startLine = 0
@@ -102,12 +100,30 @@ func stripLotusComment(line string) string {
 	return line
 }
 
+func splitStatements(lineSpan span, text string) []logicalLine {
+	parts := splitTopLevel(text, ':')
+	if len(parts) == 1 {
+		return []logicalLine{{span: lineSpan, text: text}}
+	}
+	if first := strings.TrimSpace(parts[0]); first != "" && identifierPrefix(first) == first {
+		parts = parts[1:]
+	}
+	result := make([]logicalLine, 0, len(parts))
+	for _, part := range parts {
+		if part = strings.TrimSpace(part); part != "" {
+			result = append(result, logicalLine{span: lineSpan, text: part})
+		}
+	}
+	return result
+}
+
 func splitTopLevel(value string, separator byte) []string {
 	var result []string
 	start := 0
 	depth := 0
 	inQuote := false
 	inPipe := false
+	inDate := false
 	for index := 0; index < len(value); index++ {
 		switch value[index] {
 		case '"':
@@ -120,19 +136,23 @@ func splitTopLevel(value string, separator byte) []string {
 			}
 			inQuote = !inQuote
 		case '|':
-			if !inQuote {
+			if !inQuote && !inDate {
 				inPipe = !inPipe
 			}
-		case '(':
+		case '#':
 			if !inQuote && !inPipe {
+				inDate = !inDate
+			}
+		case '(':
+			if !inQuote && !inPipe && !inDate {
 				depth++
 			}
 		case ')':
-			if !inQuote && !inPipe && depth > 0 {
+			if !inQuote && !inPipe && !inDate && depth > 0 {
 				depth--
 			}
 		default:
-			if value[index] == separator && depth == 0 && !inQuote && !inPipe {
+			if value[index] == separator && depth == 0 && !inQuote && !inPipe && !inDate {
 				result = append(result, strings.TrimSpace(value[start:index]))
 				start = index + 1
 			}

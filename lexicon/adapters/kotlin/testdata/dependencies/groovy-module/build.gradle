@@ -1,0 +1,6 @@
+dependencies {
+    implementation 'org.codehaus.groovy:groovy:3.0.22'
+    api('com.acme:groovy-api:1.2')
+    runtimeOnly "com.acme:runtime:2.0"
+    testImplementation project(':test-support')
+}

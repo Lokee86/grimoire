@@ -1,5 +1,15 @@
 # System overview
 
+Parent index: [Architecture](INDEX.md)
+
+## Purpose
+
+This document defines Grimoire's current product architecture, discovery lanes, repository preparation, failure behavior, and state boundaries.
+
+## Overview
+
+Grimoire presents source retrieval, documentation retrieval, Lexicon symbols, and Arcana relationships through one progressive interface while preserving independent evidence classes and explicit provider degradation.
+
 Grimoire contains three independently owned engines presented through one repository-discovery interface:
 
 - Grimoire owns source and documentation discovery, stable handles, progressive investigation, and state orchestration.
@@ -129,3 +139,18 @@ The former package compiler attempted to merge and token-fit source and structur
 | Session persistence | `internal/investigation/` | `internal/investigation/*_test.go` |
 
 The retired context-package assembly path is documentation history only; it is not an active implementation owner.
+
+## Tests
+
+The active architecture is protected by command and preparation tests under `internal/app/`, state tests under `internal/repostate/`, retrieval and provider package tests, investigation-session tests, and the end-to-end agent-discovery evaluation harness.
+
+## Related docs
+
+- [Component architecture](components.md)
+- [Analysis stack](analysis-stack.md)
+- [Unified discovery contract](../reference/agent-query.md)
+- [Current limitations](../limits/current-limitations.md)
+
+## Notes
+
+The retired context-package pipeline is historical only and is not a current implementation or planning owner.

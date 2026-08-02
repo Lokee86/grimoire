@@ -16,6 +16,8 @@ pub enum UnresolvedReason {
     MacroArgumentMismatch,
     MacroExpansionCycle,
     MacroExpansionDepth,
+    CompilerAnalysisFailed,
+    CompilerIdentityMismatch,
     Unknown(String),
 }
 
@@ -35,6 +37,8 @@ impl UnresolvedReason {
             Self::MacroArgumentMismatch => "macro-argument-mismatch",
             Self::MacroExpansionCycle => "macro-expansion-cycle",
             Self::MacroExpansionDepth => "macro-expansion-depth",
+            Self::CompilerAnalysisFailed => "compiler-analysis-failed",
+            Self::CompilerIdentityMismatch => "compiler-identity-mismatch",
             Self::Unknown(value) => value,
         }
     }
@@ -57,6 +61,8 @@ impl UnresolvedReason {
             "macro-argument-mismatch" => Self::MacroArgumentMismatch,
             "macro-expansion-cycle" => Self::MacroExpansionCycle,
             "macro-expansion-depth" => Self::MacroExpansionDepth,
+            "compiler-analysis-failed" => Self::CompilerAnalysisFailed,
+            "compiler-identity-mismatch" => Self::CompilerIdentityMismatch,
             other => Self::Unknown(other.to_owned()),
         })
     }
@@ -100,6 +106,25 @@ mod tests {
             (
                 "macro-expansion-depth",
                 UnresolvedReason::MacroExpansionDepth,
+            ),
+        ] {
+            let reason = UnresolvedReason::parse(value).unwrap();
+            assert_eq!(reason, expected);
+            assert_eq!(reason.as_str(), value);
+            assert!(!reason.is_unknown());
+        }
+    }
+
+    #[test]
+    fn parses_known_compiler_reasons() {
+        for (value, expected) in [
+            (
+                "compiler-analysis-failed",
+                UnresolvedReason::CompilerAnalysisFailed,
+            ),
+            (
+                "compiler-identity-mismatch",
+                UnresolvedReason::CompilerIdentityMismatch,
             ),
         ] {
             let reason = UnresolvedReason::parse(value).unwrap();

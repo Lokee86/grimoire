@@ -5,6 +5,7 @@ This directory documents Grimoire's unified discovery interface, component owner
 ## Sections
 
 - [Architecture](architecture/INDEX.md) — component boundaries, the Lexicon–Arcana–Grimoire lifecycle, maintainer routing, focused code maps, state ownership, and prepared-index design.
+- [Architecture decisions](decisions/INDEX.md) — accepted rationale, alternatives, consequences, risks, and superseding conditions for durable decisions.
 - [Reference](reference/INDEX.md) — installation, agent setup, discovery commands, Lexicon and Arcana operations, JSON/MCP contracts, source and document semantics, vectors, and state.
 - [Development](development/INDEX.md) — tests, judged corpora, benchmark procedure, implementation coverage, behavioral contracts, and outcome interpretation.
 - [Limits](limits/INDEX.md) — current constraints and failure modes.

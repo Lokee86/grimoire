@@ -12,29 +12,7 @@ var (
 	newPattern           = regexp.MustCompile(`(?i)\bNew\s+([A-Za-z_][A-Za-z0-9_]*)`)
 )
 
-var reservedCallWords = map[string]struct{}{
-	"and": {}, "call": {}, "case": {}, "class": {}, "const": {}, "declare": {}, "dim": {},
-	"do": {}, "else": {}, "elseif": {}, "end": {}, "error": {}, "exit": {},
-	"for": {}, "forall": {}, "function": {}, "goto": {}, "if": {}, "is": {},
-	"let": {}, "like": {}, "loop": {}, "mod": {}, "next": {}, "not": {}, "on": {},
-	"open": {}, "option": {}, "or": {}, "print": {}, "property": {}, "redim": {},
-	"resume": {}, "select": {}, "set": {}, "stop": {}, "sub": {}, "then": {},
-	"type": {}, "use": {}, "uselsx": {}, "wend": {}, "while": {}, "with": {}, "xor": {},
-}
-
-var builtinFunctions = map[string]struct{}{
-	"array": {}, "cbool": {}, "cbyte": {}, "ccur": {}, "cdate": {}, "cdat": {},
-	"cdbl": {}, "cint": {}, "clng": {}, "createobject": {}, "csng": {}, "cstr": {},
-	"chr": {}, "date": {}, "environ": {}, "evaluate": {}, "execute": {}, "format": {},
-	"getobject": {}, "getthreadinfo": {}, "implode": {}, "instr": {}, "instrrev": {},
-	"isarray": {}, "iselement": {}, "isempty": {}, "isnull": {}, "isobject": {},
-	"join": {}, "lbound": {}, "lcase": {}, "left": {}, "len": {}, "lsi_info": {},
-	"mid": {}, "msgbox": {}, "now": {}, "replace": {}, "right": {}, "run": {},
-	"shell": {}, "split": {}, "strleft": {}, "strright": {}, "trim": {},
-	"typename": {}, "ubound": {}, "ucase": {},
-}
-
-func (state *analysisState) collectCalls(line logicalLine, callable declaration, class *declaration) {
+func (state *analysisState) collectCalls(line logicalLine, callable declaration) {
 	seen := make(map[string]struct{})
 	add := func(candidate, expression string) {
 		candidate = strings.TrimSpace(candidate)
@@ -49,13 +27,9 @@ func (state *analysisState) collectCalls(line logicalLine, callable declaration,
 			return
 		}
 		seen[key] = struct{}{}
-		className := ""
-		if class != nil {
-			className = class.name
-		}
 		lineSpan := line.span
 		state.calls = append(state.calls, callEvidence{
-			candidate: candidate, className: className, expression: expression,
+			candidate: candidate, classID: callable.classID, expression: expression,
 			ownerID: callable.id, ownerPath: callable.ownerPath, span: &lineSpan,
 		})
 	}
@@ -136,20 +110,21 @@ func (state *analysisState) callCandidates(evidence callEvidence) ([]declaration
 	if len(parts) > 1 {
 		methodName := strings.ToLower(parts[len(parts)-1])
 		qualifier := strings.ToLower(parts[len(parts)-2])
-		if qualifier == "me" && evidence.className != "" {
+		if qualifier == "me" && evidence.classID != "" {
 			if state.declaredVariable(evidence, methodName) {
 				return nil, false, true
 			}
-			return state.methodCandidates(strings.ToLower(evidence.className), methodName, make(map[string]struct{})), false, false
+			return state.methodCandidates(evidence.classID, methodName, evidence.ownerPath, true, make(map[string]struct{})), false, false
 		}
-		if methods := state.methodsByClass[qualifier]; methods != nil {
-			return state.methodCandidates(qualifier, methodName, make(map[string]struct{})), false, false
+		if classes := state.visibleDeclarations(evidence.ownerPath, state.classesByName[qualifier]); len(classes) > 0 {
+			return state.methodsForClasses(classes, methodName, evidence.ownerPath, evidence.classID), false, false
 		}
 		if receiverType, declared := state.receiverType(evidence, qualifier); declared {
 			if receiverType == "" {
 				return nil, true, false
 			}
-			methods := state.methodCandidates(receiverType, methodName, make(map[string]struct{}))
+			classes := state.visibleDeclarations(evidence.ownerPath, state.classesByName[receiverType])
+			methods := state.methodsForClasses(classes, methodName, evidence.ownerPath, evidence.classID)
 			if len(methods) > 0 {
 				return methods, false, false
 			}
@@ -161,25 +136,45 @@ func (state *analysisState) callCandidates(evidence callEvidence) ([]declaration
 	if state.declaredVariable(evidence, name) {
 		return nil, false, true
 	}
-	if evidence.className != "" {
-		if methods := state.methodCandidates(strings.ToLower(evidence.className), name, make(map[string]struct{})); len(methods) > 0 {
+	if evidence.classID != "" {
+		if methods := state.methodCandidates(evidence.classID, name, evidence.ownerPath, true, make(map[string]struct{})); len(methods) > 0 {
 			return methods, false, false
 		}
 	}
-	return append([]declaration(nil), state.globalsByName[name]...), false, false
+	return state.visibleDeclarations(evidence.ownerPath, state.globalsByName[name]), false, false
 }
 
-func (state *analysisState) methodCandidates(className, methodName string, visited map[string]struct{}) []declaration {
-	if _, seen := visited[className]; seen {
+func (state *analysisState) methodsForClasses(classes []declaration, methodName, ownerPath, currentClassID string) []declaration {
+	var result []declaration
+	for _, class := range classes {
+		includePrivate := state.classIsCurrentOrBase(currentClassID, class.id, make(map[string]struct{}))
+		result = append(result, state.methodCandidates(class.id, methodName, ownerPath, includePrivate, make(map[string]struct{}))...)
+	}
+	return result
+}
+
+func (state *analysisState) methodCandidates(classID, methodName, ownerPath string, includePrivate bool, visited map[string]struct{}) []declaration {
+	if classID == "" {
 		return nil
 	}
-	visited[className] = struct{}{}
-	if methods := state.methodsByClass[className][methodName]; len(methods) > 0 {
-		return append([]declaration(nil), methods...)
+	if _, seen := visited[classID]; seen {
+		return nil
+	}
+	visited[classID] = struct{}{}
+	if methods := state.methodsByClass[classID][methodName]; len(methods) > 0 {
+		result := make([]declaration, 0, len(methods))
+		for _, method := range methods {
+			if includePrivate || method.ownerPath == ownerPath || method.public {
+				result = append(result, method)
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
 	}
 	var result []declaration
-	for _, base := range state.basesByClass[className] {
-		result = append(result, state.methodCandidates(base, methodName, visited)...)
+	for _, baseID := range state.basesByClass[classID] {
+		result = append(result, state.methodCandidates(baseID, methodName, ownerPath, includePrivate, visited)...)
 	}
 	return result
 }

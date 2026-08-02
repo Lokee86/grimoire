@@ -1,7 +1,11 @@
 {
   "version": 1,
   "profile": "library-engine",
-  "capabilities": ["stateful"],
+  "capabilities": [
+    "stateful",
+    "protocol",
+    "data-pipeline"
+  ],
   "docs_root": "arcana/docs",
   "root_index": "arcana/docs/README.md",
   "folder_index": "README.md",
@@ -14,20 +18,149 @@
     "arcana/docs/DEVELOPMENT.md",
     "arcana/docs/STATUS.md"
   ],
-  "index_exempt_directories": ["stubs"],
-  "section_exemptions": ["arcana/docs/README.md"],
-  "required_sections": ["Purpose", "Overview", "Related docs", "Notes"],
-  "baseline": "docs-standard.arcana.baseline.json",
+  "index_exempt_directories": [
+    "stubs"
+  ],
+  "section_exemptions": [
+    "arcana/docs/README.md"
+  ],
+  "required_sections": [
+    "Purpose",
+    "Overview",
+    "Related docs",
+    "Notes"
+  ],
   "coverage": [
     {
-      "paths": ["arcana/src/**"],
-      "docs": ["arcana/docs/APPLICATION.md", "arcana/docs/ARCHITECTURE.md", "arcana/docs/DEVELOPMENT.md"]
+      "paths": [
+        "arcana/src/main.rs",
+        "arcana/src/lib.rs",
+        "arcana/src/cli.rs",
+        "arcana/src/cli_*.rs"
+      ],
+      "docs": [
+        "arcana/docs/APPLICATION.md",
+        "arcana/docs/ARCHITECTURE.md",
+        "arcana/docs/DEVELOPMENT.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/src/lexicon/**"
+      ],
+      "docs": [
+        "arcana/docs/LEXICON_CONTRACT.md",
+        "arcana/docs/ARCHITECTURE.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/src/repository/**",
+        "arcana/src/storage/**",
+        "arcana/src/snapshot/**"
+      ],
+      "docs": [
+        "arcana/docs/ARCHITECTURE.md",
+        "arcana/docs/repository-snapshots.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/src/protocol/**"
+      ],
+      "docs": [
+        "arcana/docs/APPLICATION.md",
+        "arcana/docs/ARCHITECTURE.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/src/vector/**"
+      ],
+      "docs": [
+        "arcana/docs/vector-index.md",
+        "arcana/docs/ARCHITECTURE.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/src/benchmark/**",
+        "arcana/src/synthetic/**"
+      ],
+      "docs": [
+        "arcana/docs/DEVELOPMENT.md",
+        "arcana/docs/STATUS.md"
+      ]
     }
   ],
   "change_rules": [
     {
-      "paths": ["arcana/src/**"],
-      "docs": ["arcana/docs/**"]
+      "paths": [
+        "arcana/src/main.rs",
+        "arcana/src/lib.rs",
+        "arcana/src/cli.rs",
+        "arcana/src/cli_*.rs"
+      ],
+      "docs": [
+        "arcana/docs/APPLICATION.md",
+        "arcana/docs/DEVELOPMENT.md",
+        "docs/reference/arcana.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/src/lexicon/**"
+      ],
+      "docs": [
+        "arcana/docs/LEXICON_CONTRACT.md",
+        "arcana/docs/ARCHITECTURE.md",
+        "docs/reference/arcana.md",
+        "docs/development/behavioral-contract-matrix.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/src/repository/**",
+        "arcana/src/storage/**",
+        "arcana/src/snapshot/**"
+      ],
+      "docs": [
+        "arcana/docs/ARCHITECTURE.md",
+        "arcana/docs/repository-snapshots.md",
+        "docs/reference/arcana.md",
+        "docs/development/behavioral-contract-matrix.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/src/protocol/**"
+      ],
+      "docs": [
+        "arcana/docs/APPLICATION.md",
+        "arcana/docs/ARCHITECTURE.md",
+        "docs/reference/arcana.md",
+        "docs/development/behavioral-contract-matrix.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/src/vector/**"
+      ],
+      "docs": [
+        "arcana/docs/vector-index.md",
+        "arcana/docs/ARCHITECTURE.md",
+        "docs/reference/arcana.md"
+      ]
+    },
+    {
+      "paths": [
+        "arcana/src/benchmark/**",
+        "arcana/src/synthetic/**"
+      ],
+      "docs": [
+        "arcana/docs/DEVELOPMENT.md",
+        "arcana/docs/STATUS.md"
+      ]
     }
   ]
 }

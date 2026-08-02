@@ -1,5 +1,15 @@
 # Knowledge retrieval
 
+Parent index: [Reference](INDEX.md)
+
+## Purpose
+
+This document defines Grimoire's independent repository-documentation discovery, indexing, BM25 search, stable handles, optional vectors, and judged evaluation surface.
+
+## Overview
+
+Documentation evidence remains separate from source and structural evidence. Explicit code links and snapshot freshness improve navigation without allowing prose to override contradictory implementation evidence.
+
 `grimoire knowledge` indexes repository rationale separately from production-source chunks. It discovers Markdown/MDX and text documentation, architecture and planning notes, ADR-like files, issue/export notes, and supported prose-heavy configuration. `.git`, worktrees, Lexicon/Arcana/Grimoire state, generated content, `.gitignore` matches, and explicit exclusions are not indexed.
 
 ```bash
@@ -55,3 +65,14 @@ The report keeps corpus order and records required-section recall, recall@k, MRR
 | Judged evaluation | `internal/knowledgeevaluation/`, `evaluation/knowledge/` | `internal/knowledgeevaluation/score_test.go` |
 
 Documentation evidence remains a distinct lane and does not override contradictory source or graph evidence.
+
+## Related docs
+
+- [Indexing](indexing.md)
+- [Embedding model](embedding-model.md)
+- [Vector store](vector-store.md)
+- [Discovery quality](../development/retrieval-quality.md)
+
+## Notes
+
+Planning and research documents may be indexed as evidence, but they do not become canonical owners of current implementation behavior.

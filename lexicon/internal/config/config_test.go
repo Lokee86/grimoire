@@ -102,12 +102,21 @@ func TestEnabledLanguagesRejectUnknownValues(t *testing.T) {
 	}
 }
 
-func TestGenericSelectionEnablesExtensionVariants(t *testing.T) {
-	if !(Config{EnabledLanguages: []string{"generic"}}).LanguageEnabled("generic-java") {
-		t.Fatal("generic selection did not enable generic-java")
+func TestDefaultSelectionRejectsRetiredLanguageIdentities(t *testing.T) {
+	if (Config{}).LanguageEnabled("generic-java") {
+		t.Fatal("retired generic-java identity remained enabled after Java gained a dedicated adapter")
 	}
-	if (Config{EnabledLanguages: []string{"python"}}).LanguageEnabled("generic-java") {
-		t.Fatal("generic-java enabled without generic selection")
+	if !(Config{}).LanguageEnabled("java") {
+		t.Fatal("dedicated Java adapter was not enabled by default")
+	}
+}
+
+func TestGenericSelectionEnablesExtensionVariants(t *testing.T) {
+	if !(Config{EnabledLanguages: []string{"generic"}}).LanguageEnabled("generic-scala") {
+		t.Fatal("generic selection did not enable generic-scala")
+	}
+	if (Config{EnabledLanguages: []string{"python"}}).LanguageEnabled("generic-scala") {
+		t.Fatal("generic-scala enabled without generic selection")
 	}
 }
 

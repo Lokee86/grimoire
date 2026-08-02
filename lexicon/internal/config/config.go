@@ -96,6 +96,9 @@ func NormalizeEnabledLanguages(enabledLanguages []string) ([]string, error) {
 }
 
 func (value Config) LanguageEnabled(language string) bool {
+	if _, supported := languageRegistry.Lookup(language); !supported {
+		return false
+	}
 	if len(value.EnabledLanguages) == 0 {
 		return true
 	}

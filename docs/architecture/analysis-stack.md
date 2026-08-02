@@ -1,5 +1,15 @@
 # Lexicon–Arcana–Grimoire analysis stack
 
+Parent index: [Architecture](INDEX.md)
+
+## Purpose
+
+This document defines the implemented cross-component lifecycle from repository source through Lexicon and Arcana to a Grimoire discovery response.
+
+## Overview
+
+Lexicon publishes normalized language facts, Arcana compiles and serves an immutable repository graph, and Grimoire coordinates aligned source, documentation, symbol, structural-expansion, and investigation state without absorbing component ownership.
+
 This page describes the implemented lifecycle from repository source to a Grimoire discovery response.
 
 ## Ownership summary
@@ -84,9 +94,10 @@ A Grimoire search combines independent lanes:
 | `source_matches` | Grimoire BM25 source retrieval |
 | `document_matches` | Grimoire document BM25 plus optional document vectors |
 | `symbol_matches` | Lexicon declarations and definitions |
-| `relationship_matches` | Arcana direct graph evidence, with Lexicon fallback |
 
-Balanced discovery preserves per-lane budgets. Narrow discovery uses one compact code-evidence budget and normally returns handles without full source excerpts. `inspect`, `trace`, and `impact` expand selected evidence.
+Balanced discovery preserves per-lane budgets. Narrow discovery uses one compact code-evidence budget and normally returns handles without full source excerpts. Search reports structural expansion as deferred; `inspect`, query-ranked `trace`, and merged query-ranked `impact` expand selected evidence.
+
+When a named investigation session is used, the ledger applies a second global hit ceiling across all returned lanes. Selection is round-robin by lane and then restored to original lane-local order, so one full lane cannot consume the complete session delta. Canonical evidence is pruned after hit selection and remains bounded by both evidence-count and serialized-byte limits.
 
 The final response is provider-neutral. Lexicon and Arcana wire types do not escape as the public discovery schema.
 
@@ -168,3 +179,18 @@ See the [Grimoire maintainer map](maintainer-map.md), [Lexicon maintainer map](.
 | Command-level preparation | `internal/app/discovery_prepare.go`, `internal/app/query.go`, `internal/app/mcp.go` | `internal/app/discovery_test.go`, `internal/app/mcp_test.go` |
 
 Lexicon adapters own language semantics, and Arcana owns graph compilation and storage. This document maps only Grimoire's coordination of those providers.
+
+## Tests
+
+Cross-component behavior is protected by `internal/repostate/*_test.go`, `internal/lexiconfacts/*_test.go`, `internal/arcanagraph/*_test.go`, `internal/agentruntime/*_test.go`, and the focused discovery tests under `internal/app/`. The root workflow also verifies the Lexicon and Arcana component suites.
+
+## Related docs
+
+- [Component architecture](components.md)
+- [System overview](system-overview.md)
+- [Lexicon reference](../reference/lexicon.md)
+- [Arcana reference](../reference/arcana.md)
+
+## Notes
+
+This document owns the integrated lifecycle. Component-internal parsing, storage, and graph semantics remain owned by Lexicon and Arcana.

@@ -22,10 +22,15 @@ The matrix covers contracts that cross retrieval lanes, snapshots, process bound
 | Lexicon owns parsing and normalized language facts; Grimoire and Arcana do not duplicate adapters | Lexicon adapter tests, component-boundary docs, release workflow checks |
 | Arcana consumes Lexicon facts and owns graph storage and traversal rather than language parsing | Arcana ingestion, protocol, snapshot, storage, and traversal tests |
 | Immutable Lexicon and Arcana objects are content-addressed and safely reusable across repository state | Lexicon snapshot/object tests and Arcana snapshot/storage tests |
+| Lexicon serializes writers, records pending publication before advancing state, and recovers or rejects incomplete transactions explicitly | Lexicon lock, transaction, pending-publication, object-store, and scanner tests |
+| Arcana serializes managed-state writers and replaces `CURRENT` only after a complete verified generation is published | Arcana sync-state, repository-snapshot, graph-manifest, and publication-failure tests |
 | Arcana overlays validate base identity and compact without changing graph meaning | Overlay and compaction tests |
 | Vector features remain optional and do not make source discovery depend on repository-wide code embeddings | Grimoire knowledge-vector and Arcana vector tests; no-vector workflow tests |
 | Result ordering, lane budgets, and assessment output are deterministic | Agent-query and ranking calibration tests |
+| Session deltas apply one global lane-preserving hit budget before canonical evidence pruning | Agent-runtime investigation-budget tests |
+| Impact merges duplicate Lexicon and Arcana dependents and ranks production-relevant, definite, shallow evidence for the current query | Agent-query impact-shaping tests |
 | Release bundles preserve independently runnable `grimoire`, `lexicon`, and `arcana` components | Packaging and installation smoke tests |
+| Root, Lexicon, and Arcana documentation trees pass without baselines, and focused code maps remain with their canonical owners | Shared checker, `scripts/check_docs.py`, and documentation-standard CI |
 
 ## Release gates
 
@@ -34,6 +39,7 @@ python scripts/workflow.py test
 python .standards/docs_policy/check.py --repo .
 python .standards/docs_policy/check.py --repo . --config docs-standard.lexicon.json
 python .standards/docs_policy/check.py --repo . --config docs-standard.arcana.json
+python scripts/check_docs.py
 ```
 
 ## Code map

@@ -1,6 +1,34 @@
 # Roadmap
 
-This page contains work that is not yet complete. Implemented behavior is documented elsewhere.
+Parent index: [Planning](INDEX.md)
+
+## Purpose
+
+This document owns future, unresolved, and sequenced work for Grimoire's progressive repository-discovery product.
+
+## Overview
+
+Implemented behavior is documented in current architecture and reference owners. This roadmap retains only work that is incomplete, under investigation, or awaiting an explicit implementation decision.
+
+## Current status
+
+Active planning. The completed-foundation list is retained only to establish the baseline from which remaining work is sequenced.
+
+## Expected ownership
+
+Grimoire owns discovery orchestration, source and documentation retrieval, handles, sessions, and state coordination. Lexicon owns language analysis, Arcana owns graph behavior, and Lodestone owns native vector storage. Planned work must enter through the appropriate existing seam or explicitly establish a new owner.
+
+## Planned behavior
+
+The remaining work improves measured agent outcomes, preparation efficiency, evidence quality, vector portability, diagnostics, distribution, and compatibility without reviving the retired preassembled-context pipeline.
+
+## Implementation sequence
+
+1. Finish and interpret the current agent-quality suite.
+2. Close protocol, warning-propagation, and diagnostic contract gaps.
+3. Reduce preparation and response overhead without weakening determinism.
+4. Expand judged corpora and release gates.
+5. Improve portability, storage lifecycle, and product integration only after the preceding evidence is stable.
 
 ## Completed foundation
 
@@ -98,3 +126,22 @@ Establish measured release gates for:
 The retired context-package and answer-shaped bundle pipeline is not roadmap work. Future context delivery must remain progressive, inspectable, and justified by end-to-end agent outcomes.
 
 Each roadmap item requires an owning seam, verification plan, and documentation update before it becomes current behavior.
+
+## Acceptance criteria
+
+Each item requires a named owner, implementation plan, focused tests or evaluation, documentation impact, and a clear current-behavior owner before it can be marked complete.
+
+## Open decisions
+
+Open decisions include which task classes justify additional discovery automation, how large-repository prioritization should remain inspectable, and whether new evidence providers produce enough measured value to warrant a durable product boundary.
+
+## Related docs
+
+- [System overview](../architecture/system-overview.md)
+- [Current limitations](../limits/current-limitations.md)
+- [Discovery quality](../development/retrieval-quality.md)
+- [Agent benchmark findings](../development/agent-benchmark-findings.md)
+
+## Notes
+
+A roadmap item becomes current only after implementation, protecting verification, and migration into the appropriate current owner.

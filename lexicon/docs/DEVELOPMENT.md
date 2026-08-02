@@ -1,5 +1,15 @@
 # Lexicon development and verification
 
+Parent index: [Lexicon Documentation](README.md)
+
+## Purpose
+
+This document defines Lexicon's build, focused-test, complete-test, semantic-validation, adapter-development, contract-change, documentation, smoke-test, and packaging workflows.
+
+## Overview
+
+Verification combines application tests, independently owned adapter suites, real-repository corpora, contract validation, smoke operations, and release-layout checks.
+
 This document defines the supported source-development workflow and the minimum verification expected for changes.
 
 ## Prerequisites
@@ -10,6 +20,8 @@ The complete repository uses several runtimes because each language adapter is s
 - Python 3 with `pytest` for the Python adapter and evaluation tools;
 - Ruby for the Ruby adapter;
 - Rust and Cargo for the Rust adapter;
+- JDK 21 or newer for Java compiler-backed analysis and Java release packaging;
+- a .NET SDK for the C# Roslyn/MSBuild adapter;
 - Node.js and npm for the JavaScript, TypeScript, and Svelte adapter.
 
 A focused change only requires the runtimes used by the affected component. A full release or complete test matrix requires all of them.
@@ -59,6 +71,30 @@ go test -race ./...
 
 ```text
 cd adapters/gdscript
+go test ./...
+```
+
+### C# adapter
+
+```text
+python adapters/csharp/tests/test_adapter.py
+```
+
+This script builds the Roslyn adapter, verifies file-mode and restored MSBuild project analysis, and checks determinism and incremental output.
+
+### Java adapter
+
+```text
+cd adapters/java
+go test ./...
+```
+
+Set `LEXICON_JDK_HOME` when the JDK is not available through `JAVA_HOME`, `PATH`, or the repository-local `.tools/jdk` location.
+
+### Kotlin adapter
+
+```text
+cd adapters/kotlin
 go test ./...
 ```
 
@@ -244,7 +280,7 @@ Omit `--version` only for local packaging tests where `lexicon version` may repo
 | Development concern | Primary implementation or artifact | Related verification |
 | --- | --- | --- |
 | Application build and tests | root `go.mod`, `cmd/`, `internal/` | package-local Go tests |
-| Adapter test matrix | `evaluation/run_tests.py` | all language adapter suites |
+| Adapter test matrix | `evaluation/run_tests.py` | all language adapter suites, including C#, Java, and Kotlin |
 | Real-repository corpus validation | `evaluation/run_validation.py`, `corpus.json`, `validation/` | repeat-run summaries and baselines |
 | Smoke tests and operations | `tools/smoke_app.py`, `smoke_operations.py`, `smoke_installers.py` | packaged application checks |
 | Semantic report tooling | `tools/semantic_report.py`, `semantic_depth.py`, `call_resolution_metrics.py` | corresponding tool tests |
@@ -253,3 +289,14 @@ Omit `--version` only for local packaging tests where `lexicon version` may repo
 | Documentation | `docs/`, adapter READMEs, root documentation checker | root and component documentation gates |
 
 Generated validation output and packaged binaries are evidence or build products, not source owners.
+
+## Related docs
+
+- [Lexicon architecture](ARCHITECTURE.md)
+- [Semantic acceptance gates](SEMANTIC_ACCEPTANCE.md)
+- [Semantic corpus validation](SEMANTIC_CORPUS_VALIDATION.md)
+- [Release packaging](RELEASE_PACKAGING.md)
+
+## Notes
+
+Generated validation results and packaged artifacts are evidence or build outputs, not implementation owners.

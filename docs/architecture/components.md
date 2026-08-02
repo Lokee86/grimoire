@@ -1,5 +1,15 @@
 # Component architecture
 
+Parent index: [Architecture](INDEX.md)
+
+## Purpose
+
+This document defines component ownership, dependency direction, state ownership, independent-use rules, and release boundaries for Grimoire, Lexicon, and Arcana.
+
+## Overview
+
+The three applications are packaged together but remain independently usable products with separate executables, private state, implementation domains, tests, and specialist command surfaces.
+
 Grimoire, Lexicon, and Arcana share one repository but retain separate ownership, state, and advanced command surfaces.
 
 ## Grimoire
@@ -87,6 +97,8 @@ The workflow defaults to one build or test worker to avoid uncontrolled CPU fan-
 
 Each component may still be built and used independently from its owning source root. Ordinary product use does not require invoking those binaries directly: Grimoire resolves the bundled or configured provider and forwards namespaced commands while preserving process isolation and native exit behavior.
 
+Lodestone remains a separately owned cross-repository native dependency. Grimoire pins the consumed Go module pseudo-version and exact source commit; local and release workflows verify that identity before tests or packaging. The checked-in local `replace` directive is a development override, not a second source authority.
+
 ## Product boundary
 
 The active investigation path is Grimoire's progressive discovery interface. Direct Lexicon and Arcana commands remain available as namespaced specialist operations, not competing repository-discovery interfaces. The former context-package compiler is not part of the CLI or MCP contract. Historical package evaluators and reports do not define current architecture.
@@ -105,3 +117,18 @@ The active investigation path is Grimoire's progressive discovery interface. Dir
 | Release composition | `scripts/workflow.py`, `scripts/install.py`, `.github/workflows/release.yml` | `scripts/test_workflow.py`, installation smoke tests |
 
 Grimoire must not absorb Lexicon's parsers or Arcana's storage internals. Cross-component changes should update the owning component document and the integration document together.
+
+## Tests
+
+Component boundaries are protected by root command-forwarding and repository-state tests, Lexicon application and publication tests, Arcana CLI and snapshot tests, and the combined build, installation, and release workflow tests.
+
+## Related docs
+
+- [Analysis stack](analysis-stack.md)
+- [System overview](system-overview.md)
+- [Grimoire maintainer map](maintainer-map.md)
+- [Documentation coverage](../development/documentation-coverage.md)
+
+## Notes
+
+Cross-component convenience must not erase the component boundaries defined here.

@@ -14,6 +14,7 @@ pub(crate) struct RequestEnvelope {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub(crate) enum RequestCommand {
+    Capabilities,
     SearchNodes {
         query: String,
         limit: Option<usize>,

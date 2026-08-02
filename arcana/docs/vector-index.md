@@ -1,5 +1,15 @@
 # Arcana Semantic Graph Index
 
+Parent index: [Arcana Documentation](README.md)
+
+## Purpose
+
+This document defines Arcana's optional semantic graph-document policy, embedding identity, cache, index storage, build publication, query scoring, and process-integration boundary.
+
+## Overview
+
+The semantic index supplies bounded graph entry points for conceptual queries. Exact graph traversal, repository snapshot validity, and structural relationships remain deterministic and authoritative without vectors.
+
 Arcana can build an optional semantic index over the current immutable repository graph. The index provides semantic entry points into Arcana's deterministic graph traversal without moving graph ownership into Grimoire.
 
 ## Ownership
@@ -159,3 +169,14 @@ The active Grimoire discovery interface does not automatically query or build th
 | CLI integration | `src/cli_vectors.rs` | CLI tests |
 
 The vector index is optional and supplies semantic entry points. Exact graph traversal and snapshot validity remain independent and authoritative.
+
+## Related docs
+
+- [Arcana architecture](ARCHITECTURE.md)
+- [Application and operations](APPLICATION.md)
+- [Repository snapshots](repository-snapshots.md)
+- [Current status](STATUS.md)
+
+## Notes
+
+Changing semantic eligibility, document rendering, model identity, dimensions, or policy version invalidates incompatible cached or indexed state.

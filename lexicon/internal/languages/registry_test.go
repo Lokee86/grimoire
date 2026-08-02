@@ -7,16 +7,20 @@ import (
 
 func TestDedicatedAdaptersTakePrecedence(t *testing.T) {
 	for path, want := range map[string][]string{
-		"include/api.hpp":   {"c-family"},
-		"src/App.svelte":    {"typescript"},
-		"src/main.c":        {"c-family"},
-		"src/main.cpp":      {"c-family"},
-		"src/main.go":       {"go"},
-		"src/Agent.lsa":     {"lotusscript"},
-		"src/Database.lsdb": {"lotusscript"},
-		"src/Library.ls":    {"lotusscript"},
-		"src/Library.lss":   {"lotusscript"},
-		"src/main.py":       {"python"},
+		"include/api.hpp":      {"c-family"},
+		"src/App.svelte":       {"typescript"},
+		"src/main.c":           {"c-family"},
+		"src/main.cpp":         {"c-family"},
+		"src/main.go":          {"go"},
+		"src/Main.cs":          {"csharp"},
+		"src/Main.java":        {"java"},
+		"src/Main.kt":          {"kotlin"},
+		"src/build.gradle.kts": {"kotlin"},
+		"src/Agent.lsa":        {"lotusscript"},
+		"src/Database.lsdb":    {"lotusscript"},
+		"src/Library.ls":       {"lotusscript"},
+		"src/Library.lss":      {"lotusscript"},
+		"src/main.py":          {"python"},
 	} {
 		if got := ForPath(path); !reflect.DeepEqual(got, want) {
 			t.Fatalf("ForPath(%s) = %v, want %v", path, got, want)
@@ -25,14 +29,14 @@ func TestDedicatedAdaptersTakePrecedence(t *testing.T) {
 }
 
 func TestGenericFallbackUsesExtensionIdentity(t *testing.T) {
-	if got, want := ForPath("src/Main.java"), []string{"generic-java"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("ForPath(Main.java) = %v, want %v", got, want)
+	if got, want := ForPath("src/Main.scala"), []string{"generic-scala"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("ForPath(Main.scala) = %v, want %v", got, want)
 	}
-	definition, ok := Lookup("generic-java")
-	if !ok || definition.Directory != "generic" || !reflect.DeepEqual(definition.Extensions, []string{".java"}) {
+	definition, ok := Lookup("generic-scala")
+	if !ok || definition.Directory != "generic" || !reflect.DeepEqual(definition.Extensions, []string{".scala"}) {
 		t.Fatalf("generic definition = %#v, %v", definition, ok)
 	}
-	if !OwnsSource("generic-java", "src/Main.java") || OwnsSource("generic-java", "src/main.c") {
+	if !OwnsSource("generic-scala", "src/Main.scala") || OwnsSource("generic-scala", "src/main.c") {
 		t.Fatal("generic extension ownership is not exact")
 	}
 }

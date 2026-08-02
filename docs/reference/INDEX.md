@@ -4,8 +4,8 @@ Reference pages describe current public commands, schemas, defaults, and operati
 
 - [Installation and agent setup](installation.md) — release installation, source builds, PATH, skill locations, MCP configuration, first-run preparation, and troubleshooting.
 - [CLI](cli.md) — direct discovery commands, state preparation, vectors, and failure behavior.
-- [Lexicon](lexicon.md) — language-analysis commands, state, scan lifecycle, adapters, contracts, consumers, diagnostics, and source map.
-- [Arcana](arcana.md) — graph synchronization, packed state, snapshots, protocol operations, semantic vectors, diagnostics, and source map.
+- [Lexicon](lexicon.md) — language-analysis commands, state, scan lifecycle, adapters, contracts, consumers, diagnostics, and focused code map.
+- [Arcana](arcana.md) — graph synchronization, packed state, snapshots, protocol operations, semantic vectors, diagnostics, and focused code map.
 - [Unified discovery contract](agent-query.md) — independent exact, source, document, symbol, and relationship lanes plus progressive expansion.
 - [Agent and MCP guide](agent-mcp.md) — the `grimoire_discover` tool, installed skill, efficient agent workflow, automatic preparation, and session deduplication.
 - [Embedding model](embedding-model.md) — model identity, managed runtime, backend selection, and service verification.

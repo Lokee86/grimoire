@@ -1,5 +1,15 @@
 # Lexicon dependency semantics
 
+Parent index: [Lexicon Documentation](README.md)
+
+## Purpose
+
+This document defines Lexicon's normalized `depends-on` semantics and the evidence accepted from each language adapter and manifest format.
+
+## Overview
+
+Adapters emit conservative static dependency facts from source and declarative manifests. Dynamic construction, unresolved aliases, and runtime-only behavior remain unproven rather than being guessed.
+
 All adapters emit dependency targets as facts-v1 `module` nodes. Synthetic targets use the canonical identity:
 
 ```text
@@ -42,3 +52,14 @@ Unsupported forms include dynamic manifest construction, dependency execution, u
 | Incremental dependency use | `internal/objectstore/dependencies.go`, `internal/scan/plan.go`, `internal/scope/repository.go` | object-store, scan-plan, and scope tests |
 
 Dependency emitters describe evidence available to Lexicon's incremental planner. They do not claim runtime-complete dynamic dependency recovery.
+
+## Related docs
+
+- [Lexicon architecture](ARCHITECTURE.md)
+- [Semantic acceptance gates](SEMANTIC_ACCEPTANCE.md)
+- [Adapter documentation](../adapters/README.md)
+- [Current status](STATUS.md)
+
+## Notes
+
+Dependency facts support retrieval and incremental planning but do not claim runtime-complete dependency recovery.

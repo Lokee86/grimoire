@@ -15,7 +15,10 @@ import (
 	"time"
 )
 
-const Version = 1
+const (
+	Version        = 1
+	DefaultTimeout = 30 * time.Minute
+)
 
 type Definition struct {
 	Version int           `json:"version"`
@@ -86,11 +89,7 @@ func invoke(
 	repository, stateRoot, snapshotID string,
 	output io.Writer,
 ) error {
-	commandContext := ctx
-	cancel := func() {}
-	if definition.Timeout > 0 {
-		commandContext, cancel = context.WithTimeout(ctx, definition.Timeout)
-	}
+	commandContext, cancel := context.WithTimeout(ctx, timeoutFor(definition))
 	defer cancel()
 	command := exec.CommandContext(commandContext, definition.Command, definition.Args...)
 	command.Dir = repository
@@ -115,4 +114,11 @@ func invoke(
 		}
 	}
 	return nil
+}
+
+func timeoutFor(definition Definition) time.Duration {
+	if definition.Timeout > 0 {
+		return definition.Timeout
+	}
+	return DefaultTimeout
 }

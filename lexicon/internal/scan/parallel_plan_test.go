@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
 func TestExecutionPlanScalesGoSemanticShards(t *testing.T) {
+	previousGOMAXPROCS := runtime.GOMAXPROCS(4)
+	t.Cleanup(func() { runtime.GOMAXPROCS(previousGOMAXPROCS) })
+
 	stateRoot := t.TempDir()
 	sourceRoot := filepath.Join(stateRoot, "source")
 	if err := os.MkdirAll(sourceRoot, 0o755); err != nil {

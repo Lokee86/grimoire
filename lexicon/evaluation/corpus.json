@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "cases": [
     {
       "id": "c-family-codebase-memory-mcp",
@@ -7,18 +7,94 @@
       "split": "calibration",
       "repository": "corpus/codebase-memory-mcp/internal/cbm",
       "revision": "97ce23f9827177fff3858831156e9795c6832b18",
-      "required_relations": ["calls", "reads", "writes", "includes", "references"],
-      "expected_zero_unresolved_call_reasons": ["missing-target"],
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "includes",
+        "references"
+      ],
+      "expected_zero_unresolved_call_reasons": [
+        "missing-target"
+      ],
       "required_nodes": [
-        {"kind": "function", "name": "cbm_arena_alloc", "path": "arena.c", "attributes": {"definition": true}},
-        {"kind": "symbol", "name": "GROW_ARRAY", "path": "cbm.c", "attributes": {"function_like": true}},
-        {"kind": "file", "path": "arena.h", "attributes": {"language": "c"}}
+        {
+          "kind": "function",
+          "name": "cbm_arena_alloc",
+          "path": "arena.c",
+          "attributes": {
+            "definition": true
+          }
+        },
+        {
+          "kind": "symbol",
+          "name": "GROW_ARRAY",
+          "path": "cbm.c",
+          "attributes": {
+            "function_like": true
+          }
+        },
+        {
+          "kind": "file",
+          "path": "arena.h",
+          "attributes": {
+            "language": "c"
+          }
+        }
       ],
       "required_edges": [
-        {"relation": "calls", "target": {"kind": "function", "name": "cbm_arena_alloc", "path": "arena.c"}},
-        {"relation": "calls", "source": {"kind": "function", "name": "cbm_rw_push", "path": "cbm.c"}, "target": {"kind": "function", "name": "cbm_arena_alloc", "path": "arena.c"}, "attributes": {"indirect": "macro"}},
-        {"relation": "references", "source": {"kind": "function", "name": "cbm_rw_push", "path": "cbm.c"}, "target": {"kind": "symbol", "name": "GROW_ARRAY", "path": "cbm.c"}, "attributes": {"role": "macro-expansion"}},
-        {"relation": "includes", "source": {"kind": "import", "name": "arena.h", "path": "cbm.c"}, "target": {"kind": "file", "path": "arena.h"}}
+        {
+          "relation": "calls",
+          "target": {
+            "kind": "function",
+            "name": "cbm_arena_alloc",
+            "path": "arena.c"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "cbm_rw_push",
+            "path": "cbm.c"
+          },
+          "target": {
+            "kind": "function",
+            "name": "cbm_arena_alloc",
+            "path": "arena.c"
+          },
+          "attributes": {
+            "indirect": "macro"
+          }
+        },
+        {
+          "relation": "references",
+          "source": {
+            "kind": "function",
+            "name": "cbm_rw_push",
+            "path": "cbm.c"
+          },
+          "target": {
+            "kind": "symbol",
+            "name": "GROW_ARRAY",
+            "path": "cbm.c"
+          },
+          "attributes": {
+            "role": "macro-expansion"
+          }
+        },
+        {
+          "relation": "includes",
+          "source": {
+            "kind": "import",
+            "name": "arena.h",
+            "path": "cbm.c"
+          },
+          "target": {
+            "kind": "file",
+            "path": "arena.h"
+          }
+        }
       ]
     },
     {
@@ -27,24 +103,164 @@
       "split": "calibration",
       "repository": "corpus/git",
       "revision": "9a0c4701dcd5725c4184599322b52933ff5005ca",
-      "required_relations": ["calls", "possible-calls", "reads", "writes", "includes", "references"],
-      "expected_zero_unresolved_call_reasons": ["missing-target"],
+      "required_relations": [
+        "calls",
+        "possible-calls",
+        "reads",
+        "writes",
+        "includes",
+        "references"
+      ],
+      "expected_zero_unresolved_call_reasons": [
+        "missing-target"
+      ],
       "required_nodes": [
-        {"kind": "function", "name": "strbuf_addstr", "path": "strbuf.h", "attributes": {"definition": true, "language": "c"}},
-        {"kind": "function", "name": "die", "path": "usage.c", "attributes": {"definition": true}},
-        {"kind": "symbol", "name": "N_", "path": "gettext.h", "attributes": {"function_like": true, "language": "c"}},
-        {"kind": "type", "name": "get_value_fn", "path": "builtin/repo.c", "attributes": {"function_pointer": true}},
-        {"kind": "field", "name": "get_value", "path": "builtin/repo.c", "attributes": {"function_pointer": true}}
+        {
+          "kind": "function",
+          "name": "strbuf_addstr",
+          "path": "strbuf.h",
+          "attributes": {
+            "definition": true,
+            "language": "c"
+          }
+        },
+        {
+          "kind": "function",
+          "name": "die",
+          "path": "usage.c",
+          "attributes": {
+            "definition": true
+          }
+        },
+        {
+          "kind": "symbol",
+          "name": "N_",
+          "path": "gettext.h",
+          "attributes": {
+            "function_like": true,
+            "language": "c"
+          }
+        },
+        {
+          "kind": "type",
+          "name": "get_value_fn",
+          "path": "builtin/repo.c",
+          "attributes": {
+            "function_pointer": true
+          }
+        },
+        {
+          "kind": "field",
+          "name": "get_value",
+          "path": "builtin/repo.c",
+          "attributes": {
+            "function_pointer": true
+          }
+        }
       ],
       "required_edges": [
-        {"relation": "calls", "target": {"kind": "function", "name": "strbuf_addstr", "path": "strbuf.h"}},
-        {"relation": "calls", "source": {"kind": "function", "name": "add_or_remove_enlistment", "path": "scalar.c"}, "target": {"kind": "function", "name": "die", "path": "usage.c"}},
-        {"relation": "calls", "source": {"kind": "function", "name": "calc_eclosure_iter", "path": "compat/regex/regcomp.c"}, "target": {"kind": "function", "name": "re_node_set_insert", "path": "compat/regex/regex_internal.c"}},
-        {"relation": "calls", "source": {"kind": "function", "name": "module_add", "path": "builtin/submodule--helper.c"}, "target": {"kind": "function", "name": "git_is_dir_sep", "path": "git-compat-util.h"}, "attributes": {"indirect": "macro"}},
-        {"relation": "calls", "source": {"kind": "function", "name": "clar_tempdir_init", "path": "t/unit-tests/clar/clar/sandbox.h"}, "target": {"kind": "function", "name": "clar_abort", "path": "t/unit-tests/clar/clar.c"}},
-        {"relation": "possible-calls", "source": {"kind": "function", "name": "refs_for_each_reflog", "path": "refs.c"}, "target": {"kind": "function", "name": "files_reflog_iterator_begin", "path": "refs/files-backend.c"}, "attributes": {"indirect": "function-pointer"}},
-        {"relation": "references", "target": {"kind": "symbol", "name": "N_", "path": "gettext.h"}, "attributes": {"role": "macro-expansion"}},
-        {"relation": "includes", "source": {"kind": "import", "name": "strbuf.h", "path": "prompt.c"}, "target": {"kind": "file", "path": "strbuf.h"}}
+        {
+          "relation": "calls",
+          "target": {
+            "kind": "function",
+            "name": "strbuf_addstr",
+            "path": "strbuf.h"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "add_or_remove_enlistment",
+            "path": "scalar.c"
+          },
+          "target": {
+            "kind": "function",
+            "name": "die",
+            "path": "usage.c"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "calc_eclosure_iter",
+            "path": "compat/regex/regcomp.c"
+          },
+          "target": {
+            "kind": "function",
+            "name": "re_node_set_insert",
+            "path": "compat/regex/regex_internal.c"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "module_add",
+            "path": "builtin/submodule--helper.c"
+          },
+          "target": {
+            "kind": "function",
+            "name": "git_is_dir_sep",
+            "path": "git-compat-util.h"
+          },
+          "attributes": {
+            "indirect": "macro"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "clar_tempdir_init",
+            "path": "t/unit-tests/clar/clar/sandbox.h"
+          },
+          "target": {
+            "kind": "function",
+            "name": "clar_abort",
+            "path": "t/unit-tests/clar/clar.c"
+          }
+        },
+        {
+          "relation": "possible-calls",
+          "source": {
+            "kind": "function",
+            "name": "refs_for_each_reflog",
+            "path": "refs.c"
+          },
+          "target": {
+            "kind": "function",
+            "name": "files_reflog_iterator_begin",
+            "path": "refs/files-backend.c"
+          },
+          "attributes": {
+            "indirect": "function-pointer"
+          }
+        },
+        {
+          "relation": "references",
+          "target": {
+            "kind": "symbol",
+            "name": "N_",
+            "path": "gettext.h"
+          },
+          "attributes": {
+            "role": "macro-expansion"
+          }
+        },
+        {
+          "relation": "includes",
+          "source": {
+            "kind": "import",
+            "name": "strbuf.h",
+            "path": "prompt.c"
+          },
+          "target": {
+            "kind": "file",
+            "path": "strbuf.h"
+          }
+        }
       ]
     },
     {
@@ -53,17 +269,79 @@
       "split": "calibration",
       "repository": "corpus/leveldb",
       "revision": "99b3c03b3284f5886f9ef9a4ef703d57373e61be",
-      "required_relations": ["calls", "possible-calls", "reads", "writes", "includes", "extends"],
-      "expected_zero_unresolved_call_reasons": ["missing-target"],
+      "required_relations": [
+        "calls",
+        "possible-calls",
+        "reads",
+        "writes",
+        "includes",
+        "extends"
+      ],
+      "expected_zero_unresolved_call_reasons": [
+        "missing-target"
+      ],
       "required_nodes": [
-        {"kind": "type", "name": "DBImpl", "path": "db/db_impl.h", "qualified_name": "leveldb::DBImpl"},
-        {"kind": "function", "name": "Recover", "path": "db/db_impl.cc", "qualified_name": "leveldb::DBImpl::Recover", "attributes": {"definition": true}},
-        {"kind": "type", "name": "PosixFileLock", "path": "util/env_posix.cc"}
+        {
+          "kind": "type",
+          "name": "DBImpl",
+          "path": "db/db_impl.h",
+          "qualified_name": "leveldb::DBImpl"
+        },
+        {
+          "kind": "function",
+          "name": "Recover",
+          "path": "db/db_impl.cc",
+          "qualified_name": "leveldb::DBImpl::Recover",
+          "attributes": {
+            "definition": true
+          }
+        },
+        {
+          "kind": "type",
+          "name": "PosixFileLock",
+          "path": "util/env_posix.cc"
+        }
       ],
       "required_edges": [
-        {"relation": "calls", "source": {"kind": "function", "name": "BM_LogAndApply", "path": "db/db_test.cc"}, "target": {"kind": "function", "name": "LogAndApply", "path": "db/version_set.cc"}},
-        {"relation": "extends", "source": {"kind": "type", "name": "ShardedLRUCache", "path": "util/cache.cc"}, "target": {"kind": "type", "name": "Cache", "path": "include/leveldb/options.h"}},
-        {"relation": "extends", "source": {"kind": "type", "name": "PosixFileLock", "path": "util/env_posix.cc"}, "target": {"kind": "type", "name": "FileLock", "path": "include/leveldb/env.h"}}
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "BM_LogAndApply",
+            "path": "db/db_test.cc"
+          },
+          "target": {
+            "kind": "function",
+            "name": "LogAndApply",
+            "path": "db/version_set.cc"
+          }
+        },
+        {
+          "relation": "extends",
+          "source": {
+            "kind": "type",
+            "name": "ShardedLRUCache",
+            "path": "util/cache.cc"
+          },
+          "target": {
+            "kind": "type",
+            "name": "Cache",
+            "path": "include/leveldb/options.h"
+          }
+        },
+        {
+          "relation": "extends",
+          "source": {
+            "kind": "type",
+            "name": "PosixFileLock",
+            "path": "util/env_posix.cc"
+          },
+          "target": {
+            "kind": "type",
+            "name": "FileLock",
+            "path": "include/leveldb/env.h"
+          }
+        }
       ]
     },
     {
@@ -72,16 +350,65 @@
       "split": "calibration",
       "repository": "corpus/fmt",
       "revision": "407c905e45ad75fc29bf0f9bb7c5c2fd3475976f",
-      "required_relations": ["calls", "possible-calls", "reads", "writes", "includes", "extends", "references"],
-      "expected_zero_unresolved_call_reasons": ["missing-target"],
+      "required_relations": [
+        "calls",
+        "possible-calls",
+        "reads",
+        "writes",
+        "includes",
+        "extends",
+        "references"
+      ],
+      "expected_zero_unresolved_call_reasons": [
+        "missing-target"
+      ],
       "required_nodes": [
-        {"kind": "type", "name": "formatter", "path": "include/fmt/base.h"},
-        {"kind": "function", "name": "formatted_size", "path": "include/fmt/compile.h", "attributes": {"definition": true}},
-        {"kind": "type", "name": "basic_ostream_formatter", "path": "include/fmt/ostream.h"}
+        {
+          "kind": "type",
+          "name": "formatter",
+          "path": "include/fmt/base.h"
+        },
+        {
+          "kind": "function",
+          "name": "formatted_size",
+          "path": "include/fmt/compile.h",
+          "attributes": {
+            "definition": true
+          }
+        },
+        {
+          "kind": "type",
+          "name": "basic_ostream_formatter",
+          "path": "include/fmt/ostream.h"
+        }
       ],
       "required_edges": [
-        {"relation": "calls", "source": {"kind": "function", "name": "formatted_size", "path": "include/fmt/compile.h"}, "target": {"kind": "constructor", "name": "counting_buffer", "path": "include/fmt/base.h"}},
-        {"relation": "extends", "source": {"kind": "type", "name": "formatter<detail::streamed_view<T>, Char>", "path": "include/fmt/ostream.h"}, "target": {"kind": "type", "name": "basic_ostream_formatter", "path": "include/fmt/ostream.h"}}
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "formatted_size",
+            "path": "include/fmt/compile.h"
+          },
+          "target": {
+            "kind": "constructor",
+            "name": "counting_buffer",
+            "path": "include/fmt/base.h"
+          }
+        },
+        {
+          "relation": "extends",
+          "source": {
+            "kind": "type",
+            "name": "formatter<detail::streamed_view<T>, Char>",
+            "path": "include/fmt/ostream.h"
+          },
+          "target": {
+            "kind": "type",
+            "name": "basic_ostream_formatter",
+            "path": "include/fmt/ostream.h"
+          }
+        }
       ]
     },
     {
@@ -90,17 +417,79 @@
       "split": "validation",
       "repository": "corpus/catch2/src",
       "revision": "191fa38c9b1596cd2576ab531d4ab4d5e8e05190",
-      "required_relations": ["calls", "possible-calls", "reads", "writes", "includes", "extends", "references"],
-      "expected_zero_unresolved_call_reasons": ["missing-target"],
+      "required_relations": [
+        "calls",
+        "possible-calls",
+        "reads",
+        "writes",
+        "includes",
+        "extends",
+        "references"
+      ],
+      "expected_zero_unresolved_call_reasons": [
+        "missing-target"
+      ],
       "required_nodes": [
-        {"kind": "type", "name": "Session", "path": "catch2/catch_session.hpp", "qualified_name": "Catch::Session"},
-        {"kind": "type", "name": "SonarQubeReporter", "path": "catch2/reporters/catch_reporter_sonarqube.hpp"},
-        {"kind": "function", "name": "handleFatalErrorCondition", "path": "catch2/internal/catch_run_context.cpp", "attributes": {"definition": true}}
+        {
+          "kind": "type",
+          "name": "Session",
+          "path": "catch2/catch_session.hpp",
+          "qualified_name": "Catch::Session"
+        },
+        {
+          "kind": "type",
+          "name": "SonarQubeReporter",
+          "path": "catch2/reporters/catch_reporter_sonarqube.hpp"
+        },
+        {
+          "kind": "function",
+          "name": "handleFatalErrorCondition",
+          "path": "catch2/internal/catch_run_context.cpp",
+          "attributes": {
+            "definition": true
+          }
+        }
       ],
       "required_edges": [
-        {"relation": "extends", "source": {"kind": "type", "name": "Session", "path": "catch2/catch_session.hpp"}, "target": {"kind": "type", "name": "NonCopyable", "path": "catch2/internal/catch_noncopyable.hpp"}},
-        {"relation": "extends", "source": {"kind": "type", "name": "SonarQubeReporter", "path": "catch2/reporters/catch_reporter_sonarqube.hpp"}, "target": {"kind": "type", "name": "CumulativeReporterBase", "path": "catch2/reporters/catch_reporter_cumulative_base.hpp"}},
-        {"relation": "calls", "source": {"kind": "function", "name": "handleFatalErrorCondition", "path": "catch2/internal/catch_run_context.cpp"}, "target": {"kind": "function", "name": "assertionEnded", "path": "catch2/internal/catch_run_context.cpp"}}
+        {
+          "relation": "extends",
+          "source": {
+            "kind": "type",
+            "name": "Session",
+            "path": "catch2/catch_session.hpp"
+          },
+          "target": {
+            "kind": "type",
+            "name": "NonCopyable",
+            "path": "catch2/internal/catch_noncopyable.hpp"
+          }
+        },
+        {
+          "relation": "extends",
+          "source": {
+            "kind": "type",
+            "name": "SonarQubeReporter",
+            "path": "catch2/reporters/catch_reporter_sonarqube.hpp"
+          },
+          "target": {
+            "kind": "type",
+            "name": "CumulativeReporterBase",
+            "path": "catch2/reporters/catch_reporter_cumulative_base.hpp"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "handleFatalErrorCondition",
+            "path": "catch2/internal/catch_run_context.cpp"
+          },
+          "target": {
+            "kind": "function",
+            "name": "assertionEnded",
+            "path": "catch2/internal/catch_run_context.cpp"
+          }
+        }
       ]
     },
     {
@@ -109,17 +498,78 @@
       "split": "holdout",
       "repository": "corpus/nlohmann-json/include/nlohmann",
       "revision": "55f93686c01528224f448c19128836e7df245f72",
-      "required_relations": ["calls", "possible-calls", "reads", "writes", "includes", "extends", "references"],
-      "expected_zero_unresolved_call_reasons": ["missing-target"],
+      "required_relations": [
+        "calls",
+        "possible-calls",
+        "reads",
+        "writes",
+        "includes",
+        "extends",
+        "references"
+      ],
+      "expected_zero_unresolved_call_reasons": [
+        "missing-target"
+      ],
       "required_nodes": [
-        {"kind": "function", "name": "parse", "path": "json.hpp", "attributes": {"definition": true}},
-        {"kind": "type", "name": "lexer", "path": "detail/input/lexer.hpp"},
-        {"kind": "type", "name": "invalid_iterator", "path": "detail/exceptions.hpp"}
+        {
+          "kind": "function",
+          "name": "parse",
+          "path": "json.hpp",
+          "attributes": {
+            "definition": true
+          }
+        },
+        {
+          "kind": "type",
+          "name": "lexer",
+          "path": "detail/input/lexer.hpp"
+        },
+        {
+          "kind": "type",
+          "name": "invalid_iterator",
+          "path": "detail/exceptions.hpp"
+        }
       ],
       "required_edges": [
-        {"relation": "calls", "source": {"kind": "function", "name": "parse", "path": "json.hpp"}, "target": {"kind": "function", "name": "parser", "path": "json.hpp"}},
-        {"relation": "extends", "source": {"kind": "type", "name": "lexer", "path": "detail/input/lexer.hpp"}, "target": {"kind": "type", "name": "lexer_base", "path": "detail/input/lexer.hpp"}},
-        {"relation": "calls", "source": {"kind": "function", "name": "erase", "path": "json.hpp"}, "target": {"kind": "method", "name": "create", "path": "detail/exceptions.hpp"}}
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "parse",
+            "path": "json.hpp"
+          },
+          "target": {
+            "kind": "function",
+            "name": "parser",
+            "path": "json.hpp"
+          }
+        },
+        {
+          "relation": "extends",
+          "source": {
+            "kind": "type",
+            "name": "lexer",
+            "path": "detail/input/lexer.hpp"
+          },
+          "target": {
+            "kind": "type",
+            "name": "lexer_base",
+            "path": "detail/input/lexer.hpp"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "erase",
+            "path": "json.hpp"
+          },
+          "target": {
+            "kind": "method",
+            "name": "create",
+            "path": "detail/exceptions.hpp"
+          }
+        }
       ]
     },
     {
@@ -128,35 +578,58 @@
       "split": "calibration",
       "repository": "corpus/doc-ledger-python",
       "revision": "7fbdb81307ff7c6b1ba28886c3a40b8837ebf785",
-      "required_relations": ["calls", "reads", "writes", "depends-on"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on"
+      ]
     },
     {
       "id": "python-space-rocks-tools",
       "adapter": "python",
       "split": "validation",
       "repository": "space-rocks/tools",
-      "required_relations": ["calls", "reads", "writes"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes"
+      ]
     },
     {
       "id": "ruby-lexicon-adapter",
       "adapter": "ruby",
       "split": "calibration",
       "repository": "lexicon/adapters/ruby",
-      "required_relations": ["calls", "reads", "writes"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes"
+      ]
     },
     {
       "id": "ruby-space-rocks-api",
       "adapter": "ruby",
       "split": "validation",
       "repository": "space-rocks/services/api-server",
-      "required_relations": ["calls", "reads", "writes", "depends-on"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on"
+      ]
     },
     {
       "id": "typescript-workspace-mcp",
       "adapter": "typescript",
       "split": "calibration",
       "repository": "workspace-mcp",
-      "required_relations": ["calls", "reads", "writes", "depends-on"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on"
+      ]
     },
     {
       "id": "typescript-lexicanter-svelte",
@@ -164,36 +637,62 @@
       "split": "validation",
       "repository": "corpus/lexicanter",
       "revision": "eac754788b3cf18a930c085c1c49f8f353e18107",
-      "required_relations": ["calls", "reads", "writes", "depends-on"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on"
+      ]
     },
     {
       "id": "typescript-space-rocks-web",
       "adapter": "typescript",
       "split": "holdout",
       "repository": "space-rocks/web-astro",
-      "required_relations": ["calls", "reads", "writes", "depends-on"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on"
+      ]
     },
     {
       "id": "gdscript-alienattack",
       "adapter": "gdscript",
       "split": "calibration",
       "repository": "alienattack",
-      "required_relations": ["calls", "reads", "writes"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes"
+      ]
     },
     {
       "id": "gdscript-space-rocks-client",
       "adapter": "gdscript",
       "split": "validation",
       "repository": "space-rocks/client",
-      "required_relations": ["calls", "reads", "writes", "depends-on"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on"
+      ]
     },
     {
       "id": "gdscript-speedysaucer",
       "adapter": "gdscript",
       "split": "holdout",
       "repository": "speedysaucer",
-      "required_relations": ["reads", "writes", "depends-on"],
-      "expected_zero_relations": ["calls", "possible-calls"]
+      "required_relations": [
+        "reads",
+        "writes",
+        "depends-on"
+      ],
+      "expected_zero_relations": [
+        "calls",
+        "possible-calls"
+      ]
     },
     {
       "id": "lotusscript-dunit",
@@ -201,16 +700,96 @@
       "split": "calibration",
       "repository": "corpus/dunit-lotusscript",
       "revision": "e013a21cc511fcadc93afa1e9095ac9da0b50984",
-      "required_relations": ["calls", "imports", "extends"],
+      "required_relations": [
+        "calls",
+        "imports",
+        "extends",
+        "reads",
+        "writes"
+      ],
       "required_nodes": [
-        {"kind": "type", "name": "AbstractTestRunner", "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"},
-        {"kind": "type", "name": "TestRunner", "path": "ODP/Code/Agents/TestRunner.lsa"},
-        {"kind": "function", "name": "Initialize", "path": "ODP/Code/Agents/TestRunner.lsa"}
+        {
+          "kind": "type",
+          "name": "AbstractTestRunner",
+          "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"
+        },
+        {
+          "kind": "type",
+          "name": "TestRunner",
+          "path": "ODP/Code/Agents/TestRunner.lsa"
+        },
+        {
+          "kind": "function",
+          "name": "Initialize",
+          "path": "ODP/Code/Agents/TestRunner.lsa"
+        }
       ],
       "required_edges": [
-        {"relation": "extends", "source": {"kind": "type", "name": "TestRunner", "path": "ODP/Code/Agents/TestRunner.lsa"}, "target": {"kind": "type", "name": "AbstractTestRunner", "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"}},
-        {"relation": "imports", "source": {"kind": "import", "name": "ru.livescripts.dunit.core", "path": "ODP/Code/Agents/TestRunner.lsa"}, "target": {"kind": "module", "name": "ru.livescripts.dunit.core", "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"}},
-        {"relation": "calls", "source": {"kind": "function", "name": "Initialize", "path": "ODP/Code/Agents/TestRunner.lsa"}, "target": {"kind": "method", "name": "Run", "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"}}
+        {
+          "relation": "extends",
+          "source": {
+            "kind": "type",
+            "name": "TestRunner",
+            "path": "ODP/Code/Agents/TestRunner.lsa"
+          },
+          "target": {
+            "kind": "type",
+            "name": "AbstractTestRunner",
+            "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"
+          }
+        },
+        {
+          "relation": "imports",
+          "source": {
+            "kind": "import",
+            "name": "ru.livescripts.dunit.core",
+            "path": "ODP/Code/Agents/TestRunner.lsa"
+          },
+          "target": {
+            "kind": "module",
+            "name": "ru.livescripts.dunit.core",
+            "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "Initialize",
+            "path": "ODP/Code/Agents/TestRunner.lsa"
+          },
+          "target": {
+            "kind": "method",
+            "name": "Run",
+            "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"
+          }
+        },
+        {
+          "relation": "reads",
+          "source": {
+            "kind": "method",
+            "name": "Run",
+            "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"
+          },
+          "target": {
+            "kind": "variable",
+            "name": "result",
+            "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"
+          }
+        },
+        {
+          "relation": "writes",
+          "source": {
+            "kind": "method",
+            "name": "Run",
+            "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"
+          },
+          "target": {
+            "kind": "variable",
+            "name": "result",
+            "path": "ODP/Code/ScriptLibraries/ru.livescripts.dunit.core.lss"
+          }
+        }
       ]
     },
     {
@@ -219,16 +798,94 @@
       "split": "validation",
       "repository": "corpus/jsonparser-ls",
       "revision": "2406bc4431225ef83276700bda853ae247bd9cfd",
-      "required_relations": ["calls"],
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes"
+      ],
       "required_nodes": [
-        {"kind": "type", "name": "JSONParser", "path": "json.ls"},
-        {"kind": "type", "name": "JSONObject", "path": "json.ls"},
-        {"kind": "type", "name": "JSONArray", "path": "json.ls"}
+        {
+          "kind": "type",
+          "name": "JSONParser",
+          "path": "json.ls"
+        },
+        {
+          "kind": "type",
+          "name": "JSONObject",
+          "path": "json.ls"
+        },
+        {
+          "kind": "type",
+          "name": "JSONArray",
+          "path": "json.ls"
+        }
       ],
       "required_edges": [
-        {"relation": "calls", "source": {"kind": "method", "name": "parseObject", "path": "json.ls"}, "target": {"kind": "constructor", "name": "New", "path": "json.ls"}},
-        {"relation": "calls", "source": {"kind": "method", "name": "parseObject", "path": "json.ls"}, "target": {"kind": "method", "name": "AddItem", "path": "json.ls"}},
-        {"relation": "calls", "source": {"kind": "method", "name": "parseArray", "path": "json.ls"}, "target": {"kind": "method", "name": "AddItem", "path": "json.ls"}}
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "method",
+            "name": "parseObject",
+            "path": "json.ls"
+          },
+          "target": {
+            "kind": "constructor",
+            "name": "New",
+            "path": "json.ls"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "method",
+            "name": "parseObject",
+            "path": "json.ls"
+          },
+          "target": {
+            "kind": "method",
+            "name": "AddItem",
+            "path": "json.ls"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "method",
+            "name": "parseArray",
+            "path": "json.ls"
+          },
+          "target": {
+            "kind": "method",
+            "name": "AddItem",
+            "path": "json.ls"
+          }
+        },
+        {
+          "relation": "reads",
+          "source": {
+            "kind": "method",
+            "name": "parseObject",
+            "path": "json.ls"
+          },
+          "target": {
+            "kind": "parameter",
+            "name": "index",
+            "path": "json.ls"
+          }
+        },
+        {
+          "relation": "writes",
+          "source": {
+            "kind": "method",
+            "name": "parseObject",
+            "path": "json.ls"
+          },
+          "target": {
+            "kind": "parameter",
+            "name": "index",
+            "path": "json.ls"
+          }
+        }
       ]
     },
     {
@@ -237,16 +894,96 @@
       "split": "holdout",
       "repository": "corpus/volt-mx-ls-toolkit",
       "revision": "48d0c5b14cef215dabeefa3c182caa11036c0ad8",
-      "required_relations": ["calls", "imports", "extends"],
+      "required_relations": [
+        "calls",
+        "imports",
+        "extends",
+        "reads",
+        "writes"
+      ],
       "required_nodes": [
-        {"kind": "function", "name": "Initialize", "path": "notes/Code/Agents/(TestAgent).lsa"},
-        {"kind": "type", "name": "NotesAgent_JsonHTTPHelper", "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"},
-        {"kind": "type", "name": "NotesAgent_VoltMXHttpHelper", "path": "notes/Code/ScriptLibraries/VoltMXHttpHelper.lss"}
+        {
+          "kind": "function",
+          "name": "Initialize",
+          "path": "notes/Code/Agents/(TestAgent).lsa"
+        },
+        {
+          "kind": "type",
+          "name": "NotesAgent_JsonHTTPHelper",
+          "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"
+        },
+        {
+          "kind": "type",
+          "name": "NotesAgent_VoltMXHttpHelper",
+          "path": "notes/Code/ScriptLibraries/VoltMXHttpHelper.lss"
+        }
       ],
       "required_edges": [
-        {"relation": "imports", "source": {"kind": "import", "name": "NotesHttpJsonRequestHelper", "path": "notes/Code/Agents/(TestAgent).lsa"}, "target": {"kind": "module", "name": "NotesHttpJsonRequestHelper", "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"}},
-        {"relation": "calls", "source": {"kind": "function", "name": "Initialize", "path": "notes/Code/Agents/(TestAgent).lsa"}, "target": {"kind": "method", "name": "SetLogErrorOnBadPointer", "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"}},
-        {"relation": "extends", "source": {"kind": "type", "name": "NotesAgent_VoltMXHttpHelper", "path": "notes/Code/ScriptLibraries/VoltMXHttpHelper.lss"}, "target": {"kind": "type", "name": "NotesAgent_JsonHTTPHelper", "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"}}
+        {
+          "relation": "imports",
+          "source": {
+            "kind": "import",
+            "name": "NotesHttpJsonRequestHelper",
+            "path": "notes/Code/Agents/(TestAgent).lsa"
+          },
+          "target": {
+            "kind": "module",
+            "name": "NotesHttpJsonRequestHelper",
+            "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"
+          }
+        },
+        {
+          "relation": "calls",
+          "source": {
+            "kind": "function",
+            "name": "Initialize",
+            "path": "notes/Code/Agents/(TestAgent).lsa"
+          },
+          "target": {
+            "kind": "method",
+            "name": "SetLogErrorOnBadPointer",
+            "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"
+          }
+        },
+        {
+          "relation": "extends",
+          "source": {
+            "kind": "type",
+            "name": "NotesAgent_VoltMXHttpHelper",
+            "path": "notes/Code/ScriptLibraries/VoltMXHttpHelper.lss"
+          },
+          "target": {
+            "kind": "type",
+            "name": "NotesAgent_JsonHTTPHelper",
+            "path": "notes/Code/ScriptLibraries/NotesHttpJsonRequestHelper.lss"
+          }
+        },
+        {
+          "relation": "reads",
+          "source": {
+            "kind": "function",
+            "name": "Initialize",
+            "path": "notes/Code/Agents/(TestAgent).lsa"
+          },
+          "target": {
+            "kind": "variable",
+            "name": "httpRequest",
+            "path": "notes/Code/Agents/(TestAgent).lsa"
+          }
+        },
+        {
+          "relation": "writes",
+          "source": {
+            "kind": "function",
+            "name": "Initialize",
+            "path": "notes/Code/Agents/(TestAgent).lsa"
+          },
+          "target": {
+            "kind": "variable",
+            "name": "httpRequest",
+            "path": "notes/Code/Agents/(TestAgent).lsa"
+          }
+        }
       ]
     },
     {
@@ -254,14 +991,170 @@
       "adapter": "rust",
       "split": "calibration",
       "repository": "grimoire/native/vector-engine",
-      "required_relations": ["calls", "reads", "writes", "depends-on"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on"
+      ]
     },
     {
       "id": "rust-arcana",
       "adapter": "rust",
       "split": "validation",
       "repository": "arcana",
-      "required_relations": ["calls", "reads", "writes", "depends-on"]
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on"
+      ]
+    },
+    {
+      "id": "csharp-spectre",
+      "adapter": "csharp",
+      "split": "calibration",
+      "repository": "corpus/cs-spectre",
+      "revision": "555a00ae317abc9b7a49100cda3251584b0a8861",
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on",
+        "extends",
+        "implements"
+      ],
+      "adapter_args": [
+        "--project-loading",
+        "msbuild"
+      ]
+    },
+    {
+      "id": "csharp-dapper",
+      "adapter": "csharp",
+      "split": "validation",
+      "repository": "corpus/cs-dapper",
+      "revision": "72a54c475f75e18cb93cba0809d00a5e6e49efd9",
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on"
+      ],
+      "adapter_args": [
+        "--project-loading",
+        "msbuild"
+      ]
+    },
+    {
+      "id": "csharp-polly",
+      "adapter": "csharp",
+      "split": "holdout",
+      "repository": "corpus/cs-polly",
+      "revision": "9fd716c1e84288a6a8a1c7ad9426fb8a8e66942d",
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on",
+        "extends",
+        "implements"
+      ],
+      "adapter_args": [
+        "--project-loading",
+        "msbuild"
+      ]
+    },
+    {
+      "id": "java-jsoup",
+      "adapter": "java",
+      "split": "calibration",
+      "repository": "corpus/java-jsoup",
+      "revision": "d24b16d952530f3aefe87e91c344b23fe4b8a7fc",
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on",
+        "extends",
+        "implements"
+      ]
+    },
+    {
+      "id": "java-gson",
+      "adapter": "java",
+      "split": "validation",
+      "repository": "corpus/java-gson",
+      "revision": "aebc51a56ca0793c13b841c29f73433b82446695",
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on",
+        "extends",
+        "implements"
+      ]
+    },
+    {
+      "id": "java-hikaricp",
+      "adapter": "java",
+      "split": "holdout",
+      "repository": "corpus/java-hikaricp",
+      "revision": "a4d93f4f85517f90e632b795486d7102e933d7ff",
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on",
+        "extends",
+        "implements",
+        "overrides"
+      ]
+    },
+    {
+      "id": "kotlin-detekt",
+      "adapter": "kotlin",
+      "split": "calibration",
+      "repository": "corpus/kotlin-detekt",
+      "revision": "f9e1d5cc239ab740ce499b1edb36b872012648e2",
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on",
+        "extends",
+        "implements"
+      ]
+    },
+    {
+      "id": "kotlin-coroutines",
+      "adapter": "kotlin",
+      "split": "validation",
+      "repository": "corpus/kotlin-coroutines",
+      "revision": "04ada74fae2e8914ae92ece34e06e80bb15385e9",
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "depends-on",
+        "extends",
+        "implements",
+        "overrides"
+      ]
+    },
+    {
+      "id": "kotlin-nowinandroid",
+      "adapter": "kotlin",
+      "split": "holdout",
+      "repository": "corpus/kotlin-nowinandroid",
+      "revision": "7d45eae4f8720a0c77f507712ba2437ff974b6ed",
+      "required_relations": [
+        "calls",
+        "reads",
+        "writes",
+        "extends",
+        "implements"
+      ]
     }
   ]
 }

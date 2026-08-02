@@ -1,5 +1,15 @@
 # Lexicon release packaging
 
+Parent index: [Lexicon Documentation](README.md)
+
+## Purpose
+
+This document defines Lexicon's release build, distribution layout, runtime requirements, verification, installer behavior, and source-development fallbacks.
+
+## Overview
+
+A release packages the Lexicon application together with independently executable language adapters and required runtime assets without making source-development fallbacks part of the installed contract.
+
 `tools/package_release.py` builds a clean distribution containing the Lexicon application and the runtime files required by every supported adapter.
 
 ## Build
@@ -43,6 +53,9 @@ The release directory contains:
 - `adapters/c-family/lexicon-c-family`;
 - `adapters/go/lexicon-go`;
 - `adapters/gdscript/lexicon-gdscript`;
+- the self-contained C# adapter under `adapters/csharp/`;
+- the Java adapter executable, compiler JAR, and bundled Java runtime under `adapters/java/`;
+- `adapters/kotlin/lexicon-kotlin`;
 - `adapters/lotusscript/lexicon-lotusscript`;
 - `adapters/generic/lexicon-generic`;
 - `adapters/rust/lexicon-rust`;
@@ -61,6 +74,8 @@ Creating a complete distribution requires:
 
 - Go plus a working CGO C compiler for the application, C/C++ adapter, Go adapter, GDScript adapter, LotusScript adapter, and generic adapter;
 - Rust and Cargo for the Rust adapter;
+- JDK 21 or newer for the Java compiler engine and bundled Java runtime;
+- a .NET SDK capable of self-contained publishing for the C# adapter;
 - Node.js and npm for TypeScript compilation and production dependency installation;
 - Python to run the packaging script.
 
@@ -72,7 +87,8 @@ A packaged distribution does not require Go, Cargo, npm, or the TypeScript compi
 
 Runtime requirements are:
 
-- operating-system libraries required by the compiled Go, Tree-sitter/CGO, and Rust binaries;
+- operating-system libraries required by the compiled Go, Tree-sitter/CGO, Rust, and self-contained C# binaries;
+- no separately installed Java runtime for the packaged Java adapter, because its runtime and compiler engine are bundled;
 - Node.js for the compiled JavaScript, TypeScript, and Svelte adapter;
 - Python for the Python adapter;
 - Ruby for the Ruby adapter.
@@ -97,7 +113,7 @@ The smoke utilities in `tools/` cover application operations, but the final pack
 
 ## Source-development fallback
 
-The adapter runner prefers packaged binaries and the compiled TypeScript entry point. When those packaged paths are absent in a source checkout, it can use source-development execution paths such as `go run`, `cargo run`, Python module execution, Ruby source execution, and the locally built TypeScript output.
+The adapter runner prefers packaged binaries, the packaged C# and Java runtimes, and the compiled TypeScript entry point. When those packaged paths are absent in a source checkout, it can use source-development execution paths such as `go run`, `dotnet run`, embedded Java compiler construction from an installed JDK, `cargo run`, Python module execution, Ruby source execution, and the locally built TypeScript output.
 
 This fallback is for development. Releases should contain the packaged forms described above.
 
@@ -114,3 +130,14 @@ This fallback is for development. Releases should contain the packaged forms des
 | Version/build identity | `internal/cli/version.go`, build metadata | CLI tests and release workflow |
 
 The package contains runtime artifacts; adapter source directories and generated validation output remain development inputs rather than installed authority.
+
+## Related docs
+
+- [Development and verification](DEVELOPMENT.md)
+- [Application and operations](APPLICATION.md)
+- [Adapter documentation](../adapters/README.md)
+- [Root release workflow](../../docs/development/release-workflow.md)
+
+## Notes
+
+Packaged executables and compiled adapter outputs are release artifacts; adapter source remains the implementation owner.

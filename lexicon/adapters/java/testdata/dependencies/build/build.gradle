@@ -1,0 +1,3 @@
+dependencies {
+    implementation("ignored:generated:1.0")
+}

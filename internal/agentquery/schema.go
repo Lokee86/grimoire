@@ -173,11 +173,14 @@ type PathStep struct {
 }
 
 type Dependent struct {
+	Rank      int      `json:"rank,omitempty"`
+	Score     float64  `json:"score,omitempty"`
 	Depth     int      `json:"depth"`
 	Direction string   `json:"direction"`
 	Relation  string   `json:"relation"`
 	Certainty string   `json:"certainty"`
 	Node      Node     `json:"node"`
+	Reasons   []string `json:"reasons,omitempty"`
 	Evidence  []string `json:"evidence,omitempty"`
 	Spans     []Range  `json:"spans,omitempty"`
 }

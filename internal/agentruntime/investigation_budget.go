@@ -3,6 +3,7 @@ package agentruntime
 import (
 	"encoding/json"
 	"errors"
+	"sort"
 
 	"github.com/Lokee86/grimoire/internal/investigation"
 )
@@ -20,7 +21,8 @@ func boundInvestigationResponse(ledger *investigation.Ledger, response investiga
 	if ledger == nil {
 		return investigation.Response{}, false, errors.New("investigation ledger is required")
 	}
-	candidate := pruneInvestigationResponse(response)
+	candidate, hitBudgeted := budgetInvestigationHits(response, limit)
+	candidate = pruneInvestigationResponse(candidate)
 	candidate, _ = compactInvestigationResponse(candidate)
 	maxEvidence := investigationEvidenceLimit(limit)
 	within, err := investigationResponseWithinBudget(ledger, candidate, maxEvidence)
@@ -28,10 +30,10 @@ func boundInvestigationResponse(ledger *investigation.Ledger, response investiga
 		return investigation.Response{}, false, err
 	}
 	if within {
-		return candidate, false, nil
+		return candidate, hitBudgeted, nil
 	}
 
-	truncated := false
+	truncated := hitBudgeted
 	for {
 		within, err := investigationResponseWithinBudget(ledger, candidate, maxEvidence)
 		if err != nil {
@@ -155,8 +157,64 @@ func compactInvestigationString(value string, maximum int, compacted bool) (stri
 	return result, compacted || result != value
 }
 
-func investigationEvidenceLimit(_ int) int {
-	return 200
+func investigationHitLimit(limit int) int {
+	if limit <= 0 {
+		return 8
+	}
+	return min(16, max(8, limit*2))
+}
+
+func investigationEvidenceLimit(limit int) int {
+	return max(24, investigationHitLimit(limit)*investigationEvidencePerResult)
+}
+
+func budgetInvestigationHits(response investigation.Response, limit int) (investigation.Response, bool) {
+	maximum := investigationHitLimit(limit)
+	if len(response.RetrievalHits) <= maximum {
+		return response, false
+	}
+
+	laneOrder := make([]string, 0)
+	laneIndices := make(map[string][]int)
+	for index, hit := range response.RetrievalHits {
+		lane := hit.Lane
+		if lane == "" {
+			lane = "other"
+		}
+		if _, exists := laneIndices[lane]; !exists {
+			laneOrder = append(laneOrder, lane)
+		}
+		laneIndices[lane] = append(laneIndices[lane], index)
+	}
+
+	positions := make(map[string]int, len(laneOrder))
+	selected := make([]int, 0, maximum)
+	for len(selected) < maximum {
+		progressed := false
+		for _, lane := range laneOrder {
+			position := positions[lane]
+			indices := laneIndices[lane]
+			if position >= len(indices) {
+				continue
+			}
+			selected = append(selected, indices[position])
+			positions[lane] = position + 1
+			progressed = true
+			if len(selected) == maximum {
+				break
+			}
+		}
+		if !progressed {
+			break
+		}
+	}
+	sort.Ints(selected)
+	hits := make([]investigation.RetrievalHit, 0, len(selected))
+	for _, index := range selected {
+		hits = append(hits, response.RetrievalHits[index])
+	}
+	response.RetrievalHits = hits
+	return response, true
 }
 
 func investigationDeltaEvidenceCount(delta investigation.Delta) int {

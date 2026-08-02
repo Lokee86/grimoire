@@ -1,5 +1,15 @@
 # Release workflow
 
+Parent index: [Development Documentation](INDEX.md)
+
+## Purpose
+
+This document defines the build, test, packaging, installation, verification, and GitHub release workflow for the combined Grimoire distribution.
+
+## Overview
+
+The root workflow composes independently owned Grimoire, Lexicon, Arcana, Lodestone, and adapter artifacts while preserving their implementation and runtime boundaries.
+
 The root workflow coordinates the independent Grimoire Go, Lexicon Go, Arcana Rust, Lodestone native, and Lexicon adapter build roots. It does not merge their implementation boundaries or generate source into component trees.
 
 ## Requirements
@@ -10,13 +20,13 @@ A complete source build expects:
 - Go 1.26.5;
 - Rust 1.90 or newer;
 - Node.js 22 for the TypeScript adapter;
-- Lodestone checked out at `../lodestone`, or `LODESTONE_ROOT` set to another checkout.
+- Lodestone checked out at `../lodestone`, or `LODESTONE_ROOT` set to another checkout, at commit `372abb7b9d5c9fb19eeaf92774849505e1dfbade`.
 
 Use `py -3` instead of `python` when that is the configured Windows launcher.
 
 ## CPU bounds
 
-Build, test, and release commands default to one worker:
+Build, test, and release commands first run the Pitlord repository policy and verify the pinned Lodestone module/source identity. They default to one worker:
 
 ```bash
 python scripts/workflow.py test
@@ -138,7 +148,7 @@ Archives use sorted entries and fixed timestamps for deterministic packaging. Th
 
 ## GitHub release workflow
 
-`.github/workflows/release.yml` builds Windows x86_64 and Linux x86_64 combined bundles on version tags or manual dispatch. It checks out Lodestone beside Grimoire, runs the same root release workflow, creates release-level checksums, and uploads the bundles to the GitHub release.
+`.github/workflows/release.yml` builds Windows x86_64 and Linux x86_64 combined bundles on version tags or manual dispatch. It checks out Grimoire and Lodestone as sibling directories, pins Lodestone to the exact consumed commit, runs the same root release workflow, creates release-level checksums, and uploads the bundles to the GitHub release.
 
 The workflow currently publishes combined bundles rather than every local component archive.
 
@@ -162,8 +172,21 @@ See [Installation and agent setup](../reference/installation.md) for the consume
 | Root workflow orchestration | `scripts/workflow.py` | `scripts/test_workflow.py` |
 | Local installation and layout | `scripts/install.py` | `scripts/test_installed_mcp.py` and smoke checks |
 | GitHub release automation | `.github/workflows/release.yml` | workflow build/test/package jobs |
-| Documentation gate | `.github/workflows/documentation-standard.yml`, `scripts/check_docs.py` | root and component documentation checks |
+| Architecture and documentation gates | `tools/pitlord/`, `.github/workflows/documentation-standard.yml`, `scripts/check_docs.py` | Pitlord repository policy, source-identity tests, root and component documentation checks |
 | Lexicon packaging | `lexicon/tools/package_release.py` | `lexicon/tools/test_package_release.py`, installer smoke tests |
 | Arcana build artifact | `arcana/Cargo.toml`, `arcana/src/main.rs` | Cargo format/check/test gates |
 
 Release automation composes independently owned components; it does not redefine their runtime contracts.
+
+## Related docs
+
+- [Installation and agent setup](../reference/installation.md)
+- [Testing and benchmarks](testing-and-benchmarks.md)
+- [Component architecture](../architecture/components.md)
+- [Operations and trust boundaries](../architecture/operations-and-trust.md)
+- [Architecture verification](architecture-verification.md)
+- [Lexicon release packaging](../../lexicon/docs/RELEASE_PACKAGING.md)
+
+## Notes
+
+Release composition does not make the root workflow the owner of component-internal formats or behavior.

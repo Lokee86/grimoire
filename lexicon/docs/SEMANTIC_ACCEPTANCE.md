@@ -1,5 +1,15 @@
 # Semantic analysis acceptance gates
 
+Parent index: [Lexicon Documentation](README.md)
+
+## Purpose
+
+This document defines the minimum semantic acceptance gates for Lexicon adapters and cross-language integration behavior.
+
+## Overview
+
+Acceptance separates dataflow, dispatch, dependencies, runtime evidence, and integration so an adapter cannot claim semantic readiness from parser success alone.
+
 Lexicon semantic work is accepted by observable fact behavior rather than parser implementation claims.
 
 ## Dataflow
@@ -45,3 +55,26 @@ Before merging a semantic stream:
 A stream is incomplete when its promised relation count is zero for its acceptance fixtures, even when its tests otherwise pass.
 
 The repeatable real-repository implementation of these gates lives under `evaluation/`. Run `python evaluation/bootstrap_corpus.py`, `python evaluation/run_tests.py`, and `python evaluation/run_validation.py --jobs 3`. A successful complete validation replaces the tracked `evaluation/validation/baseline.json`; details and current results are documented in `SEMANTIC_CORPUS_VALIDATION.md`.
+
+## Code map
+
+| Acceptance area | Primary implementation or artifact | Verification |
+| --- | --- | --- |
+| Dataflow and relationships | owning `adapters/<language>/` implementation | adapter-focused tests and fixtures |
+| Dispatch and call resolution | owning adapter resolver/call modules | semantic and calibration tests |
+| Dependency evidence | adapter dependency modules and `DEPENDENCY_SEMANTICS.md` | adapter and incremental-planning tests |
+| Runtime evidence contract | `spec/` and adapter emitters | contract validators and fixtures |
+| Cross-language integration | `internal/interstack/`, Arcana ingestion | interstack tests, Arcana sync/protocol tests |
+
+The acceptance document does not own language parsers or downstream graph semantics.
+
+## Related docs
+
+- [Development and verification](DEVELOPMENT.md)
+- [Semantic corpus validation](SEMANTIC_CORPUS_VALIDATION.md)
+- [Dependency semantics](DEPENDENCY_SEMANTICS.md)
+- [Adapter documentation](../adapters/README.md)
+
+## Notes
+
+Acceptance gates define required evidence; language-specific limits remain in each adapter README and current status document.

@@ -12,22 +12,22 @@ import (
 
 func TestGenericRunnerProducesValidIncrementalAnalysis(t *testing.T) {
 	repository := t.TempDir()
-	if err := os.WriteFile(filepath.Join(repository, "Main.java"), []byte("class Main {\n  static int answer() { return 42; }\n}\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repository, "Main.scala"), []byte("object Main {\n  def answer: Int = 42\n}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	adapterRoot, err := filepath.Abs("../../adapters")
 	if err != nil {
 		t.Fatal(err)
 	}
-	output := filepath.Join(t.TempDir(), "generic-java.jsonl")
+	output := filepath.Join(t.TempDir(), "generic-scala.jsonl")
 	request := adapters.Request{
-		Language: "generic-java", Repository: repository, Output: output,
-		ChangedFiles: []string{"Main.java"}, RemovedFiles: []string{},
+		Language: "generic-scala", Repository: repository, Output: output,
+		ChangedFiles: []string{"Main.scala"}, RemovedFiles: []string{},
 	}
 	if err := (adapters.Runner{Root: adapterRoot}).Run(context.Background(), request); err != nil {
 		t.Fatal(err)
 	}
-	analysis, err := objectstore.ReadAnalysis(output, "generic-java")
+	analysis, err := objectstore.ReadAnalysis(output, "generic-scala")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,8 +1,14 @@
 # Prepared Index
 
+Parent index: [Architecture](INDEX.md)
+
 ## Purpose
 
-Grimoire stores prepared retrieval state in a private bare Git object repository. The repository is an implementation detail used for content addressing, immutable object reuse, deterministic snapshot roots, and atomic publication. It is not the source repository's normal Git history.
+This document defines Grimoire's prepared source-index persistence model, immutable object layout, incremental reuse, validation, and publication boundary.
+
+## Overview
+
+Prepared source state lives under `.grimoire/` by default and uses content-addressed objects plus atomically published snapshot roots. It supports exact and BM25 retrieval without becoming a second language-analysis engine.
 
 ## Default location
 
@@ -141,8 +147,12 @@ internal/app/index_spans_test.go
 
 Lexicon owns semantic source facts used as optional chunk boundaries. The prepared index owns Grimoire's source chunks, lexical sidecar, immutable object layout, and publication only.
 
-## Related documentation
+## Related docs
 
 - [System overview](system-overview.md)
 - [Indexing reference](../reference/indexing.md)
 - [Current limitations](../limits/current-limitations.md)
+
+## Notes
+
+The prepared index is generated private state. Repository source and Lexicon facts remain its inputs, not data it owns or rewrites.

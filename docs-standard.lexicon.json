@@ -1,7 +1,10 @@
 {
   "version": 1,
   "profile": "library-engine",
-  "capabilities": ["stateful", "data-pipeline"],
+  "capabilities": [
+    "stateful",
+    "data-pipeline"
+  ],
   "docs_root": "lexicon/docs",
   "root_index": "lexicon/docs/README.md",
   "folder_index": "README.md",
@@ -14,20 +17,167 @@
     "lexicon/docs/DEVELOPMENT.md",
     "lexicon/docs/STATUS.md"
   ],
-  "index_exempt_directories": ["stubs"],
-  "section_exemptions": ["lexicon/docs/README.md"],
-  "required_sections": ["Purpose", "Overview", "Related docs", "Notes"],
-  "baseline": "docs-standard.lexicon.baseline.json",
+  "index_exempt_directories": [
+    "stubs"
+  ],
+  "section_exemptions": [
+    "lexicon/docs/README.md"
+  ],
+  "required_sections": [
+    "Purpose",
+    "Overview",
+    "Related docs",
+    "Notes"
+  ],
   "coverage": [
     {
-      "paths": ["lexicon/cmd/**", "lexicon/internal/**", "lexicon/adapters/**"],
-      "docs": ["lexicon/docs/APPLICATION.md", "lexicon/docs/ARCHITECTURE.md", "lexicon/docs/DEVELOPMENT.md", "lexicon/adapters/README.md"]
+      "paths": [
+        "lexicon/cmd/**",
+        "lexicon/internal/cli/**",
+        "lexicon/internal/config/**"
+      ],
+      "docs": [
+        "lexicon/docs/APPLICATION.md",
+        "lexicon/docs/DEVELOPMENT.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/internal/scan/**",
+        "lexicon/internal/objectstore/**",
+        "lexicon/internal/state/**",
+        "lexicon/internal/files/**",
+        "lexicon/internal/scope/**",
+        "lexicon/internal/watch/**",
+        "lexicon/internal/lock/**",
+        "lexicon/internal/consumer/**"
+      ],
+      "docs": [
+        "lexicon/docs/ARCHITECTURE.md",
+        "lexicon/docs/APPLICATION.md",
+        "lexicon/docs/DEVELOPMENT.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/internal/adapters/**",
+        "lexicon/internal/languages/**",
+        "lexicon/adapters/**"
+      ],
+      "docs": [
+        "lexicon/adapters/README.md",
+        "lexicon/docs/ARCHITECTURE.md",
+        "lexicon/docs/SEMANTIC_ACCEPTANCE.md",
+        "lexicon/docs/STATUS.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/internal/interstack/**"
+      ],
+      "docs": [
+        "lexicon/docs/ARCHITECTURE.md",
+        "lexicon/docs/DEPENDENCY_SEMANTICS.md",
+        "lexicon/docs/STATUS.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/spec/**"
+      ],
+      "docs": [
+        "lexicon/docs/ARCHITECTURE.md",
+        "lexicon/docs/DEPENDENCY_SEMANTICS.md",
+        "lexicon/docs/STATUS.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/evaluation/**",
+        "lexicon/tools/**"
+      ],
+      "docs": [
+        "lexicon/docs/DEVELOPMENT.md",
+        "lexicon/docs/SEMANTIC_CORPUS_VALIDATION.md",
+        "lexicon/docs/RELEASE_PACKAGING.md"
+      ]
     }
   ],
   "change_rules": [
     {
-      "paths": ["lexicon/**"],
-      "docs": ["lexicon/docs/**"]
+      "paths": [
+        "lexicon/cmd/**",
+        "lexicon/internal/cli/**",
+        "lexicon/internal/config/**"
+      ],
+      "docs": [
+        "lexicon/docs/APPLICATION.md",
+        "lexicon/docs/DEVELOPMENT.md",
+        "docs/reference/lexicon.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/internal/scan/**",
+        "lexicon/internal/objectstore/**",
+        "lexicon/internal/state/**",
+        "lexicon/internal/files/**",
+        "lexicon/internal/scope/**",
+        "lexicon/internal/watch/**",
+        "lexicon/internal/lock/**",
+        "lexicon/internal/consumer/**"
+      ],
+      "docs": [
+        "lexicon/docs/ARCHITECTURE.md",
+        "lexicon/docs/APPLICATION.md",
+        "docs/development/behavioral-contract-matrix.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/internal/adapters/**",
+        "lexicon/internal/languages/**",
+        "lexicon/adapters/**"
+      ],
+      "docs": [
+        "lexicon/adapters/**/README.md",
+        "lexicon/adapters/README.md",
+        "lexicon/docs/SEMANTIC_ACCEPTANCE.md",
+        "lexicon/docs/STATUS.md",
+        "docs/reference/lexicon.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/internal/interstack/**"
+      ],
+      "docs": [
+        "lexicon/docs/ARCHITECTURE.md",
+        "lexicon/docs/DEPENDENCY_SEMANTICS.md",
+        "docs/development/behavioral-contract-matrix.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/spec/**"
+      ],
+      "docs": [
+        "lexicon/docs/ARCHITECTURE.md",
+        "lexicon/docs/DEPENDENCY_SEMANTICS.md",
+        "lexicon/docs/STATUS.md",
+        "docs/reference/lexicon.md"
+      ]
+    },
+    {
+      "paths": [
+        "lexicon/evaluation/**",
+        "lexicon/tools/**"
+      ],
+      "docs": [
+        "lexicon/docs/DEVELOPMENT.md",
+        "lexicon/docs/SEMANTIC_CORPUS_VALIDATION.md",
+        "lexicon/docs/RELEASE_PACKAGING.md"
+      ]
     }
   ]
 }

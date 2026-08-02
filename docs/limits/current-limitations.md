@@ -1,5 +1,15 @@
 # Current limitations
 
+Parent index: [Limits](INDEX.md)
+
+## Purpose
+
+This document records current defects, incomplete transitional behavior, practical ceilings, and pre-release compatibility limits in Grimoire and its integrated components.
+
+## Overview
+
+These limitations describe the active system rather than proposed future work. Resolved items must be removed or rewritten in the same change that establishes the new current behavior.
+
 These constraints describe the active unified discovery system.
 
 ## Discovery quality remains corpus-bound
@@ -8,7 +18,7 @@ Current judged corpora cover only a fraction of possible languages, repository l
 
 Measured benefit is task-shaped. Broad architectural investigations can improve substantially, while exact lookups and short named call chains may remain faster with direct shell inspection. Grimoire is an optional discovery aid inside a normal repository workflow, not a requirement for every query.
 
-Exact source, BM25 source, document, symbol, and relationship lanes can fail independently. Evaluate them separately before attributing a missed investigation to the interface as a whole.
+Exact source, BM25 source, document, and symbol lanes can fail independently. Trace and impact can separately degrade when Lexicon or Arcana structural state is unavailable. Evaluate the affected owner before attributing a missed investigation to the interface as a whole.
 
 ## Independent lanes are not a global answer ranking
 
@@ -24,11 +34,11 @@ Search results include compact source excerpts to reduce unnecessary inspection 
 
 Document results include freshness and provenance metadata where available, but relevance does not prove that a document still matches implementation. Current source remains the authority for executable behavior.
 
-## Relationship discovery is intentionally local
+## Structural expansion is explicit and bounded
 
-The search relationship lane returns bounded direct relationships around discovered symbols. It is not an exhaustive transitive graph query. Use `trace` for paths and `impact` for bounded dependents.
+Search does not automatically expand graph neighbours. Use a returned stable handle with `trace` for bounded paths or `impact` for bounded dependents.
 
-When Arcana is unavailable, Lexicon relationship facts provide a narrower fallback. Unsupported or unresolved language constructs can still omit edges.
+Impact merges candidate evidence from Lexicon and Arcana and ranks it for the current query, but it is still bounded by candidate, depth, and result limits. Unsupported or unresolved language constructs can omit edges, and provider-local traversal may truncate before every possible dependent is considered.
 
 ## Structural components remain optional runtime dependencies
 
@@ -101,3 +111,14 @@ The root test, build, and release workflow defaults to one worker across Go and 
 Human-readable errors, diagnostic codes, JSON error envelopes, exit-code classes, CLI spelling, and prepared/vector state migration policy are not yet stable release promises.
 
 The current public discovery schema is `grimoire.discovery.v1`. Consumers must reject unsupported schemas rather than infer compatibility from field presence.
+
+## Related docs
+
+- [System overview](../architecture/system-overview.md)
+- [Discovery quality](../development/retrieval-quality.md)
+- [Roadmap](../planning/roadmap.md)
+- [Embedding model](../reference/embedding-model.md)
+
+## Notes
+
+Intentional architecture invariants belong in architecture documents; future remedies belong in planning.

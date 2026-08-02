@@ -8,7 +8,7 @@ This document defines documentation ownership and minimum coverage for Grimoire,
 
 ## Overview
 
-Grimoire uses the shared CLI-product profile with stateful and research capabilities. The root documentation tree owns the unified product and cross-component contracts. Lexicon and Arcana retain independently indexed component documentation under their source roots.
+Grimoire uses the shared CLI-product profile with stateful, protocol, data-pipeline, and research capabilities. Lexicon uses the library-engine profile with stateful and data-pipeline capabilities; Arcana uses the library-engine profile with stateful, protocol, and data-pipeline capabilities. The root documentation tree owns the unified product and cross-component contracts, while Lexicon and Arcana retain independently indexed component documentation under their source roots.
 
 ## Canonical ownership
 
@@ -35,6 +35,8 @@ Grimoire uses the shared CLI-product profile with stateful and research capabili
 - Limitations remain explicit until resolved.
 - Every production package, command family, component boundary, stateful flow, and machine-readable contract maps to canonical current documentation.
 - Every documentation tree is independently indexed and checked.
+- Documentation baselines are not permitted; root, Lexicon, and Arcana checks must pass without suppressed findings.
+- Pitlord owns executable repository architecture policy under `tools/pitlord/`; the shared documentation checker and `scripts/check_docs.py` own documentation structure and repository-specific documentation governance. All run in standards CI.
 
 ## Code map policy
 

@@ -1,5 +1,8 @@
 .grimoire/
 .grimoire-eval/
+.go-cache/
+.pytest_cache/
+.tooling/
 .warlock/
 .lexicon/
 .arcana/
@@ -14,6 +17,7 @@ coverage.out
 /.tmp-*/
 /bin/
 /build/
+/build-*/
 /dist/
 __pycache__/
 *.pyc

@@ -1,5 +1,15 @@
 # Grimoire CLI
 
+Parent index: [Reference](INDEX.md)
+
+## Purpose
+
+This document defines Grimoire's public command families, flags, environment variables, defaults, forwarding behavior, and error semantics.
+
+## Overview
+
+The CLI provides progressive discovery, MCP serving, repository preparation, component namespaces, documentation vectors, embedding-runtime control, investigations, evaluation, and version reporting.
+
 ## Invocation
 
 ```bash
@@ -118,7 +128,9 @@ grimoire mcp --root .
 
 The exposed tool is `grimoire_discover`. The MCP server adds automatic repository preparation and optional investigation-session deduplication. Narrow session-backed search returns handle nodes and retrieval hits while deferring source ranges until inspection.
 
-`--audit-log <path>` writes one JSONL record per tool call using schema `grimoire.mcp.audit.v1`. Each record contains the decoded request, exact structured response, and any execution error. This is intended for benchmark grounding and controlled diagnostics; it is disabled by default.
+`--max-in-flight <count>` bounds accepted tool calls awaiting completion and defaults to `8`. Additional calls receive a server-busy JSON-RPC error rather than entering an unbounded queue.
+
+`--audit-log <path>` writes one private JSONL record per tool call using schema `grimoire.mcp.audit.v2`. Source and document excerpts are redacted by default. `--audit-include-content` explicitly records those excerpts and requires `--audit-log`. Audit records still contain query metadata, repository paths, handles, and errors; retention and deletion are operator-owned.
 
 See [Grimoire MCP interface](agent-mcp.md).
 
@@ -338,9 +350,13 @@ Provider and embedding configuration is documented with the owning component. Co
 
 Forwarded Lexicon and Arcana commands retain their component ownership; Grimoire does not reinterpret their flags or output.
 
-## Related documentation
+## Related docs
 
 - [Unified discovery contract](agent-query.md)
 - [Grimoire MCP interface](agent-mcp.md)
 - [System overview](../architecture/system-overview.md)
 - [Current limitations](../limits/current-limitations.md)
+
+## Notes
+
+Forwarded Lexicon and Arcana commands retain their component-defined flags, outputs, and compatibility boundaries.

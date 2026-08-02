@@ -1,25 +1,46 @@
-name: Documentation Standard
+name: Documentation and Architecture Standards
 
 on:
   push:
   pull_request:
 
 jobs:
-  documentation:
+  standards:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: lexicon/go.mod
+          cache: false
+      - name: Install Pitlord
+        run: |
+          mkdir -p "$RUNNER_TEMP/pitlord-bin"
+          GOBIN="$RUNNER_TEMP/pitlord-bin" go install github.com/Lokee86/pitlord/cmd/pitlord@v0.1.2
+          echo "$RUNNER_TEMP/pitlord-bin" >> "$GITHUB_PATH"
+      - name: Check architecture with Pitlord
+        run: |
+          pitlord validate --policy tools/pitlord/policy.json
+          pitlord check --repo . --policy tools/pitlord/policy.json --timeout 2m
       - name: Check Grimoire documentation
         run: python .standards/docs_policy/check.py --repo .
       - name: Check Lexicon documentation
         run: python .standards/docs_policy/check.py --repo . --config docs-standard.lexicon.json
       - name: Check Arcana documentation
         run: python .standards/docs_policy/check.py --repo . --config docs-standard.arcana.json
-      - name: Check documentation impact
+      - name: Check Grimoire documentation governance
+        run: python scripts/check_docs.py
+      - name: Check Grimoire documentation impact
         if: github.event_name == 'pull_request'
         run: python .standards/docs_policy/check.py --repo . --changed-from "${{ github.event.pull_request.base.sha }}"
+      - name: Check Lexicon documentation impact
+        if: github.event_name == 'pull_request'
+        run: python .standards/docs_policy/check.py --repo . --config docs-standard.lexicon.json --changed-from "${{ github.event.pull_request.base.sha }}"
+      - name: Check Arcana documentation impact
+        if: github.event_name == 'pull_request'
+        run: python .standards/docs_policy/check.py --repo . --config docs-standard.arcana.json --changed-from "${{ github.event.pull_request.base.sha }}"

@@ -1,12 +1,24 @@
 # Testing and benchmarks
 
+Parent index: [Development Documentation](INDEX.md)
+
+## Purpose
+
+This document defines Grimoire's correctness-test, documentation-check, evaluation, and benchmark workflows.
+
+## Overview
+
+Verification is split by component ownership and evidence type. Deterministic correctness gates remain distinct from performance measurements and agent-outcome experiments.
+
 Verification is split by owning component and by discovery outcome.
 
 ## CPU-bounded root workflow
 
-The root workflow validates the complete Markdown surface and then runs component tests. It defaults to one worker:
+The root workflow verifies architectural invariants and the pinned Lodestone checkout, validates the complete Markdown surface, and then runs component tests. It defaults to one worker:
 
 ```bash
+pitlord validate --policy tools/pitlord/policy.json
+pitlord check --repo . --policy tools/pitlord/policy.json
 python scripts/check_docs.py
 python scripts/workflow.py test
 python scripts/workflow.py build --version dev
@@ -162,7 +174,8 @@ Current end-to-end results and task-shape interpretation are summarized in [Agen
 
 | Verification surface | Primary implementation or command owner | Related artifacts |
 | --- | --- | --- |
-| Root bounded workflow | `scripts/workflow.py` | `scripts/test_workflow.py` |
+| Root bounded workflow and Lodestone identity | `scripts/workflow.py` | `scripts/test_workflow.py`, pinned checkout verification |
+| Architecture policy | `tools/pitlord/policy.json`, `tools/pitlord/repository.json` | root workflow and standards CI Pitlord checks |
 | Go package tests | `internal/**`, `cmd/**` | package-local `*_test.go` files |
 | Lexicon full matrix | `lexicon/evaluation/run_tests.py` | adapter and application test suites |
 | Lexicon corpus validation | `lexicon/evaluation/run_validation.py` | `lexicon/evaluation/validation/` |
@@ -173,3 +186,15 @@ Current end-to-end results and task-shape interpretation are summarized in [Agen
 | Documentation validation | `scripts/check_docs.py`, `.standards/docs_policy/` | root and component documentation gates |
 
 Benchmarks provide measured evidence; they do not replace deterministic correctness tests or component contracts.
+
+## Related docs
+
+- [Release workflow](release-workflow.md)
+- [Discovery quality](retrieval-quality.md)
+- [Agent benchmark findings](agent-benchmark-findings.md)
+- [Behavioral contract matrix](behavioral-contract-matrix.md)
+- [Architecture verification](architecture-verification.md)
+
+## Notes
+
+Benchmark evidence supplements but never replaces deterministic component, contract, storage, or documentation checks.

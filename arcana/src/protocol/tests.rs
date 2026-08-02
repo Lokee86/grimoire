@@ -25,6 +25,16 @@ fn serves_repository_queries_and_snapshot_diffs() {
     write_snapshot(&other_path, other_facts());
     let snapshot = ProtocolSnapshot::open(&current_path).unwrap();
 
+    let capabilities = request(&snapshot, r#"{"op":"capabilities"}"#);
+    assert_eq!(capabilities["result"]["protocol"], "arcana.query.v1");
+    assert_eq!(capabilities["result"]["version"], 1);
+    assert!(
+        capabilities["result"]["operations"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("export_graph"))
+    );
+
     let resolved = request(
         &snapshot,
         r#"{"id":"symbol","op":"resolve_symbol","name":"caller","kind":"function"}"#,

@@ -79,6 +79,19 @@ End Sub
 	}
 }
 
+func TestLogicalLinesSplitColonStatementsWithoutSplittingLabelsOrDates(t *testing.T) {
+	lines := logicalLines("sample.lss", "ErrorHandler:\nCall First() : Call Second(#12:30:00#)\n")
+	if len(lines) != 2 {
+		t.Fatalf("logical line count = %d, want 2: %#v", len(lines), lines)
+	}
+	if lines[0].text != "Call First()" {
+		t.Fatalf("first statement = %q", lines[0].text)
+	}
+	if lines[1].text != "Call Second(#12:30:00#)" {
+		t.Fatalf("second statement = %q", lines[1].text)
+	}
+}
+
 func TestLogicalLinesPreservePipeStringsAndContinuations(t *testing.T) {
 	lines := logicalLines("sample.lss", "Call Helper( _\n    |apostrophe ' remains|) ' comment\n")
 	if len(lines) != 1 {

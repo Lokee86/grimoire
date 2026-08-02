@@ -1,5 +1,15 @@
 # Lexicon architecture
 
+Parent index: [Lexicon Documentation](README.md)
+
+## Purpose
+
+This document defines Lexicon's implemented ownership, analysis lifecycle, immutable storage model, incremental boundary, concurrency, publication, recovery, and compatibility seams.
+
+## Overview
+
+Lexicon transforms repository source into versioned language-neutral facts through independently executable adapters, content-addressed objects, immutable snapshots, and deterministic post-publication consumer handoff.
+
 Lexicon is an on-demand repository analysis application with an optional watch mode. It owns language extraction, normalized facts, incremental analysis decisions, immutable fact storage, and atomic snapshot publication.
 
 It is not a general graph database, retrieval engine, documentation manager, or version-control system.
@@ -200,3 +210,18 @@ Internal package structure, temporary adapter JSONL paths, private mirror implem
 | Concurrency and writer safety | `internal/scan/resource_scheduler.go`, `parallel_plan.go`, `internal/lock/` | scheduler, parallel-plan, and lock tests |
 
 Adapters own parsing and semantic resolution. Arcana owns graph compilation and queries. Lexicon architecture ends at normalized immutable facts and consumer publication.
+
+## Tests
+
+Architecture invariants are protected by package-local tests under `internal/scan/`, `internal/objectstore/`, `internal/state/`, `internal/files/`, `internal/scope/`, `internal/watch/`, `internal/lock/`, `internal/consumer/`, and `internal/interstack/`, plus the complete adapter test matrix.
+
+## Related docs
+
+- [Application and operations](APPLICATION.md)
+- [Dependency semantics](DEPENDENCY_SEMANTICS.md)
+- [Development and verification](DEVELOPMENT.md)
+- [Maintainer map](MAINTAINER_MAP.md)
+
+## Notes
+
+Arcana graph compilation and Grimoire discovery remain outside Lexicon's ownership boundary.

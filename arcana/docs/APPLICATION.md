@@ -1,5 +1,15 @@
 # Arcana application and operations reference
 
+Parent index: [Arcana Documentation](README.md)
+
+## Purpose
+
+This document defines Arcana's executable commands, managed state, locking, publication, diagnostics, exit behavior, and operator-facing workflows.
+
+## Overview
+
+Arcana imports or synchronizes normalized facts, publishes immutable graph generations, serves deterministic queries, optionally builds semantic graph vectors, and runs graph-storage benchmarks.
+
 This document describes the current `arcana` executable and its on-disk operating model. It is grounded in `arcana/src/main.rs`, `arcana/src/cli.rs`, the command-specific CLI modules, the library modules they call, and their focused tests.
 
 Use the narrower documents for detailed contracts:
@@ -364,3 +374,14 @@ The operational behavior above is covered by focused tests rather than inferred 
 | Benchmark command | `src/benchmark/`, `src/synthetic/` | benchmark and synthetic tests |
 
 The direct `query` command is not the overlay-aware repository protocol. Language parsing remains outside Arcana.
+
+## Related docs
+
+- [Arcana architecture](ARCHITECTURE.md)
+- [Lexicon ingestion contract](LEXICON_CONTRACT.md)
+- [Repository snapshots](repository-snapshots.md)
+- [Vector index](vector-index.md)
+
+## Notes
+
+Direct commands expose Arcana's specialist surface; Grimoire normally coordinates synchronization and protocol sessions automatically.

@@ -1,5 +1,15 @@
 # Discovery quality
 
+Parent index: [Development Documentation](INDEX.md)
+
+## Purpose
+
+This document defines how Grimoire discovery quality is evaluated and attributed across independent evidence lanes and end-to-end agent tasks.
+
+## Overview
+
+Quality reporting separates exact source, BM25 source, documentation, symbols, relationships, handle validity, and agent decision quality instead of collapsing them into one undifferentiated score.
+
 Grimoire's active quality target is successful progressive repository investigation, not the quality of a preassembled context package.
 
 ## Evaluate lanes independently
@@ -103,3 +113,14 @@ The repository contains older retrieval and package-fitting corpora and reports.
 | End-to-end agent discovery | `evaluation/agent_discovery/`, `evaluation/agent_benchmark_tasks.v2.json` | retained benchmark runs and findings |
 
 Evaluation code measures bounded corpora and tasks. It does not establish universal answer quality or replace correctness tests.
+
+## Related docs
+
+- [Testing and benchmarks](testing-and-benchmarks.md)
+- [Agent benchmark findings](agent-benchmark-findings.md)
+- [Unified discovery contract](../reference/agent-query.md)
+- [Current limitations](../limits/current-limitations.md)
+
+## Notes
+
+Measured results apply only to their recorded corpus, provider state, model, revision, and task conditions.

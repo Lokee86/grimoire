@@ -24,7 +24,8 @@ def write_stream(path: Path) -> None:
         {"id": source, "kind": "function", "name": "run", "path": "main.go", "qualified_name": "run", "record": "node"},
         {"id": target, "kind": "function", "name": "work", "path": "main.go", "qualified_name": "work", "record": "node"},
         {"id": data, "kind": "variable", "name": "value", "path": "main.go", "qualified_name": "value", "record": "node"},
-        {"record": "edge", "relation": "calls", "source": source, "target": target},
+        {"attributes": {"resolution": "javac"}, "record": "edge", "relation": "calls", "source": source, "target": target},
+        {"record": "edge", "relation": "contains", "source": source, "target": target},
         {"record": "edge", "relation": "reads", "source": source, "target": data},
         {"expression": "dynamic()", "reason": "dynamic-target", "record": "unresolved", "relation": "calls", "source": source},
     ]
@@ -35,7 +36,19 @@ def test_summarizes_semantic_capabilities(tmp_path: Path) -> None:
     facts = tmp_path / "facts.jsonl"
     write_stream(facts)
     report = MODULE.summarize(facts)
-    assert report["edge_relations"] == {"calls": 1, "reads": 1}
+    assert report["edge_relations"] == {"calls": 1, "contains": 1, "reads": 1}
+    assert report["connectivity"] == {
+        "compiler_resolved_edges": 1,
+        "compiler_resolved_relations": {"calls": 1},
+        "edge_density": 1.0,
+        "semantic_edge_density": 0.666667,
+        "semantic_endpoint_fraction": 1.0,
+        "semantic_endpoints": 3,
+        "semantic_edges": 2,
+        "structural_edges": 1,
+        "total_edges": 3,
+        "total_nodes": 3,
+    }
     assert report["call_quality"] == {"definite_fraction": 0.5, "resolved_fraction": 0.5, "total": 2}
     assert report["capabilities"]["dataflow"] is True
     assert report["capabilities"]["dependencies"] is False

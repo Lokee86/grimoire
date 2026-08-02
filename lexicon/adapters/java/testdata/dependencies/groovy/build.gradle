@@ -1,0 +1,22 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    implementation("com.google.guava:guava:33.2.1-jre")
+    implementation 'org.apache.commons:commons-lang3:3.14.0'
+    api("com.squareup.okio:okio:3.9.0")
+    compileOnly("org.jetbrains:annotations:24.1.0")
+    runtimeOnly 'ch.qos.logback:logback-classic:1.5.6'
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+    kapt("com.google.dagger:dagger-compiler:2.51.1")
+    implementation("com.google.guava:guava:33.2.1-jre")
+
+    implementation(libs.guava)
+    implementation "org.example:dynamic:$version"
+    implementation(project(":local"))
+    implementation platform("org.example:platform:1.0.0")
+}
+
+// implementation("ignored:commented:1.0")
+def text = 'implementation("ignored:string:1.0")'

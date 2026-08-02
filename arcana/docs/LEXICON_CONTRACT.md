@@ -1,5 +1,15 @@
 # Lexicon ingestion boundary
 
+Parent index: [Arcana Documentation](README.md)
+
+## Purpose
+
+This document defines Arcana's exact ingestion boundary for immutable Lexicon snapshots, identities, normalized semantics, compatibility warnings, and synchronization decisions.
+
+## Overview
+
+Arcana verifies Lexicon state and converts supported normalized facts into repository graph input without invoking adapters or inventing missing language semantics.
+
 Arcana consumes Lexicon snapshot contract v1 and compacts its durable identities into a packed repository graph. Binary v1 fact objects are the normal snapshot transport: Arcana verifies their exact content hashes, decodes their node, edge, and unresolved sections into typed records, and does not reconstruct JSONL. Legacy canonical JSON fact objects and the complete JSONL importer remain available for migration and diagnostics.
 
 ## Identity boundary
@@ -25,7 +35,7 @@ Source spans are preserved in the catalogue and unresolved-reference store. Expl
 
 Arcana does not reject an otherwise valid Lexicon snapshot solely because a newer adapter emits an unrecognized semantic label:
 
-- known unresolved-reason labels remain typed, including the C-family macro reasons `unsupported-macro-expansion`, `macro-argument-mismatch`, `macro-expansion-cycle`, and `macro-expansion-depth`;
+- known unresolved-reason labels remain typed, including the C-family macro reasons `unsupported-macro-expansion`, `macro-argument-mismatch`, `macro-expansion-cycle`, and `macro-expansion-depth`, plus Java compiler signals `compiler-analysis-failed` and `compiler-identity-mismatch`;
 - unknown unresolved-reason labels are preserved verbatim and remain queryable and visible in statistics;
 - unknown node kinds are conservatively represented as `symbol` so their identities and recognized relationships remain available;
 - edge and unresolved-reference records with unknown relation labels are skipped because Arcana cannot safely invent graph semantics for them.
@@ -55,3 +65,14 @@ Scoped Lexicon `mode=incremental` JSONL streams remain invalid as complete impor
 | Normative producer contract | `lexicon/spec/` | owned and verified by Lexicon; consumed here |
 
 Arcana reads immutable Lexicon state. It does not invoke adapters or reinterpret source-language semantics.
+
+## Related docs
+
+- [Arcana architecture](ARCHITECTURE.md)
+- [Repository snapshots](repository-snapshots.md)
+- [Lexicon architecture](../../lexicon/docs/ARCHITECTURE.md)
+- [Root analysis stack](../../docs/architecture/analysis-stack.md)
+
+## Notes
+
+Unknown compatible vocabulary is degraded only according to the documented warning policy; corrupt or unsafe input fails.

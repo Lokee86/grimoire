@@ -12,7 +12,7 @@ func permanentlyIgnoredDirectory(entry fs.DirEntry) bool {
 		return false
 	}
 	switch entry.Name() {
-	case ".git", ".grimoire", ".ddocs", ".lexicon", ".arcana", ".warlock", ".worktrees", ".workingtrees":
+	case ".git", ".grimoire", ".grimoire-eval", ".ddocs", ".lexicon", ".arcana", ".go-cache", ".pytest_cache", ".tooling", ".tmp", ".warlock", ".worktrees", ".workingtrees", "bin", "build", "build-warlock-graph":
 		return true
 	default:
 		return false

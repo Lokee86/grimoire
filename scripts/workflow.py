@@ -19,9 +19,17 @@ from typing import Iterable, Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_LODESTONE_ROOT = ROOT.parent / "lodestone"
+LODESTONE_COMMIT = "372abb7b9d5c9fb19eeaf92774849505e1dfbade"
+LODESTONE_GO_VERSION = "v0.0.0-20260727052216-372abb7b9d5c"
+PITLORD_VERSION = "v0.1.2"
 DEFAULT_BUILD = ROOT / "build"
 DEFAULT_DIST = ROOT / "dist"
 VERSION_PATTERN = re.compile(r"^[0-9A-Za-z][0-9A-Za-z.+_-]*$")
+LEXICON_TOOLS = ROOT / "lexicon" / "tools"
+if str(LEXICON_TOOLS) not in sys.path:
+    sys.path.insert(0, str(LEXICON_TOOLS))
+from java_release import build_java_adapter
+from package_release import build_csharp
 
 
 def executable_name(name: str, platform_name: str | None = None) -> str:
@@ -37,6 +45,22 @@ def native_library_name(platform_name: str | None = None) -> str:
     return "liblodestone_ffi.so"
 
 
+def pitlord_command() -> str:
+    configured = os.environ.get("PITLORD")
+    if configured:
+        return configured
+    found = shutil.which("pitlord")
+    if found:
+        return found
+    sibling = ROOT.parent / "pitlord" / "bin" / executable_name("pitlord")
+    if sibling.is_file():
+        return str(sibling)
+    raise FileNotFoundError(
+        f"Pitlord is required; install github.com/Lokee86/pitlord/cmd/pitlord@{PITLORD_VERSION} "
+        "or set PITLORD"
+    )
+
+
 def default_skill_roots() -> tuple[Path, ...]:
     return (
         Path.home() / ".agents" / "skills",
@@ -47,6 +71,32 @@ def default_skill_roots() -> tuple[Path, ...]:
 def lodestone_root() -> Path:
     configured = os.environ.get("LODESTONE_ROOT")
     return Path(configured).resolve() if configured else DEFAULT_LODESTONE_ROOT.resolve()
+
+
+def verify_lodestone_checkout() -> Path:
+    """Require the exact Lodestone source identity consumed by this release."""
+    root = lodestone_root()
+    binding_module = root / "bindings" / "go" / "go.mod"
+    if not binding_module.is_file():
+        raise FileNotFoundError(
+            f"Lodestone Go bindings were not found at {binding_module}; set LODESTONE_ROOT"
+        )
+    module_text = binding_module.read_text(encoding="utf-8")
+    if "module github.com/Lokee86/lodestone/bindings/go" not in module_text:
+        raise RuntimeError(f"unexpected Lodestone Go module identity in {binding_module}")
+    completed = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
+    )
+    actual = completed.stdout.strip()
+    if actual != LODESTONE_COMMIT:
+        raise RuntimeError(
+            f"Lodestone checkout {actual or '<unknown>'} does not match pinned {LODESTONE_COMMIT}"
+        )
+    root_module = (ROOT / "go.mod").read_text(encoding="utf-8")
+    requirement = f"github.com/Lokee86/lodestone/bindings/go {LODESTONE_GO_VERSION}"
+    if requirement not in root_module:
+        raise RuntimeError(f"go.mod does not require pinned Lodestone version {LODESTONE_GO_VERSION}")
+    return root
 
 
 def target_label(platform_name: str | None = None, machine: str | None = None) -> str:
@@ -118,6 +168,7 @@ def build(version: str, output: Path, jobs: int = 1) -> Path:
     native_dir = output / "native"
     bin_dir.mkdir(parents=True)
     native_dir.mkdir(parents=True)
+    lodestone = verify_lodestone_checkout()
 
     go_ldflags = f"-X github.com/Lokee86/grimoire/internal/app.Version={version}"
     run(
@@ -145,7 +196,6 @@ def build(version: str, output: Path, jobs: int = 1) -> Path:
     )
     copy_file(ROOT / "arcana" / "target" / "release" / executable_name("arcana"), bin_dir / executable_name("arcana"))
 
-    lodestone = lodestone_root()
     lodestone_manifest = lodestone / "Cargo.toml"
     if not lodestone_manifest.is_file():
         raise FileNotFoundError(
@@ -178,10 +228,11 @@ def package_lexicon_adapters(
         source,
         destination,
         ignore=shutil.ignore_patterns(
-            "__pycache__", "*.pyc", ".pytest_cache", "target", "node_modules", "dist"
+            "__pycache__", "*.pyc", ".pytest_cache", ".tools", "bin", "obj",
+            "target", "node_modules", "dist", "runtime.facts.jsonl"
         ),
     )
-    for language in ("c-family", "go", "gdscript", "generic"):
+    for language in ("c-family", "go", "gdscript", "kotlin", "generic"):
         run(
             [
                 "go", "build", "-p", str(jobs), "-trimpath", "-buildvcs=false",
@@ -190,6 +241,8 @@ def package_lexicon_adapters(
             source / language,
             environment,
         )
+    build_java_adapter(ROOT / "lexicon", destination / "java")
+    build_csharp(ROOT / "lexicon", destination / "csharp")
     rust_manifest = source / "rust" / "Cargo.toml"
     if rust_manifest.is_file():
         run(
@@ -229,14 +282,26 @@ def verify_versions(build_root: Path, version: str) -> None:
 
 
 def test(jobs: int = 1) -> None:
-    """Run documentation and component suites with bounded parallelism."""
+    """Run policy, documentation, and component suites with bounded parallelism."""
     jobs = validate_jobs(jobs)
     environment = bounded_env(jobs)
     cargo = cargo_command()
+    pitlord = pitlord_command()
+    verify_lodestone_checkout()
+    policy = "tools/pitlord/policy.json"
+    run([pitlord, "validate", "--policy", policy], ROOT, environment)
+    run([pitlord, "check", "--repo", ".", "--policy", policy, "--timeout", "2m"], ROOT, environment)
     run([sys.executable, "scripts/check_docs.py"], ROOT, environment)
     go_test = ["go", "test", "-p", str(jobs), "-parallel", str(jobs), "./..."]
     run(go_test, ROOT, environment)
     run(go_test, ROOT / "lexicon", environment)
+    for adapter in ("java", "kotlin"):
+        run(go_test, ROOT / "lexicon" / "adapters" / adapter, environment)
+    run(
+        [sys.executable, "lexicon/adapters/csharp/tests/test_adapter.py"],
+        ROOT,
+        environment,
+    )
     run([
         cargo, "test", "--jobs", str(jobs), "--all-targets", "--locked",
         "--manifest-path", str(ROOT / "arcana" / "Cargo.toml"),

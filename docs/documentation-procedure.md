@@ -36,10 +36,11 @@ Maintainer maps are short routing documents. Do not expand them into repository 
 python .standards/docs_policy/check.py --repo .
 python .standards/docs_policy/check.py --repo . --config docs-standard.lexicon.json
 python .standards/docs_policy/check.py --repo . --config docs-standard.arcana.json
+python scripts/check_docs.py
 python scripts/workflow.py test
 ```
 
-Use `--changed-from` on the root checker for pull-request change-impact enforcement.
+For pull-request change-impact enforcement, run `--changed-from <base>` against the root, Lexicon, and Arcana configurations. Baselines are not accepted; every configured tree must report zero findings directly.
 
 ## Related docs
 

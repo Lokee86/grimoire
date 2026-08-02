@@ -1,8 +1,38 @@
 # Agent benchmark findings
 
+Parent index: [Development Documentation](INDEX.md)
+
+## Purpose
+
+This document records and interprets the current end-to-end agent-discovery benchmark evidence retained in the repository.
+
+## Overview
+
+The results compare progressive Grimoire discovery with direct inspection and other assisted conditions across tasks of different scope. They are dated experimental evidence, not universal product guarantees.
+
+## Research status
+
+Active dated evidence with known methodological limitations. New runs may supersede conclusions for a task class but do not rewrite the historical artifacts.
+
+## Question
+
+When does progressive repository discovery improve agent correctness or efficiency, and when does it add unnecessary context or operational overhead?
+
+## Method
+
+Run matched implementation-investigation tasks under direct and assisted tool conditions, retain tool telemetry and answers, and score architecture, grounding, evidence compliance, efficiency, and validity separately.
+
+## Corpus or inputs
+
+The retained corpus includes Space Rocks architecture tasks, Grimoire ownership tasks, cross-language locator tasks, LevelDB impact analysis, and unfamiliar-repository tasks in HikariCP, Detekt, and Now in Android.
+
+## Results
+
+The current evidence shows one strong Grimoire win on a broad architecture task, clear losses on smaller or strongly named tasks, and a mixed LevelDB result invalidated by canonical-handle mismatch. Direct inspection or a smaller retrieval aid remains stronger when the prompt has already narrowed the working set.
+
 This page summarizes the current end-to-end agent benchmarks and the operational conclusions they support. Raw reports remain the source of truth for exact prompts, revisions, tool restrictions, state, and telemetry.
 
-## Current conclusion
+## Interpretation
 
 These runs are recorded as experimental evidence, but the multi-repository suite is **not a good neutral benchmark of discovery systems**. Its prompts name the subsystem, enumerate the expected ownership areas, and supply enough domain vocabulary to turn much of the work into a checklist of lexical searches. A strong model with `rg` and direct file reads is therefore operating in unusually favorable conditions: most of the ambiguity that discovery tooling is designed to remove has already been removed by the benchmark prompt.
 
@@ -253,3 +283,21 @@ Earlier benchmark:
 
 Every report is evidence only for its recorded conditions and date.
 
+## Limitations
+
+The suites contain few trials, task prompts can expose substantial domain vocabulary, provider health can invalidate a condition, and results do not isolate every causal factor such as context position or model variance.
+
+## Retained artifacts
+
+Task definitions, raw reports, machine summaries, telemetry, cited source ranges, and scoring records live under `evaluation/` and the dated `evaluation/results/` directories listed above.
+
+## Related docs
+
+- [Testing and benchmarks](testing-and-benchmarks.md)
+- [Discovery quality](retrieval-quality.md)
+- [Current limitations](../limits/current-limitations.md)
+- [Roadmap](../planning/roadmap.md)
+
+## Notes
+
+Raw reports remain authoritative for exact prompts, revisions, tool access, state, telemetry, and validity decisions.

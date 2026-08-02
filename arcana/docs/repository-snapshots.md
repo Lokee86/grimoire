@@ -1,5 +1,15 @@
 # Repository snapshots and incremental updates
 
+Parent index: [Arcana Documentation](README.md)
+
+## Purpose
+
+This document defines Arcana repository generations, initial import, changed-file updates, immutable publication, overlay behavior, and the node-set rebuild boundary.
+
+## Overview
+
+A repository snapshot binds a verified graph, catalogue, unresolved records, and source facts into one immutable generation. Edge-only changes may use overlays; node-set changes require a packed rebuild.
+
 Arcana repository snapshots bind the graph and its semantic metadata into one verified generation.
 
 A published repository snapshot contains:
@@ -62,3 +72,14 @@ This rule preserves fast packed traversal and prevents an incremental update fro
 | Compaction | `src/snapshot/compaction.rs` | compaction tests |
 
 Overlays may change edges only. Node-set changes require a packed rebuild.
+
+## Related docs
+
+- [Arcana architecture](ARCHITECTURE.md)
+- [Application and operations](APPLICATION.md)
+- [Lexicon ingestion contract](LEXICON_CONTRACT.md)
+- [Current status](STATUS.md)
+
+## Notes
+
+Dense node identifiers are generation-local and may not be silently reinterpreted across a node-set change.
