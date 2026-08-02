@@ -104,6 +104,7 @@ internal static class MsBuildDiscovery
             .ToArray();
         return new RepositoryModel(
             documents.Values.OrderBy(document => document.RelativePath, StringComparer.Ordinal).ToArray(),
+            loadedProjects,
             0,
             "msbuild",
             loadedProjects,

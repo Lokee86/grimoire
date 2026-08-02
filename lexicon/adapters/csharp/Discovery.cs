@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -11,6 +13,7 @@ internal sealed record SourceDocument(
 
 internal sealed record RepositoryModel(
     IReadOnlyList<SourceDocument> Documents,
+    int CompilationCount,
     int FallbackFileCount,
     string Mode,
     int ProjectCount,
@@ -20,6 +23,8 @@ internal sealed record RepositoryModel(
 
 internal static class Discovery
 {
+    private const int MaxFallbackCompilationFiles = 512;
+
     private static readonly HashSet<string> IgnoredDirectories = new(StringComparer.OrdinalIgnoreCase)
     {
         ".git", ".lexicon", ".worktrees", ".workingtrees", ".vs", ".idea",
@@ -73,25 +78,55 @@ internal static class Discovery
 
     private static RepositoryModel LoadFiles(
         string root,
-        IReadOnlyList<string>? workspaceDiagnostics = null)
+        IReadOnlyList<string>? workspaceDiagnostics = null,
+        IReadOnlySet<string>? excludedRelativePaths = null)
     {
-        var provisional = DiscoverFiles(root)
+        var projectDirectories = ProjectFiles.Discover(root)
+            .Select(Path.GetDirectoryName)
+            .Where(directory => !string.IsNullOrWhiteSpace(directory))
+            .Select(directory => Path.GetFullPath(directory!))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var references = TrustedPlatformReferences();
+        var options = new CSharpCompilationOptions(
+            OutputKind.DynamicallyLinkedLibrary,
+            allowUnsafe: true,
+            nullableContextOptions: NullableContextOptions.Enable);
+        var documents = new List<SourceDocument>();
+        var compilationCount = 0;
+
+        var groups = DiscoverFiles(root)
             .Select(path => LoadSyntax(root, path))
-            .OrderBy(document => document.RelativePath, StringComparer.Ordinal)
-            .ToArray();
-        var compilation = CSharpCompilation.Create(
-            assemblyName: "Lexicon.CSharp.Analysis",
-            syntaxTrees: provisional.Select(document => document.SyntaxTree),
-            references: TrustedPlatformReferences(),
-            options: new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary,
-                allowUnsafe: true,
-                nullableContextOptions: NullableContextOptions.Enable));
-        var documents = provisional
-            .Select(document => document with { Compilation = compilation })
-            .ToArray();
+            .Where(document => excludedRelativePaths is null ||
+                !excludedRelativePaths.Contains(document.RelativePath))
+            .GroupBy(
+                document => FallbackCompilationGroup(root, document.AbsolutePath, projectDirectories),
+                StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase);
+        foreach (var group in groups)
+        {
+            var ordered = group
+                .OrderBy(document => document.RelativePath, StringComparer.Ordinal)
+                .ToArray();
+            for (var offset = 0; offset < ordered.Length; offset += MaxFallbackCompilationFiles)
+            {
+                var shard = offset / MaxFallbackCompilationFiles;
+                var provisional = ordered
+                    .Skip(offset)
+                    .Take(MaxFallbackCompilationFiles)
+                    .ToArray();
+                var compilation = CSharpCompilation.Create(
+                    assemblyName: FallbackAssemblyName(group.Key, shard),
+                    syntaxTrees: provisional.Select(document => document.SyntaxTree),
+                    references: references,
+                    options: options);
+                documents.AddRange(provisional.Select(document => document with { Compilation = compilation }));
+                compilationCount++;
+            }
+        }
+
         return new RepositoryModel(
-            documents,
+            documents.OrderBy(document => document.RelativePath, StringComparer.Ordinal).ToArray(),
+            compilationCount,
             0,
             "files",
             0,
@@ -102,10 +137,10 @@ internal static class Discovery
 
     private static RepositoryModel CompleteProjectModel(string root, RepositoryModel projectModel)
     {
-        var fallback = LoadFiles(root);
         var documents = projectModel.Documents.ToDictionary(
             document => document.RelativePath,
             StringComparer.Ordinal);
+        var fallback = LoadFiles(root, excludedRelativePaths: documents.Keys.ToHashSet(StringComparer.Ordinal));
         var added = 0;
         foreach (var document in fallback.Documents)
         {
@@ -117,9 +152,49 @@ internal static class Discovery
         return projectModel with
         {
             Documents = documents.Values.OrderBy(document => document.RelativePath, StringComparer.Ordinal).ToArray(),
+            CompilationCount = projectModel.CompilationCount + fallback.CompilationCount,
             FallbackFileCount = added,
             Mode = added == 0 ? "msbuild" : "msbuild+files",
         };
+    }
+
+    private static string FallbackCompilationGroup(
+        string root,
+        string absolutePath,
+        IReadOnlySet<string> projectDirectories)
+    {
+        var directory = Path.GetDirectoryName(absolutePath);
+        while (!string.IsNullOrWhiteSpace(directory) && IsInside(root, directory))
+        {
+            if (projectDirectories.Contains(directory))
+            {
+                return Facts.NormalizePath(Path.GetRelativePath(root, directory));
+            }
+            var parent = Directory.GetParent(directory)?.FullName;
+            if (string.Equals(parent, directory, StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+            directory = parent;
+        }
+
+        var relativePath = Facts.NormalizePath(Path.GetRelativePath(root, absolutePath));
+        var separator = relativePath.IndexOf('/');
+        return separator < 0 ? "." : relativePath[..separator];
+    }
+
+    private static string FallbackAssemblyName(string group, int shard)
+    {
+        var identity = $"{group}\n{shard}";
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(identity));
+        return $"Lexicon.CSharp.Analysis.{Convert.ToHexString(hash.AsSpan(0, 8))}";
+    }
+
+    private static bool IsInside(string root, string path)
+    {
+        var relative = Path.GetRelativePath(root, path);
+        return relative != ".." &&
+            !relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
     }
 
     private static IEnumerable<string> DiscoverFiles(string root)

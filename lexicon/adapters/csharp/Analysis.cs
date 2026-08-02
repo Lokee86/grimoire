@@ -13,6 +13,7 @@ internal sealed partial class Analysis
         var attributes = new SortedDictionary<string, object?>(StringComparer.Ordinal)
         {
             ["analysis_mode"] = model.Mode,
+            ["compilation_count"] = model.CompilationCount,
             ["fallback_file_count"] = model.FallbackFileCount,
             ["project_count"] = model.ProjectCount,
             ["target_framework"] = model.TargetFramework,

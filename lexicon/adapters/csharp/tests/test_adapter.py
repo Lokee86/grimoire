@@ -143,6 +143,7 @@ def main() -> int:
         project_path = directory / "project.jsonl"
         project_second_path = directory / "project-second.jsonl"
         fallback_path = directory / "fallback.jsonl"
+        sharded_path = directory / "sharded.jsonl"
 
         first = run_adapter(SMOKE_FIXTURE, first_path)
         second = run_adapter(SMOKE_FIXTURE, second_path)
@@ -194,7 +195,25 @@ def main() -> int:
         assert_valid(fallback)
         assert repository_node(fallback)["attributes"]["analysis_mode"] == "files"
 
-    print("C# adapter smoke, MSBuild graph, determinism, relation, and incremental checks passed")
+        sharded_root = directory / "sharded"
+        sharded_root.mkdir()
+        for index in range(513):
+            (sharded_root / f"Type{index:04d}.cs").write_text(
+                f"internal static class Type{index:04d} {{ internal static int Value => {index}; }}\n",
+                encoding="utf-8",
+            )
+        sharded = run_adapter(
+            sharded_root,
+            sharded_path,
+            "--project-loading",
+            "files",
+        )
+        assert_valid(sharded)
+        sharded_attributes = repository_node(sharded)["attributes"]
+        assert sharded_attributes["analysis_mode"] == "files"
+        assert sharded_attributes["compilation_count"] == 2, sharded_attributes
+
+    print("C# adapter smoke, MSBuild graph, sharding, determinism, relation, and incremental checks passed")
     return 0
 
 
