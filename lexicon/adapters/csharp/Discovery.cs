@@ -48,9 +48,16 @@ internal static class Discovery
                         "MSBuild project loading was requested but no project graph could be loaded");
                 }
             }
-            catch (InvalidOperationException) when (loadingMode == ProjectLoadingMode.Auto)
+            catch (Exception error) when (
+                loadingMode == ProjectLoadingMode.Auto &&
+                error is not OperationCanceledException)
             {
-                // Project evaluation is optional in auto mode; file loading remains the safe fallback.
+                // Project evaluation is optional in auto mode. Preserve a deterministic reason for
+                // the fallback without allowing SDK/MSBuild compatibility failures to abort analysis.
+                return LoadFiles(root, new[]
+                {
+                    $"MSBuild project loading failed: {error.GetType().FullName}",
+                });
             }
         }
 
@@ -64,7 +71,9 @@ internal static class Discovery
             .Any(IgnoredDirectories.Contains);
     }
 
-    private static RepositoryModel LoadFiles(string root)
+    private static RepositoryModel LoadFiles(
+        string root,
+        IReadOnlyList<string>? workspaceDiagnostics = null)
     {
         var provisional = DiscoverFiles(root)
             .Select(path => LoadSyntax(root, path))
@@ -81,7 +90,14 @@ internal static class Discovery
         var documents = provisional
             .Select(document => document with { Compilation = compilation })
             .ToArray();
-        return new RepositoryModel(documents, 0, "files", 0, root, null, Array.Empty<string>());
+        return new RepositoryModel(
+            documents,
+            0,
+            "files",
+            0,
+            root,
+            null,
+            workspaceDiagnostics ?? Array.Empty<string>());
     }
 
     private static RepositoryModel CompleteProjectModel(string root, RepositoryModel projectModel)
