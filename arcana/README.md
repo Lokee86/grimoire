@@ -250,4 +250,4 @@ cargo run -- --version
 
 ## License
 
-Arcana is available under the [MIT License](LICENSE.md).
+Arcana is available under the [PolyForm Shield License 1.0.0](LICENSE.md). Competing products and services require a separate commercial license. See the repository root [LICENSING.md](../LICENSING.md).

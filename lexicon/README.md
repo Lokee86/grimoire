@@ -162,4 +162,4 @@ Lexicon is independently usable, but its canonical source now shares the Grimoir
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Lexicon is available under the [PolyForm Shield License 1.0.0](LICENSE). Competing products and services require a separate commercial license. See the repository root [LICENSING.md](../LICENSING.md).

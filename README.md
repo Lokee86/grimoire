@@ -346,3 +346,7 @@ Reference documentation describes implemented behavior. Unimplemented work belon
 ## Current status
 
 Lexicon and Arcana are consolidated into this repository while retaining explicit process, state, and release boundaries. Grimoire owns the normal repository-investigation workflow. The active product path is progressive evidence discovery, not preassembled context packages.
+
+## License
+
+Grimoire and the bundled Arcana and Lexicon source are available under the [PolyForm Shield License 1.0.0](LICENSE.md). Competing products and services require a separate commercial license. See [LICENSING.md](LICENSING.md).
