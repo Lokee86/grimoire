@@ -24,6 +24,8 @@ LODESTONE_GO_VERSION = "v0.0.0-20260727052216-372abb7b9d5c"
 PITLORD_VERSION = "v0.1.2"
 DEFAULT_BUILD = ROOT / "build"
 DEFAULT_DIST = ROOT / "dist"
+LEGAL_FILES = ("LICENSE.md", "LICENSING.md", "THIRD_PARTY_NOTICES.md")
+LODESTONE_LICENSE = Path("licenses") / "lodestone-Apache-2.0.txt"
 VERSION_PATTERN = re.compile(r"^[0-9A-Za-z][0-9A-Za-z.+_-]*$")
 LEXICON_TOOLS = ROOT / "lexicon" / "tools"
 if str(LEXICON_TOOLS) not in sys.path:
@@ -168,6 +170,9 @@ def build(version: str, output: Path, jobs: int = 1) -> Path:
     native_dir = output / "native"
     bin_dir.mkdir(parents=True)
     native_dir.mkdir(parents=True)
+    for name in LEGAL_FILES:
+        copy_file(ROOT / name, output / name)
+    copy_file(ROOT / LODESTONE_LICENSE, output / LODESTONE_LICENSE)
     lodestone = verify_lodestone_checkout()
 
     go_ldflags = f"-X github.com/Lokee86/grimoire/internal/app.Version={version}"
@@ -401,12 +406,18 @@ def package_artifacts(build_root: Path, output: Path, version: str, platform_nam
 
     with tempfile.TemporaryDirectory(prefix="grimoire-release-") as temporary:
         staging = Path(temporary)
+        common_legal = [(ROOT / name, name) for name in LEGAL_FILES]
+        lodestone_legal = (ROOT / LODESTONE_LICENSE, LODESTONE_LICENSE.as_posix())
         specs = {
-            "grimoire": [(build_root / "bin" / exe("grimoire"), exe("grimoire")),
-                         (build_root / "native" / library, library),
-                         (build_root / "skills" / "grimoire" / "SKILL.md", "skills/grimoire/SKILL.md")],
-            "lexicon": [(build_root / "bin" / exe("lexicon"), exe("lexicon"))],
-            "arcana": [(build_root / "bin" / exe("arcana"), exe("arcana"))],
+            "grimoire": [
+                (build_root / "bin" / exe("grimoire"), exe("grimoire")),
+                (build_root / "native" / library, library),
+                (build_root / "skills" / "grimoire" / "SKILL.md", "skills/grimoire/SKILL.md"),
+                *common_legal,
+                lodestone_legal,
+            ],
+            "lexicon": [(build_root / "bin" / exe("lexicon"), exe("lexicon")), *common_legal],
+            "arcana": [(build_root / "bin" / exe("arcana"), exe("arcana")), *common_legal],
         }
         for component, files in specs.items():
             component_stage = staging / component
@@ -418,7 +429,7 @@ def package_artifacts(build_root: Path, output: Path, version: str, platform_nam
             archives.append(archive)
 
         combined_stage = staging / "combined"
-        _stage_files(combined_stage, [], version)
+        _stage_files(combined_stage, [*common_legal, lodestone_legal], version)
         for relative in ("bin", "native", "adapters", "skills"):
             shutil.copytree(build_root / relative, combined_stage / relative)
         copy_file(ROOT / "scripts" / "install.py", combined_stage / "install.py")

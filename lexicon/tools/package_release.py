@@ -186,6 +186,10 @@ def build_distribution(repo: Path, output: Path, version: str | None = None) -> 
         shutil.rmtree(output)
     adapters = output / "adapters"
     adapters.mkdir(parents=True)
+    copy_file(repo / "LICENSE", output / "LICENSE")
+    licensing = repo / "LICENSING.md"
+    if licensing.is_file():
+        copy_file(licensing, output / "LICENSING.md")
 
     lexicon = output / executable_name("lexicon")
     run(go_build_command(lexicon, "./cmd/lexicon", version), repo)
